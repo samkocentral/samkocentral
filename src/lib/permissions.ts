@@ -185,9 +185,9 @@ export function getDefaultTabPermissionsForRole(roleLevel: string): UserTabPermi
         result[tab.id] = { enabled: true, accessLevel: 'write' };
         break;
 
-      case 'L2': // Admin: Everything except Settings, Edit & Write
+      case 'L2': // Admin (Propco/Opco): Full access including Settings, Edit & Write
         result[tab.id] = {
-          enabled: tab.id !== 'settings',
+          enabled: true,
           accessLevel: 'write',
         };
         break;
