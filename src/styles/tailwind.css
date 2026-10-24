@@ -31,6 +31,7 @@
   --info: #60a5fa;
   --info-bg: rgba(96,165,250,0.10);
   --purple: #a78bfa;
+  --surface: #11141a;
   --surface2: #181c24;
   --surface3: #1e2330;
   --text2: #8892a4;
@@ -45,6 +46,7 @@
 
   html {
     scroll-behavior: smooth;
+    color-scheme: dark;
   }
 
   body {
@@ -53,6 +55,76 @@
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Universal base styling for all select dropdowns across the application */
+  select {
+    -webkit-appearance: none !important;
+    -moz-appearance: none !important;
+    appearance: none !important;
+    color-scheme: dark !important;
+    cursor: pointer !important;
+    outline: none !important;
+    transition: all 0.15s ease !important;
+  }
+
+  /* Hide IE / legacy Edge default select dropdown arrow */
+  select::-ms-expand {
+    display: none !important;
+  }
+
+  /* Standard form and filter selects that need a single built-in chevron icon */
+  select:not(.appearance-none):not([class*="appearance-none"]):not(.no-chevron) {
+    border-radius: 10px !important;
+    background-color: var(--surface2) !important;
+    color: var(--foreground) !important;
+    border: 1px solid var(--border) !important;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%23e8c97a' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E") !important;
+    background-repeat: no-repeat !important;
+    background-position: right 10px center !important;
+    padding-right: 32px !important;
+  }
+
+  /* Prevent double chevrons: ensure selects with explicit appearance-none or custom Lucide sibling never show background chevron */
+  select.appearance-none,
+  select[class*="appearance-none"],
+  select.no-chevron,
+  .relative:has(> svg.lucide-chevron-down) > select,
+  .relative:has(> svg) > select,
+  div:has(> svg.lucide-chevron-down) > select {
+    background-image: none !important;
+  }
+
+  select:focus, select:hover {
+    border-color: rgba(232, 201, 122, 0.45) !important;
+    box-shadow: 0 0 0 2px rgba(232, 201, 122, 0.12) !important;
+  }
+
+  select option {
+    background-color: #161a22 !important;
+    color: #eef0f5 !important;
+    padding: 10px 14px !important;
+    font-size: 13px !important;
+    border-radius: 8px !important;
+  }
+
+  select option:checked,
+  select option:hover {
+    background-color: #1f2533 !important;
+    color: #e8c97a !important;
+  }
+
+  /* Solid opaque styling for all modal cards and dialogs */
+  .samko-modal-overlay {
+    background-color: rgba(0, 0, 0, 0.85) !important;
+    backdrop-filter: blur(8px) !important;
+    -webkit-backdrop-filter: blur(8px) !important;
+  }
+
+  .samko-modal-card {
+    background-color: #11141a !important;
+    border: 1px solid var(--border-strong) !important;
+    box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.9), 0 0 0 1px rgba(255, 255, 255, 0.06) !important;
   }
 
   h1, h2, h3, h4, h5, h6, p {
@@ -323,4 +395,209 @@
 @keyframes pulse-gold {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.5; }
+}
+
+/* ───────────────────────────────────────────────────────────── */
+/* Sonner Situational Cool Color Toast Styling (Top-Right Edge) */
+/* ───────────────────────────────────────────────────────────── */
+
+[data-sonner-toaster] {
+  top: 18px !important;
+  right: 18px !important;
+  left: auto !important;
+  bottom: auto !important;
+  z-index: 99999999 !important;
+  position: fixed !important;
+}
+
+[data-sonner-toast],
+.samko-toast {
+  border-radius: 14px !important;
+  padding: 14px 18px !important;
+  backdrop-filter: blur(24px) !important;
+  -webkit-backdrop-filter: blur(24px) !important;
+  font-family: var(--font-sans) !important;
+  font-size: 13px !important;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  box-sizing: border-box !important;
+}
+
+/* ───────────────────────────────────────────────────────────── */
+/* 1. SUCCESS: Cool Emerald Green (Completions, Creations, Saves) */
+/* ───────────────────────────────────────────────────────────── */
+[data-sonner-toast][data-type="success"],
+.samko-toast[data-type="success"] {
+  background: linear-gradient(135deg, rgba(8, 28, 18, 0.96) 0%, rgba(4, 16, 10, 0.98) 100%) !important;
+  border: 1.5px solid rgba(52, 211, 153, 0.45) !important;
+  box-shadow: 0 10px 32px rgba(16, 185, 129, 0.25), 0 4px 16px rgba(0, 0, 0, 0.6) !important;
+  color: #34d399 !important;
+}
+[data-sonner-toast][data-type="success"] [data-icon],
+[data-sonner-toast][data-type="success"] [data-icon] svg {
+  color: #34d399 !important;
+  stroke: #34d399 !important;
+}
+[data-sonner-toast][data-type="success"] [data-title],
+[data-sonner-toast][data-type="success"] .samko-toast-title {
+  color: #34d399 !important;
+  font-weight: 700 !important;
+  font-size: 13.5px !important;
+  letter-spacing: -0.01em !important;
+}
+[data-sonner-toast][data-type="success"] [data-description],
+[data-sonner-toast][data-type="success"] .samko-toast-desc {
+  color: #a7f3d0 !important;
+  font-size: 12px !important;
+  margin-top: 3px !important;
+  opacity: 0.95 !important;
+  line-height: 1.4 !important;
+}
+
+/* ───────────────────────────────────────────────────────────── */
+/* 2. ERROR / DESTRUCTIVE / DELETE: Cool Rose Red (Not White!)  */
+/* ───────────────────────────────────────────────────────────── */
+[data-sonner-toast][data-type="error"],
+.samko-toast[data-type="error"] {
+  background: linear-gradient(135deg, rgba(38, 10, 18, 0.96) 0%, rgba(20, 5, 10, 0.98) 100%) !important;
+  border: 1.5px solid rgba(244, 63, 94, 0.5) !important;
+  box-shadow: 0 10px 32px rgba(244, 63, 94, 0.28), 0 4px 16px rgba(0, 0, 0, 0.6) !important;
+  color: #f43f5e !important;
+}
+[data-sonner-toast][data-type="error"] [data-icon],
+[data-sonner-toast][data-type="error"] [data-icon] svg {
+  color: #f43f5e !important;
+  stroke: #f43f5e !important;
+}
+[data-sonner-toast][data-type="error"] [data-title],
+[data-sonner-toast][data-type="error"] .samko-toast-title {
+  color: #f43f5e !important;
+  font-weight: 700 !important;
+  font-size: 13.5px !important;
+  letter-spacing: -0.01em !important;
+}
+[data-sonner-toast][data-type="error"] [data-description],
+[data-sonner-toast][data-type="error"] .samko-toast-desc {
+  color: #fecdd3 !important;
+  font-size: 12px !important;
+  margin-top: 3px !important;
+  opacity: 0.95 !important;
+  line-height: 1.4 !important;
+}
+
+/* ───────────────────────────────────────────────────────────── */
+/* 3. WARNING: Warm Amber Gold                                  */
+/* ───────────────────────────────────────────────────────────── */
+[data-sonner-toast][data-type="warning"],
+.samko-toast[data-type="warning"] {
+  background: linear-gradient(135deg, rgba(36, 22, 6, 0.96) 0%, rgba(18, 11, 3, 0.98) 100%) !important;
+  border: 1.5px solid rgba(245, 158, 11, 0.5) !important;
+  box-shadow: 0 10px 32px rgba(245, 158, 11, 0.25), 0 4px 16px rgba(0, 0, 0, 0.6) !important;
+  color: #fbbf24 !important;
+}
+[data-sonner-toast][data-type="warning"] [data-icon],
+[data-sonner-toast][data-type="warning"] [data-icon] svg {
+  color: #fbbf24 !important;
+  stroke: #fbbf24 !important;
+}
+[data-sonner-toast][data-type="warning"] [data-title],
+[data-sonner-toast][data-type="warning"] .samko-toast-title {
+  color: #fbbf24 !important;
+  font-weight: 700 !important;
+  font-size: 13.5px !important;
+  letter-spacing: -0.01em !important;
+}
+[data-sonner-toast][data-type="warning"] [data-description],
+[data-sonner-toast][data-type="warning"] .samko-toast-desc {
+  color: #fef3c7 !important;
+  font-size: 12px !important;
+  margin-top: 3px !important;
+  opacity: 0.95 !important;
+  line-height: 1.4 !important;
+}
+
+/* ───────────────────────────────────────────────────────────── */
+/* 4. INFO: Cool Sky Cyan (Reopen, Information, Notices)        */
+/* ───────────────────────────────────────────────────────────── */
+[data-sonner-toast][data-type="info"],
+.samko-toast[data-type="info"] {
+  background: linear-gradient(135deg, rgba(10, 26, 42, 0.96) 0%, rgba(5, 13, 22, 0.98) 100%) !important;
+  border: 1.5px solid rgba(56, 189, 248, 0.5) !important;
+  box-shadow: 0 10px 32px rgba(56, 189, 248, 0.25), 0 4px 16px rgba(0, 0, 0, 0.6) !important;
+  color: #38bdf8 !important;
+}
+[data-sonner-toast][data-type="info"] [data-icon],
+[data-sonner-toast][data-type="info"] [data-icon] svg {
+  color: #38bdf8 !important;
+  stroke: #38bdf8 !important;
+}
+[data-sonner-toast][data-type="info"] [data-title],
+[data-sonner-toast][data-type="info"] .samko-toast-title {
+  color: #38bdf8 !important;
+  font-weight: 700 !important;
+  font-size: 13.5px !important;
+  letter-spacing: -0.01em !important;
+}
+[data-sonner-toast][data-type="info"] [data-description],
+[data-sonner-toast][data-type="info"] .samko-toast-desc {
+  color: #bae6fd !important;
+  font-size: 12px !important;
+  margin-top: 3px !important;
+  opacity: 0.95 !important;
+  line-height: 1.4 !important;
+}
+
+/* ───────────────────────────────────────────────────────────── */
+/* 5. DEFAULT / BRAND TOAST: Samko Luxury Gold                  */
+/* ───────────────────────────────────────────────────────────── */
+[data-sonner-toast][data-type="default"],
+[data-sonner-toast]:not([data-type]),
+.samko-toast[data-type="default"] {
+  background: linear-gradient(135deg, rgba(26, 22, 14, 0.96) 0%, rgba(14, 12, 8, 0.98) 100%) !important;
+  border: 1.5px solid rgba(232, 201, 122, 0.45) !important;
+  box-shadow: 0 10px 32px rgba(232, 201, 122, 0.22), 0 4px 16px rgba(0, 0, 0, 0.6) !important;
+  color: #e8c97a !important;
+}
+[data-sonner-toast][data-type="default"] [data-icon],
+[data-sonner-toast]:not([data-type]) [data-icon],
+[data-sonner-toast][data-type="default"] [data-icon] svg,
+[data-sonner-toast]:not([data-type]) [data-icon] svg {
+  color: #e8c97a !important;
+  stroke: #e8c97a !important;
+}
+[data-sonner-toast][data-type="default"] [data-title],
+[data-sonner-toast]:not([data-type]) [data-title],
+[data-sonner-toast][data-type="default"] .samko-toast-title,
+[data-sonner-toast]:not([data-type]) .samko-toast-title {
+  color: #e8c97a !important;
+  font-weight: 700 !important;
+  font-size: 13.5px !important;
+  letter-spacing: -0.01em !important;
+}
+[data-sonner-toast][data-type="default"] [data-description],
+[data-sonner-toast]:not([data-type]) [data-description],
+[data-sonner-toast][data-type="default"] .samko-toast-desc,
+[data-sonner-toast]:not([data-type]) .samko-toast-desc {
+  color: #fef3c7 !important;
+  font-size: 12px !important;
+  margin-top: 3px !important;
+  opacity: 0.92 !important;
+  line-height: 1.4 !important;
+}
+
+/* ───────────────────────────────────────────────────────────── */
+/* Close Button Styling                                         */
+/* ───────────────────────────────────────────────────────────── */
+[data-sonner-toaster] [data-close-button],
+.samko-toast-close {
+  background: rgba(255, 255, 255, 0.08) !important;
+  border: 1px solid rgba(255, 255, 255, 0.18) !important;
+  color: #f3f4f6 !important;
+  border-radius: 9999px !important;
+  transition: all 0.15s ease !important;
+}
+[data-sonner-toaster] [data-close-button]:hover,
+.samko-toast-close:hover {
+  background: rgba(255, 255, 255, 0.2) !important;
+  color: #fff !important;
+  transform: scale(1.08) !important;
 }

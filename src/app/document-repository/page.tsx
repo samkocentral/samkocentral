@@ -11,7 +11,7 @@ export default function DocumentRepositoryPage() {
       />
       <main
         className="flex-1 overflow-y-auto"
-        style={{ padding: '24px 28px', background: 'var(--background)' }}
+        style={{ padding: '20px 24px', background: 'var(--background)' }}
       >
         <DocumentRepositoryClient />
       </main>

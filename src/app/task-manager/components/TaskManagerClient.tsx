@@ -1,13 +1,16 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { useForm } from 'react-hook-form';
-import { Plus, Search, X, ClipboardList, Loader2 } from 'lucide-react';
-import { TASKS, SITES, daysUntil, formatDateGB } from '@/lib/mockData';
+import { Plus, Search, X, ClipboardList, Loader2, RefreshCw } from 'lucide-react';
+import { TASKS, daysUntil, formatDateGB } from '@/lib/mockData';
 import type { Task, TaskPriority, TaskStatus } from '@/lib/mockData';
+import { api } from '@/lib/api';
+import { useAuth } from '@/lib/authContext';
 
 import Modal from '@/components/ui/Modal';
 import EmptyState from '@/components/ui/EmptyState';
+import StatusDropdown from '@/components/ui/StatusDropdown';
 import { toast } from 'sonner';
 
 const PRIORITY_FILTERS = ['All', 'urgent', 'high', 'medium', 'low'] as const;
@@ -37,12 +40,50 @@ const STATUS_VARIANT: Record<TaskStatus, 'ok' | 'warning' | 'info' | 'critical'>
 };
 
 export default function TaskManagerClient() {
+  const { isViewer, canEdit } = useAuth();
+  const [tasks, setTasks] = useState<Task[]>(TASKS);
+  const [propertyList, setPropertyList] = useState<string[]>([
+    'Crowne Plaza Kingston-south',
+    'Stanhill Court',
+    'Hampton 1 & 2',
+    'Ravents Ait Island',
+    'River Club',
+  ]);
+  const [loading, setLoading] = useState(false);
   const [priorityFilter, setPriorityFilter] = useState<typeof PRIORITY_FILTERS[number]>('All');
   const [statusFilter, setStatusFilter] = useState<typeof STATUS_FILTERS_TASK[number]>('All');
   const [search, setSearch] = useState('');
   const [createOpen, setCreateOpen] = useState(false);
   const [taskStatuses, setTaskStatuses] = useState<Record<string, TaskStatus>>({});
   const [openStatusDropdown, setOpenStatusDropdown] = useState<string | null>(null);
+
+  const fetchTasks = useCallback(async () => {
+    try {
+      setLoading(true);
+      const [tasksRes, propsRes] = await Promise.allSettled([
+        api.tasks.getAll(),
+        api.properties.getAll(),
+      ]);
+
+      if (tasksRes.status === 'fulfilled' && tasksRes.value.success && tasksRes.value.data && tasksRes.value.data.length > 0) {
+        setTasks(tasksRes.value.data);
+      }
+      if (propsRes.status === 'fulfilled' && propsRes.value.success && propsRes.value.data && propsRes.value.data.length > 0) {
+        setPropertyList(propsRes.value.data.map((p: any) => p.name));
+      }
+    } catch (err) {
+      console.warn('Using local fallback task data:', err);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchTasks();
+    const handleDataChanged = () => fetchTasks();
+    window.addEventListener('samko:data-changed', handleDataChanged);
+    return () => window.removeEventListener('samko:data-changed', handleDataChanged);
+  }, [fetchTasks]);
 
   const {
     register,
@@ -52,7 +93,7 @@ export default function TaskManagerClient() {
   } = useForm<TaskFormValues>({
     defaultValues: {
       title: '',
-      site: 'The Grand Meridian',
+      site: 'Crowne Plaza Kingston-south',
       priority: 'medium',
       due: '',
       assignee: '',
@@ -66,12 +107,12 @@ export default function TaskManagerClient() {
   };
 
   const filtered = useMemo(() => {
-    let tasks = [...TASKS];
-    if (priorityFilter !== 'All') tasks = tasks.filter((t) => t.priority === priorityFilter);
-    if (statusFilter !== 'All') tasks = tasks.filter((t) => getTaskStatus(t) === statusFilter);
+    let result = [...tasks];
+    if (priorityFilter !== 'All') result = result.filter((t) => t.priority === priorityFilter);
+    if (statusFilter !== 'All') result = result.filter((t) => getTaskStatus(t) === statusFilter);
     if (search) {
       const q = search.toLowerCase();
-      tasks = tasks.filter(
+      result = result.filter(
         (t) =>
           t.title.toLowerCase().includes(q) ||
           t.site.toLowerCase().includes(q) ||
@@ -80,37 +121,64 @@ export default function TaskManagerClient() {
     }
     // Sort by priority then due date
     const pOrder: Record<TaskPriority, number> = { urgent: 0, high: 1, medium: 2, low: 3 };
-    tasks.sort((a, b) => {
+    result.sort((a, b) => {
       const pDiff = pOrder[a.priority] - pOrder[b.priority];
       if (pDiff !== 0) return pDiff;
       return daysUntil(a.due) - daysUntil(b.due);
     });
-    return tasks;
-  }, [priorityFilter, statusFilter, search, taskStatuses]);
+    return result;
+  }, [priorityFilter, statusFilter, search, taskStatuses, tasks]);
 
   const taskCounts = useMemo(() => ({
-    urgent: TASKS.filter((t) => t.priority === 'urgent').length,
-    open: TASKS.filter((t) => getTaskStatus(t) === 'open').length,
-    inProgress: TASKS.filter((t) => getTaskStatus(t) === 'in-progress').length,
-    completed: TASKS.filter((t) => getTaskStatus(t) === 'completed').length,
-  }), [taskStatuses]);
+    urgent: tasks.filter((t) => t.priority === 'urgent').length,
+    open: tasks.filter((t) => getTaskStatus(t) === 'open').length,
+    inProgress: tasks.filter((t) => getTaskStatus(t) === 'in-progress').length,
+    completed: tasks.filter((t) => getTaskStatus(t) === 'completed').length,
+  }), [taskStatuses, tasks]);
 
-  const handleStatusChange = (taskId: string, newStatus: TaskStatus) => {
+  const handleStatusChange = async (taskId: string, newStatus: TaskStatus) => {
     setTaskStatuses((prev) => ({ ...prev, [taskId]: newStatus }));
+    setTasks((prev) => prev.map((t) => (t.id === taskId ? { ...t, status: newStatus } : t)));
     setOpenStatusDropdown(null);
     toast.success('Task status updated', {
       description: `Status changed to ${newStatus}`,
     });
+
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(
+        new CustomEvent('samko:data-changed', {
+          detail: { type: 'task', id: taskId, status: newStatus },
+        })
+      );
+    }
+
+    try {
+      await api.tasks.update(taskId, { status: newStatus });
+    } catch (e) {
+      console.error('Failed to sync task status:', e);
+    }
   };
 
-  // Backend integration point: replace with task creation API call
   const handleCreate = handleSubmit(async (data) => {
-    await new Promise((r) => setTimeout(r, 800));
-    toast.success('Task created', {
-      description: `"${data.title}" assigned to ${data.assignee || 'unassigned'}`,
-    });
-    reset();
-    setCreateOpen(false);
+    try {
+      const created = await api.tasks.create({
+        ...data,
+        status: 'open',
+      });
+      if (created.success && created.data) {
+        setTasks((prev) => [created.data, ...prev]);
+      }
+      toast.success('Task created successfully', {
+        description: `"${data.title}" assigned to ${data.assignee || 'unassigned'}`,
+      });
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('samko:data-changed', { detail: { type: 'task-created' } }));
+      }
+      reset();
+      setCreateOpen(false);
+    } catch (e: any) {
+      toast.error('Failed to create task', { description: e?.message });
+    }
   });
 
   return (
@@ -175,14 +243,23 @@ export default function TaskManagerClient() {
           )}
         </div>
 
-        <button
-          onClick={() => setCreateOpen(true)}
-          className="samko-btn-primary flex items-center gap-2 ml-auto"
-          style={{ padding: '8px 16px', fontSize: 12 }}
-        >
-          <Plus size={13} />
-          Create Task
-        </button>
+        {canEdit ? (
+          <button
+            onClick={() => setCreateOpen(true)}
+            className="samko-btn-primary flex items-center gap-2 ml-auto"
+            style={{ padding: '8px 16px', fontSize: 12 }}
+          >
+            <Plus size={13} />
+            Create Task
+          </button>
+        ) : isViewer ? (
+          <span
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold ml-auto"
+            style={{ background: 'rgba(148,163,184,0.12)', color: '#94a3b8', border: '1px solid rgba(148,163,184,0.25)' }}
+          >
+            L4 · Read-Only Access
+          </span>
+        ) : null}
       </div>
 
       {/* Priority chips */}
@@ -235,7 +312,7 @@ export default function TaskManagerClient() {
           />
         ) : (
           <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <table style={{ width: '100%', minWidth: 860, borderCollapse: 'collapse' }}>
               <thead>
                 <tr>
                   {['Priority', 'Task', 'Site', 'Category', 'Assignee', 'Status', 'Due Date', 'Days Left'].map((h) => (
@@ -322,92 +399,17 @@ export default function TaskManagerClient() {
                         </div>
                       </td>
                       <td className="table-cell">
-                        {/* Inline status change dropdown */}
-                        <div className="relative">
-                          <button
-                            onClick={() => setOpenStatusDropdown(isDropdownOpen ? null : task.id)}
-                            className="flex items-center gap-1 rounded-full transition-all duration-150"
-                            style={{
-                              background:
-                                currentStatus === 'completed'
-                                  ? 'var(--ok-bg)'
-                                  : currentStatus === 'in-progress' ?'var(--info-bg)' :'var(--warning-bg)',
-                              color:
-                                currentStatus === 'completed'
-                                  ? 'var(--ok)'
-                                  : currentStatus === 'in-progress' ?'var(--info)' :'var(--warning)',
-                              padding: '3px 9px',
-                              fontSize: 11,
-                              fontWeight: 600,
-                              border: 'none',
-                              cursor: 'pointer',
-                              fontFamily: 'var(--font-sans)',
-                            }}
-                            aria-label="Change task status"
-                          >
-                            <span className="status-dot" style={{ background: 'currentColor' }} />
-                            {currentStatus.charAt(0).toUpperCase() + currentStatus.slice(1)}
-                            <span style={{ fontSize: 9, marginLeft: 2 }}>▾</span>
-                          </button>
-
-                          {isDropdownOpen && (
-                            <div
-                              className="absolute z-20 rounded-lg scale-in"
-                              style={{
-                                top: '100%',
-                                left: 0,
-                                marginTop: 4,
-                                background: 'var(--card)',
-                                border: '1px solid var(--border-strong)',
-                                boxShadow: '0 8px 24px rgba(0,0,0,0.4)',
-                                minWidth: 140,
-                                overflow: 'hidden',
-                              }}
-                            >
-                              {(['open', 'in-progress', 'completed'] as TaskStatus[]).map((s) => (
-                                <button
-                                  key={`status-opt-${task.id}-${s}`}
-                                  onClick={() => handleStatusChange(task.id, s)}
-                                  className="w-full flex items-center gap-2 transition-all duration-100"
-                                  style={{
-                                    padding: '9px 14px',
-                                    background: currentStatus === s ? 'var(--surface2)' : 'transparent',
-                                    border: 'none',
-                                    cursor: 'pointer',
-                                    fontSize: 12,
-                                    fontWeight: 500,
-                                    color: 'var(--foreground)',
-                                    fontFamily: 'var(--font-sans)',
-                                    textAlign: 'left',
-                                  }}
-                                  onMouseEnter={(e) => {
-                                    (e.currentTarget as HTMLElement).style.background = 'var(--surface2)';
-                                  }}
-                                  onMouseLeave={(e) => {
-                                    if (currentStatus !== s) {
-                                      (e.currentTarget as HTMLElement).style.background = 'transparent';
-                                    }
-                                  }}
-                                >
-                                  <span
-                                    className="rounded-full"
-                                    style={{
-                                      width: 6,
-                                      height: 6,
-                                      background:
-                                        s === 'completed'
-                                          ? 'var(--ok)'
-                                          : s === 'in-progress' ?'var(--info)' :'var(--warning)',
-                                      display: 'block',
-                                      flexShrink: 0,
-                                    }}
-                                  />
-                                  {s.charAt(0).toUpperCase() + s.slice(1)}
-                                </button>
-                              ))}
-                            </div>
-                          )}
-                        </div>
+                        <StatusDropdown
+                          value={currentStatus}
+                          disabled={isViewer}
+                          title={isViewer ? 'Read-only access (L4 Viewer)' : 'Change task status'}
+                          options={[
+                            { value: 'open', label: 'Open', color: '#f59e0b', bg: 'var(--warning-bg)' },
+                            { value: 'in-progress', label: 'In Progress', color: '#60a5fa', bg: 'var(--info-bg)' },
+                            { value: 'completed', label: 'Completed', color: '#3dd68c', bg: 'var(--ok-bg)' },
+                          ]}
+                          onChange={(val) => handleStatusChange(task.id, val as TaskStatus)}
+                        />
                       </td>
                       <td className="table-cell text-muted2" style={{ fontSize: 12, whiteSpace: 'nowrap' }}>
                         {formatDateGB(task.due).split(' ').slice(0, 2).join(' ')}
@@ -477,8 +479,8 @@ export default function TaskManagerClient() {
                   style={{ cursor: 'pointer' }}
                   {...register('site', { required: 'Site is required' })}
                 >
-                  {SITES.map((s) => (
-                    <option key={`task-site-opt-${s.id}`} value={s.name}>{s.name}</option>
+                  {propertyList.map((propName) => (
+                    <option key={`task-site-opt-${propName}`} value={propName}>{propName}</option>
                   ))}
                   <option value="All Sites">All Sites</option>
                 </select>

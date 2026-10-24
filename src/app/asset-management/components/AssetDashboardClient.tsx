@@ -104,7 +104,7 @@ export default function AssetDashboardClient() {
     <div className="flex flex-col h-full">
       {/* Topbar */}
       <div
-        className="flex items-center justify-between px-7 py-4 border-b border-border flex-shrink-0"
+        className="flex items-center justify-between px-6 py-4 border-b border-border flex-shrink-0"
         style={{ background: 'var(--surface)' }}
       >
         <div>
@@ -132,7 +132,7 @@ export default function AssetDashboardClient() {
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-7">
+      <div className="flex-1 overflow-y-auto px-6 py-5">
         {/* KPI Grid */}
         <div className="grid grid-cols-2 gap-4 mb-6 lg:grid-cols-4">
           <StatCard label="Total Assets" value={stats.total} sub="Across all hotels" color="#60a5fa" icon={Package} />
@@ -151,19 +151,19 @@ export default function AssetDashboardClient() {
             color="#3dd68c"
             icon={CheckCircle2}
           />
-          <StatCard label="Hotels Managed" value={HOTELS.length} sub="Active properties" color="#34d399" icon={Building2} />
+          <StatCard label="Properties Managed" value={HOTELS.length} sub="Active properties" color="#34d399" icon={Building2} />
         </div>
 
         {/* Charts Row */}
         <div className="grid grid-cols-1 gap-5 mb-6 lg:grid-cols-3">
-          {/* Assets by Hotel */}
+          {/* Assets by Property */}
           <div
             className="lg:col-span-2 rounded-xl border border-border p-5"
             style={{ background: 'var(--surface)' }}
           >
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-head text-sm font-bold uppercase tracking-wide text-muted-foreground">
-                Assets by Hotel
+                Assets by Property
               </h3>
               <BarChart3 size={15} className="text-muted-foreground" />
             </div>
@@ -283,28 +283,28 @@ export default function AssetDashboardClient() {
           </div>
         </div>
 
-        {/* Hotels Overview */}
+        {/* Properties Overview */}
         <div
           className="rounded-xl border border-border p-5"
           style={{ background: 'var(--surface)' }}
         >
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-head text-sm font-bold uppercase tracking-wide text-muted-foreground">
-              Hotels Overview
+              Properties Overview
             </h3>
             <Link
-              href="/asset-management/hotels"
+              href="/asset-management/properties"
               className="flex items-center gap-1 text-xs font-semibold"
               style={{ color: 'var(--primary)' }}
             >
-              Manage Hotels <ChevronRight size={13} />
+              Manage Properties <ChevronRight size={13} />
             </Link>
           </div>
           <div className="overflow-x-auto">
-            <table className="w-full">
+            <table className="w-full min-w-[620px]">
               <thead>
                 <tr>
-                  {['Hotel', 'City', 'Manager', 'Total Assets', 'Status', ''].map((h) => (
+                  {['Property', 'City', 'Manager', 'Total Assets', 'Status', ''].map((h) => (
                     <th
                       key={h}
                       className="text-left text-xs font-bold uppercase tracking-wide text-muted-foreground pb-3 pr-4"

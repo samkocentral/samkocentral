@@ -1,10 +1,15 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Search, ChevronDown, X, ExternalLink } from 'lucide-react';
+import { Search, ChevronDown, X, ExternalLink, Loader2, FileSpreadsheet, Plus, Tag, Edit2, Trash2, AlertTriangle, Check } from 'lucide-react';
 import { ASSETS, HOTELS, ASSET_CATEGORIES, DEPARTMENTS, type Asset } from '@/lib/assetData';
+import { api } from '@/lib/api';
+import { useAuth } from '@/lib/authContext';
+import { toast } from 'sonner';
+import CustomDropdown from '@/components/ui/CustomDropdown';
+import StatusDropdown from '@/components/ui/StatusDropdown';
 
 const CONDITION_STYLES: Record<string, { bg: string; color: string }> = {
   excellent: { bg: 'rgba(61,214,140,0.12)', color: '#3dd68c' },
@@ -21,6 +26,14 @@ const RISK_STYLES: Record<string, { bg: string; color: string }> = {
   critical: { bg: 'rgba(244,63,94,0.12)', color: '#f43f5e' },
 };
 
+const STATUS_CONFIG: Record<string, { bg: string; color: string; label: string }> = {
+  active: { bg: 'rgba(61,214,140,0.12)', color: '#3dd68c', label: 'Active' },
+  'under-maintenance': { bg: 'rgba(245,158,11,0.12)', color: '#f59e0b', label: 'Under Maintenance' },
+  inactive: { bg: 'rgba(148,163,184,0.12)', color: '#94a3b8', label: 'Inactive' },
+  disposed: { bg: 'rgba(244,63,94,0.12)', color: '#f43f5e', label: 'Disposed' },
+  lost: { bg: 'rgba(244,63,94,0.12)', color: '#f43f5e', label: 'Lost' },
+};
+
 function Badge({ label, style }: { label: string; style: { bg: string; color: string } }) {
   return (
     <span
@@ -34,94 +47,325 @@ function Badge({ label, style }: { label: string; style: { bg: string; color: st
 }
 
 function FilterSelect({
-  label, value, options, onChange,
+  label,
+  value,
+  options,
+  onChange,
+  align = 'auto',
 }: {
-  label: string; value: string; options: string[]; onChange: (v: string) => void;
+  label: string;
+  value: string[];
+  options: ({ value: string; label: string } | string)[];
+  onChange: (v: string[]) => void;
+  align?: 'left' | 'right' | 'auto';
 }) {
   return (
-    <div className="relative">
-      <select
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="appearance-none text-xs font-medium pl-3 pr-7 py-2 rounded-lg border border-border outline-none cursor-pointer"
-        style={{ background: 'var(--surface2)', color: value ? 'var(--foreground)' : 'var(--text2)' }}
-      >
-        <option value="">{label}</option>
-        {options.map((o) => (
-          <option key={o} value={o}>
-            {o}
-          </option>
-        ))}
-      </select>
-      <ChevronDown size={12} className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
-    </div>
+    <CustomDropdown
+      label={label}
+      value={value}
+      options={options}
+      onChange={onChange}
+      variant="filter"
+      align={align}
+      multiple
+    />
   );
 }
 
 export default function AssetsClient() {
+  const { isViewer, canEdit, canUpload } = useAuth();
   const searchParams = useSearchParams();
   const router = useRouter();
   const initialHotel = searchParams.get('hotel') || '';
 
+  const [assets, setAssets] = useState<Asset[]>(ASSETS);
+  const [properties, setProperties] = useState<{ value: string; label: string }[]>(
+    HOTELS.map((h) => ({ value: h.id, label: h.name }))
+  );
+  const [categories, setCategories] = useState<string[]>(ASSET_CATEGORIES.map((c) => c.name));
+  const [loading, setLoading] = useState(false);
+
   const [search, setSearch] = useState('');
-  const [hotelFilter, setHotelFilter] = useState(initialHotel);
-  const [categoryFilter, setCategoryFilter] = useState('');
-  const [departmentFilter, setDepartmentFilter] = useState('');
-  const [statusFilter, setStatusFilter] = useState('');
-  const [fixedFilter, setFixedFilter] = useState('');
+  const [hotelFilter, setHotelFilter] = useState<string[]>(initialHotel ? [initialHotel] : []);
+  const [categoryFilter, setCategoryFilter] = useState<string[]>([]);
+  const [departmentFilter, setDepartmentFilter] = useState<string[]>([]);
+  const [statusFilter, setStatusFilter] = useState<string[]>([]);
   const [activeTab, setActiveTab] = useState<'all' | 'fixed' | 'non-fixed'>('all');
 
+  const [showAddCategoryModal, setShowAddCategoryModal] = useState(false);
+  const [newCatName, setNewCatName] = useState('');
+  const [newCatColor, setNewCatColor] = useState('#e8c97a');
+  const [savingCategory, setSavingCategory] = useState(false);
+
+  const [showAddAssetModal, setShowAddAssetModal] = useState(false);
+  const [savingAsset, setSavingAsset] = useState(false);
+  const [showEditAssetModal, setShowEditAssetModal] = useState(false);
+  const [editingAsset, setEditingAsset] = useState<any>(null);
+  const [assetToDelete, setAssetToDelete] = useState<Asset | null>(null);
+  const [deletingAsset, setDeletingAsset] = useState(false);
+  const [newAssetForm, setNewAssetForm] = useState({
+    name: '',
+    category: ASSET_CATEGORIES[0]?.name || 'HVAC',
+    hotelId: HOTELS[0]?.id || 'h-01',
+    hotelName: HOTELS[0]?.name || 'Crowne Plaza Kingston-south',
+    department: 'Engineering',
+    location: '',
+    quantity: 1,
+    condition: 'good',
+    riskLevel: 'low',
+    status: 'active',
+    isFixed: true,
+    serialNumber: '',
+    purchaseCost: 0,
+    notes: '',
+  });
+
+  const fetchAssets = useCallback(async () => {
+    try {
+      setLoading(true);
+      const [assetsRes, propsRes, catsRes] = await Promise.allSettled([
+        api.assets.getAll(),
+        api.properties.getAll(),
+        api.categories.getAll(),
+      ]);
+
+      if (assetsRes.status === 'fulfilled' && assetsRes.value.success && assetsRes.value.data && assetsRes.value.data.length > 0) {
+        setAssets(assetsRes.value.data);
+        try {
+          sessionStorage.setItem('samko_all_assets', JSON.stringify(assetsRes.value.data));
+        } catch {}
+      }
+      if (propsRes.status === 'fulfilled' && propsRes.value.success && propsRes.value.data && propsRes.value.data.length > 0) {
+        setProperties(propsRes.value.data.map((p: any) => ({ value: p.id, label: p.name })));
+      }
+      if (catsRes.status === 'fulfilled' && catsRes.value.success && catsRes.value.data && catsRes.value.data.length > 0) {
+        setCategories(catsRes.value.data.map((c: any) => c.name));
+      }
+    } catch (err) {
+      console.warn('Using local fallback assets data:', err);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchAssets();
+    const handleDataChanged = () => {
+      fetchAssets();
+    };
+    window.addEventListener('samko:data-changed', handleDataChanged);
+    return () => window.removeEventListener('samko:data-changed', handleDataChanged);
+  }, [fetchAssets]);
+
+  const handleStatusChange = async (assetId: string, newStatus: string) => {
+    // Optimistic update
+    setAssets((prev) =>
+      prev.map((a) => (a.id === assetId ? { ...a, status: newStatus as any } : a))
+    );
+
+    // Notify other components
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(
+        new CustomEvent('samko:data-changed', {
+          detail: { type: 'asset', id: assetId, status: newStatus },
+        })
+      );
+    }
+
+    const label = newStatus.replace('-', ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+    toast.success('Asset Status Updated', {
+      description: `Asset status changed to ${label}`,
+    });
+
+    try {
+      await api.assets.update(assetId, { status: newStatus });
+    } catch (err: any) {
+      console.error('Failed to sync asset status:', err);
+      toast.error('Failed to update status', { description: err?.message || 'Server error' });
+    }
+  };
+
+  const handleSaveCategory = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newCatName.trim()) return;
+    setSavingCategory(true);
+    const catName = newCatName.trim();
+    setCategories((prev) => (prev.includes(catName) ? prev : [...prev, catName]));
+    setShowAddCategoryModal(false);
+    setNewCatName('');
+    toast.success('Category created', { description: `Added "${catName}" to categories` });
+
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('samko:data-changed', { detail: { type: 'category' } }));
+    }
+
+    try {
+      await api.categories.create({ name: catName, color: newCatColor });
+    } catch (err: any) {
+      console.warn('Failed to save category to Firestore:', err);
+    } finally {
+      setSavingCategory(false);
+    }
+  };
+
+  const handleSaveAsset = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newAssetForm.name.trim()) return;
+    setSavingAsset(true);
+    const newId = `AST-${Date.now().toString().slice(-4)}`;
+    const assetToSave = {
+      ...newAssetForm,
+      id: newId,
+      assetId: newId,
+      nextInspection: new Date(Date.now() + 180 * 86400000).toISOString().slice(0, 10),
+      createdAt: new Date().toISOString(),
+    };
+
+    setAssets((prev) => [assetToSave as any, ...prev]);
+    setShowAddAssetModal(false);
+    toast.success('Asset created', { description: `${assetToSave.name} saved to database` });
+
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('samko:data-changed', { detail: { type: 'assets', id: newId } }));
+    }
+
+    try {
+      await api.assets.create(assetToSave);
+    } catch (err: any) {
+      console.warn('Failed to save asset to Firestore:', err);
+    } finally {
+      setSavingAsset(false);
+    }
+  };
+
+  const handleOpenEditAsset = (asset: Asset) => {
+    setEditingAsset({
+      ...asset,
+      quantity: asset.quantity || 1,
+      purchaseCost: (asset as any).purchaseCost || 0,
+    });
+    setShowEditAssetModal(true);
+  };
+
+  const handleSaveEditAsset = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingAsset) return;
+    setSavingAsset(true);
+    const updated = {
+      ...editingAsset,
+      quantity: Number(editingAsset.quantity) || 1,
+      purchaseCost: Number(editingAsset.purchaseCost) || 0,
+      updatedAt: new Date().toISOString(),
+    };
+    setAssets((prev) => prev.map((a) => (a.id === updated.id ? updated : a)));
+    setShowEditAssetModal(false);
+    toast.success('Asset updated', { description: `${updated.name} updated successfully` });
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('samko:data-changed', { detail: { type: 'assets', id: updated.id } }));
+    }
+    try {
+      await api.assets.update(updated.id, updated);
+    } catch (err: any) {
+      console.warn('Failed to update asset in Firestore:', err);
+    } finally {
+      setSavingAsset(false);
+    }
+  };
+
+  const handleDeleteAsset = async () => {
+    if (!assetToDelete) return;
+    const id = assetToDelete.id;
+    setDeletingAsset(true);
+    setAssets((prev) => prev.filter((a) => a.id !== id));
+    toast.success('Asset deleted', { description: `${assetToDelete.name} removed from register` });
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('samko:data-changed', { detail: { type: 'assets', id } }));
+    }
+    try {
+      await api.assets.delete(id);
+    } catch (err: any) {
+      console.warn('Failed to delete asset from Firestore:', err);
+    } finally {
+      setDeletingAsset(false);
+      setAssetToDelete(null);
+    }
+  };
+
   const filtered = useMemo(() => {
-    return ASSETS.filter((a) => {
+    return assets.filter((a) => {
       const q = search.toLowerCase();
       const matchSearch =
         !search ||
         a.name.toLowerCase().includes(q) ||
         a.assetId.toLowerCase().includes(q) ||
-        a.department.toLowerCase().includes(q) ||
-        a.location.toLowerCase().includes(q) ||
-        a.category.toLowerCase().includes(q) ||
+        (a.department || '').toLowerCase().includes(q) ||
+        (a.location || '').toLowerCase().includes(q) ||
+        (a.category || '').toLowerCase().includes(q) ||
         (a.manufacturer || '').toLowerCase().includes(q) ||
         (a.serialNumber || '').toLowerCase().includes(q);
 
-      const matchHotel = !hotelFilter || a.hotelId === hotelFilter;
-      const matchCategory = !categoryFilter || a.category === categoryFilter;
-      const matchDept = !departmentFilter || a.department === departmentFilter;
-      const matchStatus = !statusFilter || a.status === statusFilter;
+      const matchHotel =
+        hotelFilter.length === 0 ||
+        hotelFilter.includes(a.hotelId) ||
+        hotelFilter.includes((a as any).propertyId);
+      const matchCategory =
+        categoryFilter.length === 0 || categoryFilter.includes(a.category);
+      const matchDept =
+        departmentFilter.length === 0 || departmentFilter.includes(a.department);
+      const matchStatus =
+        statusFilter.length === 0 || statusFilter.includes(a.status);
       const matchFixed =
         activeTab === 'all' ? true : activeTab === 'fixed' ? a.isFixed : !a.isFixed;
 
       return matchSearch && matchHotel && matchCategory && matchDept && matchStatus && matchFixed;
     });
-  }, [search, hotelFilter, categoryFilter, departmentFilter, statusFilter, activeTab]);
+  }, [assets, search, hotelFilter, categoryFilter, departmentFilter, statusFilter, activeTab]);
 
-  const hasFilters = search || hotelFilter || categoryFilter || departmentFilter || statusFilter;
+  const hasFilters =
+    Boolean(search) ||
+    hotelFilter.length > 0 ||
+    categoryFilter.length > 0 ||
+    departmentFilter.length > 0 ||
+    statusFilter.length > 0;
 
   const clearFilters = () => {
     setSearch('');
-    setHotelFilter('');
-    setCategoryFilter('');
-    setDepartmentFilter('');
-    setStatusFilter('');
+    setHotelFilter([]);
+    setCategoryFilter([]);
+    setDepartmentFilter([]);
+    setStatusFilter([]);
   };
 
   const tabs = [
-    { id: 'all', label: 'All Assets', count: ASSETS.length },
-    { id: 'fixed', label: 'Fixed Assets', count: ASSETS.filter((a) => a.isFixed).length },
-    { id: 'non-fixed', label: 'Non-Fixed Assets', count: ASSETS.filter((a) => !a.isFixed).length },
+    { id: 'all', label: 'All Assets', count: assets.length },
+    { id: 'fixed', label: 'Fixed Assets', count: assets.filter((a) => a.isFixed).length },
+    { id: 'non-fixed', label: 'Non-Fixed Assets', count: assets.filter((a) => !a.isFixed).length },
   ] as const;
+
+  const cacheAssetForDetail = (a: Asset) => {
+    try {
+      sessionStorage.setItem('samko_last_clicked_asset', JSON.stringify(a));
+      sessionStorage.setItem(`samko_asset_${a.id}`, JSON.stringify(a));
+      if (a.assetId) {
+        sessionStorage.setItem(`samko_asset_${a.assetId}`, JSON.stringify(a));
+      }
+    } catch {}
+  };
 
   return (
     <div className="flex flex-col h-full">
       {/* Topbar */}
       <div
-        className="flex items-center justify-between px-7 py-4 border-b border-border flex-shrink-0"
+        className="flex items-center justify-between px-6 py-4 border-b border-border flex-shrink-0"
         style={{ background: 'var(--surface)' }}
       >
         <div>
-          <h1 className="font-head text-xl font-bold">Asset Register</h1>
+          <div className="flex items-center gap-2">
+            <h1 className="font-head text-xl font-bold">Asset Register</h1>
+            {loading && <Loader2 size={14} className="animate-spin text-muted-foreground" />}
+          </div>
           <p className="text-xs text-muted-foreground mt-0.5">
-            {filtered.length} of {ASSETS.length} assets
+            {filtered.length} of {assets.length} assets
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -134,19 +378,50 @@ export default function AssetsClient() {
               <X size={12} /> Clear Filters
             </button>
           )}
-          <Link
-            href="/asset-management/import"
-            className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold"
-            style={{ background: 'var(--surface2)', color: 'var(--text2)', border: '1px solid var(--border)' }}
-          >
-            Import Excel
-          </Link>
+          {canUpload && (
+            <Link
+              href="/asset-management/import"
+              className="flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-semibold transition-colors hover:border-primary"
+              style={{ background: 'var(--surface2)', color: 'var(--text2)', border: '1px solid var(--border)' }}
+            >
+              <FileSpreadsheet size={14} style={{ color: 'var(--primary)' }} />
+              Import Excel
+            </Link>
+          )}
+          {canEdit && (
+            <>
+              <button
+                onClick={() => setShowAddCategoryModal(true)}
+                className="flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-semibold border border-border transition-colors hover:border-primary"
+                style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
+              >
+                <Tag size={13} style={{ color: 'var(--primary)' }} />
+                Add Category
+              </button>
+              <button
+                onClick={() => setShowAddAssetModal(true)}
+                className="flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-semibold transition-transform active:scale-95"
+                style={{ background: 'var(--primary)', color: '#000' }}
+              >
+                <Plus size={14} />
+                Add Asset
+              </button>
+            </>
+          )}
+          {isViewer && (
+            <span
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold"
+              style={{ background: 'rgba(148,163,184,0.12)', color: '#94a3b8', border: '1px solid rgba(148,163,184,0.25)' }}
+            >
+              L4 · Read-Only Access
+            </span>
+          )}
         </div>
       </div>
 
       {/* Tabs */}
       <div
-        className="flex items-center gap-1 px-7 pt-4 pb-0 border-b border-border flex-shrink-0"
+        className="flex items-center gap-1 px-6 pt-3 pb-0 border-b border-border flex-shrink-0"
         style={{ background: 'var(--surface)' }}
       >
         {tabs.map((tab) => (
@@ -176,7 +451,7 @@ export default function AssetsClient() {
 
       {/* Filters */}
       <div
-        className="flex items-center gap-3 px-7 py-3 border-b border-border flex-shrink-0 flex-wrap"
+        className="flex items-center gap-3 px-6 py-3 border-b border-border flex-shrink-0 flex-wrap"
         style={{ background: 'var(--surface)' }}
       >
         <div
@@ -193,15 +468,15 @@ export default function AssetsClient() {
           />
         </div>
         <FilterSelect
-          label="All Hotels"
+          label="All Properties"
           value={hotelFilter}
-          options={HOTELS.map((h) => h.id)}
+          options={properties}
           onChange={setHotelFilter}
         />
         <FilterSelect
           label="Category"
           value={categoryFilter}
-          options={ASSET_CATEGORIES.map((c) => c.name)}
+          options={categories}
           onChange={setCategoryFilter}
         />
         <FilterSelect
@@ -209,28 +484,36 @@ export default function AssetsClient() {
           value={departmentFilter}
           options={DEPARTMENTS}
           onChange={setDepartmentFilter}
+          align="right"
         />
         <FilterSelect
           label="Status"
           value={statusFilter}
-          options={['active', 'inactive', 'under-maintenance', 'disposed', 'lost']}
+          options={[
+            { value: 'active', label: 'Active' },
+            { value: 'under-maintenance', label: 'Under Maintenance' },
+            { value: 'inactive', label: 'Inactive' },
+            { value: 'disposed', label: 'Disposed' },
+            { value: 'lost', label: 'Lost' },
+          ]}
           onChange={setStatusFilter}
+          align="right"
         />
       </div>
 
       {/* Table */}
-      <div className="flex-1 overflow-auto">
-        <table className="w-full">
+      <div className="flex-1 overflow-x-auto overflow-y-auto">
+        <table className="w-full min-w-[1020px]">
           <thead
             className="sticky top-0 z-10"
             style={{ background: 'var(--surface)' }}
           >
             <tr>
-              {['Asset ID', 'Asset Name', 'Category', 'Hotel', 'Department', 'Location', 'Qty', 'Condition', 'Risk', 'Next Inspection', 'Status', 'Actions'].map(
+              {['Asset ID', 'Asset Name', 'Category', 'Property', 'Department', 'Location', 'Qty', 'Condition', 'Risk', 'Next Inspection', 'Status', 'Actions'].map(
                 (h) => (
                   <th
                     key={h}
-                    className="text-left text-xs font-bold uppercase tracking-wide text-muted-foreground px-4 py-3 border-b border-border whitespace-nowrap"
+                    className="text-left text-xs font-bold uppercase tracking-wide text-muted-foreground px-3.5 py-3 border-b border-border whitespace-nowrap"
                   >
                     {h}
                   </th>
@@ -246,72 +529,718 @@ export default function AssetsClient() {
                 </td>
               </tr>
             ) : (
-              filtered.map((asset) => (
-                <tr
-                  key={asset.id}
-                  className="border-b border-border transition-colors cursor-pointer"
-                  onClick={() => router.push(`/asset-management/assets/${asset.id}`)}
-                  onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.background = 'var(--surface2)')}
-                  onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.background = 'transparent')}
-                >
-                  <td className="px-4 py-3 font-mono text-xs font-semibold" style={{ color: 'var(--primary)' }}>
-                    {asset.assetId}
-                  </td>
-                  <td className="px-4 py-3">
-                    <span
-                      className="font-medium text-sm"
-                      style={{ color: 'var(--foreground)' }}
-                    >
-                      {asset.name}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3">
-                    <span className="text-xs px-2 py-0.5 rounded-full font-medium" style={{ background: 'var(--surface3)', color: 'var(--text2)' }}>
-                      {asset.category}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-xs text-muted-foreground">{asset.hotelName.split(' ').slice(0, 2).join(' ')}</td>
-                  <td className="px-4 py-3 text-xs text-muted-foreground">{asset.department}</td>
-                  <td className="px-4 py-3 text-xs text-muted-foreground">{asset.location}</td>
-                  <td className="px-4 py-3 text-xs font-semibold">{asset.quantity}</td>
-                  <td className="px-4 py-3">
-                    <Badge label={asset.condition} style={CONDITION_STYLES[asset.condition] || CONDITION_STYLES.good} />
-                  </td>
-                  <td className="px-4 py-3">
-                    <Badge label={asset.riskLevel} style={RISK_STYLES[asset.riskLevel] || RISK_STYLES.low} />
-                  </td>
-                  <td className="px-4 py-3 text-xs text-muted-foreground whitespace-nowrap">
-                    {new Date(asset.nextInspectionDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: '2-digit' })}
-                  </td>
-                  <td className="px-4 py-3">
-                    <span
-                      className="text-xs font-semibold px-2 py-0.5 rounded-full capitalize"
-                      style={{
-                        background: asset.status === 'active' ? 'rgba(61,214,140,0.12)' : 'rgba(148,163,184,0.12)',
-                        color: asset.status === 'active' ? '#3dd68c' : '#94a3b8',
-                      }}
-                    >
-                      {asset.status}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
-                    <Link
-                      href={`/asset-management/assets/${asset.id}`}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors whitespace-nowrap"
-                      style={{ background: 'rgba(232,201,122,0.12)', color: 'var(--primary)', border: '1px solid rgba(232,201,122,0.25)' }}
-                      onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = 'rgba(232,201,122,0.22)'; }}
-                      onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'rgba(232,201,122,0.12)'; }}
-                    >
-                      <ExternalLink size={11} />
-                      View Full Details
-                    </Link>
-                  </td>
-                </tr>
-              ))
+              filtered.map((asset) => {
+                const s = STATUS_CONFIG[asset.status] || STATUS_CONFIG.active;
+                const propDisplayName = asset.hotelName || (asset as any).propertyName || 'Property';
+
+                return (
+                  <tr
+                    key={asset.id}
+                    className="border-b border-border transition-colors cursor-pointer"
+                    onClick={() => {
+                      cacheAssetForDetail(asset);
+                      router.push(`/asset-management/assets/${asset.id}`);
+                    }}
+                    onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.background = 'var(--surface2)')}
+                    onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.background = 'transparent')}
+                  >
+                    <td className="px-3 py-2.5 font-mono text-xs font-semibold" style={{ color: 'var(--primary)' }}>
+                      {asset.assetId}
+                    </td>
+                    <td className="px-3 py-2.5">
+                      <span
+                        className="font-medium text-sm"
+                        style={{ color: 'var(--foreground)' }}
+                      >
+                        {asset.name}
+                      </span>
+                    </td>
+                    <td className="px-3 py-2.5">
+                      <span className="text-xs px-2 py-0.5 rounded-full font-medium" style={{ background: 'var(--surface3)', color: 'var(--text2)' }}>
+                        {asset.category}
+                      </span>
+                    </td>
+                    <td className="px-3 py-2.5 text-xs text-muted-foreground" title={propDisplayName}>
+                      {propDisplayName.split(' ').slice(0, 2).join(' ')}
+                    </td>
+                    <td className="px-3 py-2.5 text-xs text-muted-foreground">{asset.department}</td>
+                    <td className="px-3 py-2.5 text-xs text-muted-foreground">{asset.location}</td>
+                    <td className="px-3 py-2.5 text-xs font-semibold">{asset.quantity}</td>
+                    <td className="px-3 py-2.5">
+                      <Badge label={asset.condition} style={CONDITION_STYLES[asset.condition] || CONDITION_STYLES.good} />
+                    </td>
+                    <td className="px-3 py-2.5">
+                      <Badge label={asset.riskLevel} style={RISK_STYLES[asset.riskLevel] || RISK_STYLES.low} />
+                    </td>
+                    <td className="px-3 py-2.5 text-xs text-muted-foreground whitespace-nowrap">
+                      {asset.nextInspectionDate ? new Date(asset.nextInspectionDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: '2-digit' }) : '—'}
+                    </td>
+                    <td className="px-3 py-2.5" onClick={(e) => e.stopPropagation()}>
+                      {!canEdit || isViewer ? (
+                        <Badge label={STATUS_CONFIG[asset.status]?.label || asset.status} style={s} />
+                      ) : (
+                        <StatusDropdown
+                          value={asset.status}
+                          options={[
+                            { value: 'active', label: 'Active', color: '#3dd68c', bg: 'rgba(61,214,140,0.12)' },
+                            { value: 'under-maintenance', label: 'Under Maintenance', color: '#f59e0b', bg: 'rgba(245,158,11,0.12)' },
+                            { value: 'inactive', label: 'Inactive', color: '#94a3b8', bg: 'rgba(148,163,184,0.12)' },
+                            { value: 'disposed', label: 'Disposed', color: '#f43f5e', bg: 'rgba(244,63,94,0.12)' },
+                            { value: 'lost', label: 'Lost', color: '#f43f5e', bg: 'rgba(244,63,94,0.12)' },
+                          ]}
+                          onChange={(val) => handleStatusChange(asset.id, val)}
+                        />
+                      )}
+                    </td>
+                    <td className="px-3 py-2.5" onClick={(e) => e.stopPropagation()}>
+                      <div className="flex items-center gap-1.5 whitespace-nowrap">
+                        <Link
+                          href={`/asset-management/assets/${asset.id}`}
+                          onClick={() => cacheAssetForDetail(asset)}
+                          className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-colors hover:bg-surface2"
+                          style={{ background: 'rgba(232,201,122,0.12)', color: 'var(--primary)', border: '1px solid rgba(232,201,122,0.25)' }}
+                          title="View Full Details"
+                        >
+                          <ExternalLink size={11} />
+                          View
+                        </Link>
+                        <button
+                          onClick={() => handleOpenEditAsset(asset)}
+                          className="p-1.5 rounded-lg border border-border hover:bg-surface2 text-muted-foreground hover:text-primary transition-colors"
+                          title="Edit Asset"
+                        >
+                          <Edit2 size={12} />
+                        </button>
+                        <button
+                          onClick={() => setAssetToDelete(asset)}
+                          className="p-1.5 rounded-lg border border-rose-500/20 hover:bg-rose-500/15 text-rose-400 transition-colors"
+                          title="Delete Asset"
+                        >
+                          <Trash2 size={12} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })
             )}
           </tbody>
         </table>
       </div>
+
+      {/* Add Category Modal */}
+      {showAddCategoryModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(4px)' }}>
+          <div className="w-full max-w-md rounded-2xl border border-border overflow-hidden shadow-2xl animate-in fade-in zoom-in-95 duration-200" style={{ background: 'var(--surface)' }}>
+            <div className="flex items-center justify-between px-6 py-4 border-b border-border" style={{ background: 'var(--surface2)' }}>
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'rgba(232,201,122,0.15)', color: 'var(--primary)' }}>
+                  <Tag size={16} />
+                </div>
+                <div>
+                  <h3 className="font-head font-bold text-base text-foreground">Add New Category</h3>
+                  <p className="text-xs text-muted-foreground">Create a dynamic asset category</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowAddCategoryModal(false)}
+                className="w-7 h-7 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveCategory} className="p-6 space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wide">
+                  Category Name *
+                </label>
+                <input
+                  type="text"
+                  autoFocus
+                  value={newCatName}
+                  onChange={(e) => setNewCatName(e.target.value)}
+                  placeholder="e.g. EV Chargers, Spa Facilities, IT Hardware"
+                  className="w-full px-3 py-2 rounded-lg border border-border text-xs outline-none"
+                  style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-muted-foreground mb-2 uppercase tracking-wide">
+                  Category Colour Theme
+                </label>
+                <div className="flex flex-wrap gap-2 mb-2">
+                  {['#e8c97a', '#60a5fa', '#a78bfa', '#34d399', '#f43f5e', '#38bdf8', '#fb923c', '#4ade80'].map((c) => (
+                    <button
+                      key={c}
+                      type="button"
+                      onClick={() => setNewCatColor(c)}
+                      className="w-6 h-6 rounded-full border transition-transform"
+                      style={{
+                        background: c,
+                        borderColor: newCatColor === c ? '#fff' : 'transparent',
+                        transform: newCatColor === c ? 'scale(1.2)' : 'scale(1)',
+                      }}
+                    />
+                  ))}
+                </div>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="color"
+                    value={newCatColor}
+                    onChange={(e) => setNewCatColor(e.target.value)}
+                    className="w-7 h-7 rounded cursor-pointer bg-transparent border-0"
+                  />
+                  <span className="text-xs text-muted-foreground">Custom: {newCatColor}</span>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end gap-3 pt-3 border-t border-border">
+                <button
+                  type="button"
+                  onClick={() => setShowAddCategoryModal(false)}
+                  className="px-4 py-2 rounded-lg text-xs font-semibold border border-border"
+                  style={{ background: 'var(--surface2)', color: 'var(--text2)' }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={savingCategory}
+                  className="flex items-center gap-2 px-5 py-2 rounded-lg text-xs font-semibold"
+                  style={{ background: 'var(--primary)', color: '#000' }}
+                >
+                  {savingCategory ? <Loader2 size={13} className="animate-spin" /> : <Plus size={13} />}
+                  Add Category
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Add Asset Modal */}
+      {showAddAssetModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(4px)' }}>
+          <div className="w-full max-w-xl rounded-2xl border border-border overflow-hidden shadow-2xl animate-in fade-in zoom-in-95 duration-200" style={{ background: 'var(--surface)' }}>
+            <div className="flex items-center justify-between px-6 py-4 border-b border-border" style={{ background: 'var(--surface2)' }}>
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'rgba(232,201,122,0.15)', color: 'var(--primary)' }}>
+                  <Plus size={16} />
+                </div>
+                <div>
+                  <h3 className="font-head font-bold text-base text-foreground">Add New Asset</h3>
+                  <p className="text-xs text-muted-foreground">Store asset record directly into Google Cloud Firestore</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowAddAssetModal(false)}
+                className="w-7 h-7 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveAsset} className="p-6 space-y-4 max-h-[80vh] overflow-y-auto">
+              <div>
+                <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wide">
+                  Asset / Equipment Name *
+                </label>
+                <input
+                  type="text"
+                  autoFocus
+                  value={newAssetForm.name}
+                  onChange={(e) => setNewAssetForm({ ...newAssetForm, name: e.target.value })}
+                  placeholder="e.g. Daikin VRV Heat Recovery Unit"
+                  className="w-full px-3 py-2 rounded-lg border border-border text-xs outline-none"
+                  style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
+                  required
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wide">
+                    Category
+                  </label>
+                  <select
+                    value={newAssetForm.category}
+                    onChange={(e) => setNewAssetForm({ ...newAssetForm, category: e.target.value })}
+                    className="w-full px-3 py-2 rounded-lg border border-border text-xs outline-none"
+                    style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
+                  >
+                    {categories.map((c) => (
+                      <option key={c} value={c}>{c}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wide">
+                    Property
+                  </label>
+                  <select
+                    value={newAssetForm.hotelId}
+                    onChange={(e) => {
+                      const prop = properties.find((p) => p.value === e.target.value);
+                      setNewAssetForm({
+                        ...newAssetForm,
+                        hotelId: e.target.value,
+                        hotelName: prop ? prop.label : 'Property',
+                      });
+                    }}
+                    className="w-full px-3 py-2 rounded-lg border border-border text-xs outline-none"
+                    style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
+                  >
+                    {properties.map((p) => (
+                      <option key={p.value} value={p.value}>{p.label}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wide">
+                    Department
+                  </label>
+                  <select
+                    value={newAssetForm.department}
+                    onChange={(e) => setNewAssetForm({ ...newAssetForm, department: e.target.value })}
+                    className="w-full px-3 py-2 rounded-lg border border-border text-xs outline-none"
+                    style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
+                  >
+                    {DEPARTMENTS.map((d) => (
+                      <option key={d} value={d}>{d}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wide">
+                    Location / Room
+                  </label>
+                  <input
+                    type="text"
+                    value={newAssetForm.location}
+                    onChange={(e) => setNewAssetForm({ ...newAssetForm, location: e.target.value })}
+                    placeholder="e.g. Plant Room B, 2nd Floor, Kitchen"
+                    className="w-full px-3 py-2 rounded-lg border border-border text-xs outline-none"
+                    style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wide">
+                    Quantity
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    value={newAssetForm.quantity}
+                    onChange={(e) => setNewAssetForm({ ...newAssetForm, quantity: Number(e.target.value) || 1 })}
+                    className="w-full px-3 py-2 rounded-lg border border-border text-xs outline-none"
+                    style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wide">
+                    Condition
+                  </label>
+                  <select
+                    value={newAssetForm.condition}
+                    onChange={(e) => setNewAssetForm({ ...newAssetForm, condition: e.target.value })}
+                    className="w-full px-3 py-2 rounded-lg border border-border text-xs outline-none"
+                    style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
+                  >
+                    <option value="excellent">Excellent</option>
+                    <option value="good">Good</option>
+                    <option value="fair">Fair</option>
+                    <option value="poor">Poor</option>
+                    <option value="critical">Critical</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wide">
+                    Risk Level
+                  </label>
+                  <select
+                    value={newAssetForm.riskLevel}
+                    onChange={(e) => setNewAssetForm({ ...newAssetForm, riskLevel: e.target.value })}
+                    className="w-full px-3 py-2 rounded-lg border border-border text-xs outline-none"
+                    style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
+                  >
+                    <option value="low">Low</option>
+                    <option value="medium">Medium</option>
+                    <option value="high">High</option>
+                    <option value="critical">Critical</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wide">
+                    Serial Number / Barcode
+                  </label>
+                  <input
+                    type="text"
+                    value={newAssetForm.serialNumber}
+                    onChange={(e) => setNewAssetForm({ ...newAssetForm, serialNumber: e.target.value })}
+                    placeholder="e.g. SN-892184-X"
+                    className="w-full px-3 py-2 rounded-lg border border-border text-xs outline-none"
+                    style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wide">
+                    Purchase Cost (£)
+                  </label>
+                  <input
+                    type="number"
+                    value={newAssetForm.purchaseCost}
+                    onChange={(e) => setNewAssetForm({ ...newAssetForm, purchaseCost: Number(e.target.value) || 0 })}
+                    className="w-full px-3 py-2 rounded-lg border border-border text-xs outline-none"
+                    style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 pt-1">
+                <input
+                  type="checkbox"
+                  id="asset-is-fixed"
+                  checked={newAssetForm.isFixed}
+                  onChange={(e) => setNewAssetForm({ ...newAssetForm, isFixed: e.target.checked })}
+                  className="rounded cursor-pointer"
+                />
+                <label htmlFor="asset-is-fixed" className="text-xs text-foreground cursor-pointer">
+                  This is a Fixed Asset (affects balance sheet & fixed asset register)
+                </label>
+              </div>
+
+              <div className="flex items-center justify-end gap-3 pt-3 border-t border-border">
+                <button
+                  type="button"
+                  onClick={() => setShowAddAssetModal(false)}
+                  className="px-4 py-2 rounded-lg text-xs font-semibold border border-border"
+                  style={{ background: 'var(--surface2)', color: 'var(--text2)' }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={savingAsset}
+                  className="flex items-center gap-2 px-5 py-2 rounded-lg text-xs font-semibold"
+                  style={{ background: 'var(--primary)', color: '#000' }}
+                >
+                  {savingAsset ? (
+                    <>
+                      <Loader2 size={13} className="animate-spin" /> Saving…
+                    </>
+                  ) : (
+                    <>
+                      <Plus size={13} /> Add Asset to Database
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Asset Modal */}
+      {showEditAssetModal && editingAsset && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(4px)' }}>
+          <div className="w-full max-w-2xl rounded-2xl border border-border overflow-hidden shadow-2xl animate-in fade-in zoom-in-95 duration-200" style={{ background: 'var(--surface)' }}>
+            <div className="flex items-center justify-between px-6 py-4 border-b border-border" style={{ background: 'var(--surface2)' }}>
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'rgba(232,201,122,0.15)', color: 'var(--primary)' }}>
+                  <Edit2 size={16} />
+                </div>
+                <div>
+                  <h3 className="font-head font-bold text-base text-foreground">Edit Asset: {editingAsset.name}</h3>
+                  <p className="text-xs text-muted-foreground">{editingAsset.assetId} · Update asset details dynamically</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowEditAssetModal(false)}
+                className="w-7 h-7 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveEditAsset} className="p-6 space-y-4 max-h-[80vh] overflow-y-auto">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="col-span-2">
+                  <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wide">
+                    Asset Name *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={editingAsset.name}
+                    onChange={(e) => setEditingAsset({ ...editingAsset, name: e.target.value })}
+                    className="w-full px-3 py-2 rounded-lg border border-border text-xs outline-none"
+                    style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wide">
+                    Category *
+                  </label>
+                  <select
+                    value={editingAsset.category}
+                    onChange={(e) => setEditingAsset({ ...editingAsset, category: e.target.value })}
+                    className="w-full px-3 py-2 rounded-lg border border-border text-xs outline-none"
+                    style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
+                  >
+                    {categories.map((c) => (
+                      <option key={c} value={c}>
+                        {c}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wide">
+                    Property *
+                  </label>
+                  <select
+                    value={editingAsset.hotelName || (editingAsset as any).propertyName || (editingAsset as any).property || ''}
+                    onChange={(e) => {
+                      const prop = properties.find((p) => p.label === e.target.value || p.value === e.target.value);
+                      setEditingAsset({
+                        ...editingAsset,
+                        hotelName: prop ? prop.label : e.target.value,
+                        hotelId: prop ? prop.value : editingAsset.hotelId,
+                        property: prop ? prop.label : e.target.value,
+                      } as any);
+                    }}
+                    className="w-full px-3 py-2 rounded-lg border border-border text-xs outline-none"
+                    style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
+                  >
+                    {properties.map((p) => (
+                      <option key={p.value} value={p.label}>
+                        {p.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wide">
+                    Department
+                  </label>
+                  <input
+                    type="text"
+                    value={editingAsset.department || ''}
+                    onChange={(e) => setEditingAsset({ ...editingAsset, department: e.target.value })}
+                    className="w-full px-3 py-2 rounded-lg border border-border text-xs outline-none"
+                    style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wide">
+                    Location / Room
+                  </label>
+                  <input
+                    type="text"
+                    value={editingAsset.location || ''}
+                    onChange={(e) => setEditingAsset({ ...editingAsset, location: e.target.value })}
+                    className="w-full px-3 py-2 rounded-lg border border-border text-xs outline-none"
+                    style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wide">
+                    Quantity
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    value={editingAsset.quantity || 1}
+                    onChange={(e) => setEditingAsset({ ...editingAsset, quantity: Number(e.target.value) || 1 })}
+                    className="w-full px-3 py-2 rounded-lg border border-border text-xs outline-none"
+                    style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wide">
+                    Status
+                  </label>
+                  <select
+                    value={editingAsset.status}
+                    onChange={(e) => setEditingAsset({ ...editingAsset, status: e.target.value as any })}
+                    className="w-full px-3 py-2 rounded-lg border border-border text-xs outline-none"
+                    style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
+                  >
+                    <option value="active">Active</option>
+                    <option value="under-maintenance">Under Maintenance</option>
+                    <option value="inactive">Inactive</option>
+                    <option value="disposed">Disposed</option>
+                    <option value="lost">Lost</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wide">
+                    Condition
+                  </label>
+                  <select
+                    value={editingAsset.condition || 'good'}
+                    onChange={(e) => setEditingAsset({ ...editingAsset, condition: e.target.value as any })}
+                    className="w-full px-3 py-2 rounded-lg border border-border text-xs outline-none"
+                    style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
+                  >
+                    <option value="new">New</option>
+                    <option value="good">Good</option>
+                    <option value="fair">Fair</option>
+                    <option value="poor">Poor</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wide">
+                    Risk Level
+                  </label>
+                  <select
+                    value={editingAsset.risk || 'low'}
+                    onChange={(e) => setEditingAsset({ ...editingAsset, risk: e.target.value as any })}
+                    className="w-full px-3 py-2 rounded-lg border border-border text-xs outline-none"
+                    style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
+                  >
+                    <option value="low">Low Risk</option>
+                    <option value="medium">Medium Risk</option>
+                    <option value="high">High Risk</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wide">
+                    Serial Number / Barcode
+                  </label>
+                  <input
+                    type="text"
+                    value={editingAsset.serialNumber || ''}
+                    onChange={(e) => setEditingAsset({ ...editingAsset, serialNumber: e.target.value })}
+                    className="w-full px-3 py-2 rounded-lg border border-border text-xs outline-none"
+                    style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wide">
+                    Purchase Cost (£)
+                  </label>
+                  <input
+                    type="number"
+                    value={(editingAsset as any).purchaseCost || 0}
+                    onChange={(e) => setEditingAsset({ ...editingAsset, purchaseCost: Number(e.target.value) || 0 } as any)}
+                    className="w-full px-3 py-2 rounded-lg border border-border text-xs outline-none"
+                    style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 pt-1">
+                <input
+                  type="checkbox"
+                  id="edit-asset-is-fixed"
+                  checked={editingAsset.isFixed ?? true}
+                  onChange={(e) => setEditingAsset({ ...editingAsset, isFixed: e.target.checked })}
+                  className="rounded cursor-pointer"
+                />
+                <label htmlFor="edit-asset-is-fixed" className="text-xs text-foreground cursor-pointer">
+                  Fixed Asset (affects balance sheet & fixed asset register)
+                </label>
+              </div>
+
+              <div className="flex items-center justify-end gap-3 pt-3 border-t border-border">
+                <button
+                  type="button"
+                  onClick={() => setShowEditAssetModal(false)}
+                  className="px-4 py-2 rounded-lg text-xs font-semibold border border-border"
+                  style={{ background: 'var(--surface2)', color: 'var(--text2)' }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={savingAsset}
+                  className="flex items-center gap-2 px-5 py-2 rounded-lg text-xs font-semibold"
+                  style={{ background: 'var(--primary)', color: '#000' }}
+                >
+                  {savingAsset ? (
+                    <>
+                      <Loader2 size={13} className="animate-spin" /> Saving…
+                    </>
+                  ) : (
+                    <>
+                      <Check size={13} /> Save Changes
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Dialog */}
+      {assetToDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(4px)' }}>
+          <div className="w-full max-w-md rounded-2xl border border-rose-500/30 p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-200" style={{ background: 'var(--surface)' }}>
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-rose-500/20 text-rose-400">
+                <AlertTriangle size={20} />
+              </div>
+              <div>
+                <h3 className="font-head font-bold text-base text-foreground">Confirm Deletion</h3>
+                <p className="text-xs text-muted-foreground">{assetToDelete.assetId}</p>
+              </div>
+            </div>
+            <p className="text-xs leading-relaxed text-muted-foreground mb-5">
+              Are you sure you want to permanently delete <strong className="text-foreground">{assetToDelete.name}</strong> from the asset register? This action cannot be undone.
+            </p>
+            <div className="flex items-center justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => setAssetToDelete(null)}
+                className="px-4 py-2 rounded-lg text-xs font-semibold border border-border hover:bg-surface2 transition-colors"
+                style={{ background: 'var(--surface2)', color: 'var(--text2)' }}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={deletingAsset}
+                onClick={handleDeleteAsset}
+                className="flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-semibold bg-rose-600 hover:bg-rose-500 text-white transition-colors"
+              >
+                {deletingAsset ? (
+                  <>
+                    <Loader2 size={13} className="animate-spin" /> Deleting…
+                  </>
+                ) : (
+                  <>
+                    <Trash2 size={13} /> Delete Permanently
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

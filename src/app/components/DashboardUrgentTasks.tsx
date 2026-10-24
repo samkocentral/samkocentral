@@ -1,15 +1,38 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { TASKS, formatDateGB } from '@/lib/mockData';
 import Link from 'next/link';
+import { api } from '@/lib/api';
 
 export default function DashboardUrgentTasks() {
-  const urgentHighTasks = TASKS.filter(
-    (t) => t.priority === 'urgent' || t.priority === 'high'
+  const [tasks, setTasks] = useState<any[]>(TASKS);
+
+  const fetchLiveTasks = useCallback(async () => {
+    try {
+      const res = await api.tasks.getAll();
+      if (res.success && res.data && res.data.length > 0) {
+        setTasks(res.data);
+      }
+    } catch (e) {
+      console.warn('Dashboard urgent tasks fetch fallback:', e);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchLiveTasks();
+    const handleDataChanged = () => fetchLiveTasks();
+    window.addEventListener('samko:data-changed', handleDataChanged);
+    return () => window.removeEventListener('samko:data-changed', handleDataChanged);
+  }, [fetchLiveTasks]);
+
+  const urgentHighTasks = tasks.filter(
+    (t: any) =>
+      (t.priority === 'urgent' || t.priority === 'high') &&
+      t.status !== 'completed'
   );
 
-  const priorityColor = {
+  const priorityColor: Record<string, string> = {
     urgent: 'var(--critical)',
     high: 'var(--warning)',
     medium: 'var(--info)',
@@ -33,7 +56,7 @@ export default function DashboardUrgentTasks() {
         </Link>
       </div>
       <div className="flex flex-col gap-0.5">
-        {urgentHighTasks.map((task, i) => (
+        {urgentHighTasks.slice(0, 6).map((task) => (
           <div
             key={task.id}
             className="flex items-center gap-3 rounded-lg transition-all duration-150"
@@ -50,7 +73,7 @@ export default function DashboardUrgentTasks() {
               style={{
                 width: 7,
                 height: 7,
-                background: priorityColor[task.priority],
+                background: priorityColor[task.priority] || 'var(--warning)',
                 display: 'block',
               }}
             />
@@ -59,14 +82,17 @@ export default function DashboardUrgentTasks() {
                 {task.title}
               </p>
               <p className="text-muted-foreground truncate" style={{ fontSize: 11, marginTop: 1 }}>
-                {task.site}
+                {task.site || task.property || 'All Properties'}
               </p>
             </div>
             <div className="text-muted-foreground flex-shrink-0" style={{ fontSize: 11 }}>
-              {formatDateGB(task.due).split(' ').slice(0, 2).join(' ')}
+              {task.due ? formatDateGB(task.due).split(' ').slice(0, 2).join(' ') : 'Soon'}
             </div>
           </div>
         ))}
+        {urgentHighTasks.length === 0 && (
+          <p className="text-xs text-muted-foreground py-4 text-center">No urgent tasks pending</p>
+        )}
       </div>
     </div>
   );

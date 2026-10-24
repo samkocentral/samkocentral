@@ -144,6 +144,13 @@ function AssetResultCard({ assetId }: { assetId: string }) {
       <div className="px-5 pb-5 flex gap-2">
         <Link
           href={`/asset-management/assets/${asset.id}`}
+          onClick={() => {
+            try {
+              sessionStorage.setItem('samko_last_clicked_asset', JSON.stringify(asset));
+              sessionStorage.setItem(`samko_asset_${asset.id}`, JSON.stringify(asset));
+              if (asset.assetId) sessionStorage.setItem(`samko_asset_${asset.assetId}`, JSON.stringify(asset));
+            } catch {}
+          }}
           className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-semibold"
           style={{ background: 'var(--primary)', color: '#000' }}
         >
@@ -179,7 +186,7 @@ export default function QRScannerClient() {
     <div className="flex flex-col h-full">
       {/* Header */}
       <div
-        className="flex items-center justify-between px-7 py-4 border-b border-border flex-shrink-0"
+        className="flex items-center justify-between px-6 py-4 border-b border-border flex-shrink-0"
         style={{ background: 'var(--surface)' }}
       >
         <div>
@@ -188,7 +195,7 @@ export default function QRScannerClient() {
         </div>
       </div>
 
-      <div className="flex-1 overflow-auto p-7">
+      <div className="flex-1 overflow-auto px-6 py-5">
         <div className="max-w-2xl mx-auto flex flex-col gap-6">
           {/* Scanner Viewport */}
           <div

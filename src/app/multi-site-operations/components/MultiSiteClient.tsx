@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { Phone, MapPin } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { SITES, COMPLIANCE, TASKS } from '@/lib/mockData';
@@ -8,42 +8,103 @@ import StatusBadge from '@/components/ui/StatusBadge';
 import ComplianceRing from '@/components/ui/ComplianceRing';
 import EmptyState from '@/components/ui/EmptyState';
 import { Building2 } from 'lucide-react';
+import { api } from '@/lib/api';
 
 type TypeFilter = 'All' | 'Hotel' | 'Restaurant';
 type RiskFilter = 'All' | 'high' | 'medium' | 'low';
 
 export default function MultiSiteClient() {
+  const [sites, setSites] = useState<any[]>(SITES);
+  const [compliance, setCompliance] = useState<any[]>(COMPLIANCE);
+  const [tasks, setTasks] = useState<any[]>(TASKS);
   const [typeFilter, setTypeFilter] = useState<TypeFilter>('All');
   const [riskFilter, setRiskFilter] = useState<RiskFilter>('All');
   const [selectedSite, setSelectedSite] = useState<string | null>(null);
   const router = useRouter();
 
+  const fetchLiveSites = useCallback(async () => {
+    try {
+      const [propsRes, compRes, tasksRes] = await Promise.allSettled([
+        api.properties.getAll(),
+        api.compliance.getAll(),
+        api.tasks.getAll(),
+      ]);
+
+      if (propsRes.status === 'fulfilled' && propsRes.value.success && propsRes.value.data?.length > 0) {
+        const merged = propsRes.value.data.map((prop: any) => {
+          const match = SITES.find((s) => s.id === prop.id || s.name?.toLowerCase() === prop.name?.toLowerCase());
+          return {
+            ...match,
+            ...prop,
+            risk: prop.risk || match?.risk || 'low',
+            compliance: prop.compliance ?? match?.compliance ?? 85,
+            openIssues: prop.openIssues ?? match?.openIssues ?? 0,
+            status: prop.status || match?.status || 'operational',
+            city: prop.city || match?.city || 'London',
+            type: prop.type || match?.type || 'Hotel',
+          };
+        });
+        setSites(merged);
+      }
+      if (compRes.status === 'fulfilled' && compRes.value.success && compRes.value.data?.length > 0) {
+        setCompliance(compRes.value.data);
+      }
+      if (tasksRes.status === 'fulfilled' && tasksRes.value.success && tasksRes.value.data?.length > 0) {
+        setTasks(tasksRes.value.data);
+      }
+    } catch (e) {
+      console.warn('MultiSite fetch fallback:', e);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchLiveSites();
+    const handleDataChanged = () => fetchLiveSites();
+    window.addEventListener('samko:data-changed', handleDataChanged);
+    return () => window.removeEventListener('samko:data-changed', handleDataChanged);
+  }, [fetchLiveSites]);
+
   const filtered = useMemo(() => {
-    let sites = [...SITES];
-    if (typeFilter !== 'All') sites = sites.filter((s) => s.type === typeFilter);
-    if (riskFilter !== 'All') sites = sites.filter((s) => s.risk === riskFilter);
-    return sites;
-  }, [typeFilter, riskFilter]);
+    let list = [...sites];
+    if (typeFilter !== 'All') list = list.filter((s) => s.type === typeFilter || (typeFilter === 'Hotel' && (s.type === 'Hotel' || !s.type)));
+    if (riskFilter !== 'All') list = list.filter((s) => (s.risk || 'low') === riskFilter);
+    return list;
+  }, [sites, typeFilter, riskFilter]);
 
   const getSiteCompliance = (siteName: string) => {
-    const items = COMPLIANCE.filter((c) => c.site === siteName);
+    const sName = siteName.toLowerCase();
+    const items = compliance.filter((c: any) =>
+      c.site?.toLowerCase()?.includes(sName) ||
+      c.property?.toLowerCase()?.includes(sName) ||
+      c.hotel?.toLowerCase()?.includes(sName) ||
+      sName.includes(c.property?.toLowerCase() || '')
+    );
+    const critical = items.filter((c: any) => c.status === 'critical' || c.status === 'overdue').length;
+    const warning = items.filter((c: any) => c.status === 'warning' || c.status === 'expiring-soon').length;
+    const ok = items.filter((c: any) => c.status === 'ok' || c.status === 'compliant').length;
     return {
-      critical: items.filter((c) => c.status === 'critical').length,
-      warning: items.filter((c) => c.status === 'warning').length,
-      ok: items.filter((c) => c.status === 'ok').length,
-      total: items.length,
+      critical,
+      warning,
+      ok,
+      total: items.length || 1,
     };
   };
 
   const getSiteTasks = (siteName: string) => {
-    return TASKS.filter((t) => t.site === siteName || t.site === 'All Sites');
+    const sName = siteName.toLowerCase();
+    return tasks.filter((t: any) =>
+      t.site?.toLowerCase()?.includes(sName) ||
+      t.property?.toLowerCase()?.includes(sName) ||
+      t.site === 'All Sites' ||
+      sName.includes(t.site?.toLowerCase() || '')
+    );
   };
 
   const groupStats = {
-    totalSites: SITES.length,
-    operational: SITES.filter((s) => s.status === 'operational').length,
-    highRisk: SITES.filter((s) => s.risk === 'high').length,
-    avgCompliance: Math.round(SITES.reduce((a, s) => a + s.compliance, 0) / SITES.length),
+    totalSites: sites.length,
+    operational: sites.filter((s) => (s.status || 'operational') === 'operational').length,
+    highRisk: sites.filter((s) => s.risk === 'high').length,
+    avgCompliance: Math.round(sites.reduce((a, s) => a + (s.compliance || 85), 0) / (sites.length || 1)),
   };
 
   return (
@@ -99,7 +160,7 @@ export default function MultiSiteClient() {
           ))}
         </div>
         <p className="text-muted-foreground ml-auto" style={{ fontSize: 12 }}>
-          Showing <span style={{ color: 'var(--foreground)', fontWeight: 600 }}>{filtered.length}</span> of {SITES.length} sites
+          Showing <span style={{ color: 'var(--foreground)', fontWeight: 600 }}>{filtered.length}</span> of {sites.length} sites
         </p>
       </div>
 
@@ -228,8 +289,8 @@ export default function MultiSiteClient() {
                       Risk Level
                     </div>
                     <StatusBadge
-                      variant={site.risk === 'high' ? 'critical' : site.risk === 'medium' ? 'warning' : 'ok'}
-                      label={site.risk.charAt(0).toUpperCase() + site.risk.slice(1)}
+                      variant={(site.risk || 'low') === 'high' ? 'critical' : (site.risk || 'low') === 'medium' ? 'warning' : 'ok'}
+                      label={site.risk ? site.risk.charAt(0).toUpperCase() + site.risk.slice(1) : 'Low'}
                       size="sm"
                     />
                   </div>
@@ -292,7 +353,7 @@ export default function MultiSiteClient() {
                       fontWeight: 800,
                     }}
                   >
-                    {site.manager.split(' ').map((n) => n[0]).join('')}
+                    {(site.manager || 'Marcus Webb').split(' ').map((n: string) => n[0]).join('')}
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="text-foreground font-medium truncate" style={{ fontSize: 12 }}>

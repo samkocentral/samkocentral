@@ -24,7 +24,7 @@ export default function HotelsClient() {
         style={{ background: 'var(--surface)' }}
       >
         <div>
-          <h1 className="font-head text-xl font-bold">Hotels</h1>
+          <h1 className="font-head text-xl font-bold">Properties</h1>
           <p className="text-xs text-muted-foreground mt-0.5">{HOTELS?.length} properties managed</p>
         </div>
         <div
@@ -34,7 +34,7 @@ export default function HotelsClient() {
           <Search size={14} className="text-muted-foreground" />
           <input
             className="bg-transparent text-sm outline-none w-48"
-            placeholder="Search hotels…"
+            placeholder="Search properties…"
             value={search}
             onChange={(e) => setSearch(e?.target?.value)}
             style={{ color: 'var(--foreground)' }}

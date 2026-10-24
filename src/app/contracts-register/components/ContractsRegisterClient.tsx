@@ -1,8 +1,11 @@
 'use client';
 
-import React, { useState } from 'react';
-import { ScrollText, Clock, CheckCircle2, Plus, Search, Download, Eye, Edit2, FileText, Bell, RefreshCw, Handshake, DollarSign } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { ScrollText, Clock, CheckCircle2, Plus, Search, Download, Eye, Edit2, FileText, Bell, RefreshCw, Handshake, DollarSign, ChevronDown, Loader2, Trash2, AlertTriangle, X, Upload, ExternalLink, Calendar } from 'lucide-react';
 import Icon from '@/components/ui/AppIcon';
+import CustomDropdown from '@/components/ui/CustomDropdown';
+import { api } from '@/lib/api';
+import { toast } from 'sonner';
 
 
 type ContractStatus = 'active' | 'expiring-soon' | 'expired' | 'pending' | 'terminated';
@@ -473,26 +476,69 @@ const STATUS_CONFIG: Record<ContractStatus, { label: string; bg: string; color: 
   terminated: { label: 'Terminated', bg: 'rgba(148,163,184,0.12)', color: '#94a3b8' },
 };
 
-function daysUntil(dateStr: string): number {
+function normalizeContract(c: any): Contract {
+  const val = Number(c.contractValue ?? c.value ?? 0) || 0;
+  const mCost = Number(c.monthlyCost ?? (val > 0 ? Math.round(val / 12) : 0)) || 0;
+  const hotel = c.hotel || c.property || 'Crowne Plaza Kingston-south';
+  const start = c.startDate && !isNaN(new Date(c.startDate).getTime()) ? c.startDate : '2025-01-01';
+  const end = c.endDate && !isNaN(new Date(c.endDate).getTime()) ? c.endDate : '2026-12-31';
+  const renewal = c.renewalDate && !isNaN(new Date(c.renewalDate).getTime()) ? c.renewalDate : end;
+
+  return {
+    id: String(c.id || c.contractId || Math.random()),
+    contractId: c.contractId || `CON-${c.id}`,
+    supplierName: c.supplierName || 'Supplier',
+    contractName: c.contractName || 'Service Agreement',
+    category: c.category || 'Maintenance & Servicing',
+    hotel,
+    department: c.department || 'Operations',
+    startDate: start,
+    endDate: end,
+    renewalDate: renewal,
+    noticePeriod: c.noticePeriod || '30 days',
+    autoRenew: Boolean(c.autoRenew),
+    contractValue: val,
+    monthlyCost: mCost,
+    paymentFrequency: c.paymentFrequency || 'Monthly',
+    contractOwner: c.contractOwner || 'Marcus Webb',
+    supplierContact: c.supplierContact || 'Supplier Contact',
+    phone: c.phone || '+44 20 0000 0000',
+    email: c.email || 'info@supplier.co.uk',
+    sla: c.sla || 'Standard SLA Terms',
+    status: (c.status as ContractStatus) || 'active',
+    notes: c.notes || '',
+  };
+}
+
+function daysUntil(dateStr?: string): number {
+  if (!dateStr) return 0;
   const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return 0;
   const now = new Date('2026-07-22');
   return Math.ceil((d.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+}
+
+function formatDate(dateStr?: string): string {
+  if (!dateStr) return '—';
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return '—';
+  return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
 }
 
 function fmt(n: number) { return `£${n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',')}`; }
 
 function KPICard({ label, value, sub, color, icon: Icon }: { label: string; value: number | string; sub: string; color: string; icon: React.ElementType }) {
   return (
-    <div className="rounded-xl border border-border p-5 relative overflow-hidden" style={{ background: 'var(--surface)' }}>
+    <div className="rounded-xl border border-border px-4 py-3.5 relative overflow-hidden" style={{ background: 'var(--surface)' }}>
       <div className="absolute top-0 left-0 right-0 h-0.5" style={{ background: color }} />
-      <div className="flex items-start justify-between">
-        <div>
-          <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">{label}</div>
-          <div className="font-head font-extrabold text-3xl" style={{ color }}>{value}</div>
-          <div className="text-xs text-muted-foreground mt-1">{sub}</div>
+      <div className="flex items-start justify-between gap-2">
+        <div className="min-w-0 flex-1">
+          <div className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 whitespace-nowrap truncate" title={label}>{label}</div>
+          <div className="font-head font-bold text-2xl xl:text-[26px] tracking-tight whitespace-nowrap leading-tight truncate" style={{ color }}>{value}</div>
+          <div className="text-xs text-muted-foreground mt-1 whitespace-nowrap truncate">{sub}</div>
         </div>
-        <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: `${color}18` }}>
-          <Icon size={18} style={{ color }} />
+        <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: `${color}18` }}>
+          <Icon size={16} style={{ color }} />
         </div>
       </div>
     </div>
@@ -500,60 +546,356 @@ function KPICard({ label, value, sub, color, icon: Icon }: { label: string; valu
 }
 
 export default function ContractsRegisterClient() {
+  const [contracts, setContracts] = useState<Contract[]>(MOCK_CONTRACTS.map(normalizeContract));
+  const [properties, setProperties] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<'register' | 'suppliers' | 'renewals' | 'slas'>('register');
   const [search, setSearch] = useState('');
-  const [filterStatus, setFilterStatus] = useState('all');
-  const [filterHotel, setFilterHotel] = useState('all');
-  const [filterCategory, setFilterCategory] = useState('all');
+  const [filterStatus, setFilterStatus] = useState<string[]>([]);
+  const [filterHotel, setFilterHotel] = useState<string[]>([]);
+  const [filterCategory, setFilterCategory] = useState<string[]>([]);
   const [selectedContract, setSelectedContract] = useState<Contract | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [saving, setSaving] = useState(false);
 
-  const activeContracts = MOCK_CONTRACTS.filter((c) => c.status === 'active').length;
-  const expiringSoon = MOCK_CONTRACTS.filter((c) => c.status === 'expiring-soon').length;
-  const renewalsDue = MOCK_CONTRACTS.filter((c) => { const d = daysUntil(c.renewalDate); return d >= 0 && d <= 90; }).length;
-  const autoRenewCount = MOCK_CONTRACTS.filter((c) => c.autoRenew).length;
-  const totalValue = MOCK_CONTRACTS.filter((c) => c.status === 'active').reduce((sum, c) => sum + c.contractValue, 0);
+  // Edit contract modal state
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editFormData, setEditFormData] = useState<any>(null);
 
-  const filtered = MOCK_CONTRACTS.filter((c) => {
+  // Set reminder modal state
+  const [showReminderModal, setShowReminderModal] = useState(false);
+  const [reminderDays, setReminderDays] = useState(30);
+  const [reminderNote, setReminderNote] = useState('');
+
+  // Documents modal state
+  const [showDocumentsModal, setShowDocumentsModal] = useState(false);
+  const [documentsList, setDocumentsList] = useState<Array<{ id: string; name: string; size: string; date: string; type: string }>>([
+    { id: 'doc-1', name: 'Master_Service_Agreement_Executed.pdf', size: '2.4 MB', date: '12 Jan 2026', type: 'agreement' },
+    { id: 'doc-2', name: 'SLA_Maintenance_Schedule_Scope.pdf', size: '1.1 MB', date: '15 Jan 2026', type: 'sla' },
+    { id: 'doc-3', name: 'Statutory_Compliance_Certificate.pdf', size: '890 KB', date: '01 Feb 2026', type: 'certificate' },
+  ]);
+
+  // Delete confirmation state
+  const [contractToDelete, setContractToDelete] = useState<Contract | null>(null);
+  const [deleting, setDeleting] = useState(false);
+
+  const [formData, setFormData] = useState({
+    supplierName: '',
+    contractName: '',
+    category: CONTRACT_CATEGORIES[0],
+    hotel: HOTELS[0],
+    department: 'Operations',
+    startDate: new Date().toISOString().slice(0, 10),
+    endDate: new Date(Date.now() + 365 * 86400000).toISOString().slice(0, 10),
+    renewalDate: new Date(Date.now() + 330 * 86400000).toISOString().slice(0, 10),
+    noticePeriod: '30 days',
+    autoRenew: false,
+    contractValue: '',
+    monthlyCost: '',
+    paymentFrequency: 'Monthly',
+    contractOwner: 'Marcus Webb',
+    supplierContact: '',
+    phone: '',
+    email: '',
+    sla: 'Standard Support & Maintenance SLA',
+    status: 'active' as ContractStatus,
+    notes: '',
+  });
+
+  const fetchContractsData = useCallback(async () => {
+    try {
+      setLoading(true);
+      const [res, propsRes] = await Promise.all([
+        api.contracts.getAll().catch(() => ({ success: false, data: [] })),
+        api.properties.getAll().catch(() => ({ success: false, data: [] })),
+      ]);
+      if (res.success && res.data && res.data.length > 0) {
+        setContracts(res.data.map(normalizeContract));
+      } else {
+        setContracts(MOCK_CONTRACTS.map(normalizeContract));
+      }
+      if (propsRes.success && propsRes.data && propsRes.data.length > 0) {
+        setProperties(propsRes.data);
+      }
+    } catch (err) {
+      console.warn('Contracts offline/fallback:', err);
+      setContracts(MOCK_CONTRACTS.map(normalizeContract));
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchContractsData();
+  }, [fetchContractsData]);
+
+  useEffect(() => {
+    const handleDataChanged = (e: any) => {
+      if (e.detail?.type === 'contracts' || e.detail?.type === 'properties') {
+        fetchContractsData();
+      }
+    };
+    window.addEventListener('samko:data-changed', handleDataChanged);
+    return () => window.removeEventListener('samko:data-changed', handleDataChanged);
+  }, [fetchContractsData]);
+
+  const propertyOptions = properties.length > 0
+    ? Array.from(new Set([...properties.map((p) => p.name), ...HOTELS]))
+    : HOTELS;
+
+  const handleStatusChange = async (id: string, newStatus: ContractStatus) => {
+    setContracts((prev) =>
+      prev.map((c) => (c.id === id ? { ...c, status: newStatus } : c))
+    );
+    if (selectedContract && selectedContract.id === id) {
+      setSelectedContract((prev) => (prev ? { ...prev, status: newStatus } : null));
+    }
+    toast.success(`Status updated to ${newStatus}`);
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(
+        new CustomEvent('samko:data-changed', {
+          detail: { type: 'contracts', id, status: newStatus },
+        })
+      );
+    }
+    try {
+      await api.contracts.update(id, { status: newStatus });
+    } catch (e) {
+      console.warn('Contract status updated locally:', e);
+    }
+  };
+
+  const handleAddContract = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!formData.contractName.trim() || !formData.supplierName.trim()) return;
+    setSaving(true);
+    const tempId = `CON-${String(contracts.length + 1).padStart(3, '0')}`;
+    const payload = normalizeContract({
+      ...formData,
+      contractId: tempId,
+      contractValue: Number(formData.contractValue) || 0,
+      monthlyCost: Number(formData.monthlyCost) || 0,
+    });
+    try {
+      const res = await api.contracts.create(payload);
+      const created = normalizeContract(res.data || { ...payload, id: `con-${Date.now()}` });
+      setContracts((prev) => [created, ...prev]);
+      setShowAddModal(false);
+      toast.success('Contract added successfully');
+      setFormData({
+        supplierName: '',
+        contractName: '',
+        category: CONTRACT_CATEGORIES[0],
+        hotel: propertyOptions[0] || HOTELS[0],
+        department: 'Operations',
+        startDate: new Date().toISOString().slice(0, 10),
+        endDate: new Date(Date.now() + 365 * 86400000).toISOString().slice(0, 10),
+        renewalDate: new Date(Date.now() + 330 * 86400000).toISOString().slice(0, 10),
+        noticePeriod: '30 days',
+        autoRenew: false,
+        contractValue: '',
+        monthlyCost: '',
+        paymentFrequency: 'Monthly',
+        contractOwner: 'Marcus Webb',
+        supplierContact: '',
+        phone: '',
+        email: '',
+        sla: 'Standard Support & Maintenance SLA',
+        status: 'active' as ContractStatus,
+        notes: '',
+      });
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(
+          new CustomEvent('samko:data-changed', {
+            detail: { type: 'contracts', id: created.id },
+          })
+        );
+      }
+    } catch (err: any) {
+      console.warn('Contract created locally:', err);
+      const created = normalizeContract({ ...payload, id: `con-${Date.now()}` });
+      setContracts((prev) => [created, ...prev]);
+      setShowAddModal(false);
+      toast.success('Contract added locally');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleOpenEdit = (contract: Contract) => {
+    setEditFormData({
+      ...contract,
+      contractValue: String(contract.contractValue || ''),
+      monthlyCost: String(contract.monthlyCost || ''),
+    });
+    setShowEditModal(true);
+  };
+
+  const handleSaveEdit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editFormData) return;
+    setSaving(true);
+    const updated = normalizeContract({
+      ...editFormData,
+      contractValue: Number(editFormData.contractValue) || 0,
+      monthlyCost: Number(editFormData.monthlyCost) || 0,
+    });
+    setContracts((prev) => prev.map((c) => (c.id === updated.id ? updated : c)));
+    if (selectedContract && selectedContract.id === updated.id) {
+      setSelectedContract(updated);
+    }
+    try {
+      await api.contracts.update(updated.id, updated);
+      toast.success('Contract updated successfully');
+    } catch (err) {
+      toast.success('Contract updated locally');
+    } finally {
+      setSaving(false);
+      setShowEditModal(false);
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(
+          new CustomEvent('samko:data-changed', {
+            detail: { type: 'contracts', id: updated.id },
+          })
+        );
+      }
+    }
+  };
+
+  const handleDeleteContract = async () => {
+    if (!contractToDelete) return;
+    const id = contractToDelete.id;
+    setDeleting(true);
+    setContracts((prev) => prev.filter((c) => c.id !== id));
+    if (selectedContract && selectedContract.id === id) {
+      setSelectedContract(null);
+    }
+    try {
+      await api.contracts.delete(id);
+      toast.success('Contract deleted successfully');
+    } catch (err) {
+      toast.success('Contract deleted locally');
+    } finally {
+      setDeleting(false);
+      setContractToDelete(null);
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(
+          new CustomEvent('samko:data-changed', {
+            detail: { type: 'contracts', id },
+          })
+        );
+      }
+    }
+  };
+
+  const handleSaveReminder = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedContract) return;
+    toast.success(`Reminder scheduled ${reminderDays} days prior to renewal (${formatDate(selectedContract.renewalDate)})`);
+    setShowReminderModal(false);
+    setReminderNote('');
+  };
+
+  const handleUploadDocument = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const newDoc = {
+      id: `doc-${Date.now()}`,
+      name: file.name,
+      size: `${(file.size / (1024 * 1024)).toFixed(1)} MB`,
+      date: new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }),
+      type: file.name.split('.').pop() || 'pdf',
+    };
+    setDocumentsList((prev) => [newDoc, ...prev]);
+    toast.success(`Uploaded ${file.name}`);
+  };
+
+  const activeContracts = contracts.filter((c) => c.status === 'active').length;
+  const expiringSoon = contracts.filter((c) => c.status === 'expiring-soon').length;
+  const renewalsDue = contracts.filter((c) => { const d = daysUntil(c.renewalDate); return !isNaN(d) && d >= 0 && d <= 90; }).length;
+  const autoRenewCount = contracts.filter((c) => c.autoRenew).length;
+  const totalValue = contracts.filter((c) => c.status === 'active').reduce((sum, c) => sum + (Number(c.contractValue) || 0), 0);
+  const annualValDisplay = isNaN(totalValue) || totalValue === 0
+    ? '£0'
+    : totalValue >= 1000
+    ? `£${(totalValue / 1000).toFixed(0)}k`
+    : `£${totalValue.toLocaleString()}`;
+
+  const filtered = contracts.filter((c) => {
     const matchSearch = !search || c.contractId.toLowerCase().includes(search.toLowerCase()) || c.supplierName.toLowerCase().includes(search.toLowerCase()) || c.contractName.toLowerCase().includes(search.toLowerCase());
-    const matchStatus = filterStatus === 'all' || c.status === filterStatus;
-    const matchHotel = filterHotel === 'all' || c.hotel === filterHotel;
-    const matchCat = filterCategory === 'all' || c.category === filterCategory;
+    const matchStatus = filterStatus.length === 0 || filterStatus.includes(c.status);
+    const matchHotel = filterHotel.length === 0 || filterHotel.includes(c.hotel);
+    const matchCat = filterCategory.length === 0 || filterCategory.includes(c.category);
     return matchSearch && matchStatus && matchHotel && matchCat;
   });
 
-  const suppliers = Array.from(new Map(MOCK_CONTRACTS.map((c) => [c.supplierName, c])).values());
-  const renewals = MOCK_CONTRACTS.filter((c) => { const d = daysUntil(c.renewalDate); return d >= 0 && d <= 120; }).sort((a, b) => daysUntil(a.renewalDate) - daysUntil(b.renewalDate));
+  const suppliers = Array.from(new Map(contracts.map((c) => [c.supplierName, c])).values());
+  const renewals = contracts.filter((c) => { const d = daysUntil(c.renewalDate); return d >= 0 && d <= 120; }).sort((a, b) => daysUntil(a.renewalDate) - daysUntil(b.renewalDate));
+
+  const handleExport = () => {
+    const headers = ['Contract ID', 'Contract Name', 'Supplier', 'Category', 'Property', 'Annual Value', 'Start Date', 'End Date', 'Renewal Date', 'Status', 'Auto Renew'];
+    const rows = filtered.map((c) => [
+      `"${c.contractId}"`,
+      `"${c.contractName.replace(/"/g, '""')}"`,
+      `"${c.supplierName.replace(/"/g, '""')}"`,
+      `"${c.category}"`,
+      `"${c.hotel}"`,
+      c.contractValue,
+      `"${c.startDate}"`,
+      `"${c.endDate}"`,
+      `"${c.renewalDate}"`,
+      `"${c.status}"`,
+      c.autoRenew ? 'Yes' : 'No',
+    ]);
+    const csvContent = [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', 'contracts_register.csv');
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    toast.success(`Exported ${filtered.length} contracts to CSV`);
+  };
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
       {/* Topbar */}
       <div className="flex items-center justify-between px-7 py-4 border-b border-border flex-shrink-0" style={{ background: 'var(--surface)' }}>
         <div>
-          <h1 className="font-head font-bold text-xl">Contracts Register</h1>
-          <p className="text-xs text-muted-foreground mt-0.5">Centralise all supplier and service contracts — {MOCK_CONTRACTS.length} contracts across all properties</p>
+          <div className="flex items-center gap-2">
+            <h1 className="font-head font-bold text-xl">Contracts Register</h1>
+            {loading && <Loader2 size={14} className="animate-spin text-muted-foreground" />}
+          </div>
+          <p className="text-xs text-muted-foreground mt-0.5">Centralise all supplier and service contracts — {contracts.length} contracts across all properties</p>
         </div>
         <div className="flex items-center gap-2">
-          <button className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium border border-border" style={{ background: 'var(--surface2)', color: 'var(--text2)' }}>
+          <button
+            onClick={handleExport}
+            className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium border border-border hover:bg-surface2 transition-all active:scale-95 cursor-pointer"
+            style={{ background: 'var(--surface2)', color: 'var(--text2)' }}
+          >
             <Download size={13} /> Export
           </button>
-          <button onClick={() => setShowAddModal(true)} className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold" style={{ background: 'var(--primary)', color: '#000' }}>
+          <button onClick={() => setShowAddModal(true)} className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-transform active:scale-95 cursor-pointer" style={{ background: 'var(--primary)', color: '#000' }}>
             <Plus size={14} /> Add Contract
           </button>
         </div>
       </div>
 
       {/* KPI Cards */}
-      <div className="grid gap-4 px-7 pt-5 pb-4 flex-shrink-0" style={{ gridTemplateColumns: 'repeat(5, 1fr)' }}>
+      <div className="grid gap-3 px-6 pt-4 pb-3 flex-shrink-0" style={{ gridTemplateColumns: 'repeat(5, minmax(0, 1fr))' }}>
         <KPICard label="Active Contracts" value={activeContracts} sub="Currently active" color="#3dd68c" icon={ScrollText} />
         <KPICard label="Expiring Soon" value={expiringSoon} sub="Requires attention" color="#f59e0b" icon={Clock} />
         <KPICard label="Renewals Due" value={renewalsDue} sub="Within 90 days" color="#f97316" icon={RefreshCw} />
         <KPICard label="Auto Renewal" value={autoRenewCount} sub="Auto-renewing contracts" color="#60a5fa" icon={CheckCircle2} />
-        <KPICard label="Annual Value" value={`£${(totalValue / 1000).toFixed(0)}k`} sub="Active contract value" color="#a78bfa" icon={DollarSign} />
+        <KPICard label="Annual Value" value={annualValDisplay} sub="Active contract value" color="#a78bfa" icon={DollarSign} />
       </div>
 
       {/* Tabs */}
-      <div className="flex items-center gap-0 px-7 border-b border-border flex-shrink-0" style={{ background: 'var(--surface)' }}>
+      <div className="flex items-center gap-0 px-6 border-b border-border flex-shrink-0" style={{ background: 'var(--surface)' }}>
         {[{ id: 'register', label: 'Contracts Register' }, { id: 'suppliers', label: 'Suppliers' }, { id: 'renewals', label: 'Renewals' }, { id: 'slas', label: 'SLAs' }].map((tab) => (
           <button key={tab.id} onClick={() => setActiveTab(tab.id as typeof activeTab)}
             className="px-4 py-3 text-sm font-semibold border-b-2 transition-colors whitespace-nowrap"
@@ -564,7 +906,7 @@ export default function ContractsRegisterClient() {
       </div>
 
       {/* Content */}
-      <div className="flex-1 overflow-auto px-7 py-4">
+      <div className="flex-1 overflow-auto px-6 py-4">
         {activeTab === 'register' && (
           <>
             <div className="flex items-center gap-3 mb-4 flex-wrap">
@@ -572,28 +914,40 @@ export default function ContractsRegisterClient() {
                 <Search size={13} className="text-muted-foreground flex-shrink-0" />
                 <input className="bg-transparent text-sm outline-none flex-1 text-foreground placeholder:text-muted-foreground" placeholder="Search contracts…" value={search} onChange={(e) => setSearch(e.target.value)} />
               </div>
-              <select className="rounded-lg border border-border px-3 py-1.5 text-sm outline-none" style={{ background: 'var(--surface)', color: 'var(--foreground)' }} value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)}>
-                <option value="all">All Statuses</option>
-                <option value="active">Active</option>
-                <option value="expiring-soon">Expiring Soon</option>
-                <option value="expired">Expired</option>
-                <option value="pending">Pending</option>
-              </select>
-              <select className="rounded-lg border border-border px-3 py-1.5 text-sm outline-none" style={{ background: 'var(--surface)', color: 'var(--foreground)' }} value={filterHotel} onChange={(e) => setFilterHotel(e.target.value)}>
-                <option value="all">All Hotels</option>
-                {HOTELS.map((h) => <option key={h} value={h}>{h}</option>)}
-              </select>
-              <select className="rounded-lg border border-border px-3 py-1.5 text-sm outline-none" style={{ background: 'var(--surface)', color: 'var(--foreground)' }} value={filterCategory} onChange={(e) => setFilterCategory(e.target.value)}>
-                <option value="all">All Categories</option>
-                {CONTRACT_CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
-              </select>
+              <CustomDropdown
+                label="All Statuses"
+                value={filterStatus}
+                multiple
+                options={[
+                  { value: 'active', label: 'Active', color: '#3dd68c' },
+                  { value: 'expiring-soon', label: 'Expiring Soon', color: '#f59e0b' },
+                  { value: 'expired', label: 'Expired', color: '#f43f5e' },
+                  { value: 'pending', label: 'Pending', color: '#60a5fa' },
+                  { value: 'terminated', label: 'Terminated', color: '#94a3b8' },
+                ]}
+                onChange={setFilterStatus}
+              />
+              <CustomDropdown
+                label="All Properties"
+                value={filterHotel}
+                multiple
+                options={propertyOptions.map((h) => ({ value: h, label: h }))}
+                onChange={setFilterHotel}
+              />
+              <CustomDropdown
+                label="All Categories"
+                value={filterCategory}
+                multiple
+                options={CONTRACT_CATEGORIES.map((c) => ({ value: c, label: c }))}
+                onChange={setFilterCategory}
+              />
               <span className="text-xs text-muted-foreground">{filtered.length} contracts</span>
             </div>
-            <div className="rounded-xl border border-border overflow-hidden" style={{ background: 'var(--surface)' }}>
-              <table className="w-full">
+            <div className="rounded-xl border border-border overflow-x-auto shadow-sm" style={{ background: 'var(--surface)' }}>
+              <table className="w-full text-left border-collapse" style={{ minWidth: 960 }}>
                 <thead>
                   <tr style={{ background: 'var(--surface2)' }}>
-                    {['ID', 'Contract', 'Supplier', 'Category', 'Hotel', 'Value', 'End Date', 'Days Left', 'Auto Renew', 'Owner', 'Status', ''].map((h) => (
+                    {['ID', 'Contract', 'Supplier', 'Category', 'Property', 'Value', 'End Date', 'Days Left', 'Auto Renew', 'Owner', 'Status', ''].map((h) => (
                       <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide whitespace-nowrap">{h}</th>
                     ))}
                   </tr>
@@ -601,7 +955,7 @@ export default function ContractsRegisterClient() {
                 <tbody>
                   {filtered.map((contract) => {
                     const days = daysUntil(contract.endDate);
-                    const sc = STATUS_CONFIG[contract.status];
+                    const sc = STATUS_CONFIG[contract.status] || STATUS_CONFIG.active;
                     return (
                       <tr key={contract.id} className="border-t border-border cursor-pointer transition-colors"
                         onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--surface2)')}
@@ -625,11 +979,47 @@ export default function ContractsRegisterClient() {
                           </span>
                         </td>
                         <td className="px-4 py-3 text-sm text-muted-foreground whitespace-nowrap">{contract.contractOwner}</td>
-                        <td className="px-4 py-3">
-                          <span className="text-xs font-semibold px-2 py-0.5 rounded-full" style={{ background: sc.bg, color: sc.color }}>{sc.label}</span>
+                        <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
+                          <div className="relative inline-block">
+                            <select
+                              value={contract.status}
+                              onChange={(e) => handleStatusChange(contract.id, e.target.value as ContractStatus)}
+                              className="appearance-none cursor-pointer pl-4 pr-6 py-1 rounded-full text-xs font-semibold outline-none transition-all capitalize"
+                              style={{
+                                background: sc.bg,
+                                color: sc.color,
+                                border: `1px solid ${sc.color}33`,
+                              }}
+                            >
+                              <option value="active" style={{ background: '#18181b', color: '#3dd68c' }}>Active</option>
+                              <option value="expiring-soon" style={{ background: '#18181b', color: '#f59e0b' }}>Expiring Soon</option>
+                              <option value="expired" style={{ background: '#18181b', color: '#f43f5e' }}>Expired</option>
+                              <option value="pending" style={{ background: '#18181b', color: '#60a5fa' }}>Pending</option>
+                              <option value="terminated" style={{ background: '#18181b', color: '#94a3b8' }}>Terminated</option>
+                            </select>
+                            <span
+                              className="w-1.5 h-1.5 rounded-full absolute left-2 top-1/2 -translate-y-1/2 pointer-events-none"
+                              style={{ background: sc.color }}
+                            />
+                            <ChevronDown
+                              size={11}
+                              className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none opacity-80"
+                              style={{ color: sc.color }}
+                            />
+                          </div>
                         </td>
-                        <td className="px-4 py-3">
-                          <button className="p-1.5 rounded-lg" style={{ color: 'var(--text2)' }} onClick={(e) => { e.stopPropagation(); setSelectedContract(contract); }}><Eye size={14} /></button>
+                        <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
+                          <div className="flex items-center gap-1">
+                            <button className="p-1.5 rounded-lg hover:bg-surface2 transition-colors" style={{ color: 'var(--text2)' }} title="View Contract Details" onClick={() => setSelectedContract(contract)}>
+                              <Eye size={14} />
+                            </button>
+                            <button className="p-1.5 rounded-lg hover:bg-surface2 transition-colors" style={{ color: 'var(--primary)' }} title="Edit Contract" onClick={() => handleOpenEdit(contract)}>
+                              <Edit2 size={14} />
+                            </button>
+                            <button className="p-1.5 rounded-lg hover:bg-rose-500/20 text-rose-400 transition-colors" title="Delete Contract" onClick={() => setContractToDelete(contract)}>
+                              <Trash2 size={14} />
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     );
@@ -643,7 +1033,7 @@ export default function ContractsRegisterClient() {
         {activeTab === 'suppliers' && (
           <div className="grid gap-4" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))' }}>
             {suppliers.map((s) => {
-              const supplierContracts = MOCK_CONTRACTS.filter((c) => c.supplierName === s.supplierName);
+              const supplierContracts = contracts.filter((c) => c.supplierName === s.supplierName);
               const totalVal = supplierContracts.reduce((sum, c) => sum + c.contractValue, 0);
               return (
                 <div key={s.id} className="rounded-xl border border-border p-5 cursor-pointer transition-colors" style={{ background: 'var(--surface)' }}
@@ -688,7 +1078,7 @@ export default function ContractsRegisterClient() {
               <div className="flex flex-col gap-3">
                 {renewals.map((contract) => {
                   const days = daysUntil(contract.renewalDate);
-                  const sc = STATUS_CONFIG[contract.status];
+                  const sc = STATUS_CONFIG[contract.status] || STATUS_CONFIG.active;
                   return (
                     <div key={contract.id} className="rounded-xl border border-border p-4 flex items-center gap-4" style={{ background: 'var(--surface)' }}>
                       <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: days <= 30 ? 'rgba(244,63,94,0.12)' : 'rgba(245,158,11,0.12)' }}>
@@ -707,7 +1097,14 @@ export default function ContractsRegisterClient() {
                         <div className="text-xs text-muted-foreground">Auto: {contract.autoRenew ? 'Yes' : 'No'}</div>
                       </div>
                       <span className="text-xs font-semibold px-2 py-0.5 rounded-full flex-shrink-0" style={{ background: sc.bg, color: sc.color }}>{sc.label}</span>
-                      <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold flex-shrink-0" style={{ background: 'var(--primary)', color: '#000' }}>
+                      <button
+                        onClick={() => {
+                          setSelectedContract(contract);
+                          setShowReminderModal(true);
+                        }}
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold flex-shrink-0 transition-transform active:scale-95 cursor-pointer"
+                        style={{ background: 'var(--primary)', color: '#000' }}
+                      >
                         <Bell size={11} /> Remind
                       </button>
                     </div>
@@ -721,18 +1118,18 @@ export default function ContractsRegisterClient() {
         {activeTab === 'slas' && (
           <div className="flex flex-col gap-4">
             <div className="font-head font-bold text-sm">Service Level Agreements</div>
-            <div className="rounded-xl border border-border overflow-hidden" style={{ background: 'var(--surface)' }}>
-              <table className="w-full">
+            <div className="rounded-xl border border-border overflow-x-auto shadow-sm" style={{ background: 'var(--surface)' }}>
+              <table className="w-full text-left border-collapse" style={{ minWidth: 720 }}>
                 <thead>
                   <tr style={{ background: 'var(--surface2)' }}>
-                    {['Contract', 'Supplier', 'Category', 'Hotel', 'SLA Terms', 'Status'].map((h) => (
+                    {['Contract', 'Supplier', 'Category', 'Property', 'SLA Terms', 'Status'].map((h) => (
                       <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide">{h}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
-                  {MOCK_CONTRACTS.map((contract) => {
-                    const sc = STATUS_CONFIG[contract.status];
+                  {contracts.map((contract) => {
+                    const sc = STATUS_CONFIG[contract.status] || STATUS_CONFIG.active;
                     return (
                       <tr key={contract.id} className="border-t border-border"
                         onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--surface2)')}
@@ -768,7 +1165,33 @@ export default function ContractsRegisterClient() {
               <div>
                 <div className="flex items-center gap-2 mb-1">
                   <span className="font-mono text-xs px-2 py-0.5 rounded" style={{ background: 'var(--surface3)', color: 'var(--text2)' }}>{selectedContract.contractId}</span>
-                  <span className="text-xs font-semibold px-2 py-0.5 rounded-full" style={{ background: STATUS_CONFIG[selectedContract.status].bg, color: STATUS_CONFIG[selectedContract.status].color }}>{STATUS_CONFIG[selectedContract.status].label}</span>
+                  <div className="relative inline-block">
+                    <select
+                      value={selectedContract.status}
+                      onChange={(e) => handleStatusChange(selectedContract.id, e.target.value as ContractStatus)}
+                      className="appearance-none cursor-pointer pl-4 pr-6 py-1 rounded-full text-xs font-semibold outline-none transition-all capitalize"
+                      style={{
+                        background: (STATUS_CONFIG[selectedContract.status] || STATUS_CONFIG.active).bg,
+                        color: (STATUS_CONFIG[selectedContract.status] || STATUS_CONFIG.active).color,
+                        border: `1px solid ${(STATUS_CONFIG[selectedContract.status] || STATUS_CONFIG.active).color}33`,
+                      }}
+                    >
+                      <option value="active" style={{ background: '#18181b', color: '#3dd68c' }}>Active</option>
+                      <option value="expiring-soon" style={{ background: '#18181b', color: '#f59e0b' }}>Expiring Soon</option>
+                      <option value="expired" style={{ background: '#18181b', color: '#f43f5e' }}>Expired</option>
+                      <option value="pending" style={{ background: '#18181b', color: '#60a5fa' }}>Pending</option>
+                      <option value="terminated" style={{ background: '#18181b', color: '#94a3b8' }}>Terminated</option>
+                    </select>
+                    <span
+                      className="w-1.5 h-1.5 rounded-full absolute left-2 top-1/2 -translate-y-1/2 pointer-events-none"
+                      style={{ background: (STATUS_CONFIG[selectedContract.status] || STATUS_CONFIG.active).color }}
+                    />
+                    <ChevronDown
+                      size={11}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none opacity-80"
+                      style={{ color: (STATUS_CONFIG[selectedContract.status] || STATUS_CONFIG.active).color }}
+                    />
+                  </div>
                   {selectedContract.autoRenew && <span className="text-xs font-semibold px-2 py-0.5 rounded-full" style={{ background: 'rgba(61,214,140,0.12)', color: '#3dd68c' }}>Auto Renew</span>}
                 </div>
                 <h2 className="font-head font-bold text-lg">{selectedContract.contractName}</h2>
@@ -778,12 +1201,12 @@ export default function ContractsRegisterClient() {
             </div>
             <div className="p-6 grid grid-cols-2 gap-4">
               {[
-                ['Category', selectedContract.category], ['Hotel', selectedContract.hotel],
+                ['Category', selectedContract.category], ['Property', selectedContract.hotel],
                 ['Department', selectedContract.department], ['Contract Value', selectedContract.contractValue > 0 ? fmt(selectedContract.contractValue) + '/yr' : 'Variable'],
                 ['Monthly Cost', selectedContract.monthlyCost > 0 ? fmt(selectedContract.monthlyCost) + '/mo' : 'Variable'], ['Payment Frequency', selectedContract.paymentFrequency],
-                ['Start Date', new Date(selectedContract.startDate).toLocaleDateString('en-GB')],
-                ['End Date', new Date(selectedContract.endDate).toLocaleDateString('en-GB')],
-                ['Renewal Date', new Date(selectedContract.renewalDate).toLocaleDateString('en-GB')],
+                ['Start Date', formatDate(selectedContract.startDate)],
+                ['End Date', formatDate(selectedContract.endDate)],
+                ['Renewal Date', formatDate(selectedContract.renewalDate)],
                 ['Notice Period', selectedContract.noticePeriod],
                 ['Contract Owner', selectedContract.contractOwner], ['Supplier Contact', selectedContract.supplierContact],
                 ['Phone', selectedContract.phone], ['Email', selectedContract.email],
@@ -804,10 +1227,34 @@ export default function ContractsRegisterClient() {
                 <div className="text-sm p-3 rounded-lg" style={{ background: 'var(--surface2)' }}>{selectedContract.notes}</div>
               </div>
             )}
-            <div className="flex gap-2 p-6 pt-0">
-              <button className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold" style={{ background: 'var(--primary)', color: '#000' }}><Edit2 size={13} /> Edit Contract</button>
-              <button className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium border border-border" style={{ background: 'var(--surface2)', color: 'var(--text2)' }}><Bell size={13} /> Set Reminder</button>
-              <button className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium border border-border" style={{ background: 'var(--surface2)', color: 'var(--text2)' }}><FileText size={13} /> Documents</button>
+            <div className="flex flex-wrap items-center gap-2 p-6 pt-0">
+              <button
+                onClick={() => handleOpenEdit(selectedContract)}
+                className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-transform active:scale-95"
+                style={{ background: 'var(--primary)', color: '#000' }}
+              >
+                <Edit2 size={13} /> Edit Contract
+              </button>
+              <button
+                onClick={() => setShowReminderModal(true)}
+                className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium border border-border transition-colors hover:bg-surface2"
+                style={{ background: 'var(--surface2)', color: 'var(--text2)' }}
+              >
+                <Bell size={13} /> Set Reminder
+              </button>
+              <button
+                onClick={() => setShowDocumentsModal(true)}
+                className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium border border-border transition-colors hover:bg-surface2"
+                style={{ background: 'var(--surface2)', color: 'var(--text2)' }}
+              >
+                <FileText size={13} /> Documents
+              </button>
+              <button
+                onClick={() => setContractToDelete(selectedContract)}
+                className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium border border-rose-500/30 text-rose-400 hover:bg-rose-500/10 transition-colors ml-auto"
+              >
+                <Trash2 size={13} /> Delete Contract
+              </button>
             </div>
           </div>
         </div>
@@ -817,52 +1264,703 @@ export default function ContractsRegisterClient() {
       {showAddModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: 'rgba(0,0,0,0.6)' }} onClick={() => setShowAddModal(false)}>
           <div className="rounded-2xl border border-border w-full max-w-2xl max-h-[85vh] overflow-auto" style={{ background: 'var(--surface)' }} onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between p-6 border-b border-border">
-              <h2 className="font-head font-bold text-lg">Add Contract</h2>
-              <button onClick={() => setShowAddModal(false)} className="text-muted-foreground hover:text-foreground text-xl font-bold px-2">×</button>
+            <form onSubmit={handleAddContract}>
+              <div className="flex items-center justify-between p-6 border-b border-border">
+                <h2 className="font-head font-bold text-lg">Add Contract</h2>
+                <button type="button" onClick={() => setShowAddModal(false)} className="text-muted-foreground hover:text-foreground text-xl font-bold px-2">×</button>
+              </div>
+              <div className="p-6 grid grid-cols-2 gap-4">
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs font-medium text-muted-foreground">Supplier Name *</label>
+                  <input
+                    type="text"
+                    required
+                    value={formData.supplierName}
+                    onChange={(e) => setFormData({ ...formData, supplierName: e.target.value })}
+                    className="rounded-lg border border-border px-3 py-2 text-sm outline-none"
+                    style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
+                  />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs font-medium text-muted-foreground">Contract Name *</label>
+                  <input
+                    type="text"
+                    required
+                    value={formData.contractName}
+                    onChange={(e) => setFormData({ ...formData, contractName: e.target.value })}
+                    className="rounded-lg border border-border px-3 py-2 text-sm outline-none"
+                    style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
+                  />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs font-medium text-muted-foreground">Category</label>
+                  <select
+                    value={formData.category}
+                    onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                    className="rounded-lg border border-border px-3 py-2 text-sm outline-none"
+                    style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
+                  >
+                    {CONTRACT_CATEGORIES.map((c) => <option key={c}>{c}</option>)}
+                  </select>
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs font-medium text-muted-foreground">Property</label>
+                  <select
+                    value={formData.hotel}
+                    onChange={(e) => setFormData({ ...formData, hotel: e.target.value })}
+                    className="rounded-lg border border-border px-3 py-2 text-sm outline-none"
+                    style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
+                  >
+                    {propertyOptions.map((h) => <option key={h}>{h}</option>)}
+                  </select>
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs font-medium text-muted-foreground">Department</label>
+                  <input
+                    type="text"
+                    value={formData.department}
+                    onChange={(e) => setFormData({ ...formData, department: e.target.value })}
+                    className="rounded-lg border border-border px-3 py-2 text-sm outline-none"
+                    style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
+                  />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs font-medium text-muted-foreground">Start Date</label>
+                  <input
+                    type="date"
+                    value={formData.startDate}
+                    onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
+                    className="rounded-lg border border-border px-3 py-2 text-sm outline-none"
+                    style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
+                  />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs font-medium text-muted-foreground">End Date</label>
+                  <input
+                    type="date"
+                    value={formData.endDate}
+                    onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
+                    className="rounded-lg border border-border px-3 py-2 text-sm outline-none"
+                    style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
+                  />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs font-medium text-muted-foreground">Renewal Date</label>
+                  <input
+                    type="date"
+                    value={formData.renewalDate}
+                    onChange={(e) => setFormData({ ...formData, renewalDate: e.target.value })}
+                    className="rounded-lg border border-border px-3 py-2 text-sm outline-none"
+                    style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
+                  />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs font-medium text-muted-foreground">Notice Period</label>
+                  <input
+                    type="text"
+                    value={formData.noticePeriod}
+                    onChange={(e) => setFormData({ ...formData, noticePeriod: e.target.value })}
+                    className="rounded-lg border border-border px-3 py-2 text-sm outline-none"
+                    style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
+                  />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs font-medium text-muted-foreground">Contract Value (£)</label>
+                  <input
+                    type="number"
+                    value={formData.contractValue}
+                    onChange={(e) => setFormData({ ...formData, contractValue: e.target.value })}
+                    className="rounded-lg border border-border px-3 py-2 text-sm outline-none"
+                    style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
+                  />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs font-medium text-muted-foreground">Monthly Cost (£)</label>
+                  <input
+                    type="number"
+                    value={formData.monthlyCost}
+                    onChange={(e) => setFormData({ ...formData, monthlyCost: e.target.value })}
+                    className="rounded-lg border border-border px-3 py-2 text-sm outline-none"
+                    style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
+                  />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs font-medium text-muted-foreground">Payment Frequency</label>
+                  <input
+                    type="text"
+                    value={formData.paymentFrequency}
+                    onChange={(e) => setFormData({ ...formData, paymentFrequency: e.target.value })}
+                    className="rounded-lg border border-border px-3 py-2 text-sm outline-none"
+                    style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
+                  />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs font-medium text-muted-foreground">Contract Owner</label>
+                  <input
+                    type="text"
+                    value={formData.contractOwner}
+                    onChange={(e) => setFormData({ ...formData, contractOwner: e.target.value })}
+                    className="rounded-lg border border-border px-3 py-2 text-sm outline-none"
+                    style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
+                  />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs font-medium text-muted-foreground">Supplier Contact</label>
+                  <input
+                    type="text"
+                    value={formData.supplierContact}
+                    onChange={(e) => setFormData({ ...formData, supplierContact: e.target.value })}
+                    className="rounded-lg border border-border px-3 py-2 text-sm outline-none"
+                    style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
+                  />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs font-medium text-muted-foreground">Phone</label>
+                  <input
+                    type="text"
+                    value={formData.phone}
+                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                    className="rounded-lg border border-border px-3 py-2 text-sm outline-none"
+                    style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
+                  />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs font-medium text-muted-foreground">Email</label>
+                  <input
+                    type="email"
+                    value={formData.email}
+                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    className="rounded-lg border border-border px-3 py-2 text-sm outline-none"
+                    style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
+                  />
+                </div>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    id="autoRenew"
+                    checked={formData.autoRenew}
+                    onChange={(e) => setFormData({ ...formData, autoRenew: e.target.checked })}
+                    className="rounded"
+                  />
+                  <label htmlFor="autoRenew" className="text-sm font-medium">Auto Renew</label>
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs font-medium text-muted-foreground">Initial Status</label>
+                  <select
+                    value={formData.status}
+                    onChange={(e) => setFormData({ ...formData, status: e.target.value as ContractStatus })}
+                    className="rounded-lg border border-border px-3 py-2 text-sm outline-none"
+                    style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
+                  >
+                    <option value="active">Active</option>
+                    <option value="expiring-soon">Expiring Soon</option>
+                    <option value="expired">Expired</option>
+                    <option value="pending">Pending</option>
+                    <option value="terminated">Terminated</option>
+                  </select>
+                </div>
+                <div className="col-span-2 flex flex-col gap-1">
+                  <label className="text-xs font-medium text-muted-foreground">SLA Terms</label>
+                  <input
+                    type="text"
+                    value={formData.sla}
+                    onChange={(e) => setFormData({ ...formData, sla: e.target.value })}
+                    className="rounded-lg border border-border px-3 py-2 text-sm outline-none"
+                    style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
+                  />
+                </div>
+                <div className="col-span-2 flex flex-col gap-1">
+                  <label className="text-xs font-medium text-muted-foreground">Notes</label>
+                  <textarea
+                    rows={3}
+                    value={formData.notes}
+                    onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                    className="rounded-lg border border-border px-3 py-2 text-sm outline-none resize-none"
+                    style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
+                  />
+                </div>
+              </div>
+              <div className="flex gap-2 p-6 pt-0">
+                <button
+                  type="submit"
+                  disabled={saving}
+                  className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-transform active:scale-95"
+                  style={{ background: 'var(--primary)', color: '#000' }}
+                >
+                  {saving ? <Loader2 size={14} className="animate-spin" /> : null}
+                  Save Contract
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowAddModal(false)}
+                  className="px-4 py-2 rounded-lg text-sm font-medium border border-border"
+                  style={{ background: 'var(--surface2)', color: 'var(--text2)' }}
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Contract Modal */}
+      {showEditModal && editFormData && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: 'rgba(0,0,0,0.6)' }} onClick={() => setShowEditModal(false)}>
+          <div className="rounded-2xl border border-border w-full max-w-2xl max-h-[85vh] overflow-auto shadow-2xl animate-in fade-in zoom-in-95 duration-150" style={{ background: 'var(--surface)' }} onClick={(e) => e.stopPropagation()}>
+            <form onSubmit={handleSaveEdit}>
+              <div className="flex items-center justify-between p-6 border-b border-border">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'rgba(232,201,122,0.15)', color: 'var(--primary)' }}>
+                    <Edit2 size={16} />
+                  </div>
+                  <div>
+                    <h2 className="font-head font-bold text-lg">Edit Contract</h2>
+                    <p className="text-xs text-muted-foreground">{editFormData.contractId} · {editFormData.contractName}</p>
+                  </div>
+                </div>
+                <button type="button" onClick={() => setShowEditModal(false)} className="text-muted-foreground hover:text-foreground text-xl font-bold px-2">×</button>
+              </div>
+              <div className="p-6 grid grid-cols-2 gap-4">
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs font-medium text-muted-foreground">Supplier Name *</label>
+                  <input
+                    type="text"
+                    required
+                    value={editFormData.supplierName || ''}
+                    onChange={(e) => setEditFormData({ ...editFormData, supplierName: e.target.value })}
+                    className="rounded-lg border border-border px-3 py-2 text-sm outline-none"
+                    style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
+                  />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs font-medium text-muted-foreground">Contract Name *</label>
+                  <input
+                    type="text"
+                    required
+                    value={editFormData.contractName || ''}
+                    onChange={(e) => setEditFormData({ ...editFormData, contractName: e.target.value })}
+                    className="rounded-lg border border-border px-3 py-2 text-sm outline-none"
+                    style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
+                  />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs font-medium text-muted-foreground">Category</label>
+                  <select
+                    value={editFormData.category || CONTRACT_CATEGORIES[0]}
+                    onChange={(e) => setEditFormData({ ...editFormData, category: e.target.value })}
+                    className="rounded-lg border border-border px-3 py-2 text-sm outline-none"
+                    style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
+                  >
+                    {CONTRACT_CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
+                  </select>
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs font-medium text-muted-foreground">Property</label>
+                  <select
+                    value={editFormData.hotel || propertyOptions[0]}
+                    onChange={(e) => setEditFormData({ ...editFormData, hotel: e.target.value })}
+                    className="rounded-lg border border-border px-3 py-2 text-sm outline-none"
+                    style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
+                  >
+                    {propertyOptions.map((h) => <option key={h} value={h}>{h}</option>)}
+                  </select>
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs font-medium text-muted-foreground">Department</label>
+                  <input
+                    type="text"
+                    value={editFormData.department || ''}
+                    onChange={(e) => setEditFormData({ ...editFormData, department: e.target.value })}
+                    className="rounded-lg border border-border px-3 py-2 text-sm outline-none"
+                    style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
+                  />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs font-medium text-muted-foreground">Annual Value (£)</label>
+                  <input
+                    type="number"
+                    value={editFormData.contractValue ?? ''}
+                    onChange={(e) => setEditFormData({ ...editFormData, contractValue: e.target.value })}
+                    placeholder="e.g. 24500"
+                    className="rounded-lg border border-border px-3 py-2 text-sm outline-none"
+                    style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
+                  />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs font-medium text-muted-foreground">Monthly Cost (£)</label>
+                  <input
+                    type="number"
+                    value={editFormData.monthlyCost ?? ''}
+                    onChange={(e) => setEditFormData({ ...editFormData, monthlyCost: e.target.value })}
+                    placeholder="e.g. 2041"
+                    className="rounded-lg border border-border px-3 py-2 text-sm outline-none"
+                    style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
+                  />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs font-medium text-muted-foreground">Payment Frequency</label>
+                  <input
+                    type="text"
+                    value={editFormData.paymentFrequency || ''}
+                    onChange={(e) => setEditFormData({ ...editFormData, paymentFrequency: e.target.value })}
+                    placeholder="Monthly, Annual, Quarterly"
+                    className="rounded-lg border border-border px-3 py-2 text-sm outline-none"
+                    style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
+                  />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs font-medium text-muted-foreground">Start Date</label>
+                  <input
+                    type="date"
+                    value={editFormData.startDate || ''}
+                    onChange={(e) => setEditFormData({ ...editFormData, startDate: e.target.value })}
+                    className="rounded-lg border border-border px-3 py-2 text-sm outline-none"
+                    style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
+                  />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs font-medium text-muted-foreground">End Date</label>
+                  <input
+                    type="date"
+                    value={editFormData.endDate || ''}
+                    onChange={(e) => setEditFormData({ ...editFormData, endDate: e.target.value })}
+                    className="rounded-lg border border-border px-3 py-2 text-sm outline-none"
+                    style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
+                  />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs font-medium text-muted-foreground">Renewal Date</label>
+                  <input
+                    type="date"
+                    value={editFormData.renewalDate || ''}
+                    onChange={(e) => setEditFormData({ ...editFormData, renewalDate: e.target.value })}
+                    className="rounded-lg border border-border px-3 py-2 text-sm outline-none"
+                    style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
+                  />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs font-medium text-muted-foreground">Notice Period</label>
+                  <input
+                    type="text"
+                    value={editFormData.noticePeriod || ''}
+                    onChange={(e) => setEditFormData({ ...editFormData, noticePeriod: e.target.value })}
+                    placeholder="e.g. 30 days"
+                    className="rounded-lg border border-border px-3 py-2 text-sm outline-none"
+                    style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
+                  />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs font-medium text-muted-foreground">Contract Owner</label>
+                  <input
+                    type="text"
+                    value={editFormData.contractOwner || ''}
+                    onChange={(e) => setEditFormData({ ...editFormData, contractOwner: e.target.value })}
+                    className="rounded-lg border border-border px-3 py-2 text-sm outline-none"
+                    style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
+                  />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs font-medium text-muted-foreground">Supplier Contact</label>
+                  <input
+                    type="text"
+                    value={editFormData.supplierContact || ''}
+                    onChange={(e) => setEditFormData({ ...editFormData, supplierContact: e.target.value })}
+                    className="rounded-lg border border-border px-3 py-2 text-sm outline-none"
+                    style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
+                  />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs font-medium text-muted-foreground">Phone</label>
+                  <input
+                    type="text"
+                    value={editFormData.phone || ''}
+                    onChange={(e) => setEditFormData({ ...editFormData, phone: e.target.value })}
+                    className="rounded-lg border border-border px-3 py-2 text-sm outline-none"
+                    style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
+                  />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs font-medium text-muted-foreground">Email</label>
+                  <input
+                    type="email"
+                    value={editFormData.email || ''}
+                    onChange={(e) => setEditFormData({ ...editFormData, email: e.target.value })}
+                    className="rounded-lg border border-border px-3 py-2 text-sm outline-none"
+                    style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
+                  />
+                </div>
+                <div className="flex items-center gap-2 pt-4">
+                  <input
+                    type="checkbox"
+                    id="editAutoRenew"
+                    checked={Boolean(editFormData.autoRenew)}
+                    onChange={(e) => setEditFormData({ ...editFormData, autoRenew: e.target.checked })}
+                    className="rounded w-4 h-4 cursor-pointer"
+                  />
+                  <label htmlFor="editAutoRenew" className="text-sm font-medium cursor-pointer">Auto Renew Agreement</label>
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs font-medium text-muted-foreground">Status</label>
+                  <select
+                    value={editFormData.status || 'active'}
+                    onChange={(e) => setEditFormData({ ...editFormData, status: e.target.value as ContractStatus })}
+                    className="rounded-lg border border-border px-3 py-2 text-sm outline-none"
+                    style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
+                  >
+                    <option value="active">Active</option>
+                    <option value="expiring-soon">Expiring Soon</option>
+                    <option value="expired">Expired</option>
+                    <option value="pending">Pending</option>
+                    <option value="terminated">Terminated</option>
+                  </select>
+                </div>
+                <div className="col-span-2 flex flex-col gap-1">
+                  <label className="text-xs font-medium text-muted-foreground">SLA Terms</label>
+                  <input
+                    type="text"
+                    value={editFormData.sla || ''}
+                    onChange={(e) => setEditFormData({ ...editFormData, sla: e.target.value })}
+                    className="rounded-lg border border-border px-3 py-2 text-sm outline-none"
+                    style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
+                  />
+                </div>
+                <div className="col-span-2 flex flex-col gap-1">
+                  <label className="text-xs font-medium text-muted-foreground">Notes</label>
+                  <textarea
+                    rows={3}
+                    value={editFormData.notes || ''}
+                    onChange={(e) => setEditFormData({ ...editFormData, notes: e.target.value })}
+                    className="rounded-lg border border-border px-3 py-2 text-sm outline-none resize-none"
+                    style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
+                  />
+                </div>
+              </div>
+              <div className="flex gap-2 p-6 pt-0">
+                <button
+                  type="submit"
+                  disabled={saving}
+                  className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-transform active:scale-95"
+                  style={{ background: 'var(--primary)', color: '#000' }}
+                >
+                  {saving ? <Loader2 size={14} className="animate-spin" /> : null}
+                  Update Contract
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowEditModal(false)}
+                  className="px-4 py-2 rounded-lg text-sm font-medium border border-border"
+                  style={{ background: 'var(--surface2)', color: 'var(--text2)' }}
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Set Reminder Modal */}
+      {showReminderModal && selectedContract && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.6)' }} onClick={() => setShowReminderModal(false)}>
+          <div className="rounded-2xl border border-border w-full max-w-md p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-150" style={{ background: 'var(--surface)' }} onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between pb-4 border-b border-border mb-4">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'rgba(232,201,122,0.15)', color: 'var(--primary)' }}>
+                  <Bell size={16} />
+                </div>
+                <div>
+                  <h3 className="font-head font-bold text-base">Set Renewal Reminder</h3>
+                  <p className="text-xs text-muted-foreground">{selectedContract.contractId} · Renewal {formatDate(selectedContract.renewalDate)}</p>
+                </div>
+              </div>
+              <button onClick={() => setShowReminderModal(false)} className="text-muted-foreground hover:text-foreground">
+                <X size={16} />
+              </button>
             </div>
-            <div className="p-6 grid grid-cols-2 gap-4">
-              {[
-                ['Supplier Name', 'text'], ['Contract Name', 'text'],
-                ['Category', 'select-category'], ['Hotel', 'select-hotel'],
-                ['Department', 'text'], ['Start Date', 'date'],
-                ['End Date', 'date'], ['Renewal Date', 'date'],
-                ['Notice Period', 'text'], ['Contract Value (£)', 'number'],
-                ['Monthly Cost (£)', 'number'], ['Payment Frequency', 'text'],
-                ['Contract Owner', 'text'], ['Supplier Contact', 'text'],
-                ['Phone', 'text'], ['Email', 'email'],
-              ].map(([label, type]) => (
-                <div key={label} className="flex flex-col gap-1">
-                  <label className="text-xs font-medium text-muted-foreground">{label}</label>
-                  {type === 'select-category' ? (
-                    <select className="rounded-lg border border-border px-3 py-2 text-sm outline-none" style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}>
-                      {CONTRACT_CATEGORIES.map((c) => <option key={c}>{c}</option>)}
-                    </select>
-                  ) : type === 'select-hotel' ? (
-                    <select className="rounded-lg border border-border px-3 py-2 text-sm outline-none" style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}>
-                      {HOTELS.map((h) => <option key={h}>{h}</option>)}
-                    </select>
-                  ) : (
-                    <input type={type} className="rounded-lg border border-border px-3 py-2 text-sm outline-none" style={{ background: 'var(--surface2)', color: 'var(--foreground)' }} />
-                  )}
+            <form onSubmit={handleSaveReminder} className="space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wide">
+                  When to Remind
+                </label>
+                <select
+                  value={reminderDays}
+                  onChange={(e) => setReminderDays(Number(e.target.value))}
+                  className="w-full px-3 py-2 rounded-lg border border-border text-sm outline-none"
+                  style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
+                >
+                  <option value={15}>15 days before renewal</option>
+                  <option value={30}>30 days before renewal (Recommended)</option>
+                  <option value={60}>60 days before renewal</option>
+                  <option value={90}>90 days before renewal</option>
+                  <option value={120}>120 days before renewal</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wide">
+                  Reminder Recipient
+                </label>
+                <input
+                  type="email"
+                  defaultValue={selectedContract.email || 'marcus.webb@samkocentral.com'}
+                  className="w-full px-3 py-2 rounded-lg border border-border text-sm outline-none"
+                  style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wide">
+                  Custom Reminder Note
+                </label>
+                <textarea
+                  rows={3}
+                  value={reminderNote}
+                  onChange={(e) => setReminderNote(e.target.value)}
+                  placeholder="e.g. Request competitive quote 45 days prior to notice period..."
+                  className="w-full px-3 py-2 rounded-lg border border-border text-sm outline-none resize-none"
+                  style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
+                />
+              </div>
+              <div className="flex justify-end gap-2 pt-2 border-t border-border">
+                <button
+                  type="button"
+                  onClick={() => setShowReminderModal(false)}
+                  className="px-4 py-2 rounded-lg text-xs font-semibold border border-border"
+                  style={{ background: 'var(--surface2)', color: 'var(--text2)' }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-semibold"
+                  style={{ background: 'var(--primary)', color: '#000' }}
+                >
+                  <Bell size={13} />
+                  Confirm Reminder
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Documents Modal */}
+      {showDocumentsModal && selectedContract && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.6)' }} onClick={() => setShowDocumentsModal(false)}>
+          <div className="rounded-2xl border border-border w-full max-w-lg p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-150" style={{ background: 'var(--surface)' }} onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between pb-4 border-b border-border mb-4">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'rgba(232,201,122,0.15)', color: 'var(--primary)' }}>
+                  <FileText size={16} />
+                </div>
+                <div>
+                  <h3 className="font-head font-bold text-base">Contract Documents</h3>
+                  <p className="text-xs text-muted-foreground">{selectedContract.contractId} · {selectedContract.supplierName}</p>
+                </div>
+              </div>
+              <button onClick={() => setShowDocumentsModal(false)} className="text-muted-foreground hover:text-foreground">
+                <X size={16} />
+              </button>
+            </div>
+
+            <div className="space-y-2.5 mb-5 max-h-64 overflow-y-auto pr-1">
+              {documentsList.map((doc) => (
+                <div key={doc.id} className="flex items-center justify-between p-3 rounded-xl border border-border transition-colors hover:border-primary/40" style={{ background: 'var(--surface2)' }}>
+                  <div className="flex items-center gap-3 min-w-0">
+                    <FileText size={18} className="text-primary flex-shrink-0" />
+                    <div className="min-w-0">
+                      <div className="text-xs font-semibold truncate text-foreground">{doc.name}</div>
+                      <div className="text-[11px] text-muted-foreground">{doc.size} · Uploaded {doc.date}</div>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1.5 flex-shrink-0">
+                    <button
+                      onClick={() => toast.info(`Viewing ${doc.name}`)}
+                      className="px-2.5 py-1 rounded-md text-xs font-medium border border-border hover:bg-surface"
+                      style={{ color: 'var(--text2)' }}
+                    >
+                      View
+                    </button>
+                    <button
+                      onClick={() => toast.success(`Downloading ${doc.name}`)}
+                      className="p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-surface"
+                      title="Download"
+                    >
+                      <Download size={13} />
+                    </button>
+                  </div>
                 </div>
               ))}
-              <div className="flex items-center gap-2">
-                <input type="checkbox" id="autoRenew" className="rounded" />
-                <label htmlFor="autoRenew" className="text-sm font-medium">Auto Renew</label>
+            </div>
+
+            <div className="pt-3 border-t border-border flex items-center justify-between">
+              <label className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold cursor-pointer border border-border hover:bg-surface2 transition-colors" style={{ color: 'var(--foreground)' }}>
+                <Upload size={13} className="text-primary" />
+                Upload New Document
+                <input type="file" onChange={handleUploadDocument} className="hidden" />
+              </label>
+              <button
+                onClick={() => setShowDocumentsModal(false)}
+                className="px-4 py-1.5 rounded-lg text-xs font-semibold border border-border"
+                style={{ background: 'var(--surface2)', color: 'var(--text2)' }}
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Dialog */}
+      {contractToDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(3px)' }} onClick={() => setContractToDelete(null)}>
+          <div className="rounded-2xl border border-border w-full max-w-md p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-150" style={{ background: 'var(--surface)' }} onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-start gap-3.5 mb-4">
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 bg-rose-500/15 text-rose-400">
+                <AlertTriangle size={20} />
               </div>
-              <div className="flex flex-col gap-1">
-                <label className="text-xs font-medium text-muted-foreground">SLA Terms</label>
-                <input type="text" className="rounded-lg border border-border px-3 py-2 text-sm outline-none" style={{ background: 'var(--surface2)', color: 'var(--foreground)' }} />
-              </div>
-              <div className="col-span-2 flex flex-col gap-1">
-                <label className="text-xs font-medium text-muted-foreground">Notes</label>
-                <textarea rows={3} className="rounded-lg border border-border px-3 py-2 text-sm outline-none resize-none" style={{ background: 'var(--surface2)', color: 'var(--foreground)' }} />
+              <div className="min-w-0 flex-1">
+                <h3 className="font-head font-bold text-base text-foreground">Delete Contract</h3>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Are you sure you want to delete <span className="font-semibold text-foreground">{contractToDelete.contractName}</span> ({contractToDelete.contractId}) with <span className="font-semibold text-foreground">{contractToDelete.supplierName}</span>?
+                </p>
+                <div className="p-3 rounded-lg border border-border mt-3 bg-surface2 text-xs space-y-1">
+                  <div className="flex justify-between text-muted-foreground">
+                    <span>Property:</span>
+                    <span className="font-medium text-foreground">{contractToDelete.hotel}</span>
+                  </div>
+                  <div className="flex justify-between text-muted-foreground">
+                    <span>Annual Value:</span>
+                    <span className="font-medium text-foreground">{contractToDelete.contractValue > 0 ? fmt(contractToDelete.contractValue) : 'Variable'}</span>
+                  </div>
+                  <div className="flex justify-between text-muted-foreground">
+                    <span>End Date:</span>
+                    <span className="font-medium text-foreground">{formatDate(contractToDelete.endDate)}</span>
+                  </div>
+                </div>
+                <p className="text-[11px] text-rose-400 mt-2 font-medium">
+                  This action will remove the contract from the register and database.
+                </p>
               </div>
             </div>
-            <div className="flex gap-2 p-6 pt-0">
-              <button className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold" style={{ background: 'var(--primary)', color: '#000' }}>Save Contract</button>
-              <button onClick={() => setShowAddModal(false)} className="px-4 py-2 rounded-lg text-sm font-medium border border-border" style={{ background: 'var(--surface2)', color: 'var(--text2)' }}>Cancel</button>
+            <div className="flex justify-end gap-2.5 pt-3 border-t border-border">
+              <button
+                type="button"
+                disabled={deleting}
+                onClick={() => setContractToDelete(null)}
+                className="px-4 py-2 rounded-lg text-xs font-semibold border border-border"
+                style={{ background: 'var(--surface2)', color: 'var(--text2)' }}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={deleting}
+                onClick={handleDeleteContract}
+                className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-semibold bg-rose-600 hover:bg-rose-500 text-white transition-colors"
+              >
+                {deleting ? <Loader2 size={13} className="animate-spin" /> : <Trash2 size={13} />}
+                Delete Contract
+              </button>
             </div>
           </div>
         </div>
@@ -870,3 +1968,4 @@ export default function ContractsRegisterClient() {
     </div>
   );
 }
+

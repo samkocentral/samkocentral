@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Settings, Bell, Shield, Building2, Palette, Mail, Database, Save, ChevronRight } from 'lucide-react';
+import Link from 'next/link';
+import { Settings, Bell, Shield, Building2, Palette, Mail, Database, Save, ChevronRight, Server, RefreshCw, CheckCircle2, AlertCircle, Sparkles } from 'lucide-react';
 import Icon from '@/components/ui/AppIcon';
 
 
@@ -11,13 +12,13 @@ const TABS: { id: SettingsTab; label: string; icon: React.ElementType }[] = [
   { id: 'general', label: 'General', icon: Settings },
   { id: 'notifications', label: 'Notifications', icon: Bell },
   { id: 'security', label: 'Security', icon: Shield },
-  { id: 'hotels', label: 'Hotels & Sites', icon: Building2 },
+  { id: 'hotels', label: 'Properties & Sites', icon: Building2 },
   { id: 'appearance', label: 'Appearance', icon: Palette },
   { id: 'email', label: 'Email', icon: Mail },
   { id: 'data', label: 'Data & Backup', icon: Database },
 ];
 
-function Toggle({ checked, onChange }: { checked: boolean; onChange: (v: boolean) => void }) {
+function Toggle({ checked = false, onChange }: { checked?: boolean; onChange: (v: boolean) => void }) {
   return (
     <button
       onClick={() => onChange(!checked)}
@@ -58,6 +59,42 @@ function SectionCard({ title, children }: { title: string; children: React.React
 export default function SettingsClient() {
   const [activeTab, setActiveTab] = useState<SettingsTab>('general');
   const [saved, setSaved] = useState(false);
+  const [seedLoading, setSeedLoading] = useState(false);
+  const [seedResult, setSeedResult] = useState<string | null>(null);
+  const [apiStatus, setApiStatus] = useState<any | null>(null);
+  const [statusLoading, setStatusLoading] = useState(false);
+
+  const checkStatus = async () => {
+    setStatusLoading(true);
+    try {
+      const res = await fetch('/api/status');
+      const data = await res.json();
+      setApiStatus(data);
+    } catch (e: any) {
+      setApiStatus({ error: e.message });
+    } finally {
+      setStatusLoading(false);
+    }
+  };
+
+  const handleSeedDatabase = async () => {
+    setSeedLoading(true);
+    setSeedResult(null);
+    try {
+      const res = await fetch('/api/seed', { method: 'POST' });
+      const data = await res.json();
+      if (data.success) {
+        setSeedResult('Successfully seeded all collections to Firestore database!');
+        checkStatus();
+      } else {
+        setSeedResult(data.message || 'Error seeding database');
+      }
+    } catch (e: any) {
+      setSeedResult(`Failed to seed: ${e.message}`);
+    } finally {
+      setSeedLoading(false);
+    }
+  };
 
   const [notifs, setNotifs] = useState({
     maintenanceDue: true,
@@ -238,7 +275,15 @@ export default function SettingsClient() {
               </SectionCard>
               <SectionCard title="Audit & Access">
                 <SettingRow label="Audit Log" desc="Record all user actions and changes">
-                  <Toggle checked={security.auditLog} onChange={(v) => setSecurity({ ...security, auditLog: v })} />
+                  <div className="flex items-center gap-3">
+                    <Link
+                      href="/users?tab=audit"
+                      className="text-xs text-primary hover:underline font-semibold"
+                    >
+                      View Live Audit Log →
+                    </Link>
+                    <Toggle checked={security.auditLog} onChange={(v) => setSecurity({ ...security, auditLog: v })} />
+                  </div>
                 </SettingRow>
                 <SettingRow label="IP Restriction" desc="Restrict access to specific IP ranges">
                   <Toggle checked={security.ipRestriction} onChange={(v) => setSecurity({ ...security, ipRestriction: v })} />
@@ -249,18 +294,18 @@ export default function SettingsClient() {
 
           {activeTab === 'hotels' && (
             <div>
-              <SectionCard title="Registered Hotels">
+              <SectionCard title="Registered Properties">
                 {['Crowne Plaza Kingston-south', 'Stanhill Court', 'Hampton 1 & 2', 'Ravents Ait Island', 'River Club'].map((hotel) => (
                   <SettingRow key={hotel} label={hotel} desc="London, UK">
                     <span className="text-xs font-semibold px-2 py-0.5 rounded-full" style={{ background: 'rgba(61,214,140,0.12)', color: '#3dd68c' }}>Active</span>
                   </SettingRow>
                 ))}
               </SectionCard>
-              <SectionCard title="Hotel Settings">
-                <SettingRow label="Allow Cross-Hotel Asset Transfer" desc="Enable moving assets between hotels">
+              <SectionCard title="Property Settings">
+                <SettingRow label="Allow Cross-Property Asset Transfer" desc="Enable moving assets between properties">
                   <Toggle checked onChange={() => {}} />
                 </SettingRow>
-                <SettingRow label="Hotel-Level Reporting" desc="Generate separate reports per hotel">
+                <SettingRow label="Property-Level Reporting" desc="Generate separate reports per property">
                   <Toggle checked onChange={() => {}} />
                 </SettingRow>
               </SectionCard>
@@ -315,7 +360,89 @@ export default function SettingsClient() {
           )}
 
           {activeTab === 'data' && (
-            <div>
+            <div className="space-y-6">
+              <SectionCard title="Firebase & Firestore Backend">
+                <div className="mb-4 text-xs text-muted-foreground leading-relaxed">
+                  SamkoCentral is integrated with Firebase Firestore and Next.js REST API routes. When your Firebase credentials are added to <code className="text-amber-400">.env</code>, operations directly synchronize with Firestore in real-time.
+                </div>
+
+                <div className="flex flex-wrap items-center gap-3 mb-4">
+                  <button
+                    onClick={checkStatus}
+                    disabled={statusLoading}
+                    className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold border border-border"
+                    style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
+                  >
+                    <RefreshCw size={13} className={statusLoading ? 'animate-spin' : ''} />
+                    {statusLoading ? 'Checking...' : 'Check Firebase Status'}
+                  </button>
+
+                  <button
+                    onClick={handleSeedDatabase}
+                    disabled={seedLoading}
+                    className="flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all shadow-sm"
+                    style={{ background: 'var(--primary)', color: '#000' }}
+                  >
+                    <Sparkles size={14} className={seedLoading ? 'animate-spin' : ''} />
+                    {seedLoading ? 'Seeding Firestore...' : 'Seed Firestore Database'}
+                  </button>
+                </div>
+
+                {seedResult && (
+                  <div
+                    className="p-3 mb-4 rounded-lg text-xs flex items-center gap-2 border"
+                    style={{
+                      background: seedResult.includes('Successfully') ? 'rgba(61,214,140,0.1)' : 'rgba(245,158,11,0.1)',
+                      borderColor: seedResult.includes('Successfully') ? '#3dd68c' : '#f59e0b',
+                      color: seedResult.includes('Successfully') ? '#3dd68c' : '#f59e0b',
+                    }}
+                  >
+                    {seedResult.includes('Successfully') ? <CheckCircle2 size={14} /> : <AlertCircle size={14} />}
+                    {seedResult}
+                  </div>
+                )}
+
+                {apiStatus && (
+                  <div className="p-3 rounded-lg border border-border mb-4 text-xs font-mono" style={{ background: 'var(--surface2)' }}>
+                    <div className="flex items-center justify-between pb-2 mb-2 border-b border-border">
+                      <span className="font-bold font-sans">Firebase Status:</span>
+                      <span className={`px-2 py-0.5 rounded text-[11px] font-sans font-semibold ${apiStatus.firebaseAdminConfigured ? 'bg-emerald-500/20 text-emerald-400' : 'bg-amber-500/20 text-amber-400'}`}>
+                        {apiStatus.firebaseAdminConfigured ? 'Firestore Admin Connected' : 'Fallback Mode (Ready for Credentials)'}
+                      </span>
+                    </div>
+                    <div>Project ID: {apiStatus.projectId || 'Not set in .env yet'}</div>
+                    <div className="mt-1 text-muted-foreground font-sans">Active Records by Collection:</div>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-2 font-sans">
+                      {apiStatus.counts && Object.entries(apiStatus.counts).map(([col, cnt]) => (
+                        <div key={col} className="p-2 rounded bg-black/20 text-center">
+                          <div className="font-bold text-amber-300 text-sm">{cnt as any}</div>
+                          <div className="text-[11px] text-muted-foreground capitalize">{col}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <div className="rounded-lg p-3 border border-border text-xs" style={{ background: 'var(--surface2)' }}>
+                  <div className="font-bold mb-1 text-foreground flex items-center gap-1.5">
+                    <Server size={13} className="text-amber-400" />
+                    Available REST API Endpoints:
+                  </div>
+                  <div className="text-muted-foreground grid grid-cols-1 md:grid-cols-2 gap-1 mt-2 font-mono text-[11px]">
+                    <div>GET/POST <span className="text-foreground">/api/properties</span></div>
+                    <div>GET/PUT/DELETE <span className="text-foreground">/api/properties/[id]</span></div>
+                    <div>GET/POST <span className="text-foreground">/api/assets</span></div>
+                    <div>GET/PUT/DELETE <span className="text-foreground">/api/assets/[id]</span></div>
+                    <div>GET/POST <span className="text-foreground">/api/maintenance</span></div>
+                    <div>GET/PUT/DELETE <span className="text-foreground">/api/maintenance/[id]</span></div>
+                    <div>GET/POST <span className="text-foreground">/api/compliance</span></div>
+                    <div>GET/POST <span className="text-foreground">/api/insurance</span></div>
+                    <div>GET/POST <span className="text-foreground">/api/contracts</span></div>
+                    <div>GET/POST <span className="text-foreground">/api/utilities</span></div>
+                  </div>
+                </div>
+              </SectionCard>
+
               <SectionCard title="Data Export">
                 <SettingRow label="Export All Assets" desc="Download complete asset register as Excel">
                   <button className="text-xs font-semibold px-3 py-1.5 rounded-lg" style={{ background: 'var(--primary)', color: '#000' }}>Export Excel</button>

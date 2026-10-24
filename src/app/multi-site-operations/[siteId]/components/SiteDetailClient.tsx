@@ -83,15 +83,15 @@ export default function SiteDetailClient({ siteId }: SiteDetailClientProps) {
               <span
                 className="rounded"
                 style={{
-                  background: site.risk === 'high' ? 'rgba(244,63,94,0.1)' : site.risk === 'medium' ? 'rgba(245,158,11,0.1)' : 'rgba(61,214,140,0.1)',
-                  color: site.risk === 'high' ? 'var(--critical)' : site.risk === 'medium' ? 'var(--warning)' : 'var(--ok)',
+                  background: (site.risk || 'low') === 'high' ? 'rgba(244,63,94,0.1)' : (site.risk || 'low') === 'medium' ? 'rgba(245,158,11,0.1)' : 'rgba(61,214,140,0.1)',
+                  color: (site.risk || 'low') === 'high' ? 'var(--critical)' : (site.risk || 'low') === 'medium' ? 'var(--warning)' : 'var(--ok)',
                   fontSize: 10,
                   fontWeight: 600,
                   padding: '2px 8px',
                   borderRadius: 4,
                 }}
               >
-                {site.risk.toUpperCase()} RISK
+                {(site.risk || 'low').toUpperCase()} RISK
               </span>
             </div>
             <h2 className="font-head text-foreground" style={{ fontSize: 22, fontWeight: 800, marginBottom: 4 }}>
@@ -311,147 +311,153 @@ export default function SiteDetailClient({ siteId }: SiteDetailClientProps) {
 
       {activeTab === 'compliance' && (
         <div className="samko-card" style={{ padding: 0, overflow: 'hidden' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-            <thead>
-              <tr style={{ borderBottom: '1px solid var(--border)' }}>
-                {['Compliance Item', 'Category', 'Due Date', 'Days Left', 'Status', 'Assignee'].map((h) => (
-                  <th key={h} style={{ padding: '10px 16px', textAlign: 'left', fontSize: 10, fontWeight: 700, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>
-                    {h}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {siteCompliance.length === 0 ? (
-                <tr>
-                  <td colSpan={6} style={{ padding: '32px 16px', textAlign: 'center', color: 'var(--text3)', fontSize: 13 }}>
-                    No compliance items for this site.
-                  </td>
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', minWidth: 720, borderCollapse: 'collapse' }}>
+              <thead>
+                <tr style={{ borderBottom: '1px solid var(--border)' }}>
+                  {['Compliance Item', 'Category', 'Due Date', 'Days Left', 'Status', 'Assignee'].map((h) => (
+                    <th key={h} style={{ padding: '10px 16px', textAlign: 'left', fontSize: 10, fontWeight: 700, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>
+                      {h}
+                    </th>
+                  ))}
                 </tr>
-              ) : (
-                siteCompliance.map((c) => {
-                  const days = daysUntil(c.dueDate);
-                  return (
-                    <tr key={c.id} style={{ borderBottom: '1px solid var(--border)' }}>
-                      <td style={{ padding: '12px 16px', fontSize: 13, fontWeight: 500, color: 'var(--foreground)' }}>{c.item}</td>
-                      <td style={{ padding: '12px 16px' }}>
-                        <span style={{ background: 'var(--surface3)', color: 'var(--text2)', fontSize: 10, fontWeight: 600, padding: '2px 7px', borderRadius: 4 }}>{c.category}</span>
-                      </td>
-                      <td style={{ padding: '12px 16px', fontSize: 12, color: 'var(--text2)' }}>{formatDateGB(c.dueDate)}</td>
-                      <td style={{ padding: '12px 16px', fontSize: 12, color: days < 0 ? 'var(--critical)' : days < 30 ? 'var(--warning)' : 'var(--ok)', fontWeight: 600 }}>
-                        {days < 0 ? `${Math.abs(days)}d overdue` : `${days}d`}
-                      </td>
-                      <td style={{ padding: '12px 16px' }}>
-                        <StatusBadge variant={c.status} label={c.status === 'ok' ? 'Compliant' : c.status === 'warning' ? 'Due Soon' : 'Overdue'} size="sm" />
-                      </td>
-                      <td style={{ padding: '12px 16px', fontSize: 12, color: 'var(--text2)' }}>{c.assignee}</td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {siteCompliance.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} style={{ padding: '32px 16px', textAlign: 'center', color: 'var(--text3)', fontSize: 13 }}>
+                      No compliance items for this site.
+                    </td>
+                  </tr>
+                ) : (
+                  siteCompliance.map((c) => {
+                    const days = daysUntil(c.dueDate);
+                    return (
+                      <tr key={c.id} style={{ borderBottom: '1px solid var(--border)' }}>
+                        <td style={{ padding: '12px 16px', fontSize: 13, fontWeight: 500, color: 'var(--foreground)' }}>{c.item}</td>
+                        <td style={{ padding: '12px 16px' }}>
+                          <span style={{ background: 'var(--surface3)', color: 'var(--text2)', fontSize: 10, fontWeight: 600, padding: '2px 7px', borderRadius: 4 }}>{c.category}</span>
+                        </td>
+                        <td style={{ padding: '12px 16px', fontSize: 12, color: 'var(--text2)' }}>{formatDateGB(c.dueDate)}</td>
+                        <td style={{ padding: '12px 16px', fontSize: 12, color: days < 0 ? 'var(--critical)' : days < 30 ? 'var(--warning)' : 'var(--ok)', fontWeight: 600 }}>
+                          {days < 0 ? `${Math.abs(days)}d overdue` : `${days}d`}
+                        </td>
+                        <td style={{ padding: '12px 16px' }}>
+                          <StatusBadge variant={c.status} label={c.status === 'ok' ? 'Compliant' : c.status === 'warning' ? 'Due Soon' : 'Overdue'} size="sm" />
+                        </td>
+                        <td style={{ padding: '12px 16px', fontSize: 12, color: 'var(--text2)' }}>{c.assignee}</td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
 
       {activeTab === 'documents' && (
         <div className="samko-card" style={{ padding: 0, overflow: 'hidden' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-            <thead>
-              <tr style={{ borderBottom: '1px solid var(--border)' }}>
-                {['Document', 'Category', 'Expiry', 'Days Left', 'Status', 'Size', 'Version'].map((h) => (
-                  <th key={h} style={{ padding: '10px 16px', textAlign: 'left', fontSize: 10, fontWeight: 700, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>
-                    {h}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {siteDocs.length === 0 ? (
-                <tr>
-                  <td colSpan={7} style={{ padding: '32px 16px', textAlign: 'center', color: 'var(--text3)', fontSize: 13 }}>
-                    No documents for this site.
-                  </td>
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', minWidth: 720, borderCollapse: 'collapse' }}>
+              <thead>
+                <tr style={{ borderBottom: '1px solid var(--border)' }}>
+                  {['Document', 'Category', 'Expiry', 'Days Left', 'Status', 'Size', 'Version'].map((h) => (
+                    <th key={h} style={{ padding: '10px 16px', textAlign: 'left', fontSize: 10, fontWeight: 700, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>
+                      {h}
+                    </th>
+                  ))}
                 </tr>
-              ) : (
-                siteDocs.map((d) => {
-                  const days = daysUntil(d.expiry);
-                  return (
-                    <tr key={d.id} style={{ borderBottom: '1px solid var(--border)' }}>
-                      <td style={{ padding: '12px 16px', fontSize: 13, fontWeight: 500, color: 'var(--foreground)' }}>
-                        <span style={{ marginRight: 6 }}>📄</span>{d.name}
-                      </td>
-                      <td style={{ padding: '12px 16px' }}>
-                        <span style={{ background: 'var(--surface3)', color: 'var(--text2)', fontSize: 10, fontWeight: 600, padding: '2px 7px', borderRadius: 4 }}>{d.category}</span>
-                      </td>
-                      <td style={{ padding: '12px 16px', fontSize: 12, color: 'var(--text2)' }}>{formatDateGB(d.expiry)}</td>
-                      <td style={{ padding: '12px 16px', fontSize: 12, color: days < 0 ? 'var(--critical)' : days < 30 ? 'var(--warning)' : 'var(--ok)', fontWeight: 600 }}>
-                        {days < 0 ? `${Math.abs(days)}d overdue` : `${days}d`}
-                      </td>
-                      <td style={{ padding: '12px 16px' }}>
-                        <StatusBadge variant={d.status} label={d.status === 'ok' ? 'Active' : d.status === 'warning' ? 'Due Soon' : 'Expired'} size="sm" />
-                      </td>
-                      <td style={{ padding: '12px 16px', fontSize: 12, color: 'var(--text3)' }}>{d.size}</td>
-                      <td style={{ padding: '12px 16px', fontSize: 11, color: 'var(--text3)' }}>{d.version}</td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {siteDocs.length === 0 ? (
+                  <tr>
+                    <td colSpan={7} style={{ padding: '32px 16px', textAlign: 'center', color: 'var(--text3)', fontSize: 13 }}>
+                      No documents for this site.
+                    </td>
+                  </tr>
+                ) : (
+                  siteDocs.map((d) => {
+                    const days = daysUntil(d.expiry);
+                    return (
+                      <tr key={d.id} style={{ borderBottom: '1px solid var(--border)' }}>
+                        <td style={{ padding: '12px 16px', fontSize: 13, fontWeight: 500, color: 'var(--foreground)' }}>
+                          <span style={{ marginRight: 6 }}>📄</span>{d.name}
+                        </td>
+                        <td style={{ padding: '12px 16px' }}>
+                          <span style={{ background: 'var(--surface3)', color: 'var(--text2)', fontSize: 10, fontWeight: 600, padding: '2px 7px', borderRadius: 4 }}>{d.category}</span>
+                        </td>
+                        <td style={{ padding: '12px 16px', fontSize: 12, color: 'var(--text2)' }}>{formatDateGB(d.expiry)}</td>
+                        <td style={{ padding: '12px 16px', fontSize: 12, color: days < 0 ? 'var(--critical)' : days < 30 ? 'var(--warning)' : 'var(--ok)', fontWeight: 600 }}>
+                          {days < 0 ? `${Math.abs(days)}d overdue` : `${days}d`}
+                        </td>
+                        <td style={{ padding: '12px 16px' }}>
+                          <StatusBadge variant={d.status} label={d.status === 'ok' ? 'Active' : d.status === 'warning' ? 'Due Soon' : 'Expired'} size="sm" />
+                        </td>
+                        <td style={{ padding: '12px 16px', fontSize: 12, color: 'var(--text3)' }}>{d.size}</td>
+                        <td style={{ padding: '12px 16px', fontSize: 11, color: 'var(--text3)' }}>{d.version}</td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
 
       {activeTab === 'tasks' && (
         <div className="samko-card" style={{ padding: 0, overflow: 'hidden' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-            <thead>
-              <tr style={{ borderBottom: '1px solid var(--border)' }}>
-                {['Task', 'Category', 'Priority', 'Status', 'Assignee', 'Due'].map((h) => (
-                  <th key={h} style={{ padding: '10px 16px', textAlign: 'left', fontSize: 10, fontWeight: 700, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>
-                    {h}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {siteTasks.length === 0 ? (
-                <tr>
-                  <td colSpan={6} style={{ padding: '32px 16px', textAlign: 'center', color: 'var(--text3)', fontSize: 13 }}>
-                    No tasks for this site.
-                  </td>
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', minWidth: 720, borderCollapse: 'collapse' }}>
+              <thead>
+                <tr style={{ borderBottom: '1px solid var(--border)' }}>
+                  {['Task', 'Category', 'Priority', 'Status', 'Assignee', 'Due'].map((h) => (
+                    <th key={h} style={{ padding: '10px 16px', textAlign: 'left', fontSize: 10, fontWeight: 700, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>
+                      {h}
+                    </th>
+                  ))}
                 </tr>
-              ) : (
-                siteTasks.map((t) => (
-                  <tr key={t.id} style={{ borderBottom: '1px solid var(--border)' }}>
-                    <td style={{ padding: '12px 16px' }}>
-                      <div className="text-foreground" style={{ fontSize: 13, fontWeight: 500 }}>{t.title}</div>
-                      <div className="text-muted-foreground" style={{ fontSize: 10, marginTop: 2 }}>{t.description.slice(0, 60)}…</div>
+              </thead>
+              <tbody>
+                {siteTasks.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} style={{ padding: '32px 16px', textAlign: 'center', color: 'var(--text3)', fontSize: 13 }}>
+                      No tasks for this site.
                     </td>
-                    <td style={{ padding: '12px 16px' }}>
-                      <span style={{ background: 'var(--surface3)', color: 'var(--text2)', fontSize: 10, fontWeight: 600, padding: '2px 7px', borderRadius: 4 }}>{t.category}</span>
-                    </td>
-                    <td style={{ padding: '12px 16px' }}>
-                      <StatusBadge
-                        variant={t.priority === 'urgent' ? 'critical' : t.priority === 'high' ? 'warning' : t.priority === 'medium' ? 'info' : 'ok'}
-                        label={t.priority}
-                        size="sm"
-                      />
-                    </td>
-                    <td style={{ padding: '12px 16px' }}>
-                      <StatusBadge
-                        variant={t.status === 'open' ? 'warning' : t.status === 'in-progress' ? 'info' : 'ok'}
-                        label={t.status}
-                        size="sm"
-                      />
-                    </td>
-                    <td style={{ padding: '12px 16px', fontSize: 12, color: 'var(--text2)' }}>{t.assignee}</td>
-                    <td style={{ padding: '12px 16px', fontSize: 12, color: 'var(--text2)' }}>{formatDateGB(t.due)}</td>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+                ) : (
+                  siteTasks.map((t) => (
+                    <tr key={t.id} style={{ borderBottom: '1px solid var(--border)' }}>
+                      <td style={{ padding: '12px 16px' }}>
+                        <div className="text-foreground" style={{ fontSize: 13, fontWeight: 500 }}>{t.title}</div>
+                        <div className="text-muted-foreground" style={{ fontSize: 10, marginTop: 2 }}>{t.description.slice(0, 60)}…</div>
+                      </td>
+                      <td style={{ padding: '12px 16px' }}>
+                        <span style={{ background: 'var(--surface3)', color: 'var(--text2)', fontSize: 10, fontWeight: 600, padding: '2px 7px', borderRadius: 4 }}>{t.category}</span>
+                      </td>
+                      <td style={{ padding: '12px 16px' }}>
+                        <StatusBadge
+                          variant={t.priority === 'urgent' ? 'critical' : t.priority === 'high' ? 'warning' : t.priority === 'medium' ? 'info' : 'ok'}
+                          label={t.priority}
+                          size="sm"
+                        />
+                      </td>
+                      <td style={{ padding: '12px 16px' }}>
+                        <StatusBadge
+                          variant={t.status === 'open' ? 'warning' : t.status === 'in-progress' ? 'info' : 'ok'}
+                          label={t.status}
+                          size="sm"
+                        />
+                      </td>
+                      <td style={{ padding: '12px 16px', fontSize: 12, color: 'var(--text2)' }}>{t.assignee}</td>
+                      <td style={{ padding: '12px 16px', fontSize: 12, color: 'var(--text2)' }}>{formatDateGB(t.due)}</td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
 

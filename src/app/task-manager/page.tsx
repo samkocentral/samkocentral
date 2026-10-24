@@ -1,19 +1,26 @@
+import React from 'react';
 import AppLayout from '@/components/AppLayout';
 import Topbar from '@/components/Topbar';
-import TaskManagerClient from './components/TaskManagerClient';
+import TasksClient from '../tasks/components/TasksClient';
+
+export const metadata = {
+  title: 'Tasks & Action List | SamkoCentral UK',
+  description: 'Operational tasks and compliance action items across all properties.',
+};
 
 export default function TaskManagerPage() {
   return (
-    <AppLayout currentPath="/task-manager">
+    <AppLayout currentPath="/tasks">
       <Topbar
-        title="Task Manager"
-        subtitle="All compliance action items — prioritised, assigned, and tracked to completion"
+        title="Tasks / Action List"
+        subtitle="Manage, prioritize, and track property action items and statutory deadlines"
+        hideDefaultActions={true}
       />
       <main
         className="flex-1 overflow-y-auto"
-        style={{ padding: '24px 28px', background: 'var(--background)' }}
+        style={{ padding: '20px 24px', background: 'var(--background)' }}
       >
-        <TaskManagerClient />
+        <TasksClient />
       </main>
     </AppLayout>
   );

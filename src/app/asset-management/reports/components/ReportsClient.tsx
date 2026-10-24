@@ -1,14 +1,20 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useSearchParams } from 'next/navigation';
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, Legend
 } from 'recharts';
-import { Download, BarChart3, Package, Wrench, ClipboardCheck, TrendingUp, Building2, Shield, ScrollText, FileCheck, Zap } from 'lucide-react';
+import {
+  Download, BarChart3, Package, Wrench, ClipboardCheck, TrendingUp,
+  Building2, Shield, ScrollText, FileCheck, Zap, Eye, Printer, Search, X, CheckCircle2
+} from 'lucide-react';
+import * as XLSX from 'xlsx';
+import { toast } from 'sonner';
 import { ASSETS, HOTELS, ASSET_CATEGORIES, MAINTENANCE_RECORDS, DEPARTMENTS, getAssetStats } from '@/lib/assetData';
 import Icon from '@/components/ui/AppIcon';
+import { api } from '@/lib/api';
 
 
 const stats = getAssetStats();
@@ -204,12 +210,12 @@ const complianceByHotel = INSURANCE_HOTELS.map((h) => ({
 
 // ── Report type config ────────────────────────────────────────────────────────
 const REPORT_TYPES_EXPORT = [
-  { id: 'asset-register', label: 'Asset Register', icon: Package, desc: 'Full list of all assets across all hotels' },
+  { id: 'asset-register', label: 'Asset Register', icon: Package, desc: 'Full list of all assets across all properties' },
   { id: 'maintenance', label: 'Maintenance Report', icon: Wrench, desc: 'Scheduled, overdue and completed maintenance' },
   { id: 'inspection', label: 'Inspection Report', icon: ClipboardCheck, desc: 'Inspection history and results' },
   { id: 'condition', label: 'Asset Condition Report', icon: TrendingUp, desc: 'Condition assessment across all assets' },
   { id: 'department', label: 'Department Report', icon: Building2, desc: 'Asset breakdown by department' },
-  { id: 'hotel', label: 'Hotel Report', icon: Building2, desc: 'Per-hotel asset summary and compliance' },
+  { id: 'hotel', label: 'Property Report', icon: Building2, desc: 'Per-property asset summary and compliance' },
 ];
 
 const MAINTENANCE_EXPORT = [
@@ -328,7 +334,7 @@ function MaintenanceReport() {
   const [activeSection, setActiveSection] = useState<'overview' | 'charts' | 'export'>('overview');
   return (
     <div className="flex flex-col h-full">
-      <div className="flex items-center justify-between px-7 py-4 border-b border-border flex-shrink-0" style={{ background: 'var(--surface)' }}>
+      <div className="flex items-center justify-between px-6 py-4 border-b border-border flex-shrink-0" style={{ background: 'var(--surface)' }}>
         <div>
           <h1 className="font-head text-xl font-bold">Maintenance Reports</h1>
           <p className="text-xs text-muted-foreground mt-0.5">Maintenance schedule, completion and overdue analysis</p>
@@ -342,7 +348,7 @@ function MaintenanceReport() {
           ))}
         </div>
       </div>
-      <div className="flex-1 overflow-auto p-7">
+      <div className="flex-1 overflow-auto px-6 py-5">
         {activeSection === 'overview' && (
           <div className="flex flex-col gap-6">
             <div className="grid grid-cols-4 gap-4">
@@ -356,56 +362,60 @@ function MaintenanceReport() {
                 <Wrench size={15} style={{ color: 'var(--primary)' }} />
                 <span className="font-head font-bold text-sm">Maintenance Summary by Hotel</span>
               </div>
-              <table className="w-full">
-                <thead style={{ background: 'var(--surface2)' }}>
-                  <tr>
-                    {['Hotel', 'Scheduled', 'Due Today', 'Overdue', 'Completed', 'Total'].map((h) => (
-                      <th key={h} className="text-left text-xs font-bold uppercase tracking-wide text-muted-foreground px-4 py-3 border-b border-border">{h}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {MAINTENANCE_BY_HOTEL.map((row) => (
-                    <tr key={row.name} className="border-b border-border" onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--surface2)')} onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}>
-                      <td className="px-4 py-3 font-medium text-sm">{row.fullName}</td>
-                      <td className="px-4 py-3 text-sm" style={{ color: '#60a5fa' }}>{row.scheduled}</td>
-                      <td className="px-4 py-3 text-sm" style={{ color: '#f59e0b' }}>{row.dueToday}</td>
-                      <td className="px-4 py-3 text-sm" style={{ color: '#f43f5e' }}>{row.overdue}</td>
-                      <td className="px-4 py-3 text-sm" style={{ color: '#3dd68c' }}>{row.completed}</td>
-                      <td className="px-4 py-3 font-bold text-sm" style={{ color: 'var(--primary)' }}>{row.scheduled + row.dueToday + row.overdue + row.completed}</td>
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[640px]">
+                  <thead style={{ background: 'var(--surface2)' }}>
+                    <tr>
+                      {['Hotel', 'Scheduled', 'Due Today', 'Overdue', 'Completed', 'Total'].map((h) => (
+                        <th key={h} className="text-left text-xs font-bold uppercase tracking-wide text-muted-foreground px-4 py-3 border-b border-border">{h}</th>
+                      ))}
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {MAINTENANCE_BY_HOTEL.map((row) => (
+                      <tr key={row.name} className="border-b border-border" onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--surface2)')} onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}>
+                        <td className="px-4 py-3 font-medium text-sm">{row.fullName}</td>
+                        <td className="px-4 py-3 text-sm" style={{ color: '#60a5fa' }}>{row.scheduled}</td>
+                        <td className="px-4 py-3 text-sm" style={{ color: '#f59e0b' }}>{row.dueToday}</td>
+                        <td className="px-4 py-3 text-sm" style={{ color: '#f43f5e' }}>{row.overdue}</td>
+                        <td className="px-4 py-3 text-sm" style={{ color: '#3dd68c' }}>{row.completed}</td>
+                        <td className="px-4 py-3 font-bold text-sm" style={{ color: 'var(--primary)' }}>{row.scheduled + row.dueToday + row.overdue + row.completed}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
             <div className="rounded-xl border border-border overflow-hidden" style={{ background: 'var(--surface)' }}>
               <div className="px-5 py-4 border-b border-border"><span className="font-head font-bold text-sm">Recent Maintenance Records</span></div>
-              <table className="w-full">
-                <thead style={{ background: 'var(--surface2)' }}>
-                  <tr>
-                    {['Asset', 'Hotel', 'Type', 'Scheduled Date', 'Assigned To', 'Status'].map((h) => (
-                      <th key={h} className="text-left text-xs font-bold uppercase tracking-wide text-muted-foreground px-4 py-3 border-b border-border">{h}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {MAINTENANCE_RECORDS.slice(0, 10).map((rec) => {
-                    const statusColor = rec.status === 'overdue' ? '#f43f5e' : rec.status === 'completed' ? '#3dd68c' : rec.status === 'due-today' ? '#f59e0b' : '#60a5fa';
-                    return (
-                      <tr key={rec.id} className="border-b border-border" onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--surface2)')} onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}>
-                        <td className="px-4 py-3 font-medium text-sm">{rec.assetName}</td>
-                        <td className="px-4 py-3 text-xs text-muted-foreground">{rec.hotelName.split(' ').slice(0, 2).join(' ')}</td>
-                        <td className="px-4 py-3 text-xs">{rec.type}</td>
-                        <td className="px-4 py-3 text-xs">{rec.scheduledDate}</td>
-                        <td className="px-4 py-3 text-xs">{rec.assignedTo}</td>
-                        <td className="px-4 py-3">
-                          <span className="text-xs font-semibold px-2 py-0.5 rounded-full capitalize" style={{ background: `${statusColor}18`, color: statusColor }}>{rec.status.replace('-', ' ')}</span>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[700px]">
+                  <thead style={{ background: 'var(--surface2)' }}>
+                    <tr>
+                      {['Asset', 'Hotel', 'Type', 'Scheduled Date', 'Assigned To', 'Status'].map((h) => (
+                        <th key={h} className="text-left text-xs font-bold uppercase tracking-wide text-muted-foreground px-4 py-3 border-b border-border">{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {MAINTENANCE_RECORDS.slice(0, 10).map((rec) => {
+                      const statusColor = rec.status === 'overdue' ? '#f43f5e' : rec.status === 'completed' ? '#3dd68c' : rec.status === 'due-today' ? '#f59e0b' : '#60a5fa';
+                      return (
+                        <tr key={rec.id} className="border-b border-border" onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--surface2)')} onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}>
+                          <td className="px-4 py-3 font-medium text-sm">{rec.assetName}</td>
+                          <td className="px-4 py-3 text-xs text-muted-foreground">{rec.hotelName.split(' ').slice(0, 2).join(' ')}</td>
+                          <td className="px-4 py-3 text-xs">{rec.type}</td>
+                          <td className="px-4 py-3 text-xs">{rec.scheduledDate}</td>
+                          <td className="px-4 py-3 text-xs">{rec.assignedTo}</td>
+                          <td className="px-4 py-3">
+                            <span className="text-xs font-semibold px-2 py-0.5 rounded-full capitalize" style={{ background: `${statusColor}18`, color: statusColor }}>{rec.status.replace('-', ' ')}</span>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
         )}
@@ -461,7 +471,7 @@ function InsuranceReport() {
   const [activeSection, setActiveSection] = useState<'overview' | 'charts' | 'export'>('overview');
   return (
     <div className="flex flex-col h-full">
-      <div className="flex items-center justify-between px-7 py-4 border-b border-border flex-shrink-0" style={{ background: 'var(--surface)' }}>
+      <div className="flex items-center justify-between px-6 py-4 border-b border-border flex-shrink-0" style={{ background: 'var(--surface)' }}>
         <div>
           <h1 className="font-head text-xl font-bold">Insurance Reports</h1>
           <p className="text-xs text-muted-foreground mt-0.5">Policy coverage, premiums and renewal analysis</p>
@@ -475,11 +485,11 @@ function InsuranceReport() {
           ))}
         </div>
       </div>
-      <div className="flex-1 overflow-auto p-7">
+      <div className="flex-1 overflow-auto px-6 py-5">
         {activeSection === 'overview' && (
           <div className="flex flex-col gap-6">
             <div className="grid grid-cols-4 gap-4">
-              <KPICard label="Total Policies" value={INSURANCE_POLICIES.length} sub="Across all hotels" color="#e8c97a" icon={Shield} />
+              <KPICard label="Total Policies" value={INSURANCE_POLICIES.length} sub="Across all properties" color="#e8c97a" icon={Shield} />
               <KPICard label="Active Policies" value={activePolicies} sub="Currently in force" color="#3dd68c" icon={Shield} />
               <KPICard label="Expiring Soon" value={expiringSoon} sub="Within 90 days" color="#f59e0b" icon={Shield} />
               <KPICard label="Annual Premium" value={`£${(totalPremium / 1000).toFixed(0)}k`} sub="Total annual cost" color="#60a5fa" icon={TrendingUp} />
@@ -489,33 +499,35 @@ function InsuranceReport() {
                 <Shield size={15} style={{ color: 'var(--primary)' }} />
                 <span className="font-head font-bold text-sm">Insurance Policies Register</span>
               </div>
-              <table className="w-full">
-                <thead style={{ background: 'var(--surface2)' }}>
-                  <tr>
-                    {['Hotel', 'Insurance Type', 'Company', 'Annual Premium', 'Coverage', 'Expiry', 'Status'].map((h) => (
-                      <th key={h} className="text-left text-xs font-bold uppercase tracking-wide text-muted-foreground px-4 py-3 border-b border-border">{h}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {INSURANCE_POLICIES.map((pol, i) => {
-                    const statusColor = pol.status === 'active' ? '#3dd68c' : pol.status === 'expiring-soon' ? '#f59e0b' : '#f43f5e';
-                    return (
-                      <tr key={i} className="border-b border-border" onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--surface2)')} onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}>
-                        <td className="px-4 py-3 text-xs text-muted-foreground">{pol.hotel.split(' ').slice(0, 2).join(' ')}</td>
-                        <td className="px-4 py-3 font-medium text-sm">{pol.type}</td>
-                        <td className="px-4 py-3 text-xs">{pol.company}</td>
-                        <td className="px-4 py-3 text-sm font-semibold" style={{ color: 'var(--primary)' }}>£{pol.premium.toLocaleString()}</td>
-                        <td className="px-4 py-3 text-xs">£{(pol.coverage / 1000000).toFixed(0)}M</td>
-                        <td className="px-4 py-3 text-xs">{pol.expiry}</td>
-                        <td className="px-4 py-3">
-                          <span className="text-xs font-semibold px-2 py-0.5 rounded-full capitalize" style={{ background: `${statusColor}18`, color: statusColor }}>{pol.status.replace('-', ' ')}</span>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[800px]">
+                  <thead style={{ background: 'var(--surface2)' }}>
+                    <tr>
+                      {['Hotel', 'Insurance Type', 'Company', 'Annual Premium', 'Coverage', 'Expiry', 'Status'].map((h) => (
+                        <th key={h} className="text-left text-xs font-bold uppercase tracking-wide text-muted-foreground px-4 py-3 border-b border-border">{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {INSURANCE_POLICIES.map((pol, i) => {
+                      const statusColor = pol.status === 'active' ? '#3dd68c' : pol.status === 'expiring-soon' ? '#f59e0b' : '#f43f5e';
+                      return (
+                        <tr key={i} className="border-b border-border" onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--surface2)')} onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}>
+                          <td className="px-4 py-3 text-xs text-muted-foreground">{pol.hotel.split(' ').slice(0, 2).join(' ')}</td>
+                          <td className="px-4 py-3 font-medium text-sm">{pol.type}</td>
+                          <td className="px-4 py-3 text-xs">{pol.company}</td>
+                          <td className="px-4 py-3 text-sm font-semibold" style={{ color: 'var(--primary)' }}>£{pol.premium.toLocaleString()}</td>
+                          <td className="px-4 py-3 text-xs">£{(pol.coverage / 1000000).toFixed(0)}M</td>
+                          <td className="px-4 py-3 text-xs">{pol.expiry}</td>
+                          <td className="px-4 py-3">
+                            <span className="text-xs font-semibold px-2 py-0.5 rounded-full capitalize" style={{ background: `${statusColor}18`, color: statusColor }}>{pol.status.replace('-', ' ')}</span>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
         )}
@@ -567,7 +579,7 @@ function ContractReport() {
   const [activeSection, setActiveSection] = useState<'overview' | 'charts' | 'export'>('overview');
   return (
     <div className="flex flex-col h-full">
-      <div className="flex items-center justify-between px-7 py-4 border-b border-border flex-shrink-0" style={{ background: 'var(--surface)' }}>
+      <div className="flex items-center justify-between px-6 py-4 border-b border-border flex-shrink-0" style={{ background: 'var(--surface)' }}>
         <div>
           <h1 className="font-head text-xl font-bold">Contract Reports</h1>
           <p className="text-xs text-muted-foreground mt-0.5">Supplier contracts, values and renewal analysis</p>
@@ -581,11 +593,11 @@ function ContractReport() {
           ))}
         </div>
       </div>
-      <div className="flex-1 overflow-auto p-7">
+      <div className="flex-1 overflow-auto px-6 py-5">
         {activeSection === 'overview' && (
           <div className="flex flex-col gap-6">
             <div className="grid grid-cols-4 gap-4">
-              <KPICard label="Total Contracts" value={CONTRACT_DATA.length} sub="Across all hotels" color="#e8c97a" icon={ScrollText} />
+              <KPICard label="Total Contracts" value={CONTRACT_DATA.length} sub="Across all properties" color="#e8c97a" icon={ScrollText} />
               <KPICard label="Active" value={activeContracts} sub="Currently active" color="#3dd68c" icon={ScrollText} />
               <KPICard label="Expiring Soon" value={expiringContracts} sub="Within 90 days" color="#f59e0b" icon={ScrollText} />
               <KPICard label="Annual Value" value={`£${(totalContractValue / 1000).toFixed(0)}k`} sub="Total contract value" color="#60a5fa" icon={TrendingUp} />
@@ -595,32 +607,34 @@ function ContractReport() {
                 <ScrollText size={15} style={{ color: 'var(--primary)' }} />
                 <span className="font-head font-bold text-sm">Contracts Register</span>
               </div>
-              <table className="w-full">
-                <thead style={{ background: 'var(--surface2)' }}>
-                  <tr>
-                    {['Hotel', 'Supplier', 'Category', 'Annual Value', 'End Date', 'Status'].map((h) => (
-                      <th key={h} className="text-left text-xs font-bold uppercase tracking-wide text-muted-foreground px-4 py-3 border-b border-border">{h}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {CONTRACT_DATA.map((con, i) => {
-                    const statusColor = con.status === 'active' ? '#3dd68c' : con.status === 'expiring-soon' ? '#f59e0b' : '#f43f5e';
-                    return (
-                      <tr key={i} className="border-b border-border" onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--surface2)')} onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}>
-                        <td className="px-4 py-3 text-xs text-muted-foreground">{con.hotel.split(' ').slice(0, 2).join(' ')}</td>
-                        <td className="px-4 py-3 font-medium text-sm">{con.supplier}</td>
-                        <td className="px-4 py-3 text-xs">{con.category}</td>
-                        <td className="px-4 py-3 text-sm font-semibold" style={{ color: 'var(--primary)' }}>£{con.value.toLocaleString()}</td>
-                        <td className="px-4 py-3 text-xs">{con.endDate}</td>
-                        <td className="px-4 py-3">
-                          <span className="text-xs font-semibold px-2 py-0.5 rounded-full capitalize" style={{ background: `${statusColor}18`, color: statusColor }}>{con.status.replace('-', ' ')}</span>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[760px]">
+                  <thead style={{ background: 'var(--surface2)' }}>
+                    <tr>
+                      {['Hotel', 'Supplier', 'Category', 'Annual Value', 'End Date', 'Status'].map((h) => (
+                        <th key={h} className="text-left text-xs font-bold uppercase tracking-wide text-muted-foreground px-4 py-3 border-b border-border">{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {CONTRACT_DATA.map((con, i) => {
+                      const statusColor = con.status === 'active' ? '#3dd68c' : con.status === 'expiring-soon' ? '#f59e0b' : '#f43f5e';
+                      return (
+                        <tr key={i} className="border-b border-border" onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--surface2)')} onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}>
+                          <td className="px-4 py-3 text-xs text-muted-foreground">{con.hotel.split(' ').slice(0, 2).join(' ')}</td>
+                          <td className="px-4 py-3 font-medium text-sm">{con.supplier}</td>
+                          <td className="px-4 py-3 text-xs">{con.category}</td>
+                          <td className="px-4 py-3 text-sm font-semibold" style={{ color: 'var(--primary)' }}>£{con.value.toLocaleString()}</td>
+                          <td className="px-4 py-3 text-xs">{con.endDate}</td>
+                          <td className="px-4 py-3">
+                            <span className="text-xs font-semibold px-2 py-0.5 rounded-full capitalize" style={{ background: `${statusColor}18`, color: statusColor }}>{con.status.replace('-', ' ')}</span>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
         )}
@@ -672,7 +686,7 @@ function ComplianceReport() {
   const [activeSection, setActiveSection] = useState<'overview' | 'charts' | 'export'>('overview');
   return (
     <div className="flex flex-col h-full">
-      <div className="flex items-center justify-between px-7 py-4 border-b border-border flex-shrink-0" style={{ background: 'var(--surface)' }}>
+      <div className="flex items-center justify-between px-6 py-4 border-b border-border flex-shrink-0" style={{ background: 'var(--surface)' }}>
         <div>
           <h1 className="font-head text-xl font-bold">Compliance Reports</h1>
           <p className="text-xs text-muted-foreground mt-0.5">Statutory compliance, certifications and risk analysis</p>
@@ -686,7 +700,7 @@ function ComplianceReport() {
           ))}
         </div>
       </div>
-      <div className="flex-1 overflow-auto p-7">
+      <div className="flex-1 overflow-auto px-6 py-5">
         {activeSection === 'overview' && (
           <div className="flex flex-col gap-6">
             <div className="grid grid-cols-4 gap-4">
@@ -700,47 +714,50 @@ function ComplianceReport() {
                 <FileCheck size={15} style={{ color: 'var(--primary)' }} />
                 <span className="font-head font-bold text-sm">Compliance Summary by Hotel</span>
               </div>
-              <table className="w-full">
-                <thead style={{ background: 'var(--surface2)' }}>
-                  <tr>
-                    {['Hotel', 'Total Items', 'Compliant', 'Overdue', 'Compliance Rate'].map((h) => (
-                      <th key={h} className="text-left text-xs font-bold uppercase tracking-wide text-muted-foreground px-4 py-3 border-b border-border">{h}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {complianceByHotel.filter((r) => r.total > 0).map((row) => {
-                    const rate = row.total > 0 ? Math.round((row.compliant / row.total) * 100) : 0;
-                    return (
-                      <tr key={row.name} className="border-b border-border" onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--surface2)')} onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}>
-                        <td className="px-4 py-3 font-medium text-sm">{row.fullName}</td>
-                        <td className="px-4 py-3 font-bold text-sm" style={{ color: 'var(--primary)' }}>{row.total}</td>
-                        <td className="px-4 py-3 text-sm" style={{ color: '#3dd68c' }}>{row.compliant}</td>
-                        <td className="px-4 py-3 text-sm" style={{ color: row.overdue > 0 ? '#f43f5e' : 'var(--text2)' }}>{row.overdue}</td>
-                        <td className="px-4 py-3">
-                          <div className="flex items-center gap-2">
-                            <div className="flex-1 h-1.5 rounded-full overflow-hidden" style={{ background: 'var(--surface3)', maxWidth: 80 }}>
-                              <div className="h-full rounded-full" style={{ width: `${rate}%`, background: rate >= 80 ? '#3dd68c' : rate >= 50 ? '#f59e0b' : '#f43f5e' }} />
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[620px]">
+                  <thead style={{ background: 'var(--surface2)' }}>
+                    <tr>
+                      {['Hotel', 'Total Items', 'Compliant', 'Overdue', 'Compliance Rate'].map((h) => (
+                        <th key={h} className="text-left text-xs font-bold uppercase tracking-wide text-muted-foreground px-4 py-3 border-b border-border">{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {complianceByHotel.filter((r) => r.total > 0).map((row) => {
+                      const rate = row.total > 0 ? Math.round((row.compliant / row.total) * 100) : 0;
+                      return (
+                        <tr key={row.name} className="border-b border-border" onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--surface2)')} onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}>
+                          <td className="px-4 py-3 font-medium text-sm">{row.fullName}</td>
+                          <td className="px-4 py-3 font-bold text-sm" style={{ color: 'var(--primary)' }}>{row.total}</td>
+                          <td className="px-4 py-3 text-sm" style={{ color: '#3dd68c' }}>{row.compliant}</td>
+                          <td className="px-4 py-3 text-sm" style={{ color: row.overdue > 0 ? '#f43f5e' : 'var(--text2)' }}>{row.overdue}</td>
+                          <td className="px-4 py-3">
+                            <div className="flex items-center gap-2">
+                              <div className="flex-1 h-1.5 rounded-full overflow-hidden" style={{ background: 'var(--surface3)', maxWidth: 80 }}>
+                                <div className="h-full rounded-full" style={{ width: `${rate}%`, background: rate >= 80 ? '#3dd68c' : rate >= 50 ? '#f59e0b' : '#f43f5e' }} />
+                              </div>
+                              <span className="text-xs font-semibold">{rate}%</span>
                             </div>
-                            <span className="text-xs font-semibold">{rate}%</span>
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
             </div>
             <div className="rounded-xl border border-border overflow-hidden" style={{ background: 'var(--surface)' }}>
               <div className="px-5 py-4 border-b border-border"><span className="font-head font-bold text-sm">Compliance Items Detail</span></div>
-              <table className="w-full">
-                <thead style={{ background: 'var(--surface2)' }}>
-                  <tr>
-                    {['Hotel', 'Category', 'Status', 'Risk', 'Expiry'].map((h) => (
-                      <th key={h} className="text-left text-xs font-bold uppercase tracking-wide text-muted-foreground px-4 py-3 border-b border-border">{h}</th>
-                    ))}
-                  </tr>
-                </thead>
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[680px]">
+                  <thead style={{ background: 'var(--surface2)' }}>
+                    <tr>
+                      {['Hotel', 'Category', 'Status', 'Risk', 'Expiry'].map((h) => (
+                        <th key={h} className="text-left text-xs font-bold uppercase tracking-wide text-muted-foreground px-4 py-3 border-b border-border">{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
                 <tbody>
                   {COMPLIANCE_DATA.map((item, i) => {
                     const statusColor = item.status === 'compliant' ? '#3dd68c' : item.status === 'expiring-soon' ? '#f59e0b' : '#f43f5e';
@@ -761,6 +778,7 @@ function ComplianceReport() {
                   })}
                 </tbody>
               </table>
+              </div>
             </div>
           </div>
         )}
@@ -798,32 +816,544 @@ function ComplianceReport() {
   );
 }
 
+// ── Helper: Get real report dataset by ID ──────────────────────────────────────
+function getReportDataset(reportId: string): { title: string; rows: Record<string, any>[] } {
+  switch (reportId) {
+    // ── Maintenance Reports ──
+    case 'maint-schedule':
+      return {
+        title: 'Maintenance Schedule',
+        rows: MAINTENANCE_RECORDS.map((m) => ({
+          'Asset Name': m.assetName,
+          'Property': m.hotelName,
+          'Type': m.type,
+          'Frequency': m.frequency,
+          'Scheduled Date': m.scheduledDate,
+          'Assigned To': m.assignedTo,
+          'Status': m.status.toUpperCase(),
+          'Next Due Date': m.nextDueDate,
+        })),
+      };
+    case 'maint-overdue':
+      return {
+        title: 'Overdue Maintenance',
+        rows: MAINTENANCE_RECORDS.filter((m) => m.status === 'overdue').map((m) => ({
+          'Asset Name': m.assetName,
+          'Property': m.hotelName,
+          'Scheduled Date': m.scheduledDate,
+          'Assigned To': m.assignedTo,
+          'Frequency': m.frequency,
+          'Status': 'OVERDUE',
+          'Urgency': 'Immediate Action Required',
+          'Notes': m.notes || 'Overdue statutory maintenance',
+        })),
+      };
+    case 'maint-completed':
+      return {
+        title: 'Completed Maintenance History',
+        rows: MAINTENANCE_RECORDS.filter((m) => m.status === 'completed').map((m) => ({
+          'Asset Name': m.assetName,
+          'Property': m.hotelName,
+          'Completed Date': m.completedDate || m.scheduledDate,
+          'Inspector / Engineer': m.assignedTo,
+          'Type': m.type,
+          'Frequency': m.frequency,
+          'Inspection Result': m.result || 'Pass',
+          'Status': 'Completed',
+        })),
+      };
+    case 'maint-frequency':
+      return {
+        title: 'Maintenance Frequency Analysis',
+        rows: MAINTENANCE_RECORDS.map((m) => ({
+          'Asset Name': m.assetName,
+          'Property': m.hotelName,
+          'Cycle Frequency': m.frequency,
+          'Maintenance Type': m.type,
+          'Assigned Engineer': m.assignedTo,
+          'Current Status': m.status.toUpperCase(),
+          'Next Due Date': m.nextDueDate,
+        })),
+      };
+
+    // ── Asset Reports ──
+    case 'asset-register':
+      return {
+        title: 'Complete Asset Register',
+        rows: ASSETS.map((a) => ({
+          'Asset ID': a.assetId,
+          'Asset Name': a.name,
+          'Category': a.category,
+          'Property': a.hotelName,
+          'Department': a.department,
+          'Location': a.location,
+          'Condition': a.condition.toUpperCase(),
+          'Status': a.status.toUpperCase(),
+          'Fixed Asset': a.isFixed ? 'Yes' : 'No',
+          'Purchase Cost': a.purchaseCost ? `£${a.purchaseCost.toLocaleString()}` : '—',
+        })),
+      };
+    case 'condition':
+      return {
+        title: 'Asset Condition Assessment',
+        rows: ASSETS.map((a) => ({
+          'Asset ID': a.assetId,
+          'Asset Name': a.name,
+          'Property': a.hotelName,
+          'Category': a.category,
+          'Condition Rating': a.condition.toUpperCase(),
+          'Risk Level': a.riskLevel.toUpperCase(),
+          'Responsible Role': a.responsibleRole,
+          'Next Inspection': a.nextInspectionDate,
+        })),
+      };
+    case 'department':
+      return {
+        title: 'Department Asset Breakdown',
+        rows: ASSETS.map((a) => ({
+          'Department': a.department,
+          'Asset Name': a.name,
+          'Asset ID': a.assetId,
+          'Property': a.hotelName,
+          'Category': a.category,
+          'Condition': a.condition,
+          'Status': a.status,
+        })),
+      };
+    case 'hotel':
+      return {
+        title: 'Property Asset Summary',
+        rows: HOTELS.map((h) => ({
+          'Property Name': h.name,
+          'City': h.city,
+          'Manager': h.manager,
+          'Phone': h.phone,
+          'Total Assets': ASSETS.filter((a) => a.hotelId === h.id).length,
+          'Fixed Assets': ASSETS.filter((a) => a.hotelId === h.id && a.isFixed).length,
+          'Non-Fixed Assets': ASSETS.filter((a) => a.hotelId === h.id && !a.isFixed).length,
+          'Status': h.status.toUpperCase(),
+        })),
+      };
+
+    // ── Insurance Reports ──
+    case 'ins-all':
+      return {
+        title: 'Insurance Policy Register',
+        rows: INSURANCE_POLICIES.map((p) => ({
+          'Property': p.hotel,
+          'Insurance Type': p.type,
+          'Underwriter / Company': p.company,
+          'Annual Premium': `£${p.premium.toLocaleString()}`,
+          'Coverage Limit': `£${(p.coverage / 1000000).toFixed(1)}M`,
+          'Expiry Date': p.expiry,
+          'Status': p.status.toUpperCase(),
+        })),
+      };
+    case 'ins-expiring':
+      return {
+        title: 'Expiring Insurance Policies',
+        rows: INSURANCE_POLICIES.filter((p) => p.status === 'expiring-soon').map((p) => ({
+          'Property': p.hotel,
+          'Insurance Type': p.type,
+          'Underwriter': p.company,
+          'Annual Premium': `£${p.premium.toLocaleString()}`,
+          'Expiry Date': p.expiry,
+          'Action Required': 'Broker renewal quote needed',
+          'Status': 'EXPIRING SOON',
+        })),
+      };
+    case 'ins-claims':
+      return {
+        title: 'Insurance Claims History',
+        rows: [
+          { 'Claim ID': 'CLM-001', 'Property': 'Crowne Plaza Kingston-south', 'Policy': 'Building Insurance', 'Amount': '£14,500', 'Date': '2025-11-20', 'Status': 'Settled' },
+          { 'Claim ID': 'CLM-002', 'Property': 'Stanhill Court', 'Policy': 'Public Liability', 'Amount': '£8,200', 'Date': '2026-01-15', 'Status': 'Under Review' },
+          { 'Claim ID': 'CLM-003', 'Property': 'River Club', 'Policy': 'Waterfront Risk', 'Amount': '£22,000', 'Date': '2026-03-02', 'Status': 'In Progress' },
+        ],
+      };
+    case 'ins-premium':
+      return {
+        title: 'Premium Summary by Property',
+        rows: insuranceByHotel.map((h) => ({
+          'Property': h.fullName,
+          'Active Policies': h.policies,
+          'Total Annual Spend': `£${h.premium.toLocaleString()}`,
+        })),
+      };
+
+    // ── Contract Reports ──
+    case 'con-all':
+      return {
+        title: 'Service Contracts Register',
+        rows: CONTRACT_DATA.map((c) => ({
+          'Contractor / Supplier': c.supplier,
+          'Property': c.hotel,
+          'Service Category': c.category,
+          'Annual Value': `£${c.value.toLocaleString()}`,
+          'Contract End Date': c.endDate,
+          'Status': c.status.toUpperCase(),
+        })),
+      };
+    case 'con-expiring':
+      return {
+        title: 'Expiring Service Contracts',
+        rows: CONTRACT_DATA.filter((c) => c.status === 'expiring-soon').map((c) => ({
+          'Supplier': c.supplier,
+          'Property': c.hotel,
+          'Category': c.category,
+          'Annual Value': `£${c.value.toLocaleString()}`,
+          'End Date': c.endDate,
+          'Status': 'EXPIRING SOON',
+        })),
+      };
+    case 'con-value':
+      return {
+        title: 'Contract Value by Property',
+        rows: contractsByHotel.map((h) => ({
+          'Property': h.fullName,
+          'Active Contracts': h.contracts,
+          'Total Contract Value': `£${h.value.toLocaleString()}`,
+        })),
+      };
+    case 'con-suppliers':
+      return {
+        title: 'Approved Suppliers Directory',
+        rows: Array.from(new Set(CONTRACT_DATA.map((c) => c.supplier))).map((sup) => {
+          const contracts = CONTRACT_DATA.filter((c) => c.supplier === sup);
+          return {
+            'Supplier Name': sup,
+            'Categories': contracts.map((c) => c.category).join(', '),
+            'Active Contracts': contracts.length,
+            'Total Value': `£${contracts.reduce((s, c) => s + c.value, 0).toLocaleString()}`,
+          };
+        }),
+      };
+
+    // ── Compliance Reports ──
+    case 'comp-register':
+      return {
+        title: 'Statutory Compliance Register',
+        rows: COMPLIANCE_DATA.map((c) => ({
+          'Property': c.hotel,
+          'Statutory Item': c.category,
+          'Risk Level': c.risk.toUpperCase(),
+          'Expiry Date': c.expiry,
+          'Status': c.status.toUpperCase(),
+        })),
+      };
+    case 'comp-overdue':
+      return {
+        title: 'Overdue Statutory Compliance Items',
+        rows: COMPLIANCE_DATA.filter((c) => c.status === 'overdue').map((c) => ({
+          'Property': c.hotel,
+          'Statutory Item': c.category,
+          'Risk Level': c.risk.toUpperCase(),
+          'Expiry Date': c.expiry,
+          'Status': 'CRITICAL OVERDUE',
+          'Action Required': 'Schedule urgent compliance inspection',
+        })),
+      };
+    case 'comp-expiring':
+      return {
+        title: 'Expiring Compliance Certifications',
+        rows: COMPLIANCE_DATA.filter((c) => c.status === 'expiring-soon').map((c) => ({
+          'Property': c.hotel,
+          'Certificate': c.category,
+          'Risk Level': c.risk.toUpperCase(),
+          'Expiry Date': c.expiry,
+          'Status': 'EXPIRING SOON',
+        })),
+      };
+    case 'comp-risk':
+      return {
+        title: 'Compliance Risk Assessment',
+        rows: COMPLIANCE_DATA.map((c) => ({
+          'Statutory Item': c.category,
+          'Property': c.hotel,
+          'Assigned Risk': c.risk.toUpperCase(),
+          'Current Status': c.status.toUpperCase(),
+        })),
+      };
+
+    // ── Utilities Reports ──
+    case 'util-all':
+      return {
+        title: 'Utility Accounts & Meters Register',
+        rows: UTILITIES_DATA.map((u) => ({
+          'Property': u.property,
+          'Utility Type': u.utilityType,
+          'Supplier': u.supplier,
+          'Account Number': u.accountNumber,
+          'Meter Reference': u.meterReference,
+          'Contract End': u.contractEnd || 'Not Recorded',
+          'Annual Cost': u.annualCost ? `£${u.annualCost.toLocaleString()}` : '—',
+          'Tariff': u.tariffRate,
+          'Status': u.status.toUpperCase(),
+        })),
+      };
+    case 'util-expiring':
+      return {
+        title: 'Expiring Utility Contracts',
+        rows: UTILITIES_DATA.filter((u) => u.status === 'expiring-soon').map((u) => ({
+          'Property': u.property,
+          'Utility Type': u.utilityType,
+          'Supplier': u.supplier,
+          'Contract End': u.contractEnd,
+          'Annual Cost': `£${u.annualCost.toLocaleString()}`,
+          'Status': 'RENEWAL DUE',
+        })),
+      };
+    case 'util-expired':
+      return {
+        title: 'Expired Utility Contracts',
+        rows: UTILITIES_DATA.filter((u) => u.status === 'expired').map((u) => ({
+          'Property': u.property,
+          'Utility Type': u.utilityType,
+          'Supplier': u.supplier,
+          'Contract End': u.contractEnd,
+          'Annual Cost': `£${u.annualCost.toLocaleString()}`,
+          'Status': 'EXPIRED',
+          'Action': 'Broker tender required',
+        })),
+      };
+    case 'util-cost':
+      return {
+        title: 'Annual Utility Cost Breakdown',
+        rows: UTILITIES_DATA.map((u) => ({
+          'Property': u.property,
+          'Utility': u.utilityType,
+          'Annual Cost': u.annualCost ? `£${u.annualCost.toLocaleString()}` : '—',
+          'Monthly Spend': u.monthlyCost ? `£${u.monthlyCost.toLocaleString()}` : '—',
+          'Supplier': u.supplier,
+        })),
+      };
+    case 'util-incomplete':
+      return {
+        title: 'Incomplete Utility Records',
+        rows: UTILITIES_DATA.filter((u) => u.status === 'incomplete').map((u) => ({
+          'Property': u.property,
+          'Utility Type': u.utilityType,
+          'Supplier': u.supplier,
+          'Tariff': u.tariffRate,
+          'Status': 'INCOMPLETE',
+        })),
+      };
+
+    default:
+      return {
+        title: 'Standard Report',
+        rows: MAINTENANCE_RECORDS.map((m) => ({
+          'Asset': m.assetName,
+          'Property': m.hotelName,
+          'Status': m.status,
+          'Date': m.scheduledDate,
+        })),
+      };
+  }
+}
+
+// ── Export Section Component with View, Excel, and PDF functionality ───────────
 function ExportSection({ items }: { items: { id: string; label: string; icon: React.ElementType; desc: string }[] }) {
+  const [previewReport, setPreviewReport] = useState<{
+    id: string;
+    label: string;
+    desc: string;
+    rows: Record<string, any>[];
+  } | null>(null);
+
+  const [searchQuery, setSearchQuery] = useState('');
+
+  // 1. Export Excel using XLSX (SheetJS)
+  const handleExportExcel = (report: { id: string; label: string }) => {
+    const dataset = getReportDataset(report.id);
+    if (!dataset.rows || dataset.rows.length === 0) {
+      toast.error('No data available to export');
+      return;
+    }
+
+    try {
+      const worksheet = XLSX.utils.json_to_sheet(dataset.rows);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, report.label.slice(0, 31));
+      const filename = `SamkoCentral_${report.label.replace(/[^a-zA-Z0-9_-]/g, '_')}_${new Date().toISOString().split('T')[0]}.xlsx`;
+      XLSX.writeFile(workbook, filename);
+      toast.success('Excel report downloaded successfully', {
+        description: `"${filename}" saved with ${dataset.rows.length} rows.`,
+      });
+    } catch (err: any) {
+      console.error('Failed to export Excel:', err);
+      toast.error('Failed to export Excel spreadsheet');
+    }
+  };
+
+  // 2. Export / Print as PDF
+  const handleExportPDF = (report: { id: string; label: string }) => {
+    const dataset = getReportDataset(report.id);
+    if (!dataset.rows || dataset.rows.length === 0) {
+      toast.error('No data available to export');
+      return;
+    }
+
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+      toast.error('Pop-up window blocked. Please allow pop-ups to print or save PDF.');
+      return;
+    }
+
+    const columns = Object.keys(dataset.rows[0]);
+    const tableHeaders = columns.map((col) => `<th style="background:#f1f5f9;color:#1e293b;padding:8px 12px;font-size:11px;font-weight:700;text-align:left;border:1px solid #cbd5e1;text-transform:uppercase;">${col}</th>`).join('');
+    const tableBody = dataset.rows.map((row, idx) => `
+      <tr style="background:${idx % 2 === 0 ? '#ffffff' : '#f8fafc'};">
+        ${columns.map((col) => `<td style="padding:7px 12px;font-size:11px;border:1px solid #e2e8f0;color:#334155;">${row[col] ?? '—'}</td>`).join('')}
+      </tr>
+    `).join('');
+
+    const htmlContent = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="utf-8" />
+          <title>SamkoCentral UK - ${report.label}</title>
+          <style>
+            body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 24px; margin: 0; color: #0f172a; }
+            .header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #e8c97a; padding-bottom: 12px; margin-bottom: 20px; }
+            .title { font-size: 20px; font-weight: 800; letter-spacing: -0.02em; color: #0a0c10; }
+            .subtitle { font-size: 11px; color: #64748b; margin-top: 3px; font-weight: 500; }
+            .meta { font-size: 11px; color: #475569; text-align: right; }
+            .tag { display: inline-block; background: #fef3c7; color: #92400e; padding: 3px 10px; border-radius: 9999px; font-size: 11px; font-weight: 700; margin-bottom: 4px; }
+            table { width: 100%; border-collapse: collapse; margin-top: 14px; }
+            .footer { margin-top: 24px; font-size: 10px; color: #94a3b8; display: flex; justify-content: space-between; border-top: 1px solid #e2e8f0; padding-top: 8px; }
+            @media print {
+              body { padding: 12px; }
+              @page { margin: 1.5cm; }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <div>
+              <div class="title">SamkoCentral UK</div>
+              <div class="subtitle">Operations · Compliance · Document Governance</div>
+            </div>
+            <div class="meta">
+              <span class="tag">${report.label}</span>
+              <div>Date: ${new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</div>
+              <div>Total Records: ${dataset.rows.length}</div>
+            </div>
+          </div>
+          <table>
+            <thead>
+              <tr>${tableHeaders}</tr>
+            </thead>
+            <tbody>
+              ${tableBody}
+            </tbody>
+          </table>
+          <div class="footer">
+            <span>SamkoCentral UK Portfolio Intelligence · Confidential</span>
+            <span>Page 1 of 1</span>
+          </div>
+          <script>
+            window.onload = function() {
+              setTimeout(function() {
+                window.print();
+              }, 300);
+            };
+          </script>
+        </body>
+      </html>
+    `;
+
+    printWindow.document.open();
+    printWindow.document.write(htmlContent);
+    printWindow.document.close();
+    toast.success('Print / PDF view opened', {
+      description: `Save as PDF or print "${report.label}".`,
+    });
+  };
+
+  // 3. Open interactive View preview modal
+  const handleView = (report: { id: string; label: string; desc: string }) => {
+    const dataset = getReportDataset(report.id);
+    setSearchQuery('');
+    setPreviewReport({
+      id: report.id,
+      label: report.label,
+      desc: report.desc,
+      rows: dataset.rows,
+    });
+  };
+
+  // Filter preview rows by search
+  const filteredPreviewRows = useMemo(() => {
+    if (!previewReport) return [];
+    if (!searchQuery.trim()) return previewReport.rows;
+    const q = searchQuery.toLowerCase().trim();
+    return previewReport.rows.filter((row) =>
+      Object.values(row).some((val) => String(val).toLowerCase().includes(q))
+    );
+  }, [previewReport, searchQuery]);
+
   return (
-    <div className="max-w-2xl mx-auto flex flex-col gap-4">
-      <div className="rounded-xl border border-border p-5" style={{ background: 'var(--surface)' }}>
-        <div className="font-head font-bold text-sm mb-1">Export Reports</div>
-        <div className="text-xs text-muted-foreground mb-5">Download reports in Excel or PDF format</div>
+    <div className="max-w-3xl mx-auto flex flex-col gap-4">
+      <div className="rounded-2xl border border-border p-6 shadow-xl" style={{ background: '#11141a' }}>
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <div className="font-head font-bold text-base text-foreground">Export & View Reports</div>
+            <div className="text-xs text-muted-foreground mt-0.5">Preview real-time report tables or export directly in Excel (.xlsx) and PDF format</div>
+          </div>
+          <span className="text-xs font-semibold px-2.5 py-1 rounded-full" style={{ background: 'rgba(232,201,122,0.12)', color: 'var(--primary)' }}>
+            {items.length} Reports Ready
+          </span>
+        </div>
+
         <div className="flex flex-col gap-3">
           {items.map((report) => {
-            const Icon = report.icon;
+            const IconComponent = report.icon;
             return (
-              <div key={report.id} className="flex items-center gap-4 p-4 rounded-xl border border-border transition-colors" style={{ background: 'var(--surface2)' }}
-                onMouseEnter={(e) => (e.currentTarget.style.borderColor = 'var(--border-strong)')}
-                onMouseLeave={(e) => (e.currentTarget.style.borderColor = 'var(--border)')}>
-                <div className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(232,201,122,0.1)' }}>
-                  <Icon size={18} style={{ color: 'var(--primary)' }} />
+              <div
+                key={report.id}
+                className="flex items-center gap-4 p-4 rounded-xl border border-border transition-all hover:border-border-strong"
+                style={{ background: 'var(--surface2)' }}
+              >
+                <div
+                  className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0"
+                  style={{ background: 'rgba(232,201,122,0.12)', border: '1px solid rgba(232,201,122,0.2)' }}
+                >
+                  <IconComponent size={20} style={{ color: 'var(--primary)' }} />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="font-semibold text-sm">{report.label}</div>
-                  <div className="text-xs text-muted-foreground mt-0.5">{report.desc}</div>
+                  <div className="font-semibold text-sm text-foreground flex items-center gap-2">
+                    {report.label}
+                  </div>
+                  <div className="text-xs text-muted-foreground mt-0.5 truncate">{report.desc}</div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border border-border" style={{ background: 'var(--surface)', color: 'var(--text2)' }}>
-                    <Download size={12} /> Excel
+
+                {/* 3 Action Buttons: View, Excel, PDF */}
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  <button
+                    onClick={() => handleView(report)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all cursor-pointer hover:bg-white/10 active:scale-95"
+                    style={{ background: 'var(--surface3)', color: 'var(--foreground)', borderColor: 'var(--border-strong)' }}
+                    title={`View ${report.label} data table`}
+                  >
+                    <Eye size={13} style={{ color: 'var(--primary)' }} /> View
                   </button>
-                  <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold" style={{ background: 'var(--primary)', color: '#000' }}>
-                    <Download size={12} /> PDF
+                  <button
+                    onClick={() => handleExportExcel(report)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all cursor-pointer hover:bg-emerald-500/20 active:scale-95"
+                    style={{ background: 'rgba(52,211,153,0.12)', color: '#34d399', borderColor: 'rgba(52,211,153,0.3)' }}
+                    title="Export as Excel spreadsheet (.xlsx)"
+                  >
+                    <Download size={13} /> Excel
+                  </button>
+                  <button
+                    onClick={() => handleExportPDF(report)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer hover:opacity-90 active:scale-95 font-medium"
+                    style={{ background: 'var(--primary)', color: '#0a0c10' }}
+                    title="Print or save as PDF"
+                  >
+                    <Download size={13} /> PDF
                   </button>
                 </div>
               </div>
@@ -831,6 +1361,156 @@ function ExportSection({ items }: { items: { id: string; label: string; icon: Re
           })}
         </div>
       </div>
+
+      {/* ── Interactive View Modal ─────────────────────────────────────────── */}
+      {previewReport && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 samko-modal-overlay"
+          onClick={() => setPreviewReport(null)}
+        >
+          <div
+            className="rounded-2xl border border-border-strong w-full max-w-5xl max-h-[88vh] overflow-hidden flex flex-col shadow-2xl samko-modal-card"
+            style={{ background: '#11141a', borderColor: 'var(--border-strong)' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Modal Header */}
+            <div className="flex items-center justify-between p-5 border-b border-border" style={{ background: 'var(--surface2)' }}>
+              <div>
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full" style={{ background: 'rgba(232,201,122,0.15)', color: 'var(--primary)' }}>
+                    Report Preview
+                  </span>
+                  <span className="text-xs text-muted-foreground">· {previewReport.rows.length} Total Records</span>
+                </div>
+                <h2 className="font-head font-bold text-lg text-foreground">{previewReport.label}</h2>
+                <p className="text-xs text-muted-foreground mt-0.5">{previewReport.desc}</p>
+              </div>
+
+              <div className="flex items-center gap-2.5">
+                <button
+                  onClick={() => handleExportExcel(previewReport)}
+                  className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-semibold border transition-all cursor-pointer hover:bg-emerald-500/20"
+                  style={{ background: 'rgba(52,211,153,0.12)', color: '#34d399', borderColor: 'rgba(52,211,153,0.3)' }}
+                >
+                  <Download size={13} /> Export Excel (.xlsx)
+                </button>
+                <button
+                  onClick={() => handleExportPDF(previewReport)}
+                  className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-semibold transition-all cursor-pointer hover:opacity-90 active:scale-95"
+                  style={{ background: 'var(--primary)', color: '#0a0c10' }}
+                >
+                  <Printer size={13} /> Print / Save PDF
+                </button>
+                <button
+                  onClick={() => setPreviewReport(null)}
+                  className="w-8 h-8 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-white/10 transition-colors ml-1 text-lg font-bold"
+                >
+                  ✕
+                </button>
+              </div>
+            </div>
+
+            {/* Filter Search Bar */}
+            <div className="p-3 border-b border-border flex items-center justify-between gap-3 px-6" style={{ background: 'var(--surface)' }}>
+              <div className="flex items-center gap-2 rounded-lg border border-border px-3 py-1.5 flex-1 max-w-sm" style={{ background: 'var(--surface2)' }}>
+                <Search size={14} className="text-muted-foreground" />
+                <input
+                  type="text"
+                  placeholder="Filter report rows..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="bg-transparent text-xs text-foreground outline-none w-full placeholder:text-muted-foreground"
+                />
+                {searchQuery && (
+                  <button onClick={() => setSearchQuery('')} className="text-muted-foreground hover:text-foreground">
+                    <X size={12} />
+                  </button>
+                )}
+              </div>
+              <span className="text-xs text-muted-foreground">
+                Showing {filteredPreviewRows.length} of {previewReport.rows.length} rows
+              </span>
+            </div>
+
+            {/* Table Area */}
+            <div className="flex-1 overflow-auto p-6" style={{ background: '#11141a' }}>
+              {filteredPreviewRows.length > 0 ? (
+                <div className="rounded-xl border border-border overflow-hidden">
+                  <table className="w-full text-left border-collapse" style={{ minWidth: 700 }}>
+                    <thead style={{ background: 'var(--surface2)' }}>
+                      <tr>
+                        {Object.keys(previewReport.rows[0]).map((col) => (
+                          <th
+                            key={col}
+                            className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide whitespace-nowrap border-b border-border"
+                          >
+                            {col}
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredPreviewRows.map((row, idx) => (
+                        <tr
+                          key={idx}
+                          className="border-b border-border/60 transition-colors"
+                          style={{ background: idx % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.015)' }}
+                          onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--surface2)')}
+                          onMouseLeave={(e) =>
+                            (e.currentTarget.style.background = idx % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.015)')
+                          }
+                        >
+                          {Object.keys(previewReport.rows[0]).map((col) => {
+                            const val = row[col];
+                            const isStatus = col.toLowerCase().includes('status');
+                            const isOverdue = String(val).toUpperCase().includes('OVERDUE');
+                            const isCompleted = String(val).toUpperCase().includes('COMPLETED') || String(val).toUpperCase().includes('PASS');
+
+                            return (
+                              <td key={col} className="px-4 py-2.5 text-xs whitespace-nowrap text-foreground font-medium">
+                                {isStatus ? (
+                                  <span
+                                    className="px-2 py-0.5 rounded-full text-xs font-semibold"
+                                    style={{
+                                      background: isOverdue ? 'rgba(244,63,94,0.15)' : isCompleted ? 'rgba(61,214,140,0.15)' : 'rgba(96,165,250,0.15)',
+                                      color: isOverdue ? '#f43f5e' : isCompleted ? '#3dd68c' : '#60a5fa',
+                                    }}
+                                  >
+                                    {val}
+                                  </span>
+                                ) : (
+                                  val ?? '—'
+                                )}
+                              </td>
+                            );
+                          })}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <div className="py-12 text-center text-muted-foreground text-sm">
+                  No records match your filter criteria.
+                </div>
+              )}
+            </div>
+
+            {/* Modal Footer */}
+            <div className="flex items-center justify-between p-4 px-6 border-t border-border" style={{ background: 'var(--surface2)' }}>
+              <span className="text-xs text-muted-foreground font-mono">
+                SamkoCentral UK · Portfolio Data Analytics
+              </span>
+              <button
+                onClick={() => setPreviewReport(null)}
+                className="samko-btn-primary px-5 py-2 text-xs"
+              >
+                Close Preview
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -862,7 +1542,7 @@ function UtilitiesReport() {
 
   return (
     <div className="flex flex-col h-full">
-      <div className="flex items-center justify-between px-7 py-4 border-b border-border flex-shrink-0" style={{ background: 'var(--surface)' }}>
+      <div className="flex items-center justify-between px-6 py-4 border-b border-border flex-shrink-0" style={{ background: 'var(--surface)' }}>
         <div>
           <h1 className="font-head text-xl font-bold">Utilities Report</h1>
           <p className="text-xs text-muted-foreground mt-0.5">Supplier accounts, meter references, contract dates, costs and status across all properties</p>
@@ -877,7 +1557,7 @@ function UtilitiesReport() {
         </div>
       </div>
 
-      <div className="flex-1 overflow-auto p-7">
+      <div className="flex-1 overflow-auto px-6 py-5">
         {activeSection === 'overview' && (
           <div className="flex flex-col gap-6">
             {/* KPI Cards */}
@@ -912,27 +1592,29 @@ function UtilitiesReport() {
                 <Building2 size={15} style={{ color: 'var(--primary)' }} />
                 <span className="font-head font-bold text-sm">Utility Summary by Property</span>
               </div>
-              <table className="w-full">
-                <thead style={{ background: 'var(--surface2)' }}>
-                  <tr>
-                    {['Property', 'Electricity', 'Gas', 'Water', 'Annual Cost', 'Accounts'].map((h) => (
-                      <th key={h} className="text-left text-xs font-bold uppercase tracking-wide text-muted-foreground px-4 py-3 border-b border-border">{h}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {utilitiesByProperty.map((row) => (
-                    <tr key={row.name} className="border-b border-border" onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--surface2)')} onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}>
-                      <td className="px-4 py-3 font-medium text-sm">{row.fullName}</td>
-                      <td className="px-4 py-3 text-sm" style={{ color: '#f59e0b' }}>{row.electricity > 0 ? `${row.electricity} acct` : '—'}</td>
-                      <td className="px-4 py-3 text-sm" style={{ color: '#f97316' }}>{row.gas > 0 ? `${row.gas} acct` : '—'}</td>
-                      <td className="px-4 py-3 text-sm" style={{ color: '#60a5fa' }}>{row.water > 0 ? `${row.water} acct` : '—'}</td>
-                      <td className="px-4 py-3 text-sm font-semibold" style={{ color: 'var(--primary)' }}>{row.annualCost > 0 ? `£${row.annualCost.toLocaleString()}` : '—'}</td>
-                      <td className="px-4 py-3 font-bold text-sm">{row.electricity + row.gas + row.water}</td>
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[700px]">
+                  <thead style={{ background: 'var(--surface2)' }}>
+                    <tr>
+                      {['Property', 'Electricity', 'Gas', 'Water', 'Annual Cost', 'Accounts'].map((h) => (
+                        <th key={h} className="text-left text-xs font-bold uppercase tracking-wide text-muted-foreground px-4 py-3 border-b border-border">{h}</th>
+                      ))}
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {utilitiesByProperty.map((row) => (
+                      <tr key={row.name} className="border-b border-border" onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--surface2)')} onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}>
+                        <td className="px-4 py-3 font-medium text-sm">{row.fullName}</td>
+                        <td className="px-4 py-3 text-sm" style={{ color: '#f59e0b' }}>{row.electricity > 0 ? `${row.electricity} acct` : '—'}</td>
+                        <td className="px-4 py-3 text-sm" style={{ color: '#f97316' }}>{row.gas > 0 ? `${row.gas} acct` : '—'}</td>
+                        <td className="px-4 py-3 text-sm" style={{ color: '#60a5fa' }}>{row.water > 0 ? `${row.water} acct` : '—'}</td>
+                        <td className="px-4 py-3 text-sm font-semibold" style={{ color: 'var(--primary)' }}>{row.annualCost > 0 ? `£${row.annualCost.toLocaleString()}` : '—'}</td>
+                        <td className="px-4 py-3 font-bold text-sm">{row.electricity + row.gas + row.water}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
 
             {/* Full Utilities Register */}
@@ -1073,9 +1755,39 @@ function UtilitiesReport() {
 // ── Asset Report (original) ───────────────────────────────────────────────────
 function AssetReport() {
   const [activeSection, setActiveSection] = useState<'overview' | 'charts' | 'export'>('overview');
+  const [assets, setAssets] = useState<any[]>(ASSETS);
+  const [properties, setProperties] = useState<any[]>(HOTELS);
+  const [maintenance, setMaintenance] = useState<any[]>(MAINTENANCE_RECORDS);
+
+  useEffect(() => {
+    const fetchLive = async () => {
+      try {
+        const [aRes, pRes, mRes] = await Promise.allSettled([
+          api.assets.getAll(),
+          api.properties.getAll(),
+          api.maintenance.getAll(),
+        ]);
+        if (aRes.status === 'fulfilled' && aRes.value.success && aRes.value.data?.length > 0) setAssets(aRes.value.data);
+        if (pRes.status === 'fulfilled' && pRes.value.success && pRes.value.data?.length > 0) setProperties(pRes.value.data);
+        if (mRes.status === 'fulfilled' && mRes.value.success && mRes.value.data?.length > 0) setMaintenance(mRes.value.data);
+      } catch (e) {
+        console.warn('Asset report live fetch fallback:', e);
+      }
+    };
+    fetchLive();
+    window.addEventListener('samko:data-changed', fetchLive);
+    return () => window.removeEventListener('samko:data-changed', fetchLive);
+  }, []);
+
+  const total = assets.length;
+  const fixed = assets.filter((a) => a.isFixed).length;
+  const overdueMaintenance = maintenance.filter((m) => m.status === 'overdue').length;
+  const completedMaintenance = maintenance.filter((m) => m.status === 'completed').length;
+  const maintenanceCompletion = maintenance.length > 0 ? Math.round((completedMaintenance / maintenance.length) * 100) : 100;
+
   return (
     <div className="flex flex-col h-full">
-      <div className="flex items-center justify-between px-7 py-4 border-b border-border flex-shrink-0" style={{ background: 'var(--surface)' }}>
+      <div className="flex items-center justify-between px-6 py-4 border-b border-border flex-shrink-0" style={{ background: 'var(--surface)' }}>
         <div>
           <h1 className="font-head text-xl font-bold">Asset Reports</h1>
           <p className="text-xs text-muted-foreground mt-0.5">Asset management insights and exports</p>
@@ -1089,42 +1801,45 @@ function AssetReport() {
           ))}
         </div>
       </div>
-      <div className="flex-1 overflow-auto p-7">
+      <div className="flex-1 overflow-auto px-6 py-5">
         {activeSection === 'overview' && (
           <div className="flex flex-col gap-6">
             <div className="grid grid-cols-4 gap-4">
-              <KPICard label="Total Assets" value={stats.total} sub="Across all hotels" color="#e8c97a" icon={Package} />
-              <KPICard label="Fixed Assets" value={stats.fixed} sub={`${Math.round((stats.fixed / stats.total) * 100)}% of total`} color="#60a5fa" icon={Package} />
-              <KPICard label="Overdue Maintenance" value={stats.overdueMaintenance} sub="Require immediate action" color="#f43f5e" icon={Wrench} />
-              <KPICard label="Maintenance Complete" value={`${stats.maintenanceCompletion}%`} sub="Completion rate" color="#3dd68c" icon={ClipboardCheck} />
+              <KPICard label="Total Assets" value={total} sub="Across all properties" color="#e8c97a" icon={Package} />
+              <KPICard label="Fixed Assets" value={fixed} sub={`${Math.round((fixed / (total || 1)) * 100)}% of total`} color="#60a5fa" icon={Package} />
+              <KPICard label="Overdue Maintenance" value={overdueMaintenance} sub="Require immediate action" color="#f43f5e" icon={Wrench} />
+              <KPICard label="Maintenance Complete" value={`${maintenanceCompletion}%`} sub="Completion rate" color="#3dd68c" icon={ClipboardCheck} />
             </div>
             <div className="rounded-xl border border-border overflow-hidden" style={{ background: 'var(--surface)' }}>
               <div className="px-5 py-4 border-b border-border flex items-center gap-2">
                 <Building2 size={15} style={{ color: 'var(--primary)' }} />
-                <span className="font-head font-bold text-sm">Asset Summary by Hotel</span>
+                <span className="font-head font-bold text-sm">Asset Summary by Property</span>
               </div>
-              <table className="w-full">
-                <thead style={{ background: 'var(--surface2)' }}>
-                  <tr>
-                    {['Hotel', 'Total Assets', 'Fixed', 'Non-Fixed', 'Overdue Maintenance', 'Critical Assets'].map((h) => (
-                      <th key={h} className="text-left text-xs font-bold uppercase tracking-wide text-muted-foreground px-4 py-3 border-b border-border">{h}</th>
-                    ))}
-                  </tr>
-                </thead>
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[720px]">
+                  <thead style={{ background: 'var(--surface2)' }}>
+                    <tr>
+                      {['Property', 'Total Assets', 'Fixed', 'Non-Fixed', 'Overdue Maintenance', 'Critical Assets'].map((h) => (
+                        <th key={h} className="text-left text-xs font-bold uppercase tracking-wide text-muted-foreground px-4 py-3 border-b border-border">{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
                 <tbody>
-                  {HOTELS.map((hotel) => {
-                    const hotelAssets = ASSETS.filter((a) => a.hotelId === hotel.id);
-                    const hotelMaint = MAINTENANCE_RECORDS.filter((m) => m.hotelId === hotel.id && m.status === 'overdue');
-                    const criticalCount = hotelAssets.filter((a) => a.riskLevel === 'critical').length;
+                  {properties.map((property) => {
+                    const pName = property.name || '';
+                    const pFirst = pName.toLowerCase().split(' ')[0];
+                    const propAssets = assets.filter((a) => a.hotelId === property.id || a.propertyId === property.id || a.hotelName?.toLowerCase()?.includes(pFirst) || a.property?.toLowerCase()?.includes(pFirst));
+                    const propMaint = maintenance.filter((m) => (m.hotelId === property.id || m.propertyId === property.id || m.hotelName?.toLowerCase()?.includes(pFirst) || m.property?.toLowerCase()?.includes(pFirst)) && m.status === 'overdue');
+                    const criticalCount = propAssets.filter((a) => a.riskLevel === 'critical').length;
                     return (
-                      <tr key={hotel.id} className="border-b border-border" onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--surface2)')} onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}>
-                        <td className="px-4 py-3"><div className="font-medium text-sm">{hotel.name}</div><div className="text-xs text-muted-foreground">{hotel.city}</div></td>
-                        <td className="px-4 py-3 font-head font-bold text-sm" style={{ color: 'var(--primary)' }}>{hotelAssets.length}</td>
-                        <td className="px-4 py-3 text-sm">{hotelAssets.filter((a) => a.isFixed).length}</td>
-                        <td className="px-4 py-3 text-sm">{hotelAssets.filter((a) => !a.isFixed).length}</td>
+                      <tr key={property.id} className="border-b border-border" onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--surface2)')} onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}>
+                        <td className="px-4 py-3"><div className="font-medium text-sm">{property.name}</div><div className="text-xs text-muted-foreground">{property.city || 'UK'}</div></td>
+                        <td className="px-4 py-3 font-head font-bold text-sm" style={{ color: 'var(--primary)' }}>{propAssets.length}</td>
+                        <td className="px-4 py-3 text-sm">{propAssets.filter((a) => a.isFixed).length}</td>
+                        <td className="px-4 py-3 text-sm">{propAssets.filter((a) => !a.isFixed).length}</td>
                         <td className="px-4 py-3">
-                          {hotelMaint.length > 0 ? (
-                            <span className="text-xs font-semibold px-2 py-0.5 rounded-full" style={{ background: 'rgba(244,63,94,0.12)', color: '#f43f5e' }}>{hotelMaint.length} overdue</span>
+                          {propMaint.length > 0 ? (
+                            <span className="text-xs font-semibold px-2 py-0.5 rounded-full" style={{ background: 'rgba(244,63,94,0.12)', color: '#f43f5e' }}>{propMaint.length} overdue</span>
                           ) : (
                             <span className="text-xs font-semibold px-2 py-0.5 rounded-full" style={{ background: 'rgba(61,214,140,0.12)', color: '#3dd68c' }}>None</span>
                           )}
@@ -1137,6 +1852,7 @@ function AssetReport() {
                   })}
                 </tbody>
               </table>
+              </div>
             </div>
             <div className="rounded-xl border border-border overflow-hidden" style={{ background: 'var(--surface)' }}>
               <div className="px-5 py-4 border-b border-border flex items-center gap-2">

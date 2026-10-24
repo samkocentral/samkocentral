@@ -23,7 +23,7 @@ export default function DashboardComplianceChart() {
             Group Compliance Score – 12 Week Trend
           </h2>
           <p className="text-muted-foreground" style={{ fontSize: 11, marginTop: 2 }}>
-            Average compliance % across all 5 hotels — declining trend requires attention
+            Average compliance % across all 5 properties — declining trend requires attention
           </p>
         </div>
         <div className="flex items-center gap-4">

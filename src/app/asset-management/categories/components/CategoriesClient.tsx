@@ -1,8 +1,9 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Plus, Pencil, Trash2, Tag, X, Check } from 'lucide-react';
 import { ASSET_CATEGORIES, ASSETS, type AssetCategory } from '@/lib/assetData';
+import { api } from '@/lib/api';
 
 const PRESET_COLORS = [
   '#e8c97a', '#60a5fa', '#a78bfa', '#34d399', '#f43f5e',
@@ -107,41 +108,90 @@ function CategoryForm({ initial, onSave, onCancel }: CategoryFormProps) {
 
 export default function CategoriesClient() {
   const [categories, setCategories] = useState<AssetCategory[]>(ASSET_CATEGORIES);
+  const [liveAssets, setLiveAssets] = useState<any[]>(ASSETS);
   const [showAdd, setShowAdd] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
 
-  const assetCountByCategory = (catName: string) =>
-    ASSETS.filter((a) => a.category === catName).length;
+  useEffect(() => {
+    async function loadData() {
+      try {
+        const [catRes, assetRes] = await Promise.all([
+          api.categories.getAll(),
+          api.assets.getAll(),
+        ]);
+        if (catRes.success && catRes.data && catRes.data.length > 0) {
+          setCategories(catRes.data);
+        }
+        if (assetRes.success && assetRes.data && assetRes.data.length > 0) {
+          setLiveAssets(assetRes.data);
+        }
+      } catch (e) {
+        console.warn('Using fallback category data:', e);
+      }
+    }
+    loadData();
+  }, []);
 
-  const handleAdd = (data: Omit<AssetCategory, 'id'>) => {
-    const newCat: AssetCategory = {
-      id: `cat-${Date.now()}`,
-      ...data,
-    };
+  const assetCountByCategory = (catName: string) =>
+    liveAssets.filter((a) => a.category === catName).length;
+
+  const handleAdd = async (data: Omit<AssetCategory, 'id'>) => {
+    const tempId = `cat-${Date.now()}`;
+    const newCat: AssetCategory = { id: tempId, ...data };
     setCategories((prev) => [...prev, newCat]);
     setShowAdd(false);
+
+    try {
+      const res = await api.categories.create(data);
+      if (res.success && res.data) {
+        setCategories((prev) => prev.map((c) => (c.id === tempId ? res.data : c)));
+      }
+    } catch (e) {
+      console.warn('Category created locally:', e);
+    }
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('samko:data-changed', { detail: { type: 'categories' } }));
+    }
   };
 
-  const handleEdit = (id: string, data: Omit<AssetCategory, 'id'>) => {
+  const handleEdit = async (id: string, data: Omit<AssetCategory, 'id'>) => {
     setCategories((prev) =>
       prev.map((c) => (c.id === id ? { ...c, ...data } : c))
     );
     setEditingId(null);
+
+    try {
+      await api.categories.update(id, data);
+    } catch (e) {
+      console.warn('Category updated locally:', e);
+    }
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('samko:data-changed', { detail: { type: 'categories', id } }));
+    }
   };
 
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
     setCategories((prev) => prev.filter((c) => c.id !== id));
     setDeleteConfirm(null);
+
+    try {
+      await api.categories.delete(id);
+    } catch (e) {
+      console.warn('Category deleted locally:', e);
+    }
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('samko:data-changed', { detail: { type: 'categories', id, action: 'delete' } }));
+    }
   };
 
-  const totalAssets = ASSETS.length;
+  const totalAssets = liveAssets.length;
 
   return (
     <div className="flex flex-col h-full">
       {/* Header */}
       <div
-        className="flex items-center justify-between px-7 py-4 border-b border-border flex-shrink-0"
+        className="flex items-center justify-between px-6 py-4 border-b border-border flex-shrink-0"
         style={{ background: 'var(--surface)' }}
       >
         <div>
@@ -159,7 +209,7 @@ export default function CategoriesClient() {
         </button>
       </div>
 
-      <div className="flex-1 overflow-auto p-7">
+      <div className="flex-1 overflow-auto px-6 py-5">
         <div className="grid gap-6" style={{ gridTemplateColumns: '1fr 340px' }}>
           {/* Category Grid */}
           <div>

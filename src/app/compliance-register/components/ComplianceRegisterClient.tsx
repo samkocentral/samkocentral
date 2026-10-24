@@ -1,9 +1,13 @@
 'use client';
 
-import React, { useState } from 'react';
-import { ShieldCheck, AlertTriangle, Clock, CheckCircle2, TrendingUp, Plus, Search, Download, Eye, Edit2, FileText, Bell } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { ShieldCheck, AlertTriangle, Clock, CheckCircle2, TrendingUp, Plus, Search, Download, Eye, Edit2, FileText, Bell, ChevronDown, Loader2, Trash2, X, Check } from 'lucide-react';
+import { api } from '@/lib/api';
+import { useAuth } from '@/lib/authContext';
+import { toast } from 'sonner';
 import Icon from '@/components/ui/AppIcon';
-
+import CustomDropdown from '@/components/ui/CustomDropdown';
+import StatusDropdown from '@/components/ui/StatusDropdown';
 
 type ComplianceStatus = 'compliant' | 'expiring-soon' | 'overdue' | 'pending';
 type RiskRating = 'low' | 'medium' | 'high' | 'critical';
@@ -41,7 +45,7 @@ const COMPLIANCE_CATEGORIES = [
   'Hotel Brand Standards', 'Local Authority Requirements',
 ];
 
-const HOTELS = [
+const DEFAULT_HOTELS = [
   'Crowne Plaza Kingston-south', 'Stanhill Court', 'Hampton 1 & 2', 'Ravens Ait Island',
   'River Club', 'Warren House', 'Gatwick Manor', 'Sharnbrook',
 ];
@@ -149,18 +153,18 @@ function daysUntil(dateStr: string): number {
   return Math.ceil((d.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
 }
 
-function KPICard({ label, value, sub, color, icon: Icon }: { label: string; value: number | string; sub: string; color: string; icon: React.ElementType }) {
+function KPICard({ label, value, sub, color, icon: IconComponent }: { label: string; value: number | string; sub: string; color: string; icon: React.ElementType }) {
   return (
-    <div className="rounded-xl border border-border p-5 relative overflow-hidden" style={{ background: 'var(--surface)' }}>
+    <div className="rounded-xl border border-border px-4 py-3.5 relative overflow-hidden" style={{ background: 'var(--surface)' }}>
       <div className="absolute top-0 left-0 right-0 h-0.5" style={{ background: color }} />
-      <div className="flex items-start justify-between">
-        <div>
-          <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">{label}</div>
-          <div className="font-head font-extrabold text-3xl" style={{ color }}>{value}</div>
-          <div className="text-xs text-muted-foreground mt-1">{sub}</div>
+      <div className="flex items-start justify-between gap-2">
+        <div className="min-w-0 flex-1">
+          <div className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 whitespace-nowrap truncate" title={label}>{label}</div>
+          <div className="font-head font-bold text-2xl xl:text-[26px] tracking-tight whitespace-nowrap leading-tight truncate" style={{ color }}>{value}</div>
+          <div className="text-xs text-muted-foreground mt-1 whitespace-nowrap truncate">{sub}</div>
         </div>
-        <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: `${color}18` }}>
-          <Icon size={18} style={{ color }} />
+        <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: `${color}18` }}>
+          <IconComponent size={16} style={{ color }} />
         </div>
       </div>
     </div>
@@ -168,25 +172,181 @@ function KPICard({ label, value, sub, color, icon: Icon }: { label: string; valu
 }
 
 export default function ComplianceRegisterClient() {
+  const { isViewer, canEdit } = useAuth();
+  const [items, setItems] = useState<ComplianceItem[]>(MOCK_COMPLIANCE);
+  const [propertyList, setPropertyList] = useState<string[]>(DEFAULT_HOTELS);
+  const [loading, setLoading] = useState(false);
+
   const [activeTab, setActiveTab] = useState<'register' | 'certifications' | 'statutory' | 'expiry'>('register');
   const [search, setSearch] = useState('');
-  const [filterStatus, setFilterStatus] = useState<string>('all');
-  const [filterHotel, setFilterHotel] = useState<string>('all');
-  const [filterCategory, setFilterCategory] = useState<string>('all');
+  const [filterStatus, setFilterStatus] = useState<string[]>([]);
+  const [filterHotel, setFilterHotel] = useState<string[]>([]);
+  const [filterCategory, setFilterCategory] = useState<string[]>([]);
   const [showAddModal, setShowAddModal] = useState(false);
   const [selectedItem, setSelectedItem] = useState<ComplianceItem | null>(null);
 
-  const totalItems = MOCK_COMPLIANCE.length;
-  const expiringIn30 = MOCK_COMPLIANCE.filter((c) => { const d = daysUntil(c.expiryDate); return d >= 0 && d <= 30; }).length;
-  const overdue = MOCK_COMPLIANCE.filter((c) => c.status === 'overdue').length;
-  const compliant = MOCK_COMPLIANCE.filter((c) => c.status === 'compliant').length;
-  const highRisk = MOCK_COMPLIANCE.filter((c) => c.riskRating === 'high' || c.riskRating === 'critical').length;
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editingItem, setEditingItem] = useState<ComplianceItem | null>(null);
+  const [savingEdit, setSavingEdit] = useState(false);
+  const [itemToDelete, setItemToDelete] = useState<ComplianceItem | null>(null);
+  const [deletingItem, setDeletingItem] = useState(false);
 
-  const filtered = MOCK_COMPLIANCE.filter((c) => {
+  // Add form state
+  const [addForm, setAddForm] = useState({
+    name: '',
+    type: 'Statutory',
+    category: 'Fire Risk Assessment',
+    hotel: DEFAULT_HOTELS[0],
+    department: 'Engineering',
+    area: 'Whole Building',
+    regulatoryAuthority: 'Fire & Rescue Service',
+    certificateNumber: '',
+    issueDate: new Date().toISOString().split('T')[0],
+    expiryDate: new Date(Date.now() + 365 * 86400000).toISOString().split('T')[0],
+    renewalDate: new Date(Date.now() + 335 * 86400000).toISOString().split('T')[0],
+    inspectionFrequency: 'Yearly',
+    responsiblePerson: 'Marcus Webb',
+    contractor: '',
+    riskRating: 'medium' as RiskRating,
+    status: 'compliant' as ComplianceStatus,
+    notes: '',
+  });
+
+  const fetchCompliance = useCallback(async () => {
+    try {
+      setLoading(true);
+      const [compRes, propsRes] = await Promise.allSettled([
+        api.compliance.getAll(),
+        api.properties.getAll(),
+      ]);
+
+      if (compRes.status === 'fulfilled' && compRes.value.success && compRes.value.data && compRes.value.data.length > 0) {
+        setItems(compRes.value.data);
+      }
+      if (propsRes.status === 'fulfilled' && propsRes.value.success && propsRes.value.data && propsRes.value.data.length > 0) {
+        setPropertyList(propsRes.value.data.map((p: any) => p.name));
+      }
+    } catch (err) {
+      console.warn('Using local fallback compliance data:', err);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchCompliance();
+    const handleDataChanged = () => {
+      fetchCompliance();
+    };
+    window.addEventListener('samko:data-changed', handleDataChanged);
+    return () => window.removeEventListener('samko:data-changed', handleDataChanged);
+  }, [fetchCompliance]);
+
+  const handleStatusChange = async (id: string, newStatus: string) => {
+    // Optimistic update
+    setItems((prev) =>
+      prev.map((item) => (item.id === id ? { ...item, status: newStatus as ComplianceStatus } : item))
+    );
+
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(
+        new CustomEvent('samko:data-changed', {
+          detail: { type: 'compliance', id, status: newStatus },
+        })
+      );
+    }
+
+    try {
+      await api.compliance.update(id, { status: newStatus });
+    } catch (err) {
+      console.error('Failed to sync compliance status:', err);
+    }
+  };
+
+  const handleAddSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const complianceId = `COMP-${String(items.length + 1).padStart(3, '0')}`;
+    const payload = {
+      ...addForm,
+      complianceId,
+      description: `${addForm.name} for ${addForm.hotel}`,
+    };
+
+    try {
+      const res = await api.compliance.create(payload);
+      const created = res.data || { ...payload, id: `comp-${Date.now()}` };
+      setItems((prev) => [created, ...prev]);
+      setShowAddModal(false);
+
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('samko:data-changed', { detail: { type: 'compliance' } }));
+      }
+    } catch (err: any) {
+      alert(`Error saving compliance item: ${err.message}`);
+    }
+  };
+
+  const handleOpenEdit = (item: ComplianceItem) => {
+    setEditingItem({ ...item });
+    setShowEditModal(true);
+  };
+
+  const handleSaveEdit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingItem) return;
+    setSavingEdit(true);
+    try {
+      const updated = { ...editingItem };
+      setItems((prev) => prev.map((i) => (i.id === updated.id ? updated : i)));
+      if (selectedItem?.id === updated.id) {
+        setSelectedItem(updated);
+      }
+      setShowEditModal(false);
+      toast.success('Compliance updated', { description: `${updated.name} updated successfully` });
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('samko:data-changed', { detail: { type: 'compliance', id: updated.id } }));
+      }
+      await api.compliance.update(updated.id, updated);
+    } catch (err: any) {
+      toast.error('Failed to update compliance item');
+    } finally {
+      setSavingEdit(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!itemToDelete) return;
+    const id = itemToDelete.id;
+    setDeletingItem(true);
+    try {
+      setItems((prev) => prev.filter((i) => i.id !== id));
+      if (selectedItem?.id === id) {
+        setSelectedItem(null);
+      }
+      toast.success('Compliance item deleted', { description: `${itemToDelete.name} has been removed` });
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('samko:data-changed', { detail: { type: 'compliance', id } }));
+      }
+      await api.compliance.delete(id);
+    } catch (err: any) {
+      toast.error('Failed to delete compliance item');
+    } finally {
+      setDeletingItem(false);
+      setItemToDelete(null);
+    }
+  };
+
+  const totalItems = items.length;
+  const expiringIn30 = items.filter((c) => { const d = daysUntil(c.expiryDate); return d >= 0 && d <= 30; }).length;
+  const overdue = items.filter((c) => c.status === 'overdue').length;
+  const compliant = items.filter((c) => c.status === 'compliant').length;
+  const highRisk = items.filter((c) => c.riskRating === 'high' || c.riskRating === 'critical').length;
+
+  const filtered = items.filter((c) => {
     const matchSearch = !search || c.name.toLowerCase().includes(search.toLowerCase()) || c.hotel.toLowerCase().includes(search.toLowerCase()) || c.complianceId.toLowerCase().includes(search.toLowerCase());
-    const matchStatus = filterStatus === 'all' || c.status === filterStatus;
-    const matchHotel = filterHotel === 'all' || c.hotel === filterHotel;
-    const matchCat = filterCategory === 'all' || c.category === filterCategory;
+    const matchStatus = filterStatus.length === 0 || filterStatus.includes(c.status);
+    const matchHotel = filterHotel.length === 0 || filterHotel.includes(c.hotel);
+    const matchCat = filterCategory.length === 0 || filterCategory.includes(c.category);
     return matchSearch && matchStatus && matchHotel && matchCat;
   });
 
@@ -205,30 +365,74 @@ export default function ComplianceRegisterClient() {
     ? [...filtered].sort((a, b) => daysUntil(a.expiryDate) - daysUntil(b.expiryDate))
     : filtered;
 
+  const handleExport = () => {
+    const headers = ['Compliance ID', 'Name', 'Category', 'Type', 'Property', 'Authority', 'Certificate Number', 'Expiry Date', 'Status', 'Risk Rating'];
+    const rows = displayItems.map((c: any) => [
+      `"${c.complianceId || c.id}"`,
+      `"${(c.name || '').replace(/"/g, '""')}"`,
+      `"${c.category || ''}"`,
+      `"${c.type || ''}"`,
+      `"${c.hotel || ''}"`,
+      `"${c.regulatoryAuthority || ''}"`,
+      `"${c.certificateNumber || ''}"`,
+      `"${c.expiryDate || ''}"`,
+      `"${c.status || ''}"`,
+      `"${c.riskRating || ''}"`,
+    ]);
+    const csvContent = [headers.join(','), ...rows.map((r: string[]) => r.join(','))].join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', 'compliance_register.csv');
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    toast.success(`Exported ${displayItems.length} compliance items to CSV`);
+  };
+
   return (
     <div className="flex flex-col h-full overflow-hidden">
       {/* Topbar */}
       <div className="flex items-center justify-between px-7 py-4 border-b border-border flex-shrink-0" style={{ background: 'var(--surface)' }}>
         <div>
-          <h1 className="font-head font-bold text-xl">Compliance & Certification Register</h1>
+          <div className="flex items-center gap-2">
+            <h1 className="font-head font-bold text-xl">Compliance & Certification Register</h1>
+            {loading && <Loader2 size={14} className="animate-spin text-muted-foreground" />}
+          </div>
           <p className="text-xs text-muted-foreground mt-0.5">Manage statutory and internal compliance requirements</p>
         </div>
         <div className="flex items-center gap-2">
-          <button className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium border border-border" style={{ background: 'var(--surface2)', color: 'var(--text2)' }}>
+          <button
+            onClick={handleExport}
+            className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium border border-border hover:bg-surface2 transition-all active:scale-95 cursor-pointer"
+            style={{ background: 'var(--surface2)', color: 'var(--text2)' }}
+          >
             <Download size={13} /> Export
           </button>
-          <button
-            onClick={() => setShowAddModal(true)}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold"
-            style={{ background: 'var(--primary)', color: '#000' }}
-          >
-            <Plus size={14} /> Add Compliance Item
-          </button>
+          {canEdit && (
+            <button
+              onClick={() => setShowAddModal(true)}
+              className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-transform active:scale-95"
+              style={{ background: 'var(--primary)', color: '#000' }}
+            >
+              <Plus size={14} /> Add Compliance Item
+            </button>
+          )}
+          {isViewer && (
+            <span
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold"
+              style={{ background: 'rgba(148,163,184,0.12)', color: '#94a3b8', border: '1px solid rgba(148,163,184,0.25)' }}
+            >
+              L4 · Read-Only Access
+            </span>
+          )}
         </div>
       </div>
 
       {/* KPI Cards */}
-      <div className="grid gap-4 px-7 pt-5 pb-4 flex-shrink-0" style={{ gridTemplateColumns: 'repeat(5, 1fr)' }}>
+      <div className="grid gap-3 px-6 pt-5 pb-4 flex-shrink-0" style={{ gridTemplateColumns: 'repeat(5, minmax(0, 1fr))' }}>
         <KPICard label="Total Items" value={totalItems} sub="All compliance items" color="#60a5fa" icon={ShieldCheck} />
         <KPICard label="Expiring in 30 Days" value={expiringIn30} sub="Requires attention" color="#f59e0b" icon={Clock} />
         <KPICard label="Overdue" value={overdue} sub="Immediate action needed" color="#f43f5e" icon={AlertTriangle} />
@@ -237,7 +441,7 @@ export default function ComplianceRegisterClient() {
       </div>
 
       {/* Tabs */}
-      <div className="flex items-center gap-0 px-7 border-b border-border flex-shrink-0" style={{ background: 'var(--surface)' }}>
+      <div className="flex items-center gap-0 px-6 border-b border-border flex-shrink-0" style={{ background: 'var(--surface)' }}>
         {tabs.map((tab) => (
           <button
             key={tab.id}
@@ -255,56 +459,53 @@ export default function ComplianceRegisterClient() {
       </div>
 
       {/* Filters */}
-      <div className="flex items-center gap-3 px-7 py-3 border-b border-border flex-shrink-0" style={{ background: 'var(--surface2)' }}>
+      <div className="flex items-center gap-3 px-6 py-2.5 border-b border-border flex-shrink-0" style={{ background: 'var(--surface2)' }}>
         <div className="flex items-center gap-2 rounded-lg border border-border px-3 py-1.5 flex-1 max-w-xs" style={{ background: 'var(--surface)' }}>
           <Search size={13} className="text-muted-foreground flex-shrink-0" />
           <input
-            className="bg-transparent text-sm outline-none flex-1 text-foreground placeholder:text-muted-foreground"
-            placeholder="Search compliance items…"
+            className="bg-transparent text-xs outline-none flex-1"
+            placeholder="Search compliance, property, authority..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
+            style={{ color: 'var(--foreground)' }}
           />
         </div>
-        <select
-          className="rounded-lg border border-border px-3 py-1.5 text-sm outline-none"
-          style={{ background: 'var(--surface)', color: 'var(--foreground)' }}
+        <CustomDropdown
+          label="All Statuses"
           value={filterStatus}
-          onChange={(e) => setFilterStatus(e.target.value)}
-        >
-          <option value="all">All Statuses</option>
-          <option value="compliant">Compliant</option>
-          <option value="expiring-soon">Expiring Soon</option>
-          <option value="overdue">Overdue</option>
-          <option value="pending">Pending</option>
-        </select>
-        <select
-          className="rounded-lg border border-border px-3 py-1.5 text-sm outline-none"
-          style={{ background: 'var(--surface)', color: 'var(--foreground)' }}
+          multiple
+          options={[
+            { value: 'compliant', label: 'Compliant', color: '#3dd68c' },
+            { value: 'expiring-soon', label: 'Expiring Soon', color: '#f59e0b' },
+            { value: 'overdue', label: 'Overdue', color: '#f43f5e' },
+            { value: 'pending', label: 'Pending', color: '#60a5fa' },
+          ]}
+          onChange={setFilterStatus}
+        />
+        <CustomDropdown
+          label="All Properties"
           value={filterHotel}
-          onChange={(e) => setFilterHotel(e.target.value)}
-        >
-          <option value="all">All Hotels</option>
-          {HOTELS.map((h) => <option key={h} value={h}>{h}</option>)}
-        </select>
-        <select
-          className="rounded-lg border border-border px-3 py-1.5 text-sm outline-none"
-          style={{ background: 'var(--surface)', color: 'var(--foreground)' }}
+          multiple
+          options={propertyList.map((h) => ({ value: h, label: h }))}
+          onChange={setFilterHotel}
+        />
+        <CustomDropdown
+          label="All Categories"
           value={filterCategory}
-          onChange={(e) => setFilterCategory(e.target.value)}
-        >
-          <option value="all">All Categories</option>
-          {COMPLIANCE_CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
-        </select>
-        <span className="text-xs text-muted-foreground ml-auto">{displayItems.length} items</span>
+          multiple
+          align="right"
+          options={COMPLIANCE_CATEGORIES.map((c) => ({ value: c, label: c }))}
+          onChange={setFilterCategory}
+        />
       </div>
 
       {/* Table */}
-      <div className="flex-1 overflow-auto px-7 py-4">
-        <div className="rounded-xl border border-border overflow-hidden" style={{ background: 'var(--surface)' }}>
-          <table className="w-full">
+      <div className="flex-1 overflow-auto px-6 py-4">
+        <div className="rounded-xl border border-border overflow-x-auto shadow-sm" style={{ background: 'var(--surface)' }}>
+          <table className="w-full text-left border-collapse" style={{ minWidth: 900 }}>
             <thead>
               <tr style={{ background: 'var(--surface2)' }}>
-                {['ID', 'Compliance Item', 'Category', 'Hotel', 'Department', 'Expiry Date', 'Days Left', 'Responsible', 'Risk', 'Status', ''].map((h) => (
+                {['ID', 'Compliance Item', 'Category', 'Property', 'Department', 'Expiry Date', 'Days Left', 'Responsible', 'Risk', 'Status', ''].map((h) => (
                   <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide whitespace-nowrap">{h}</th>
                 ))}
               </tr>
@@ -312,9 +513,9 @@ export default function ComplianceRegisterClient() {
             <tbody>
               {displayItems.map((item) => {
                 const days = daysUntil(item.expiryDate);
-                const statusCfg = STATUS_CONFIG[item.status];
-                const riskCfg = RISK_CONFIG[item.riskRating];
-                const StatusIcon = statusCfg.icon;
+                const statusCfg = STATUS_CONFIG[item.status] || STATUS_CONFIG.compliant;
+                const riskCfg = RISK_CONFIG[item.riskRating] || RISK_CONFIG.low;
+
                 return (
                   <tr
                     key={item.id}
@@ -342,15 +543,44 @@ export default function ComplianceRegisterClient() {
                     <td className="px-4 py-3">
                       <span className="text-xs font-semibold px-2 py-0.5 rounded-full capitalize" style={{ background: riskCfg.bg, color: riskCfg.color }}>{item.riskRating}</span>
                     </td>
-                    <td className="px-4 py-3">
-                      <span className="flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full w-fit" style={{ background: statusCfg.bg, color: statusCfg.color }}>
-                        <StatusIcon size={10} />{statusCfg.label}
-                      </span>
+                    <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
+                      <StatusDropdown
+                        value={item.status}
+                        disabled={isViewer || !canEdit}
+                        options={[
+                          { value: 'compliant', label: 'Compliant', color: '#3dd68c', bg: 'rgba(61,214,140,0.12)' },
+                          { value: 'expiring-soon', label: 'Expiring Soon', color: '#f59e0b', bg: 'rgba(245,158,11,0.12)' },
+                          { value: 'overdue', label: 'Overdue', color: '#f43f5e', bg: 'rgba(244,63,94,0.12)' },
+                          { value: 'pending', label: 'Pending', color: '#60a5fa', bg: 'rgba(96,165,250,0.12)' },
+                        ]}
+                        onChange={(val) => handleStatusChange(item.id, val)}
+                      />
                     </td>
-                    <td className="px-4 py-3">
-                      <button className="p-1.5 rounded-lg transition-colors" style={{ color: 'var(--text2)' }} onClick={(e) => { e.stopPropagation(); setSelectedItem(item); }}>
-                        <Eye size={14} />
-                      </button>
+                    <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
+                      <div className="flex items-center gap-1.5 whitespace-nowrap">
+                        <button
+                          className="p-1.5 rounded-lg border border-border hover:bg-surface2 transition-colors"
+                          style={{ color: 'var(--text2)' }}
+                          title="View Details"
+                          onClick={() => setSelectedItem(item)}
+                        >
+                          <Eye size={13} />
+                        </button>
+                        <button
+                          className="p-1.5 rounded-lg border border-border hover:bg-surface2 transition-colors text-muted-foreground hover:text-primary"
+                          title="Edit Compliance Item"
+                          onClick={() => handleOpenEdit(item)}
+                        >
+                          <Edit2 size={13} />
+                        </button>
+                        <button
+                          className="p-1.5 rounded-lg border border-rose-500/20 hover:bg-rose-500/15 text-rose-400 transition-colors"
+                          title="Delete Compliance Item"
+                          onClick={() => setItemToDelete(item)}
+                        >
+                          <Trash2 size={13} />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 );
@@ -374,7 +604,7 @@ export default function ComplianceRegisterClient() {
               <div>
                 <div className="flex items-center gap-2 mb-1">
                   <span className="font-mono text-xs px-2 py-0.5 rounded" style={{ background: 'var(--surface3)', color: 'var(--text2)' }}>{selectedItem.complianceId}</span>
-                  <span className="text-xs font-semibold px-2 py-0.5 rounded-full" style={{ background: STATUS_CONFIG[selectedItem.status].bg, color: STATUS_CONFIG[selectedItem.status].color }}>{STATUS_CONFIG[selectedItem.status].label}</span>
+                  <span className="text-xs font-semibold px-2 py-0.5 rounded-full" style={{ background: STATUS_CONFIG[selectedItem.status]?.bg, color: STATUS_CONFIG[selectedItem.status]?.color }}>{STATUS_CONFIG[selectedItem.status]?.label}</span>
                 </div>
                 <h2 className="font-head font-bold text-lg">{selectedItem.name}</h2>
                 <p className="text-sm text-muted-foreground mt-0.5">{selectedItem.description}</p>
@@ -384,7 +614,7 @@ export default function ComplianceRegisterClient() {
             <div className="p-6 grid grid-cols-2 gap-4">
               {[
                 ['Category', selectedItem.category], ['Type', selectedItem.type],
-                ['Hotel', selectedItem.hotel], ['Department', selectedItem.department],
+                ['Property', selectedItem.hotel], ['Department', selectedItem.department],
                 ['Area', selectedItem.area], ['Regulatory Authority', selectedItem.regulatoryAuthority],
                 ['Certificate Number', selectedItem.certificateNumber || '—'], ['Issue Date', new Date(selectedItem.issueDate).toLocaleDateString('en-GB')],
                 ['Expiry Date', new Date(selectedItem.expiryDate).toLocaleDateString('en-GB')], ['Renewal Date', new Date(selectedItem.renewalDate).toLocaleDateString('en-GB')],
@@ -403,15 +633,26 @@ export default function ComplianceRegisterClient() {
                 <div className="text-sm p-3 rounded-lg" style={{ background: 'var(--surface2)' }}>{selectedItem.notes}</div>
               </div>
             )}
-            <div className="flex gap-2 p-6 pt-0">
-              <button className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold" style={{ background: 'var(--primary)', color: '#000' }}>
-                <Edit2 size={13} /> Edit Record
-              </button>
-              <button className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium border border-border" style={{ background: 'var(--surface2)', color: 'var(--text2)' }}>
-                <Bell size={13} /> Set Reminder
-              </button>
-              <button className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium border border-border" style={{ background: 'var(--surface2)', color: 'var(--text2)' }}>
-                <FileText size={13} /> Documents
+            <div className="flex items-center justify-between p-6 pt-0 border-t border-border mt-4">
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => handleOpenEdit(selectedItem)}
+                  className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-semibold border border-border hover:bg-surface2 text-foreground transition-colors"
+                  style={{ background: 'var(--surface2)' }}
+                >
+                  <Edit2 size={13} /> Edit Item
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setItemToDelete(selectedItem)}
+                  className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-semibold border border-rose-500/30 hover:bg-rose-500/15 text-rose-400 transition-colors"
+                >
+                  <Trash2 size={13} /> Delete Item
+                </button>
+              </div>
+              <button onClick={() => setSelectedItem(null)} className="px-5 py-2 rounded-lg text-xs font-semibold" style={{ background: 'var(--primary)', color: '#000' }}>
+                Close
               </button>
             </div>
           </div>
@@ -420,57 +661,405 @@ export default function ComplianceRegisterClient() {
 
       {/* Add Modal */}
       {showAddModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: 'rgba(0,0,0,0.6)' }} onClick={() => setShowAddModal(false)}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.7)' }} onClick={() => setShowAddModal(false)}>
           <div className="rounded-2xl border border-border w-full max-w-2xl max-h-[85vh] overflow-auto" style={{ background: 'var(--surface)' }} onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between p-6 border-b border-border">
               <h2 className="font-head font-bold text-lg">Add Compliance Item</h2>
               <button onClick={() => setShowAddModal(false)} className="text-muted-foreground hover:text-foreground text-xl font-bold px-2">×</button>
             </div>
-            <div className="p-6 grid grid-cols-2 gap-4">
-              {[
-                ['Compliance Name', 'text'], ['Compliance Type', 'text'],
-                ['Category', 'select-category'], ['Hotel', 'select-hotel'],
-                ['Department', 'text'], ['Area', 'text'],
-                ['Regulatory Authority', 'text'], ['Certificate Number', 'text'],
-                ['Issue Date', 'date'], ['Expiry Date', 'date'],
-                ['Renewal Date', 'date'], ['Inspection Frequency', 'text'],
-                ['Responsible Person', 'text'], ['Contractor', 'text'],
-                ['Risk Rating', 'select-risk'], ['Status', 'select-status'],
-              ].map(([label, type]) => (
-                <div key={label} className="flex flex-col gap-1">
-                  <label className="text-xs font-medium text-muted-foreground">{label}</label>
-                  {type === 'select-category' ? (
-                    <select className="rounded-lg border border-border px-3 py-2 text-sm outline-none" style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}>
-                      {COMPLIANCE_CATEGORIES.map((c) => <option key={c}>{c}</option>)}
-                    </select>
-                  ) : type === 'select-hotel' ? (
-                    <select className="rounded-lg border border-border px-3 py-2 text-sm outline-none" style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}>
-                      {HOTELS.map((h) => <option key={h}>{h}</option>)}
-                    </select>
-                  ) : type === 'select-risk' ? (
-                    <select className="rounded-lg border border-border px-3 py-2 text-sm outline-none" style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}>
-                      {['low', 'medium', 'high', 'critical'].map((r) => <option key={r}>{r}</option>)}
-                    </select>
-                  ) : type === 'select-status' ? (
-                    <select className="rounded-lg border border-border px-3 py-2 text-sm outline-none" style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}>
-                      {['compliant', 'expiring-soon', 'overdue', 'pending'].map((s) => <option key={s}>{s}</option>)}
-                    </select>
-                  ) : (
-                    <input type={type} className="rounded-lg border border-border px-3 py-2 text-sm outline-none" style={{ background: 'var(--surface2)', color: 'var(--foreground)' }} />
-                  )}
+            <form onSubmit={handleAddSubmit}>
+              <div className="p-6 grid grid-cols-2 gap-4">
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs font-medium text-muted-foreground">Compliance Name</label>
+                  <input
+                    type="text"
+                    required
+                    value={addForm.name}
+                    onChange={(e) => setAddForm({ ...addForm, name: e.target.value })}
+                    className="rounded-lg border border-border px-3 py-2 text-sm outline-none"
+                    style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
+                  />
                 </div>
-              ))}
-              <div className="col-span-2 flex flex-col gap-1">
-                <label className="text-xs font-medium text-muted-foreground">Notes</label>
-                <textarea rows={3} className="rounded-lg border border-border px-3 py-2 text-sm outline-none resize-none" style={{ background: 'var(--surface2)', color: 'var(--foreground)' }} />
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs font-medium text-muted-foreground">Type</label>
+                  <select
+                    value={addForm.type}
+                    onChange={(e) => setAddForm({ ...addForm, type: e.target.value })}
+                    className="rounded-lg border border-border px-3 py-2 text-sm outline-none cursor-pointer"
+                    style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
+                  >
+                    <option value="Statutory">Statutory</option>
+                    <option value="Internal">Internal</option>
+                  </select>
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs font-medium text-muted-foreground">Category</label>
+                  <select
+                    value={addForm.category}
+                    onChange={(e) => setAddForm({ ...addForm, category: e.target.value })}
+                    className="rounded-lg border border-border px-3 py-2 text-sm outline-none cursor-pointer"
+                    style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
+                  >
+                    {COMPLIANCE_CATEGORIES.map((c) => <option key={c}>{c}</option>)}
+                  </select>
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs font-medium text-muted-foreground">Property</label>
+                  <select
+                    value={addForm.hotel}
+                    onChange={(e) => setAddForm({ ...addForm, hotel: e.target.value })}
+                    className="rounded-lg border border-border px-3 py-2 text-sm outline-none cursor-pointer"
+                    style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
+                  >
+                    {propertyList.map((h) => <option key={h}>{h}</option>)}
+                  </select>
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs font-medium text-muted-foreground">Department</label>
+                  <input
+                    type="text"
+                    value={addForm.department}
+                    onChange={(e) => setAddForm({ ...addForm, department: e.target.value })}
+                    className="rounded-lg border border-border px-3 py-2 text-sm outline-none"
+                    style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
+                  />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs font-medium text-muted-foreground">Area / Location</label>
+                  <input
+                    type="text"
+                    value={addForm.area}
+                    onChange={(e) => setAddForm({ ...addForm, area: e.target.value })}
+                    className="rounded-lg border border-border px-3 py-2 text-sm outline-none"
+                    style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
+                  />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs font-medium text-muted-foreground">Regulatory Authority</label>
+                  <input
+                    type="text"
+                    value={addForm.regulatoryAuthority}
+                    onChange={(e) => setAddForm({ ...addForm, regulatoryAuthority: e.target.value })}
+                    className="rounded-lg border border-border px-3 py-2 text-sm outline-none"
+                    style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
+                  />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs font-medium text-muted-foreground">Certificate Number</label>
+                  <input
+                    type="text"
+                    value={addForm.certificateNumber}
+                    onChange={(e) => setAddForm({ ...addForm, certificateNumber: e.target.value })}
+                    className="rounded-lg border border-border px-3 py-2 text-sm outline-none"
+                    style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
+                  />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs font-medium text-muted-foreground">Issue Date</label>
+                  <input
+                    type="date"
+                    value={addForm.issueDate}
+                    onChange={(e) => setAddForm({ ...addForm, issueDate: e.target.value })}
+                    className="rounded-lg border border-border px-3 py-2 text-sm outline-none"
+                    style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
+                  />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs font-medium text-muted-foreground">Expiry Date</label>
+                  <input
+                    type="date"
+                    value={addForm.expiryDate}
+                    onChange={(e) => setAddForm({ ...addForm, expiryDate: e.target.value })}
+                    className="rounded-lg border border-border px-3 py-2 text-sm outline-none"
+                    style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
+                  />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs font-medium text-muted-foreground">Responsible Person</label>
+                  <input
+                    type="text"
+                    value={addForm.responsiblePerson}
+                    onChange={(e) => setAddForm({ ...addForm, responsiblePerson: e.target.value })}
+                    className="rounded-lg border border-border px-3 py-2 text-sm outline-none"
+                    style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
+                  />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs font-medium text-muted-foreground">Risk Rating</label>
+                  <select
+                    value={addForm.riskRating}
+                    onChange={(e) => setAddForm({ ...addForm, riskRating: e.target.value as RiskRating })}
+                    className="rounded-lg border border-border px-3 py-2 text-sm outline-none cursor-pointer"
+                    style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
+                  >
+                    {['low', 'medium', 'high', 'critical'].map((r) => <option key={r} value={r}>{r}</option>)}
+                  </select>
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs font-medium text-muted-foreground">Initial Status</label>
+                  <select
+                    value={addForm.status}
+                    onChange={(e) => setAddForm({ ...addForm, status: e.target.value as ComplianceStatus })}
+                    className="rounded-lg border border-border px-3 py-2 text-sm outline-none cursor-pointer"
+                    style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
+                  >
+                    {['compliant', 'expiring-soon', 'overdue', 'pending'].map((s) => <option key={s} value={s}>{s}</option>)}
+                  </select>
+                </div>
+                <div className="col-span-2 flex flex-col gap-1">
+                  <label className="text-xs font-medium text-muted-foreground">Notes</label>
+                  <textarea
+                    rows={2}
+                    value={addForm.notes}
+                    onChange={(e) => setAddForm({ ...addForm, notes: e.target.value })}
+                    className="rounded-lg border border-border px-3 py-2 text-sm outline-none resize-none"
+                    style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
+                  />
+                </div>
+              </div>
+              <div className="flex gap-2 p-6 pt-0 border-t border-border mt-2">
+                <button type="submit" className="flex items-center gap-2 px-5 py-2 rounded-lg text-sm font-semibold" style={{ background: 'var(--primary)', color: '#000' }}>
+                  Save Compliance Item
+                </button>
+                <button type="button" onClick={() => setShowAddModal(false)} className="px-4 py-2 rounded-lg text-sm font-medium border border-border" style={{ background: 'var(--surface2)', color: 'var(--text2)' }}>
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Modal */}
+      {showEditModal && editingItem && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(4px)' }} onClick={() => setShowEditModal(false)}>
+          <div className="rounded-2xl border border-border w-full max-w-2xl max-h-[85vh] overflow-auto shadow-2xl animate-in zoom-in-95 duration-150" style={{ background: 'var(--surface)' }} onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between p-6 border-b border-border" style={{ background: 'var(--surface2)' }}>
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'rgba(232,201,122,0.15)', color: 'var(--primary)' }}>
+                  <Edit2 size={16} />
+                </div>
+                <div>
+                  <h2 className="font-head font-bold text-base text-foreground">Edit Compliance Item</h2>
+                  <p className="text-xs text-muted-foreground">{editingItem.complianceId} · Update compliance record dynamically</p>
+                </div>
+              </div>
+              <button onClick={() => setShowEditModal(false)} className="text-muted-foreground hover:text-foreground text-xl font-bold px-2">×</button>
+            </div>
+            <form onSubmit={handleSaveEdit}>
+              <div className="p-6 grid grid-cols-2 gap-4">
+                <div className="flex flex-col gap-1 col-span-2">
+                  <label className="text-xs font-semibold text-muted-foreground uppercase">Compliance Name *</label>
+                  <input
+                    type="text"
+                    required
+                    value={editingItem.name}
+                    onChange={(e) => setEditingItem({ ...editingItem, name: e.target.value })}
+                    className="rounded-lg border border-border px-3 py-2 text-sm outline-none"
+                    style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
+                  />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs font-semibold text-muted-foreground uppercase">Type</label>
+                  <select
+                    value={editingItem.type}
+                    onChange={(e) => setEditingItem({ ...editingItem, type: e.target.value })}
+                    className="rounded-lg border border-border px-3 py-2 text-sm outline-none cursor-pointer"
+                    style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
+                  >
+                    <option value="Statutory">Statutory</option>
+                    <option value="Internal">Internal</option>
+                  </select>
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs font-semibold text-muted-foreground uppercase">Category</label>
+                  <select
+                    value={editingItem.category}
+                    onChange={(e) => setEditingItem({ ...editingItem, category: e.target.value })}
+                    className="rounded-lg border border-border px-3 py-2 text-sm outline-none cursor-pointer"
+                    style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
+                  >
+                    {COMPLIANCE_CATEGORIES.map((c) => <option key={c}>{c}</option>)}
+                  </select>
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs font-semibold text-muted-foreground uppercase">Property</label>
+                  <select
+                    value={editingItem.hotel}
+                    onChange={(e) => setEditingItem({ ...editingItem, hotel: e.target.value })}
+                    className="rounded-lg border border-border px-3 py-2 text-sm outline-none cursor-pointer"
+                    style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
+                  >
+                    {propertyList.map((h) => <option key={h}>{h}</option>)}
+                  </select>
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs font-semibold text-muted-foreground uppercase">Department</label>
+                  <input
+                    type="text"
+                    value={editingItem.department}
+                    onChange={(e) => setEditingItem({ ...editingItem, department: e.target.value })}
+                    className="rounded-lg border border-border px-3 py-2 text-sm outline-none"
+                    style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
+                  />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs font-semibold text-muted-foreground uppercase">Area / Location</label>
+                  <input
+                    type="text"
+                    value={editingItem.area}
+                    onChange={(e) => setEditingItem({ ...editingItem, area: e.target.value })}
+                    className="rounded-lg border border-border px-3 py-2 text-sm outline-none"
+                    style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
+                  />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs font-semibold text-muted-foreground uppercase">Regulatory Authority</label>
+                  <input
+                    type="text"
+                    value={editingItem.regulatoryAuthority}
+                    onChange={(e) => setEditingItem({ ...editingItem, regulatoryAuthority: e.target.value })}
+                    className="rounded-lg border border-border px-3 py-2 text-sm outline-none"
+                    style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
+                  />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs font-semibold text-muted-foreground uppercase">Certificate Number</label>
+                  <input
+                    type="text"
+                    value={editingItem.certificateNumber || ''}
+                    onChange={(e) => setEditingItem({ ...editingItem, certificateNumber: e.target.value })}
+                    className="rounded-lg border border-border px-3 py-2 text-sm outline-none"
+                    style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
+                  />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs font-semibold text-muted-foreground uppercase">Responsible Person</label>
+                  <input
+                    type="text"
+                    value={editingItem.responsiblePerson}
+                    onChange={(e) => setEditingItem({ ...editingItem, responsiblePerson: e.target.value })}
+                    className="rounded-lg border border-border px-3 py-2 text-sm outline-none"
+                    style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
+                  />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs font-semibold text-muted-foreground uppercase">Contractor / Auditor</label>
+                  <input
+                    type="text"
+                    value={editingItem.contractor || ''}
+                    onChange={(e) => setEditingItem({ ...editingItem, contractor: e.target.value })}
+                    className="rounded-lg border border-border px-3 py-2 text-sm outline-none"
+                    style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
+                  />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs font-semibold text-muted-foreground uppercase">Expiry Date</label>
+                  <input
+                    type="date"
+                    value={editingItem.expiryDate}
+                    onChange={(e) => setEditingItem({ ...editingItem, expiryDate: e.target.value })}
+                    className="rounded-lg border border-border px-3 py-2 text-sm outline-none"
+                    style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
+                  />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs font-semibold text-muted-foreground uppercase">Renewal Date</label>
+                  <input
+                    type="date"
+                    value={editingItem.renewalDate}
+                    onChange={(e) => setEditingItem({ ...editingItem, renewalDate: e.target.value })}
+                    className="rounded-lg border border-border px-3 py-2 text-sm outline-none"
+                    style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
+                  />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs font-semibold text-muted-foreground uppercase">Risk Rating</label>
+                  <select
+                    value={editingItem.riskRating}
+                    onChange={(e) => setEditingItem({ ...editingItem, riskRating: e.target.value as RiskRating })}
+                    className="rounded-lg border border-border px-3 py-2 text-sm outline-none cursor-pointer"
+                    style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
+                  >
+                    {['low', 'medium', 'high', 'critical'].map((r) => <option key={r} value={r}>{r}</option>)}
+                  </select>
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs font-semibold text-muted-foreground uppercase">Status</label>
+                  <select
+                    value={editingItem.status}
+                    onChange={(e) => setEditingItem({ ...editingItem, status: e.target.value as ComplianceStatus })}
+                    className="rounded-lg border border-border px-3 py-2 text-sm outline-none cursor-pointer"
+                    style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
+                  >
+                    {['compliant', 'expiring-soon', 'overdue', 'pending'].map((s) => <option key={s} value={s}>{s}</option>)}
+                  </select>
+                </div>
+                <div className="col-span-2 flex flex-col gap-1">
+                  <label className="text-xs font-semibold text-muted-foreground uppercase">Notes</label>
+                  <textarea
+                    rows={2}
+                    value={editingItem.notes || ''}
+                    onChange={(e) => setEditingItem({ ...editingItem, notes: e.target.value })}
+                    className="rounded-lg border border-border px-3 py-2 text-sm outline-none resize-none"
+                    style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
+                  />
+                </div>
+              </div>
+              <div className="flex justify-end gap-3 p-6 pt-0 border-t border-border mt-2">
+                <button type="button" onClick={() => setShowEditModal(false)} className="px-4 py-2 rounded-lg text-sm font-medium border border-border" style={{ background: 'var(--surface2)', color: 'var(--text2)' }}>
+                  Cancel
+                </button>
+                <button type="submit" disabled={savingEdit} className="flex items-center gap-2 px-5 py-2 rounded-lg text-sm font-semibold" style={{ background: 'var(--primary)', color: '#000' }}>
+                  {savingEdit ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
+                  Save Changes
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Dialog */}
+      {itemToDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(4px)' }}>
+          <div className="w-full max-w-md rounded-2xl border border-rose-500/30 p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-150" style={{ background: 'var(--surface)' }}>
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-rose-500/20 text-rose-400">
+                <AlertTriangle size={20} />
+              </div>
+              <div>
+                <h3 className="font-head font-bold text-base text-foreground">Confirm Deletion</h3>
+                <p className="text-xs text-muted-foreground">{itemToDelete.complianceId}</p>
               </div>
             </div>
-            <div className="flex gap-2 p-6 pt-0">
-              <button className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold" style={{ background: 'var(--primary)', color: '#000' }}>
-                Save Compliance Item
-              </button>
-              <button onClick={() => setShowAddModal(false)} className="px-4 py-2 rounded-lg text-sm font-medium border border-border" style={{ background: 'var(--surface2)', color: 'var(--text2)' }}>
+            <p className="text-xs leading-relaxed text-muted-foreground mb-5">
+              Are you sure you want to permanently delete <strong className="text-foreground">{itemToDelete.name}</strong> from the compliance register? This action cannot be undone.
+            </p>
+            <div className="flex items-center justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => setItemToDelete(null)}
+                className="px-4 py-2 rounded-lg text-xs font-semibold border border-border hover:bg-surface2 transition-colors"
+                style={{ background: 'var(--surface2)', color: 'var(--text2)' }}
+              >
                 Cancel
+              </button>
+              <button
+                type="button"
+                disabled={deletingItem}
+                onClick={handleDelete}
+                className="flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-semibold bg-rose-600 hover:bg-rose-500 text-white transition-colors"
+              >
+                {deletingItem ? (
+                  <>
+                    <Loader2 size={13} className="animate-spin" /> Deleting…
+                  </>
+                ) : (
+                  <>
+                    <Trash2 size={13} /> Delete Permanently
+                  </>
+                )}
               </button>
             </div>
           </div>
