@@ -72,13 +72,16 @@ export default function LoginPageClient() {
           {/* Logo + Title */}
           <div className="flex flex-col items-center mb-6">
             <img
-              src="/assets/images/samko_logo.png?v=3"
+              src="/assets/images/samko_logo.png?v=4"
               alt="SAMKO Logo"
               style={{
                 width: 82,
                 height: 82,
                 objectFit: 'contain',
-                filter: 'drop-shadow(0 6px 20px rgba(255,140,0,0.35))',
+                backgroundColor: '#ffffff',
+                borderRadius: '16px',
+                padding: '6px',
+                boxShadow: '0 6px 20px rgba(0,0,0,0.3)',
                 marginBottom: 12,
               }}
             />

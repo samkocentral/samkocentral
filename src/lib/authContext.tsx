@@ -463,7 +463,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const isViewer = user.roleLevel === 'L4';
 
   const canManageUsers = isSuperAdmin || isAdmin;
-  const canAccessSettings = isSuperAdmin || isAdmin;
+  const canAccessSettings = isSuperAdmin;
   const canEdit = !isViewer;
   const canDelete = isSuperAdmin || isAdmin;
   const canUpload = isSuperAdmin || isAdmin || isUploader;

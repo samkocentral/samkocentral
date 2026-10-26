@@ -22,10 +22,15 @@ export default function AppLayout({ children, currentPath }: AppLayoutProps) {
     return (
       <div className="h-screen w-screen flex flex-col items-center justify-center bg-background">
         <img
-          src="/assets/images/samko_logo.png?v=3"
+          src="/assets/images/samko_logo.png?v=4"
           alt="SAMKO Logo"
           className="w-16 h-16 object-contain animate-pulse mb-3"
-          style={{ filter: 'drop-shadow(0 4px 16px rgba(255,140,0,0.3))' }}
+          style={{
+            backgroundColor: '#ffffff',
+            borderRadius: '14px',
+            padding: '4px',
+            boxShadow: '0 4px 16px rgba(0,0,0,0.25)',
+          }}
         />
         <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground">
           <Loader2 size={14} className="animate-spin text-primary" />
