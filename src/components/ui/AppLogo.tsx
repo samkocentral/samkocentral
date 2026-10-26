@@ -13,7 +13,7 @@ interface AppLogoProps {
 }
 
 const AppLogo = memo(function AppLogo({
-  src = '/assets/images/samko_logo.png?v=4',
+  src = '/assets/images/samko_logo.png?v=5',
   iconName = 'SparklesIcon',
   size = 64,
   className = '',
@@ -36,7 +36,7 @@ const AppLogo = memo(function AppLogo({
           alt="Logo" 
           width={size}
           height={size}
-          className="flex-shrink-0 bg-white rounded-lg p-0.5 shadow-sm"
+          className="flex-shrink-0 rounded-lg shadow-sm"
           priority={true}
           unoptimized={src.endsWith('.svg')}
         />

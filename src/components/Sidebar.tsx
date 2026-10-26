@@ -394,16 +394,14 @@ export default function Sidebar({ currentPath }: SidebarProps) {
         >
           <div className="flex-shrink-0">
             <img
-              src="/assets/images/samko_logo.png?v=4"
+              src="/assets/images/samko_logo.png?v=5"
               alt="SamkoCentral Logo"
               className="transition-all duration-200"
               style={{
-                width: collapsed ? 34 : 36,
-                height: collapsed ? 34 : 36,
+                width: collapsed ? 36 : 38,
+                height: collapsed ? 36 : 38,
                 objectFit: 'contain',
-                backgroundColor: '#ffffff',
                 borderRadius: '8px',
-                padding: '2px',
                 boxShadow: '0 2px 8px rgba(0,0,0,0.25)',
               }}
             />
