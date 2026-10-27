@@ -55,87 +55,52 @@ interface SubTabDef {
   cmsSection?: AppCmsSectionKey;
   livePath: string;
   description: string;
+  subtabs?: Array<{ id: string; label: string; livePath: string }>;
 }
 
 // ── OPCO TABS (Operations) ──────────────────────────────────────────────────
 const OPCO_SECTION_TABS: SubTabDef[] = [
   {
-    id: 'dashboard',
-    label: 'Dashboard Overview',
-    icon: LayoutDashboard,
-    deepPage: 'overview',
-    livePath: '/',
-    description: 'High-level operational KPIs, live alerts, and group-wide facilities summary',
-  },
-  {
     id: 'non-fixed',
-    label: 'Non-Fixed Assets (FF&E)',
+    label: 'Non-Fixed Assets',
     icon: Package,
     deepPage: 'nonfixed',
     livePath: '/asset-management/assets?type=non-fixed',
     description: 'Operational and non-fixed movable equipment register and condition surveys',
   },
   {
-    id: 'fixed-assets',
-    label: 'Fixed Assets (Plant & Machinery)',
-    icon: Package,
-    deepPage: 'assets',
-    livePath: '/asset-management/assets',
-    description: 'Capital assets, plant equipment, HVAC, lifts and heavy infrastructure',
-  },
-  {
-    id: 'properties',
-    label: 'Properties & Hotel Sites',
-    icon: Building2,
-    deepPage: 'properties',
-    livePath: '/asset-management/properties',
-    description: 'Hotel site locations, operational facilities, and local manager directory',
-  },
-  {
-    id: 'categories',
-    label: 'Asset Categories',
-    icon: Tag,
-    deepPage: 'categories',
-    livePath: '/asset-management/categories',
-    description: 'Category taxonomy, classifications, and item group definitions',
-  },
-  {
     id: 'maintenance',
-    label: 'Maintenance & PPM Schedules',
+    label: 'Maintenance',
     icon: Calendar,
     badge: '5',
     badgeColor: '#f43f5e',
     deepPage: 'maintenance',
     livePath: '/asset-management/maintenance',
     description: 'Scheduled preventive maintenance, work orders, and contractor service logs',
+    subtabs: [
+      { id: 'scheduled', label: 'Scheduled', livePath: '/asset-management/maintenance?filter=scheduled' },
+      { id: 'due-today', label: 'Due Today', livePath: '/asset-management/maintenance?filter=due-today' },
+      { id: 'overdue', label: 'Overdue', livePath: '/asset-management/maintenance?filter=overdue' },
+      { id: 'completed', label: 'Completed', livePath: '/asset-management/maintenance?filter=completed' },
+    ],
   },
   {
     id: 'compliance',
-    label: 'Compliance Checks & Register',
+    label: 'Compliance',
     icon: ShieldCheck,
     deepPage: 'compliance',
     livePath: '/compliance-register',
     description: 'Statutory compliance standards, fire, water, lift, and gas certifications',
-  },
-  {
-    id: 'compliance-tracker',
-    label: 'Compliance Expiry Tracker',
-    icon: Calendar,
-    deepPage: 'compliancetracker',
-    livePath: '/compliance-tracker',
-    description: 'Upcoming inspection deadlines, statutory expiry radar, and renewal dates',
-  },
-  {
-    id: 'inspections',
-    label: 'Asset Inspections & Audits',
-    icon: ClipboardCheck,
-    deepPage: 'inspections',
-    livePath: '/asset-management/inspections',
-    description: 'Site asset surveys, condition scores, and statutory audit checklists',
+    subtabs: [
+      { id: 'register', label: 'Compliance Register', livePath: '/compliance-register' },
+      { id: 'certifications', label: 'Certifications', livePath: '/compliance-register?tab=certifications' },
+      { id: 'statutory', label: 'Statutory Inspections', livePath: '/compliance-register?tab=statutory' },
+      { id: 'expiry', label: 'Expiry Dashboard', livePath: '/compliance-tracker' },
+    ],
   },
   {
     id: 'tasks',
-    label: 'Tasks & Action List',
+    label: 'Tasks and Alerts',
     icon: CheckSquare,
     badge: '9',
     badgeColor: '#f59e0b',
@@ -144,76 +109,39 @@ const OPCO_SECTION_TABS: SubTabDef[] = [
     description: 'Daily operational tasks, escalations, tickets, and assigned checklists',
   },
   {
-    id: 'insurance',
-    label: 'Insurance Policies & Claims',
-    icon: FileCheck,
-    deepPage: 'insurance',
-    livePath: '/insurance-register',
-    description: 'Operational insurance certificates, policy documents, and incident claims',
-  },
-  {
-    id: 'contracts',
-    label: 'Contracts & Suppliers',
-    icon: ScrollText,
-    deepPage: 'contracts',
-    livePath: '/contracts-register',
-    description: 'Service level agreements, external supplier contracts, and maintenance retainers',
-  },
-  {
-    id: 'multi-site',
-    label: 'Multi-Site Operations',
-    icon: Building2,
-    deepPage: 'multisite',
-    livePath: '/multi-site-operations',
-    description: 'Group-wide property health ratings, risk levels, and site manager contacts',
-  },
-  {
-    id: 'qr-codes',
-    label: 'QR Scanner & Barcodes',
-    icon: QrCode,
-    deepPage: 'qr',
-    livePath: '/asset-management/qr-scanner',
-    description: 'Instant mobile camera QR tag scanner and asset maintenance lookup',
-  },
-  {
     id: 'reports',
-    label: 'Reports & Analytics',
+    label: 'Reports',
     icon: BarChart3,
     deepPage: 'reports',
-    livePath: '/asset-management/reports',
-    description: 'Operational KPIs, uptime metrics, compliance summaries, and exports',
+    livePath: '/asset-management/reports?type=maintenance',
+    description: 'Operational KPIs, maintenance uptime metrics, and analytics',
+  },
+  {
+    id: 'task-module',
+    label: 'Task Module',
+    icon: Layers,
+    livePath: '/task-manager',
+    description: 'Kanban operational task workflow and ticket tracking',
   },
   {
     id: 'utilities',
-    label: 'Utilities & Energy',
+    label: 'Utility',
     icon: Zap,
     deepPage: 'utilities',
     livePath: '/utilities-register',
-    description: 'Electricity, gas, and water meter logs, tariffs, and utility invoices',
-  },
-  {
-    id: 'documents',
-    label: 'Documents & Certificates',
-    icon: FolderOpen,
-    deepPage: 'documents',
-    livePath: '/document-repository',
-    description: 'Operations manuals, warranties, floorplans, and compliance documentation',
+    description: 'Electricity, gas, and water meter logs, tariffs, and utility accounts',
+    subtabs: [
+      { id: 'register', label: 'Utilities Register', livePath: '/utilities-register' },
+      { id: 'energy', label: 'Energy & Water Accounts', livePath: '/utilities-register?type=electricity' },
+    ],
   },
 ];
 
 // ── PROPCO TABS (Asset Co) ──────────────────────────────────────────────────
 const PROPCO_SECTION_TABS: SubTabDef[] = [
   {
-    id: 'dashboard',
-    label: 'Dashboard Overview',
-    icon: LayoutDashboard,
-    deepPage: 'overview',
-    livePath: '/',
-    description: 'Portfolio-wide asset holding metrics, statutory compliance, and group standing',
-  },
-  {
     id: 'properties',
-    label: 'Properties & Hotel Sites',
+    label: 'Properties',
     icon: Building2,
     badge: '8',
     badgeColor: '#e8c97a',
@@ -223,123 +151,46 @@ const PROPCO_SECTION_TABS: SubTabDef[] = [
   },
   {
     id: 'assets',
-    label: 'Fixed Assets (Plant & Machinery)',
+    label: 'Fixed Assets',
     icon: Package,
     deepPage: 'assets',
     livePath: '/asset-management/assets',
     description: 'High-value capital assets, machinery, plant equipment, and lifecycle records',
   },
   {
-    id: 'non-fixed',
-    label: 'Non-Fixed Assets (FF&E)',
-    icon: Package,
-    deepPage: 'nonfixed',
-    livePath: '/asset-management/assets?type=non-fixed',
-    description: 'FF&E fixtures, fittings, and operational equipment register',
-  },
-  {
-    id: 'categories',
-    label: 'Asset Categories',
-    icon: Tag,
-    deepPage: 'categories',
-    livePath: '/asset-management/categories',
-    description: 'Capital asset classifications, depreciation groups, and taxonomy schedules',
-  },
-  {
-    id: 'compliance',
-    label: 'Statutory Compliance Register',
-    icon: ShieldCheck,
-    deepPage: 'compliance',
-    livePath: '/compliance-register',
-    description: 'Landlord statutory requirements, building regulations, and insurance prerequisites',
-  },
-  {
-    id: 'compliance-tracker',
-    label: 'Compliance Expiry Tracker',
-    icon: Calendar,
-    deepPage: 'compliancetracker',
-    livePath: '/compliance-tracker',
-    description: 'Statutory inspection deadlines, renewal radar, and upcoming audit dates',
-  },
-  {
     id: 'insurance',
-    label: 'Insurance Register',
+    label: 'Insurance',
     icon: FileCheck,
     deepPage: 'insurance',
     livePath: '/insurance-register',
     description: 'Building & property coverage policies, underwriters, premiums, and claims history',
+    subtabs: [
+      { id: 'register', label: 'Insurance Register', livePath: '/insurance-register' },
+      { id: 'claims', label: 'Claims', livePath: '/insurance-register?tab=claims' },
+      { id: 'renewals', label: 'Renewals', livePath: '/insurance-register?tab=renewals' },
+    ],
   },
   {
     id: 'contracts',
-    label: 'Contracts & Suppliers',
+    label: 'Contracts',
     icon: ScrollText,
     deepPage: 'contracts',
     livePath: '/contracts-register',
     description: 'Major vendor agreements, facility contracts, SLAs, notice periods, and renewals',
-  },
-  {
-    id: 'maintenance',
-    label: 'Maintenance & PPM Schedules',
-    icon: Calendar,
-    deepPage: 'maintenance',
-    livePath: '/asset-management/maintenance',
-    description: 'Capital plant planned preventive maintenance, work orders, and servicing schedules',
-  },
-  {
-    id: 'tasks',
-    label: 'Tasks & Action List',
-    icon: CheckSquare,
-    deepPage: 'tasks',
-    livePath: '/tasks',
-    description: 'Landlord action items, statutory compliance tickets, and assigned responsibilities',
-  },
-  {
-    id: 'utilities',
-    label: 'Utilities Register',
-    icon: Zap,
-    deepPage: 'utilities',
-    livePath: '/utilities-register',
-    description: 'Energy supplier contracts, half-hourly meters, and landlord utility accounts',
-  },
-  {
-    id: 'multi-site',
-    label: 'Multi-Site Operations',
-    icon: Building2,
-    deepPage: 'multisite',
-    livePath: '/multi-site-operations',
-    description: 'Portfolio-wide site health, compliance ratings, manager contacts, and estate map',
-  },
-  {
-    id: 'inspections',
-    label: 'Asset Inspections & Audits',
-    icon: ClipboardCheck,
-    deepPage: 'inspections',
-    livePath: '/asset-management/inspections',
-    description: 'Capital plant condition surveys, structural audits, and pass/fail reports',
-  },
-  {
-    id: 'qr-codes',
-    label: 'QR Codes & Barcode Scanner',
-    icon: QrCode,
-    deepPage: 'qr',
-    livePath: '/asset-management/qr-scanner',
-    description: 'Asset tag verification, barcode registry, and physical equipment tracking',
+    subtabs: [
+      { id: 'register', label: 'Contracts Register', livePath: '/contracts-register' },
+      { id: 'suppliers', label: 'Suppliers', livePath: '/contracts-register?tab=suppliers' },
+      { id: 'renewals', label: 'Renewals', livePath: '/contracts-register?tab=renewals' },
+      { id: 'slas', label: 'SLAs', livePath: '/contracts-register?tab=slas' },
+    ],
   },
   {
     id: 'reports',
-    label: 'Asset Reports & Valuation',
+    label: 'Reports',
     icon: BarChart3,
     deepPage: 'reports',
-    livePath: '/asset-management/reports',
-    description: 'Capital asset register valuation, depreciation schedules, and capex forecasting',
-  },
-  {
-    id: 'documents',
-    label: 'Document Repository',
-    icon: FolderOpen,
-    deepPage: 'documents',
-    livePath: '/document-repository',
-    description: 'Site title deeds, commercial leases, architectural drawings, and legal contracts',
+    livePath: '/asset-management/reports?type=contracts',
+    description: 'Capital asset register valuation, contract reports, and capex forecasting',
   },
 ];
 
@@ -347,7 +198,7 @@ const PROPCO_SECTION_TABS: SubTabDef[] = [
 const BOTTOM_COMMON_TABS: SubTabDef[] = [
   {
     id: 'recent-logs',
-    label: 'Recent Logs & Audit Trail',
+    label: 'Recent Logs',
     icon: History,
     deepPage: 'recentlogs',
     livePath: '/recent-logs',
@@ -355,7 +206,7 @@ const BOTTOM_COMMON_TABS: SubTabDef[] = [
   },
   {
     id: 'import',
-    label: 'Import & Migration Hub',
+    label: 'Import / Export',
     icon: Upload,
     deepPage: 'import',
     livePath: '/asset-management/import',
@@ -363,7 +214,7 @@ const BOTTOM_COMMON_TABS: SubTabDef[] = [
   },
   {
     id: 'users',
-    label: 'Users & Roles Hierarchy',
+    label: 'Users & Roles',
     icon: Users,
     deepPage: 'users',
     livePath: '/users',
@@ -371,7 +222,7 @@ const BOTTOM_COMMON_TABS: SubTabDef[] = [
   },
   {
     id: 'settings',
-    label: 'System Settings & Navigation',
+    label: 'Settings',
     icon: Settings,
     cmsSection: 'navigation',
     livePath: '/settings',
@@ -750,6 +601,39 @@ export default function PortalCMSEditor({ portal, initialTabId }: PortalCMSEdito
               </Link>
             </div>
           </div>
+
+          {/* Subtabs Bar for Dropdown Tabs */}
+          {currentTab.subtabs && currentTab.subtabs.length > 0 && (
+            <div
+              className="rounded-xl border p-3 flex flex-col gap-2 shadow-sm flex-shrink-0"
+              style={{ background: 'var(--surface)', borderColor: 'var(--border)' }}
+            >
+              <div className="flex items-center justify-between text-xs font-bold text-muted-foreground uppercase tracking-wider px-1">
+                <span className="flex items-center gap-1.5 text-foreground">
+                  <Layers size={13} style={{ color: themeColor }} />
+                  Dropdown Sub-Tabs ({currentTab.subtabs.length})
+                </span>
+                <span className="text-[10px] text-muted-foreground normal-case font-normal">
+                  All subtabs synchronized with live page filters
+                </span>
+              </div>
+              <div className="flex items-center gap-2 flex-wrap">
+                {currentTab.subtabs.map((sub) => (
+                  <Link
+                    key={sub.id}
+                    href={sub.livePath}
+                    target="_blank"
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border border-border/70 hover:border-primary/50 bg-surface2/60 hover:bg-surface2 transition-all group"
+                  >
+                    <span className="text-foreground group-hover:text-primary transition-colors font-medium">
+                      {sub.label}
+                    </span>
+                    <ExternalLink size={10} className="text-muted-foreground group-hover:text-primary transition-colors" />
+                  </Link>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Active Editable Page Component */}
           <div className="min-w-0">

@@ -81,27 +81,21 @@ import { HOTELS, ASSET_CATEGORIES } from '@/lib/assetData';
 import { toast } from 'sonner';
 
 const TAB_PAGES: Array<{ id: keyof DeepAppCMSStore; label: string; icon: React.ElementType; group: string; livePath: string }> = [
-  { id: 'overview', label: 'Executive Dashboard', icon: LayoutDashboard, group: 'System Overview', livePath: '/' },
-  { id: 'assetdashboard', label: 'Asset Overview Dashboard', icon: BarChart3, group: 'System Overview', livePath: '/asset-management' },
-  { id: 'properties', label: 'Properties & Sites', icon: Building2, group: 'PropCo (Asset Co)', livePath: '/asset-management/properties' },
-  { id: 'assets', label: 'Fixed Assets (Plant & Machinery)', icon: Package, group: 'PropCo (Asset Co)', livePath: '/asset-management/assets' },
-  { id: 'nonfixed', label: 'Non-Fixed Assets (FF&E)', icon: Package, group: 'OpCo (Operations)', livePath: '/asset-management/assets?type=non-fixed' },
-  { id: 'categories', label: 'Asset Categories', icon: Tag, group: 'PropCo (Asset Co)', livePath: '/asset-management/categories' },
-  { id: 'compliance', label: 'Compliance Register', icon: ShieldCheck, group: 'PropCo (Asset Co)', livePath: '/compliance-register' },
-  { id: 'compliancetracker', label: 'Compliance Expiry Tracker', icon: Calendar, group: 'PropCo (Asset Co)', livePath: '/compliance-tracker' },
-  { id: 'contracts', label: 'Contracts Register', icon: ScrollText, group: 'PropCo (Asset Co)', livePath: '/contracts-register' },
-  { id: 'insurance', label: 'Insurance Register', icon: FileCheck, group: 'PropCo (Asset Co)', livePath: '/insurance-register' },
-  { id: 'utilities', label: 'Utilities Register', icon: Zap, group: 'PropCo (Asset Co)', livePath: '/utilities-register' },
-  { id: 'documents', label: 'Document Repository', icon: FolderOpen, group: 'PropCo (Asset Co)', livePath: '/document-repository' },
-  { id: 'reports', label: 'Reports & Analytics', icon: BarChart3, group: 'PropCo (Asset Co)', livePath: '/asset-management/reports' },
-  { id: 'tasks', label: 'Tasks & Action List', icon: CheckSquare, group: 'OpCo (Operations)', livePath: '/tasks' },
-  { id: 'maintenance', label: 'Maintenance PPM', icon: Wrench, group: 'OpCo (Operations)', livePath: '/asset-management/maintenance' },
-  { id: 'inspections', label: 'Inspections & Audits', icon: ClipboardCheck, group: 'OpCo (Operations)', livePath: '/asset-management/inspections' },
-  { id: 'multisite', label: 'Multi-Site Operations', icon: Building2, group: 'OpCo (Operations)', livePath: '/multi-site-operations' },
-  { id: 'qr', label: 'QR Asset Scanner', icon: QrCode, group: 'OpCo (Operations)', livePath: '/asset-management/qr-scanner' },
-  { id: 'recentlogs', label: 'Recent Logs & Audit Trail', icon: History, group: 'System Administration', livePath: '/recent-logs' },
-  { id: 'users', label: 'User Management & Hierarchy', icon: Users, group: 'System Administration', livePath: '/users' },
-  { id: 'import', label: 'Bulk Data Import', icon: UploadCloud, group: 'System Administration', livePath: '/asset-management/import' },
+  { id: 'overview', label: 'Dashboard', icon: LayoutDashboard, group: 'System', livePath: '/' },
+  { id: 'properties', label: 'Properties', icon: Building2, group: 'PropCo (Asset Co)', livePath: '/asset-management/properties' },
+  { id: 'assets', label: 'Fixed Assets', icon: Package, group: 'PropCo (Asset Co)', livePath: '/asset-management/assets' },
+  { id: 'insurance', label: 'Insurance', icon: FileCheck, group: 'PropCo (Asset Co)', livePath: '/insurance-register' },
+  { id: 'contracts', label: 'Contracts', icon: ScrollText, group: 'PropCo (Asset Co)', livePath: '/contracts-register' },
+  { id: 'reports', label: 'Reports', icon: BarChart3, group: 'PropCo & OpCo', livePath: '/asset-management/reports' },
+  { id: 'nonfixed', label: 'Non-Fixed Assets', icon: Package, group: 'OpCo (Operations)', livePath: '/asset-management/assets?type=non-fixed' },
+  { id: 'maintenance', label: 'Maintenance', icon: Wrench, group: 'OpCo (Operations)', livePath: '/asset-management/maintenance' },
+  { id: 'compliance', label: 'Compliance', icon: ShieldCheck, group: 'OpCo (Operations)', livePath: '/compliance-register' },
+  { id: 'compliancetracker', label: 'Compliance Tracker', icon: Calendar, group: 'OpCo (Operations)', livePath: '/compliance-tracker' },
+  { id: 'tasks', label: 'Tasks and Alerts', icon: CheckSquare, group: 'OpCo (Operations)', livePath: '/tasks' },
+  { id: 'utilities', label: 'Utility', icon: Zap, group: 'OpCo (Operations)', livePath: '/utilities-register' },
+  { id: 'recentlogs', label: 'Recent Logs', icon: History, group: 'System', livePath: '/recent-logs' },
+  { id: 'users', label: 'Users & Roles', icon: Users, group: 'System', livePath: '/users' },
+  { id: 'import', label: 'Import / Export', icon: UploadCloud, group: 'System', livePath: '/asset-management/import' },
 ];
 
 interface DeepPageCMSEditorProps {
@@ -497,7 +491,7 @@ export default function DeepPageCMSEditor({
                 <div>
                   <div className="flex items-center gap-2.5 flex-wrap">
                     <h2 className="text-xl font-bold font-head tracking-tight text-foreground">
-                      Deep Page & Content CMS
+                      Page Content CMS
                     </h2>
                     <span
                       className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold tracking-wider uppercase"
@@ -507,12 +501,11 @@ export default function DeepPageCMSEditor({
                         border: '1px solid rgba(232, 201, 122, 0.3)',
                       }}
                     >
-                      Super Admin Granular CMS
+                      Page Editor
                     </span>
                   </div>
                   <p className="text-xs text-muted-foreground mt-1 leading-relaxed max-w-2xl">
-                    Every tab and page inside the application is 100% editable. Customize page titles, subtitles,
-                    search placeholders, buttons, table columns, card stats, and every record in the table.
+                    Customize live page hero text, button labels, KPI metric cards, and table content across the application.
                   </p>
                 </div>
               </div>
@@ -557,7 +550,7 @@ export default function DeepPageCMSEditor({
                 <Search size={13} className="text-muted-foreground" />
                 <input
                   type="text"
-                  placeholder="Filter 21 pages..."
+                  placeholder="Search pages..."
                   value={pageSearchQuery}
                   onChange={(e) => setPageSearchQuery(e.target.value)}
                   className="bg-transparent border-none outline-none text-xs text-foreground flex-1"
@@ -594,7 +587,7 @@ export default function DeepPageCMSEditor({
                 }`}
               >
                 <span className="w-1.5 h-1.5 rounded-full bg-blue-400" />
-                OpCo Operations ({TAB_PAGES.filter((p) => p.group === 'OpCo (Operations)').length})
+                OpCo ({TAB_PAGES.filter((p) => p.group === 'OpCo (Operations)').length})
               </button>
 
               <button
@@ -607,7 +600,7 @@ export default function DeepPageCMSEditor({
                 }`}
               >
                 <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
-                PropCo Asset Co ({TAB_PAGES.filter((p) => p.group === 'PropCo (Asset Co)').length})
+                PropCo ({TAB_PAGES.filter((p) => p.group === 'PropCo (Asset Co)').length})
               </button>
 
               <button
@@ -620,7 +613,7 @@ export default function DeepPageCMSEditor({
                 }`}
               >
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                System & Admin ({TAB_PAGES.filter((p) => p.group.includes('System')).length})
+                System ({TAB_PAGES.filter((p) => p.group.includes('System')).length})
               </button>
             </div>
 

@@ -77,11 +77,11 @@ const BASE_TABS: TabItem[] = [
 ];
 
 const CMS_NAV_ITEMS: CmsTabItem[] = [
-  { id: 'cms-opco', label: 'OPCO Portal CMS', icon: Shield, badgeText: 'Operations', badgeColor: '#60a5fa' },
-  { id: 'cms-propco', label: 'PROPCO Portal CMS', icon: Building2, badgeText: 'Asset Co', badgeColor: '#e8c97a' },
-  { id: 'cms-pages', label: 'All Pages (Deep CMS Grid)', icon: LayoutDashboard, badgeText: '21 Pages', badgeColor: '#34d399' },
-  { id: 'cms-forms', label: 'Form & Modal Fields', icon: SlidersHorizontal, badgeText: 'Field CMS', badgeColor: '#a78bfa' },
-  { id: 'cms-navigation', label: 'Portal Navigation & Sidebars', icon: Settings, badgeText: 'Menu Layout', badgeColor: '#f59e0b' },
+  { id: 'cms-opco', label: 'OpCo Portal', icon: Shield, badgeText: 'Operations', badgeColor: '#60a5fa' },
+  { id: 'cms-propco', label: 'PropCo Portal', icon: Building2, badgeText: 'Asset Co', badgeColor: '#e8c97a' },
+  { id: 'cms-pages', label: 'All Pages CMS', icon: LayoutDashboard, badgeText: 'Pages', badgeColor: '#34d399' },
+  { id: 'cms-forms', label: 'Forms & Fields', icon: SlidersHorizontal, badgeText: 'Fields', badgeColor: '#a78bfa' },
+  { id: 'cms-navigation', label: 'Portal Navigation', icon: Settings, badgeText: 'Layout', badgeColor: '#f59e0b' },
 ];
 
 function Toggle({ checked = false, onChange }: { checked?: boolean; onChange: (v: boolean) => void }) {
