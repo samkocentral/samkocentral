@@ -2,13 +2,17 @@
 
 import React, { Suspense } from 'react';
 import AppLayout from '@/components/AppLayout';
-import { usePathname } from 'next/navigation';
+import { usePathname, useSearchParams } from 'next/navigation';
 import ContractsRegisterClient from './components/ContractsRegisterClient';
 
 function ContractsRegisterInner() {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const queryStr = searchParams?.toString();
+  const fullPath = queryStr ? `${pathname}?${queryStr}` : pathname;
+
   return (
-    <AppLayout currentPath={pathname}>
+    <AppLayout currentPath={fullPath}>
       <ContractsRegisterClient />
     </AppLayout>
   );
@@ -16,7 +20,7 @@ function ContractsRegisterInner() {
 
 export default function ContractsRegisterPage() {
   return (
-    <Suspense fallback={<div className="flex items-center justify-center h-screen text-muted-foreground text-sm">Loading…</div>}>
+    <Suspense fallback={<div className="flex items-center justify-center h-screen text-muted-foreground text-sm">Loading contracts register…</div>}>
       <ContractsRegisterInner />
     </Suspense>
   );

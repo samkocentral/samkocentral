@@ -2,13 +2,17 @@
 
 import React, { Suspense } from 'react';
 import AppLayout from '@/components/AppLayout';
-import { usePathname } from 'next/navigation';
+import { usePathname, useSearchParams } from 'next/navigation';
 import ComplianceRegisterClient from './components/ComplianceRegisterClient';
 
 function ComplianceRegisterInner() {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const queryStr = searchParams?.toString();
+  const fullPath = queryStr ? `${pathname}?${queryStr}` : pathname;
+
   return (
-    <AppLayout currentPath={pathname}>
+    <AppLayout currentPath={fullPath}>
       <ComplianceRegisterClient />
     </AppLayout>
   );
@@ -16,7 +20,7 @@ function ComplianceRegisterInner() {
 
 export default function ComplianceRegisterPage() {
   return (
-    <Suspense fallback={<div className="flex items-center justify-center h-screen text-muted-foreground text-sm">Loading…</div>}>
+    <Suspense fallback={<div className="flex items-center justify-center h-screen text-muted-foreground text-sm">Loading compliance register…</div>}>
       <ComplianceRegisterInner />
     </Suspense>
   );

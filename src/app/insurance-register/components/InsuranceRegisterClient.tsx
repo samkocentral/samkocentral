@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
 import {
   Shield, AlertTriangle, Clock, CheckCircle2, TrendingUp,
   Plus, Search, Download, Eye, Edit2, FileText, Bell, Phone, RefreshCw, ChevronDown, Loader2,
@@ -233,7 +234,28 @@ export default function InsuranceRegisterClient() {
   const [claims, setClaims] = useState<Claim[]>(MOCK_CLAIMS);
   const [loading, setLoading] = useState(false);
 
-  const [activeTab, setActiveTab] = useState<'register' | 'claims' | 'renewals'>('register');
+  const searchParams = useSearchParams();
+  const router = useRouter();
+
+  const tabParam = searchParams?.get('tab');
+  const initialTab: 'register' | 'claims' | 'renewals' = tabParam === 'claims' || tabParam === 'renewals' ? tabParam : 'register';
+
+  const [activeTab, setActiveTab] = useState<'register' | 'claims' | 'renewals'>(initialTab);
+
+  useEffect(() => {
+    const t = searchParams?.get('tab');
+    if (t === 'claims' || t === 'renewals') {
+      setActiveTab(t);
+    } else {
+      setActiveTab('register');
+    }
+  }, [searchParams]);
+
+  const handleTabChange = (t: 'register' | 'claims' | 'renewals') => {
+    setActiveTab(t);
+    const url = t === 'register' ? '/insurance-register' : `/insurance-register?tab=${t}`;
+    router.push(url, { scroll: false });
+  };
   const [search, setSearch] = useState('');
   const [filterType, setFilterType] = useState<string[]>([]);
   const [filterHotel, setFilterHotel] = useState<string[]>([]);
@@ -685,8 +707,8 @@ export default function InsuranceRegisterClient() {
         ].map((tab) => (
           <button
             key={tab.id}
-            onClick={() => setActiveTab(tab.id as typeof activeTab)}
-            className="flex items-center gap-2 px-4 py-3 text-sm font-semibold border-b-2 transition-colors whitespace-nowrap"
+            onClick={() => handleTabChange(tab.id as typeof activeTab)}
+            className="flex items-center gap-2 px-4 py-3 text-sm font-semibold border-b-2 transition-colors whitespace-nowrap cursor-pointer"
             style={{
               borderColor: activeTab === tab.id ? 'var(--primary)' : 'transparent',
               color: activeTab === tab.id ? 'var(--primary)' : 'var(--text2)',

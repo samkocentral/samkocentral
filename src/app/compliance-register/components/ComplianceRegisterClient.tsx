@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { ShieldCheck, AlertTriangle, Clock, CheckCircle2, TrendingUp, Plus, Search, Download, Eye, Edit2, FileText, Bell, ChevronDown, Loader2, Trash2, X, Check } from 'lucide-react';
 import { api } from '@/lib/api';
 import { useAuth } from '@/lib/authContext';
@@ -186,7 +187,29 @@ export default function ComplianceRegisterClient() {
   const [propertyList, setPropertyList] = useState<string[]>(DEFAULT_HOTELS);
   const [loading, setLoading] = useState(false);
 
-  const [activeTab, setActiveTab] = useState<'register' | 'certifications' | 'statutory' | 'expiry'>('register');
+  const searchParams = useSearchParams();
+  const router = useRouter();
+
+  const tabParam = searchParams?.get('tab');
+  const initialTab: 'register' | 'certifications' | 'statutory' | 'expiry' =
+    tabParam === 'certifications' || tabParam === 'statutory' || tabParam === 'expiry' ? tabParam : 'register';
+
+  const [activeTab, setActiveTab] = useState<'register' | 'certifications' | 'statutory' | 'expiry'>(initialTab);
+
+  useEffect(() => {
+    const t = searchParams?.get('tab');
+    if (t === 'certifications' || t === 'statutory' || t === 'expiry') {
+      setActiveTab(t);
+    } else {
+      setActiveTab('register');
+    }
+  }, [searchParams]);
+
+  const handleTabChange = (t: 'register' | 'certifications' | 'statutory' | 'expiry') => {
+    setActiveTab(t);
+    const url = t === 'register' ? '/compliance-register' : `/compliance-register?tab=${t}`;
+    router.push(url, { scroll: false });
+  };
   const [search, setSearch] = useState('');
   const [filterStatus, setFilterStatus] = useState<string[]>([]);
   const [filterHotel, setFilterHotel] = useState<string[]>([]);
@@ -456,8 +479,8 @@ export default function ComplianceRegisterClient() {
         {tabs.map((tab) => (
           <button
             key={tab.id}
-            onClick={() => setActiveTab(tab.id as typeof activeTab)}
-            className="px-4 py-3 text-sm font-semibold border-b-2 transition-colors whitespace-nowrap"
+            onClick={() => handleTabChange(tab.id as typeof activeTab)}
+            className="px-4 py-3 text-sm font-semibold border-b-2 transition-colors whitespace-nowrap cursor-pointer"
             style={{
               borderColor: activeTab === tab.id ? 'var(--primary)' : 'transparent',
               color: activeTab === tab.id ? 'var(--primary)' : 'var(--text2)',

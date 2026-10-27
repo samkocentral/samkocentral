@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { ScrollText, Clock, CheckCircle2, Plus, Search, Download, Eye, Edit2, FileText, Bell, RefreshCw, Handshake, DollarSign, ChevronDown, Loader2, Trash2, AlertTriangle, X, Upload, ExternalLink, Calendar } from 'lucide-react';
 import Icon from '@/components/ui/AppIcon';
 import CustomDropdown from '@/components/ui/CustomDropdown';
@@ -556,10 +557,32 @@ export default function ContractsRegisterClient() {
     primaryActionLabel: cmsPrimaryActionLabel,
   } = useDeepPageCms('contracts');
 
+  const searchParams = useSearchParams();
+  const router = useRouter();
+
+  const tabParam = searchParams?.get('tab');
+  const initialTab: 'register' | 'suppliers' | 'renewals' | 'slas' =
+    tabParam === 'suppliers' || tabParam === 'renewals' || tabParam === 'slas' ? tabParam : 'register';
+
   const [contracts, setContracts] = useState<Contract[]>(MOCK_CONTRACTS.map(normalizeContract));
   const [properties, setProperties] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState<'register' | 'suppliers' | 'renewals' | 'slas'>('register');
+  const [activeTab, setActiveTab] = useState<'register' | 'suppliers' | 'renewals' | 'slas'>(initialTab);
+
+  useEffect(() => {
+    const t = searchParams?.get('tab');
+    if (t === 'suppliers' || t === 'renewals' || t === 'slas') {
+      setActiveTab(t);
+    } else {
+      setActiveTab('register');
+    }
+  }, [searchParams]);
+
+  const handleTabChange = (t: 'register' | 'suppliers' | 'renewals' | 'slas') => {
+    setActiveTab(t);
+    const url = t === 'register' ? '/contracts-register' : `/contracts-register?tab=${t}`;
+    router.push(url, { scroll: false });
+  };
   const [search, setSearch] = useState('');
   const [filterStatus, setFilterStatus] = useState<string[]>([]);
   const [filterHotel, setFilterHotel] = useState<string[]>([]);
@@ -921,8 +944,8 @@ export default function ContractsRegisterClient() {
       {/* Tabs */}
       <div className="flex items-center gap-0 px-6 border-b border-border flex-shrink-0" style={{ background: 'var(--surface)' }}>
         {[{ id: 'register', label: 'Contracts Register' }, { id: 'suppliers', label: 'Suppliers' }, { id: 'renewals', label: 'Renewals' }, { id: 'slas', label: 'SLAs' }].map((tab) => (
-          <button key={tab.id} onClick={() => setActiveTab(tab.id as typeof activeTab)}
-            className="px-4 py-3 text-sm font-semibold border-b-2 transition-colors whitespace-nowrap"
+          <button key={tab.id} onClick={() => handleTabChange(tab.id as typeof activeTab)}
+            className="px-4 py-3 text-sm font-semibold border-b-2 transition-colors whitespace-nowrap cursor-pointer"
             style={{ borderColor: activeTab === tab.id ? 'var(--primary)' : 'transparent', color: activeTab === tab.id ? 'var(--primary)' : 'var(--text2)', background: 'transparent' }}>
             {tab.label}
           </button>

@@ -357,11 +357,15 @@ export default function Sidebar({ currentPath }: SidebarProps) {
   };
 
   const isActive = (href: string) => {
-    if (!currentPath || !href) return false;
-    if (href === '/') return currentPath === '/';
+    const effectiveCurrent = (typeof window !== 'undefined' && window.location.search)
+      ? (window.location.pathname + window.location.search)
+      : (currentPath || '');
+
+    if (!effectiveCurrent || !href) return false;
+    if (href === '/') return effectiveCurrent === '/' || currentPath === '/';
 
     const [hPath, hQuery] = href.split('?');
-    const [cPath, cQuery] = currentPath.split('?');
+    const [cPath, cQuery] = effectiveCurrent.split('?');
 
     if (
       (href === '/asset-management/hotels' || href === '/asset-management/properties') &&
@@ -370,7 +374,7 @@ export default function Sidebar({ currentPath }: SidebarProps) {
       return true;
     }
 
-    if (href === currentPath) return true;
+    if (href === effectiveCurrent) return true;
 
     if (hPath === '/asset-management/assets') {
       const isNonFixedHref = (hQuery || '').includes('type=non-fixed');
@@ -379,6 +383,62 @@ export default function Sidebar({ currentPath }: SidebarProps) {
         return isNonFixedHref === isNonFixedCurrent;
       }
       return false;
+    }
+
+    // Planned Preventive Maintenance tabs
+    if (cPath === '/asset-management/maintenance' && hPath === '/asset-management/maintenance') {
+      const cParams = new URLSearchParams(cQuery || '');
+      const hParams = new URLSearchParams(hQuery || '');
+      const cFilter = cParams.get('filter');
+      const hFilter = hParams.get('filter');
+
+      if (hFilter) {
+        if (hFilter === 'scheduled') {
+          return !cFilter || cFilter === 'scheduled';
+        }
+        return cFilter === hFilter;
+      }
+      return !cFilter || cFilter === 'scheduled';
+    }
+
+    // Insurance Register tabs
+    if (cPath === '/insurance-register' && hPath === '/insurance-register') {
+      const cParams = new URLSearchParams(cQuery || '');
+      const hParams = new URLSearchParams(hQuery || '');
+      const cTab = cParams.get('tab');
+      const hTab = hParams.get('tab');
+      if (hTab) return cTab === hTab;
+      return !cTab || cTab === 'register';
+    }
+
+    // Contracts Register tabs
+    if (cPath === '/contracts-register' && hPath === '/contracts-register') {
+      const cParams = new URLSearchParams(cQuery || '');
+      const hParams = new URLSearchParams(hQuery || '');
+      const cTab = cParams.get('tab');
+      const hTab = hParams.get('tab');
+      if (hTab) return cTab === hTab;
+      return !cTab || cTab === 'register';
+    }
+
+    // Compliance Register tabs
+    if (cPath === '/compliance-register' && hPath === '/compliance-register') {
+      const cParams = new URLSearchParams(cQuery || '');
+      const hParams = new URLSearchParams(hQuery || '');
+      const cTab = cParams.get('tab');
+      const hTab = hParams.get('tab');
+      if (hTab) return cTab === hTab;
+      return !cTab || cTab === 'register';
+    }
+
+    // Utilities Register types
+    if (cPath === '/utilities-register' && hPath === '/utilities-register') {
+      const cParams = new URLSearchParams(cQuery || '');
+      const hParams = new URLSearchParams(hQuery || '');
+      const cType = cParams.get('type');
+      const hType = hParams.get('type');
+      if (hType) return cType === hType;
+      return !cType || cType === 'all';
     }
 
     if (hQuery) {
@@ -910,7 +970,7 @@ export default function Sidebar({ currentPath }: SidebarProps) {
                 getTabLabel('propco', 'maintenance', 'Maintenance'),
                 <Calendar size={15} />,
                 [
-                  { id: 'maintenance-scheduled', label: getTabLabel('propco', 'maintenance-scheduled', 'Scheduled'), href: '/asset-management/maintenance', icon: <Calendar size={13} /> },
+                  { id: 'maintenance-scheduled', label: getTabLabel('propco', 'maintenance-scheduled', 'Scheduled'), href: '/asset-management/maintenance?filter=scheduled', icon: <Calendar size={13} /> },
                   { id: 'maintenance-due', label: getTabLabel('propco', 'maintenance-due', 'Due Today'), href: '/asset-management/maintenance?filter=due-today', icon: <AlertCircle size={13} />, badgeCount: dueTodayCount, badgeVariant: 'warning' },
                   { id: 'maintenance-overdue', label: getTabLabel('propco', 'maintenance-overdue', 'Overdue'), href: '/asset-management/maintenance?filter=overdue', icon: <AlertTriangle size={13} />, badgeCount: overdueCount, badgeVariant: 'critical' },
                   { id: 'maintenance-completed', label: getTabLabel('propco', 'maintenance-completed', 'Completed'), href: '/asset-management/maintenance?filter=completed', icon: <CheckSquare size={13} /> },
@@ -1103,7 +1163,7 @@ export default function Sidebar({ currentPath }: SidebarProps) {
                 getTabLabel('opco', 'maintenance', 'Maintenance'),
                 <Calendar size={15} />,
                 [
-                  { id: 'maintenance-scheduled', label: getTabLabel('opco', 'maintenance-scheduled', 'Scheduled'), href: '/asset-management/maintenance', icon: <Calendar size={13} /> },
+                  { id: 'maintenance-scheduled', label: getTabLabel('opco', 'maintenance-scheduled', 'Scheduled'), href: '/asset-management/maintenance?filter=scheduled', icon: <Calendar size={13} /> },
                   { id: 'maintenance-due', label: getTabLabel('opco', 'maintenance-due', 'Due Today'), href: '/asset-management/maintenance?filter=due-today', icon: <AlertCircle size={13} />, badgeCount: dueTodayCount, badgeVariant: 'warning' },
                   { id: 'maintenance-overdue', label: getTabLabel('opco', 'maintenance-overdue', 'Overdue'), href: '/asset-management/maintenance?filter=overdue', icon: <AlertTriangle size={13} />, badgeCount: overdueCount, badgeVariant: 'critical' },
                   { id: 'maintenance-completed', label: getTabLabel('opco', 'maintenance-completed', 'Completed'), href: '/asset-management/maintenance?filter=completed', icon: <CheckSquare size={13} /> },

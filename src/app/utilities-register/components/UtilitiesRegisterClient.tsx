@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { Zap, Flame, Droplets, Search, Plus, Download, Eye, AlertTriangle, CheckCircle2, Clock, RefreshCw, ChevronDown, Loader2, Trash2, X, Check, Edit2 } from 'lucide-react';
 import Icon from '@/components/ui/AppIcon';
 import CustomDropdown from '@/components/ui/CustomDropdown';
@@ -326,8 +327,31 @@ export default function UtilitiesRegisterClient() {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
 
+  const searchParams = useSearchParams();
+  const router = useRouter();
+
+  const typeParam = searchParams?.get('type')?.toLowerCase();
+  const initialType: 'all' | UtilityType =
+    typeParam === 'electricity' ? 'Electricity' :
+    typeParam === 'gas' ? 'Gas' :
+    typeParam === 'water' ? 'Water' : 'all';
+
   const [search, setSearch] = useState('');
-  const [filterType, setFilterType] = useState<'all' | UtilityType>('all');
+  const [filterType, setFilterType] = useState<'all' | UtilityType>(initialType);
+
+  useEffect(() => {
+    const t = searchParams?.get('type')?.toLowerCase();
+    if (t === 'electricity') setFilterType('Electricity');
+    else if (t === 'gas') setFilterType('Gas');
+    else if (t === 'water') setFilterType('Water');
+    else setFilterType('all');
+  }, [searchParams]);
+
+  const handleFilterTypeChange = (type: 'all' | UtilityType) => {
+    setFilterType(type);
+    const url = type === 'all' ? '/utilities-register' : `/utilities-register?type=${type.toLowerCase()}`;
+    router.push(url, { scroll: false });
+  };
   const [filterProperty, setFilterProperty] = useState<string[]>([]);
   const [filterStatus, setFilterStatus] = useState<string[]>([]);
   const [selectedAccount, setSelectedAccount] = useState<UtilityAccount | null>(null);
@@ -609,7 +633,7 @@ export default function UtilitiesRegisterClient() {
           const TypeIcon = UTILITY_ICONS[type];
           const color = UTILITY_COLORS[type];
           return (
-            <button key={type} onClick={() => setFilterType(filterType === type ? 'all' : type)}
+            <button key={type} onClick={() => handleFilterTypeChange(filterType === type ? 'all' : type)}
               className="rounded-xl border p-4 flex items-center gap-4 transition-all"
               style={{ background: filterType === type ? `${color}10` : 'var(--surface)', borderColor: filterType === type ? color : 'var(--border)' }}>
               <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: `${color}18` }}>

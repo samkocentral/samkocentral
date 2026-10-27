@@ -1,15 +1,27 @@
 'use client';
 
-import React from 'react';
+import React, { Suspense } from 'react';
 import AppLayout from '@/components/AppLayout';
-import { usePathname } from 'next/navigation';
+import { usePathname, useSearchParams } from 'next/navigation';
 import MaintenanceClient from './components/MaintenanceClient';
 
-export default function MaintenancePage() {
+function MaintenancePageInner() {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const queryStr = searchParams?.toString();
+  const fullPath = queryStr ? `${pathname}?${queryStr}` : pathname;
+
   return (
-    <AppLayout currentPath={pathname}>
+    <AppLayout currentPath={fullPath}>
       <MaintenanceClient />
     </AppLayout>
+  );
+}
+
+export default function MaintenancePage() {
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center h-screen text-muted-foreground text-sm">Loading planned maintenance...</div>}>
+      <MaintenancePageInner />
+    </Suspense>
   );
 }

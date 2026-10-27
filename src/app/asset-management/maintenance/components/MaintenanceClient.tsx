@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { Wrench, AlertTriangle, Clock, CheckCircle2, Calendar, Search, ChevronDown, Loader2, Plus, X, Building2, Edit2, Trash2 } from 'lucide-react';
 import { MAINTENANCE_RECORDS, HOTELS, ASSETS, type MaintenanceRecord, type Hotel } from '@/lib/assetData';
 import { api } from '@/lib/api';
@@ -30,17 +31,44 @@ const FREQ_STYLES: Record<string, string> = {
   custom: '#a78bfa',
 };
 
-function StatCard({ label, value, color, icon: IconComponent }: { label: string; value: number; color: string; icon: React.ElementType }) {
+function StatCard({
+  label,
+  value,
+  color,
+  icon: IconComponent,
+  isActive,
+  onClick,
+}: {
+  label: string;
+  value: number;
+  color: string;
+  icon: React.ElementType;
+  isActive?: boolean;
+  onClick?: () => void;
+}) {
   return (
-    <div className="rounded-xl border border-border p-4 relative overflow-hidden" style={{ background: 'var(--surface)' }}>
+    <div
+      onClick={onClick}
+      className={`rounded-xl border p-4 relative overflow-hidden transition-all duration-150 ${onClick ? 'cursor-pointer hover:border-border-strong hover:scale-[1.01]' : ''}`}
+      style={{
+        background: isActive ? `${color}18` : 'var(--surface)',
+        borderColor: isActive ? color : 'var(--border)',
+        boxShadow: isActive ? `0 0 14px ${color}22` : 'none',
+      }}
+    >
       <div className="absolute top-0 left-0 right-0 h-0.5" style={{ background: color }} />
       <div className="flex items-center justify-between mb-2">
         <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: `${color}18` }}>
           <IconComponent size={15} style={{ color }} />
         </div>
+        {isActive && (
+          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider" style={{ background: `${color}25`, color }}>
+            Active
+          </span>
+        )}
       </div>
       <div className="font-head text-2xl font-extrabold" style={{ color }}>{value}</div>
-      <div className="text-xs text-muted-foreground mt-0.5">{label}</div>
+      <div className="text-xs text-muted-foreground mt-0.5 font-medium">{label}</div>
     </div>
   );
 }
@@ -54,10 +82,35 @@ export default function MaintenanceClient() {
     primaryActionLabel: cmsPrimaryActionLabel,
   } = useDeepPageCms('maintenance');
 
+  const searchParams = useSearchParams();
+  const router = useRouter();
+
+  const filterParam = searchParams?.get('filter') as TabId | null;
+  const initialTab: TabId = filterParam && ['all', 'scheduled', 'due-today', 'overdue', 'completed'].includes(filterParam)
+    ? filterParam
+    : (searchParams?.has('filter') ? 'all' : 'all');
+
   const [records, setRecords] = useState<MaintenanceRecord[]>(MAINTENANCE_RECORDS);
   const [properties, setProperties] = useState<Hotel[]>(HOTELS);
   const [liveAssets, setLiveAssets] = useState<any[]>(ASSETS);
-  const [activeTab, setActiveTab] = useState<TabId>('all');
+  const [activeTab, setActiveTab] = useState<TabId>(initialTab);
+
+  useEffect(() => {
+    const f = searchParams?.get('filter') as TabId | null;
+    if (f && ['all', 'scheduled', 'due-today', 'overdue', 'completed'].includes(f)) {
+      setActiveTab(f);
+    } else if (!f) {
+      setActiveTab('all');
+    }
+  }, [searchParams]);
+
+  const handleTabChange = (tabId: TabId) => {
+    setActiveTab(tabId);
+    const url = tabId === 'all'
+      ? '/asset-management/maintenance'
+      : `/asset-management/maintenance?filter=${tabId}`;
+    router.push(url, { scroll: false });
+  };
   const [search, setSearch] = useState('');
   const [propertyFilter, setPropertyFilter] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
@@ -330,10 +383,38 @@ export default function MaintenanceClient() {
 
       {/* KPI Row */}
       <div className="grid grid-cols-4 gap-4 px-6 py-4 border-b border-border flex-shrink-0" style={{ background: 'var(--background)' }}>
-        <StatCard label="Scheduled" value={counts.scheduled} color="#60a5fa" icon={Calendar} />
-        <StatCard label="Due Today" value={counts['due-today']} color="#f59e0b" icon={Clock} />
-        <StatCard label="Overdue" value={counts.overdue} color="#f43f5e" icon={AlertTriangle} />
-        <StatCard label="Completed" value={counts.completed} color="#3dd68c" icon={CheckCircle2} />
+        <StatCard
+          label="Scheduled"
+          value={counts.scheduled}
+          color="#60a5fa"
+          icon={Calendar}
+          isActive={activeTab === 'scheduled'}
+          onClick={() => handleTabChange('scheduled')}
+        />
+        <StatCard
+          label="Due Today"
+          value={counts['due-today']}
+          color="#f59e0b"
+          icon={Clock}
+          isActive={activeTab === 'due-today'}
+          onClick={() => handleTabChange('due-today')}
+        />
+        <StatCard
+          label="Overdue"
+          value={counts.overdue}
+          color="#f43f5e"
+          icon={AlertTriangle}
+          isActive={activeTab === 'overdue'}
+          onClick={() => handleTabChange('overdue')}
+        />
+        <StatCard
+          label="Completed"
+          value={counts.completed}
+          color="#3dd68c"
+          icon={CheckCircle2}
+          isActive={activeTab === 'completed'}
+          onClick={() => handleTabChange('completed')}
+        />
       </div>
 
       {/* Tabs */}
@@ -341,8 +422,8 @@ export default function MaintenanceClient() {
         {tabs.map((tab) => (
           <button
             key={tab.id}
-            onClick={() => setActiveTab(tab.id)}
-            className="flex items-center gap-2 px-4 py-2.5 text-sm font-semibold border-b-2 transition-colors"
+            onClick={() => handleTabChange(tab.id)}
+            className="flex items-center gap-2 px-4 py-2.5 text-sm font-semibold border-b-2 transition-colors cursor-pointer"
             style={{
               borderColor: activeTab === tab.id ? tab.color : 'transparent',
               color: activeTab === tab.id ? tab.color : 'var(--text2)',
