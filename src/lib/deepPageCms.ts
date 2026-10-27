@@ -834,10 +834,10 @@ export const DEFAULT_DEEP_CMS: DeepAppCMSStore = {
       { id: 'quantity', label: 'Quantity', originalLabel: 'Qty', visible: true, order: 7 },
     ],
     items: [
-      { id: 'ffe-1', assetId: 'FFE-101', name: 'King Size Pocket Sprung Bed', property: 'Crowne Plaza Kingston-south', location: 'Suite 204', category: 'Furniture & Joinery', condition: 'Good', quantity: 1 },
-      { id: 'ffe-2', assetId: 'FFE-102', name: 'Smart 55" Hospitality 4K TV', property: 'Crowne Plaza Kingston-south', location: 'Executive Suite 301', category: 'Audio Visual & Tech', condition: 'Excellent', quantity: 1 },
-      { id: 'ffe-3', assetId: 'FFE-103', name: 'Nespresso Professional Coffee Machine', property: 'Stanhill Court', location: 'Lounge Bar', category: 'Guest Room Appliances', condition: 'Good', quantity: 2 },
-      { id: 'ffe-4', assetId: 'FFE-104', name: 'Ergonomic Desk & Executive Armchair', property: 'Hotel Hampton 1 & 2', location: 'Meeting Room Alpha', category: 'Furniture & Joinery', condition: 'Fair', quantity: 6 },
+      { id: 'ffe-1', assetId: 'FFE-101', name: 'King Size Pocket Sprung Bed', property: 'Crowne Plaza Kingston-south', location: 'Suite 204', category: 'Furniture & Joinery', condition: 'Good', quantity: 1, status: 'active' },
+      { id: 'ffe-2', assetId: 'FFE-102', name: 'Smart 55" Hospitality 4K TV', property: 'Crowne Plaza Kingston-south', location: 'Executive Suite 301', category: 'Audio Visual & Tech', condition: 'Excellent', quantity: 1, status: 'active' },
+      { id: 'ffe-3', assetId: 'FFE-103', name: 'Nespresso Professional Coffee Machine', property: 'Stanhill Court', location: 'Lounge Bar', category: 'Guest Room Appliances', condition: 'Good', quantity: 2, status: 'active' },
+      { id: 'ffe-4', assetId: 'FFE-104', name: 'Ergonomic Desk & Executive Armchair', property: 'Hotel Hampton 1 & 2', location: 'Meeting Room Alpha', category: 'Furniture & Joinery', condition: 'Fair', quantity: 6, status: 'active' },
     ],
   },
   assetdashboard: {

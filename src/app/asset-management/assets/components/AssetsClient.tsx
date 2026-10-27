@@ -696,10 +696,10 @@ export default function AssetsClient() {
                     {colMap['status']?.visible !== false && (
                       <td className="px-3 py-2.5" onClick={(e) => e.stopPropagation()}>
                         {!canEdit || isViewer ? (
-                          <Badge label={STATUS_CONFIG[asset.status]?.label || asset.status} style={s} />
+                          <Badge label={STATUS_CONFIG[asset.status || 'active']?.label || asset.status || 'Active'} style={s} />
                         ) : (
                           <StatusDropdown
-                            value={asset.status}
+                            value={asset.status || 'active'}
                             options={[
                               { value: 'active', label: 'Active', color: '#3dd68c', bg: 'rgba(61,214,140,0.12)' },
                               { value: 'under-maintenance', label: 'Under Maintenance', color: '#f59e0b', bg: 'rgba(245,158,11,0.12)' },

@@ -12,7 +12,7 @@ export interface StatusOption {
 }
 
 interface StatusDropdownProps {
-  value: string;
+  value?: string | null;
   options: StatusOption[];
   onChange: (value: string) => void;
   disabled?: boolean;
@@ -23,7 +23,7 @@ interface StatusDropdownProps {
 
 export default function StatusDropdown({
   value,
-  options,
+  options = [],
   onChange,
   disabled = false,
   className = '',
@@ -47,11 +47,12 @@ export default function StatusDropdown({
     setMounted(true);
   }, []);
 
-  const currentOption = options.find((o) => o.value === value) || {
-    value,
-    label: value.replace(/-/g, ' '),
-    color: '#3dd68c',
-    bg: 'rgba(61,214,140,0.12)',
+  const safeValue = typeof value === 'string' ? value : '';
+  const currentOption = (options || []).find((o) => o.value === safeValue) || {
+    value: safeValue,
+    label: safeValue ? safeValue.replace(/-/g, ' ') : (options?.[0]?.label || 'Active'),
+    color: options?.[0]?.color || '#3dd68c',
+    bg: options?.[0]?.bg || 'rgba(61,214,140,0.12)',
   };
 
   // Compute fixed viewport coordinates to prevent clipping by tables, headers, or viewport boundaries
