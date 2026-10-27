@@ -379,13 +379,16 @@ export function transferAllTabsBetweenRoles({
 export type TabSectionLocation = 'propco' | 'opco' | 'both' | 'bottom';
 
 export const DEFAULT_TAB_SECTIONS: Record<string, TabSectionLocation> = {
+  // PropCo
   properties: 'propco',
   'fixed-assets': 'propco',
   'all-assets': 'propco',
   insurance: 'propco',
   contracts: 'propco',
   'contract-reports': 'propco',
+  reports: 'both',
 
+  // OpCo
   'non-fixed-assets': 'opco',
   'non-fixed': 'opco',
   maintenance: 'opco',
@@ -395,14 +398,6 @@ export const DEFAULT_TAB_SECTIONS: Record<string, TabSectionLocation> = {
   'maintenance-reports': 'opco',
   'task-module': 'opco',
   utilities: 'opco',
-
-  // Tabs configured in Both or movable to Both
-  categories: 'both',
-  documents: 'both',
-  reports: 'both',
-  inspections: 'both',
-  'qr-codes': 'both',
-  'multi-site': 'both',
 
   // Bottom / Common
   'recent-logs': 'bottom',
@@ -420,7 +415,14 @@ export function getTabSectionMapping(): Record<string, TabSectionLocation> {
   try {
     const raw = localStorage.getItem(STORAGE_TAB_SECTIONS_KEY);
     if (raw) {
-      return { ...DEFAULT_TAB_SECTIONS, ...JSON.parse(raw) };
+      const parsed = JSON.parse(raw);
+      delete parsed['dashboard'];
+      delete parsed['qr-codes'];
+      delete parsed['inspections'];
+      delete parsed['documents'];
+      delete parsed['multi-site'];
+      delete parsed['categories'];
+      return { ...DEFAULT_TAB_SECTIONS, ...parsed };
     }
   } catch (err) {
     console.warn('Failed to load tab section mapping:', err);

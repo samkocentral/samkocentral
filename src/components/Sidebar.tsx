@@ -143,19 +143,19 @@ export default function Sidebar({ currentPath }: SidebarProps) {
     }
   }, []);
 
-  // Section visibility checks
   const isInPropCo = (tabId: string) => {
-    const s = sectionMapping[tabId] || DEFAULT_TAB_SECTIONS[tabId] || 'propco';
+    const s = sectionMapping[tabId] || DEFAULT_TAB_SECTIONS[tabId];
     return s === 'propco' || s === 'both';
   };
 
   const isInOpCo = (tabId: string) => {
-    const s = sectionMapping[tabId] || DEFAULT_TAB_SECTIONS[tabId] || 'opco';
+    const s = sectionMapping[tabId] || DEFAULT_TAB_SECTIONS[tabId];
     return s === 'opco' || s === 'both';
   };
 
   const isInBottom = (tabId: string) => {
-    const s = sectionMapping[tabId] || DEFAULT_TAB_SECTIONS[tabId] || 'bottom';
+    if (tabId === 'dashboard' || tabId === 'qr-codes') return false;
+    const s = sectionMapping[tabId] || DEFAULT_TAB_SECTIONS[tabId];
     return s === 'bottom';
   };
 
@@ -773,32 +773,18 @@ export default function Sidebar({ currentPath }: SidebarProps) {
   };
 
   const bottomNavItems: NavItem[] = [
-    ...(isInBottom('recent-logs') && isNavVisible('recent-logs')
+    ...(isNavVisible('recent-logs')
       ? [{ id: 'recent-logs', label: getNavLabel('recent-logs', 'Recent Logs'), href: '/recent-logs', icon: <History size={16} /> }]
       : []),
-    ...(isInBottom('multi-site') && isNavVisible('multi-site')
-      ? [{ id: 'multi-site', label: getNavLabel('multi-site', 'Multi-Site Operations'), href: '/multi-site-operations', icon: <Globe size={16} /> }]
-      : []),
-    ...(isInBottom('import') && isNavVisible('import')
+    ...(isNavVisible('import')
       ? [{ id: 'import', label: getNavLabel('import', 'Import / Export'), href: '/asset-management/import', icon: <Upload size={16} /> }]
       : []),
-    ...(canManageUsers && isInBottom('users') && isNavVisible('users')
+    ...(canManageUsers && isNavVisible('users')
       ? [{ id: 'users', label: getNavLabel('users', 'Users & Roles'), href: '/users', icon: <Users size={16} /> }]
       : []),
-    ...(canAccessSettings && isInBottom('settings') && isNavVisible('settings')
+    ...(canAccessSettings && isNavVisible('settings')
       ? [{ id: 'settings', label: getNavLabel('settings', 'Settings'), href: '/settings', icon: <Settings size={16} /> }]
       : []),
-    // Dynamically include any other system tabs assigned to Bottom by Super Admin
-    ...ALL_SYSTEM_TABS.filter((tab) =>
-      !['recent-logs', 'multi-site', 'import', 'users', 'settings'].includes(tab.id) &&
-      isInBottom(tab.id) &&
-      isNavVisible(tab.id)
-    ).map((tab) => ({
-      id: tab.id,
-      label: getNavLabel(tab.id, tab.name),
-      href: tab.path,
-      icon: getTabIcon(tab.id),
-    })),
   ];
 
   // Filter tabs for the Super Admin Section Organizer Modal
@@ -901,7 +887,7 @@ export default function Sidebar({ currentPath }: SidebarProps) {
         {(openPortals.propco || collapsed) && (
           <div className="flex flex-col gap-0.5 mb-2 pl-0.5">
             {/* Properties */}
-            {isInPropCo('properties') && isTabVisibleInCms('propco', 'properties') &&
+            {isTabVisibleInCms('propco', 'properties') &&
               renderPropCoNavItem({
                 id: 'properties',
                 label: getTabLabel('propco', 'properties', 'Properties'),
@@ -910,7 +896,7 @@ export default function Sidebar({ currentPath }: SidebarProps) {
               })}
 
             {/* Fixed Assets */}
-            {(isInPropCo('fixed-assets') || isInPropCo('all-assets')) && isTabVisibleInCms('propco', 'all-assets') &&
+            {isTabVisibleInCms('propco', 'all-assets') &&
               renderPropCoNavItem({
                 id: 'all-assets',
                 label: getTabLabel('propco', 'all-assets', 'Fixed Assets'),
@@ -918,26 +904,8 @@ export default function Sidebar({ currentPath }: SidebarProps) {
                 icon: <Package size={15} />,
               })}
 
-            {/* Non-Fixed Assets (if placed in PropCo or Both) */}
-            {(isInPropCo('non-fixed-assets') || isInPropCo('non-fixed')) && isTabVisibleInCms('propco', 'non-fixed') &&
-              renderPropCoNavItem({
-                id: 'non-fixed',
-                label: getTabLabel('propco', 'non-fixed', 'Non-Fixed Assets'),
-                href: getTabPath('propco', 'non-fixed', '/asset-management/assets?type=non-fixed'),
-                icon: <Package size={15} />,
-              })}
-
-            {/* Categories */}
-            {isInPropCo('categories') && isTabVisibleInCms('propco', 'categories') &&
-              renderPropCoNavItem({
-                id: 'categories',
-                label: getTabLabel('propco', 'categories', 'Categories'),
-                href: getTabPath('propco', 'categories', '/asset-management/categories'),
-                icon: <Tag size={15} />,
-              })}
-
             {/* Insurance Dropdown */}
-            {isInPropCo('insurance') && isTabVisibleInCms('propco', 'insurance') &&
+            {isTabVisibleInCms('propco', 'insurance') &&
               renderPropCoSubDropdown(
                 'insurance',
                 getTabLabel('propco', 'insurance', 'Insurance'),
@@ -950,7 +918,7 @@ export default function Sidebar({ currentPath }: SidebarProps) {
               )}
 
             {/* Contracts Dropdown */}
-            {isInPropCo('contracts') && isTabVisibleInCms('propco', 'contracts') &&
+            {isTabVisibleInCms('propco', 'contracts') &&
               renderPropCoSubDropdown(
                 'contracts',
                 getTabLabel('propco', 'contracts', 'Contracts'),
@@ -963,104 +931,13 @@ export default function Sidebar({ currentPath }: SidebarProps) {
                 ]
               )}
 
-            {/* Maintenance Dropdown (if placed in PropCo or Both) */}
-            {isInPropCo('maintenance') && isTabVisibleInCms('propco', 'maintenance') &&
-              renderPropCoSubDropdown(
-                'maintenance',
-                getTabLabel('propco', 'maintenance', 'Maintenance'),
-                <Calendar size={15} />,
-                [
-                  { id: 'maintenance-scheduled', label: getTabLabel('propco', 'maintenance-scheduled', 'Scheduled'), href: '/asset-management/maintenance?filter=scheduled', icon: <Calendar size={13} /> },
-                  { id: 'maintenance-due', label: getTabLabel('propco', 'maintenance-due', 'Due Today'), href: '/asset-management/maintenance?filter=due-today', icon: <AlertCircle size={13} />, badgeCount: dueTodayCount, badgeVariant: 'warning' },
-                  { id: 'maintenance-overdue', label: getTabLabel('propco', 'maintenance-overdue', 'Overdue'), href: '/asset-management/maintenance?filter=overdue', icon: <AlertTriangle size={13} />, badgeCount: overdueCount, badgeVariant: 'critical' },
-                  { id: 'maintenance-completed', label: getTabLabel('propco', 'maintenance-completed', 'Completed'), href: '/asset-management/maintenance?filter=completed', icon: <CheckSquare size={13} /> },
-                ],
-                overdueCount > 0 ? overdueCount : dueTodayCount > 0 ? dueTodayCount : undefined,
-                overdueCount > 0 ? 'critical' : 'warning'
-              )}
-
-            {/* Compliance Dropdown (if placed in PropCo or Both) */}
-            {isInPropCo('compliance') && isTabVisibleInCms('propco', 'compliance') &&
-              renderPropCoSubDropdown(
-                'compliance',
-                getTabLabel('propco', 'compliance', 'Compliance'),
-                <ShieldCheck size={15} />,
-                [
-                  { id: 'compliance-register', label: getTabLabel('propco', 'compliance-register', 'Compliance Register'), href: '/compliance-register', icon: <ShieldCheck size={13} />, badgeCount: criticalCount, badgeVariant: 'critical' },
-                  { id: 'certifications', label: getTabLabel('propco', 'certifications', 'Certifications'), href: '/compliance-register?tab=certifications', icon: <FileCheck size={13} /> },
-                  { id: 'statutory', label: getTabLabel('propco', 'statutory', 'Statutory Inspections'), href: '/compliance-register?tab=statutory', icon: <Flame size={13} /> },
-                  { id: 'expiry-dashboard', label: getTabLabel('propco', 'expiry-dashboard', 'Expiry Dashboard'), href: '/compliance-tracker', icon: <AlertTriangle size={13} /> },
-                ],
-                criticalCount > 0 ? criticalCount : undefined,
-                'critical'
-              )}
-
-            {/* Tasks (if placed in PropCo or Both) */}
-            {isInPropCo('tasks') && isTabVisibleInCms('propco', 'tasks') &&
-              renderPropCoNavItem({
-                id: 'tasks',
-                label: getTabLabel('propco', 'tasks', 'Tasks and Alerts'),
-                href: getTabPath('propco', 'tasks', '/tasks'),
-                icon: <CheckSquare size={15} />,
-                badgeCount: openTaskCount,
-                badgeVariant: 'warning',
-              })}
-
             {/* Reports */}
-            {(isInPropCo('reports') || isInPropCo('contract-reports')) && isTabVisibleInCms('propco', 'reports') &&
+            {isTabVisibleInCms('propco', 'reports') &&
               renderPropCoNavItem({
                 id: 'contract-reports',
                 label: getTabLabel('propco', 'reports', 'Reports'),
                 href: getTabPath('propco', 'reports', '/asset-management/reports?type=contracts'),
                 icon: <BarChart3 size={15} />,
-              })}
-
-            {/* Documents (if placed in PropCo or Both) */}
-            {isInPropCo('documents') && isTabVisibleInCms('propco', 'documents') &&
-              renderPropCoNavItem({
-                id: 'documents',
-                label: getTabLabel('propco', 'documents', 'Documents'),
-                href: getTabPath('propco', 'documents', '/document-repository'),
-                icon: <FolderOpen size={15} />,
-              })}
-
-            {/* Utility Dropdown (if placed in PropCo or Both) */}
-            {isInPropCo('utilities') && isTabVisibleInCms('propco', 'utilities') &&
-              renderPropCoSubDropdown(
-                'utilities',
-                getTabLabel('propco', 'utilities', 'Utility'),
-                <Zap size={15} />,
-                [
-                  { id: 'utilities-register', label: getTabLabel('propco', 'utilities-register', 'Utilities Register'), href: '/utilities-register', icon: <Zap size={13} /> },
-                  { id: 'utilities-energy', label: getTabLabel('propco', 'utilities-energy', 'Energy & Water Accounts'), href: '/utilities-register?type=electricity', icon: <Zap size={13} /> },
-                ]
-              )}
-
-            {/* Multi-Site (if placed in PropCo or Both) */}
-            {isInPropCo('multi-site') && isTabVisibleInCms('propco', 'multi-site') &&
-              renderPropCoNavItem({
-                id: 'multi-site',
-                label: getTabLabel('propco', 'multi-site', 'Multi-Site Operations'),
-                href: getTabPath('propco', 'multi-site', '/multi-site-operations'),
-                icon: <Globe size={15} />,
-              })}
-
-            {/* Inspections (if placed in PropCo or Both) */}
-            {isInPropCo('inspections') && isTabVisibleInCms('propco', 'inspections') &&
-              renderPropCoNavItem({
-                id: 'inspections',
-                label: getTabLabel('propco', 'inspections', 'Asset Inspections'),
-                href: getTabPath('propco', 'inspections', '/asset-management/inspections'),
-                icon: <ClipboardCheck size={15} />,
-              })}
-
-            {/* QR Codes (if placed in PropCo or Both) */}
-            {isInPropCo('qr-codes') && isTabVisibleInCms('propco', 'qr-codes') &&
-              renderPropCoNavItem({
-                id: 'qr-codes',
-                label: getTabLabel('propco', 'qr-codes', 'QR Codes & Scanner'),
-                href: getTabPath('propco', 'qr-codes', '/asset-management/qr-scanner'),
-                icon: <QrCode size={15} />,
               })}
 
             {/* Dynamic Custom Tabs Added via CMS */}
@@ -1093,8 +970,8 @@ export default function Sidebar({ currentPath }: SidebarProps) {
 
         {(openPortals.opco || collapsed) && (
           <div className="flex flex-col gap-0.5 mb-2 pl-0.5">
-            {/* Non-Fixed Assets */}
-            {(isInOpCo('non-fixed-assets') || isInOpCo('non-fixed')) && isTabVisibleInCms('opco', 'non-fixed') &&
+            {/* 1. Non-Fixed Assets */}
+            {isTabVisibleInCms('opco', 'non-fixed') &&
               renderOpCoNavItem({
                 id: 'non-fixed',
                 label: getTabLabel('opco', 'non-fixed', 'Non-Fixed Assets'),
@@ -1102,62 +979,8 @@ export default function Sidebar({ currentPath }: SidebarProps) {
                 icon: <Package size={15} />,
               })}
 
-            {/* Fixed Assets (if placed in OpCo or Both) */}
-            {(isInOpCo('fixed-assets') || isInOpCo('all-assets')) && isTabVisibleInCms('opco', 'all-assets') &&
-              renderOpCoNavItem({
-                id: 'all-assets',
-                label: getTabLabel('opco', 'all-assets', 'Fixed Assets'),
-                href: getTabPath('opco', 'all-assets', '/asset-management/assets'),
-                icon: <Package size={15} />,
-              })}
-
-            {/* Properties (if placed in OpCo or Both) */}
-            {isInOpCo('properties') && isTabVisibleInCms('opco', 'properties') &&
-              renderOpCoNavItem({
-                id: 'properties',
-                label: getTabLabel('opco', 'properties', 'Properties'),
-                href: getTabPath('opco', 'properties', '/asset-management/properties'),
-                icon: <Building2 size={15} />,
-              })}
-
-            {/* Categories */}
-            {isInOpCo('categories') && isTabVisibleInCms('opco', 'categories') &&
-              renderOpCoNavItem({
-                id: 'categories',
-                label: getTabLabel('opco', 'categories', 'Categories'),
-                href: getTabPath('opco', 'categories', '/asset-management/categories'),
-                icon: <Tag size={15} />,
-              })}
-
-            {/* Insurance Dropdown (if placed in OpCo or Both) */}
-            {isInOpCo('insurance') && isTabVisibleInCms('opco', 'insurance') &&
-              renderOpCoSubDropdown(
-                'insurance',
-                getTabLabel('opco', 'insurance', 'Insurance'),
-                <Shield size={15} />,
-                [
-                  { id: 'insurance-register', label: getTabLabel('opco', 'insurance-register', 'Insurance Register'), href: '/insurance-register', icon: <Shield size={13} /> },
-                  { id: 'claims', label: getTabLabel('opco', 'claims', 'Claims'), href: '/insurance-register?tab=claims', icon: <FileBarChart size={13} /> },
-                  { id: 'insurance-renewals', label: getTabLabel('opco', 'insurance-renewals', 'Renewals'), href: '/insurance-register?tab=renewals', icon: <RefreshCw size={13} /> },
-                ]
-              )}
-
-            {/* Contracts Dropdown (if placed in OpCo or Both) */}
-            {isInOpCo('contracts') && isTabVisibleInCms('opco', 'contracts') &&
-              renderOpCoSubDropdown(
-                'contracts',
-                getTabLabel('opco', 'contracts', 'Contracts'),
-                <ScrollText size={15} />,
-                [
-                  { id: 'contracts-register', label: getTabLabel('opco', 'contracts-register', 'Contracts Register'), href: '/contracts-register', icon: <ScrollText size={13} /> },
-                  { id: 'suppliers', label: getTabLabel('opco', 'suppliers', 'Suppliers'), href: '/contracts-register?tab=suppliers', icon: <Handshake size={13} /> },
-                  { id: 'contracts-renewals', label: getTabLabel('opco', 'contracts-renewals', 'Renewals'), href: '/contracts-register?tab=renewals', icon: <RefreshCw size={13} /> },
-                  { id: 'slas', label: getTabLabel('opco', 'slas', 'SLAs'), href: '/contracts-register?tab=slas', icon: <Star size={13} /> },
-                ]
-              )}
-
-            {/* Maintenance Dropdown */}
-            {isInOpCo('maintenance') && isTabVisibleInCms('opco', 'maintenance') &&
+            {/* 2. Maintenance Dropdown */}
+            {isTabVisibleInCms('opco', 'maintenance') &&
               renderOpCoSubDropdown(
                 'maintenance',
                 getTabLabel('opco', 'maintenance', 'Maintenance'),
@@ -1172,8 +995,8 @@ export default function Sidebar({ currentPath }: SidebarProps) {
                 overdueCount > 0 ? 'critical' : 'warning'
               )}
 
-            {/* Compliance Dropdown */}
-            {isInOpCo('compliance') && isTabVisibleInCms('opco', 'compliance') &&
+            {/* 3. Compliance Dropdown */}
+            {isTabVisibleInCms('opco', 'compliance') &&
               renderOpCoSubDropdown(
                 'compliance',
                 getTabLabel('opco', 'compliance', 'Compliance'),
@@ -1188,8 +1011,8 @@ export default function Sidebar({ currentPath }: SidebarProps) {
                 'critical'
               )}
 
-            {/* Tasks and Alerts */}
-            {isInOpCo('tasks') && isTabVisibleInCms('opco', 'tasks') &&
+            {/* 4. Tasks and Alerts */}
+            {isTabVisibleInCms('opco', 'tasks') &&
               renderOpCoNavItem({
                 id: 'tasks',
                 label: getTabLabel('opco', 'tasks', 'Tasks and Alerts'),
@@ -1199,8 +1022,8 @@ export default function Sidebar({ currentPath }: SidebarProps) {
                 badgeVariant: 'warning',
               })}
 
-            {/* Reports */}
-            {(isInOpCo('reports') || isInOpCo('maintenance-reports')) && isTabVisibleInCms('opco', 'reports') &&
+            {/* 5. Reports */}
+            {isTabVisibleInCms('opco', 'reports') &&
               renderOpCoNavItem({
                 id: 'maintenance-reports',
                 label: getTabLabel('opco', 'reports', 'Reports'),
@@ -1208,8 +1031,8 @@ export default function Sidebar({ currentPath }: SidebarProps) {
                 icon: <BarChart2 size={15} />,
               })}
 
-            {/* Task Module */}
-            {isInOpCo('task-module') && isTabVisibleInCms('opco', 'task-module') &&
+            {/* 6. Task Module */}
+            {isTabVisibleInCms('opco', 'task-module') &&
               renderOpCoNavItem({
                 id: 'task-module',
                 label: getTabLabel('opco', 'task-module', 'Task Module'),
@@ -1217,8 +1040,8 @@ export default function Sidebar({ currentPath }: SidebarProps) {
                 icon: <ClipboardList size={15} />,
               })}
 
-            {/* Utility Dropdown */}
-            {isInOpCo('utilities') && isTabVisibleInCms('opco', 'utilities') &&
+            {/* 7. Utility Dropdown */}
+            {isTabVisibleInCms('opco', 'utilities') &&
               renderOpCoSubDropdown(
                 'utilities',
                 getTabLabel('opco', 'utilities', 'Utility'),
@@ -1228,42 +1051,6 @@ export default function Sidebar({ currentPath }: SidebarProps) {
                   { id: 'utilities-energy', label: getTabLabel('opco', 'utilities-energy', 'Energy & Water Accounts'), href: '/utilities-register?type=electricity', icon: <Zap size={13} /> },
                 ]
               )}
-
-            {/* Documents (if placed in OpCo or Both) */}
-            {isInOpCo('documents') && isTabVisibleInCms('opco', 'documents') &&
-              renderOpCoNavItem({
-                id: 'documents',
-                label: getTabLabel('opco', 'documents', 'Documents'),
-                href: getTabPath('opco', 'documents', '/document-repository'),
-                icon: <FolderOpen size={15} />,
-              })}
-
-            {/* Multi-Site (if placed in OpCo or Both) */}
-            {isInOpCo('multi-site') && isTabVisibleInCms('opco', 'multi-site') &&
-              renderOpCoNavItem({
-                id: 'multi-site',
-                label: getTabLabel('opco', 'multi-site', 'Multi-Site Operations'),
-                href: getTabPath('opco', 'multi-site', '/multi-site-operations'),
-                icon: <Globe size={15} />,
-              })}
-
-            {/* Inspections (if placed in OpCo or Both) */}
-            {isInOpCo('inspections') && isTabVisibleInCms('opco', 'inspections') &&
-              renderOpCoNavItem({
-                id: 'inspections',
-                label: getTabLabel('opco', 'inspections', 'Asset Inspections'),
-                href: getTabPath('opco', 'inspections', '/asset-management/inspections'),
-                icon: <ClipboardCheck size={15} />,
-              })}
-
-            {/* QR Codes (if placed in OpCo or Both) */}
-            {isInOpCo('qr-codes') && isTabVisibleInCms('opco', 'qr-codes') &&
-              renderOpCoNavItem({
-                id: 'qr-codes',
-                label: getTabLabel('opco', 'qr-codes', 'QR Codes & Scanner'),
-                href: getTabPath('opco', 'qr-codes', '/asset-management/qr-scanner'),
-                icon: <QrCode size={15} />,
-              })}
 
             {/* Dynamic Custom Tabs Added via CMS */}
             {cmsOpco?.tabs
