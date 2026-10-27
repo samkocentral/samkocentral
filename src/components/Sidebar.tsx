@@ -422,10 +422,10 @@ export default function Sidebar({ currentPath }: SidebarProps) {
     const isReadOnly = access === 'read';
 
     const isOpCo = portalContext === 'opco';
-    const activeColor = isOpCo ? '#60a5fa' : 'var(--primary)';
+    const activeColor = isOpCo ? '#60a5fa' : '#e8c97a';
     const activeBg = isOpCo
-      ? (isIndented ? 'rgba(96, 165, 250, 0.22)' : 'rgba(96, 165, 250, 0.16)')
-      : (isIndented ? 'rgba(232, 201, 122, 0.22)' : 'rgba(232, 201, 122, 0.16)');
+      ? 'rgba(96, 165, 250, 0.16)'
+      : 'rgba(232, 201, 122, 0.16)';
     const activeBorder = isOpCo
       ? '1px solid rgba(96, 165, 250, 0.40)'
       : '1px solid rgba(232, 201, 122, 0.40)';
@@ -440,20 +440,20 @@ export default function Sidebar({ currentPath }: SidebarProps) {
         title={collapsed ? `${item.label}${isReadOnly ? ' (Read Only)' : ''}` : undefined}
         className="flex items-center gap-2 rounded-lg transition-all duration-150 group relative"
         style={{
-          padding: collapsed ? '8px 10px' : isIndented ? '6px 10px 6px 12px' : '7px 10px',
+          padding: collapsed ? '8px 10px' : '7px 10px',
           background: active ? activeBg : 'transparent',
           border: active ? activeBorder : '1px solid transparent',
           color: active ? activeColor : 'var(--text2)',
           boxShadow: active ? activeShadow : 'none',
-          fontSize: isIndented ? 12.5 : 13,
+          fontSize: 13,
           fontWeight: active ? 600 : 500,
           textDecoration: 'none',
           justifyContent: collapsed ? 'center' : 'flex-start',
         }}
         onMouseEnter={(e) => {
           if (!active) {
-            e.currentTarget.style.background = 'var(--surface2)';
-            e.currentTarget.style.color = 'var(--foreground)';
+            e.currentTarget.style.background = isOpCo ? 'rgba(96, 165, 250, 0.08)' : 'rgba(232, 201, 122, 0.08)';
+            e.currentTarget.style.color = isOpCo ? '#93c5fd' : '#fde68a';
           }
         }}
         onMouseLeave={(e) => {
@@ -522,7 +522,7 @@ export default function Sidebar({ currentPath }: SidebarProps) {
     const isChildActive = visibleSubItems.some((item) => isActive(item.href));
 
     const isOpCo = portalContext === 'opco';
-    const activeColor = isOpCo ? '#60a5fa' : 'var(--primary)';
+    const activeColor = isOpCo ? '#60a5fa' : '#e8c97a';
     const activeBg = isOpCo ? 'rgba(96, 165, 250, 0.12)' : 'rgba(232, 201, 122, 0.12)';
     const activeBorder = isOpCo ? '1px solid rgba(96, 165, 250, 0.30)' : '1px solid rgba(232, 201, 122, 0.30)';
 
@@ -550,8 +550,8 @@ export default function Sidebar({ currentPath }: SidebarProps) {
           }}
           onMouseEnter={(e) => {
             if (!isChildActive) {
-              e.currentTarget.style.background = 'var(--surface2)';
-              e.currentTarget.style.color = 'var(--foreground)';
+              e.currentTarget.style.background = isOpCo ? 'rgba(96, 165, 250, 0.08)' : 'rgba(232, 201, 122, 0.08)';
+              e.currentTarget.style.color = isOpCo ? '#93c5fd' : '#fde68a';
             }
           }}
           onMouseLeave={(e) => {
@@ -579,7 +579,14 @@ export default function Sidebar({ currentPath }: SidebarProps) {
         </button>
 
         {isOpen && (
-          <div className="border-l border-border/80 ml-4 pl-1.5 flex flex-col gap-0.5 my-0.5">
+          <div
+            className="border-l ml-4 pl-1.5 flex flex-col gap-0.5 my-0.5 transition-colors"
+            style={{
+              borderColor: isChildActive
+                ? (isOpCo ? 'rgba(96, 165, 250, 0.40)' : 'rgba(232, 201, 122, 0.40)')
+                : 'rgba(255, 255, 255, 0.10)',
+            }}
+          >
             {visibleSubItems.map((item) => renderNavItem(item, true, portalContext))}
           </div>
         )}
