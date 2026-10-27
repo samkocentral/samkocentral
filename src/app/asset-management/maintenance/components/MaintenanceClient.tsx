@@ -171,7 +171,7 @@ export default function MaintenanceClient() {
       );
     }
 
-    const statusLabel = newStatus.replace('-', ' ').toUpperCase();
+    const statusLabel = (newStatus || 'completed').replace('-', ' ').toUpperCase();
     toast.success('Maintenance Status Updated', {
       description: `Task marked as ${statusLabel}`,
     });

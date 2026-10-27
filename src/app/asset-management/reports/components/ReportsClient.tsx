@@ -410,7 +410,7 @@ function MaintenanceReport() {
                           <td className="px-4 py-3 text-xs">{rec.scheduledDate}</td>
                           <td className="px-4 py-3 text-xs">{rec.assignedTo}</td>
                           <td className="px-4 py-3">
-                            <span className="text-xs font-semibold px-2 py-0.5 rounded-full capitalize" style={{ background: `${statusColor}18`, color: statusColor }}>{rec.status.replace('-', ' ')}</span>
+                            <span className="text-xs font-semibold px-2 py-0.5 rounded-full capitalize" style={{ background: `${statusColor}18`, color: statusColor }}>{(rec.status || 'Scheduled').replace('-', ' ')}</span>
                           </td>
                         </tr>
                       );
@@ -522,7 +522,7 @@ function InsuranceReport() {
                           <td className="px-4 py-3 text-xs">£{(pol.coverage / 1000000).toFixed(0)}M</td>
                           <td className="px-4 py-3 text-xs">{pol.expiry}</td>
                           <td className="px-4 py-3">
-                            <span className="text-xs font-semibold px-2 py-0.5 rounded-full capitalize" style={{ background: `${statusColor}18`, color: statusColor }}>{pol.status.replace('-', ' ')}</span>
+                            <span className="text-xs font-semibold px-2 py-0.5 rounded-full capitalize" style={{ background: `${statusColor}18`, color: statusColor }}>{(pol.status || 'Active').replace('-', ' ')}</span>
                           </td>
                         </tr>
                       );
@@ -629,7 +629,7 @@ function ContractReport() {
                           <td className="px-4 py-3 text-sm font-semibold" style={{ color: 'var(--primary)' }}>£{con.value.toLocaleString()}</td>
                           <td className="px-4 py-3 text-xs">{con.endDate}</td>
                           <td className="px-4 py-3">
-                            <span className="text-xs font-semibold px-2 py-0.5 rounded-full capitalize" style={{ background: `${statusColor}18`, color: statusColor }}>{con.status.replace('-', ' ')}</span>
+                            <span className="text-xs font-semibold px-2 py-0.5 rounded-full capitalize" style={{ background: `${statusColor}18`, color: statusColor }}>{(con.status || 'Active').replace('-', ' ')}</span>
                           </td>
                         </tr>
                       );
@@ -769,7 +769,7 @@ function ComplianceReport() {
                         <td className="px-4 py-3 text-xs text-muted-foreground">{item.hotel.split(' ').slice(0, 2).join(' ')}</td>
                         <td className="px-4 py-3 font-medium text-sm">{item.category}</td>
                         <td className="px-4 py-3">
-                          <span className="text-xs font-semibold px-2 py-0.5 rounded-full capitalize" style={{ background: `${statusColor}18`, color: statusColor }}>{item.status.replace('-', ' ')}</span>
+                          <span className="text-xs font-semibold px-2 py-0.5 rounded-full capitalize" style={{ background: `${statusColor}18`, color: statusColor }}>{(item.status || 'Compliant').replace('-', ' ')}</span>
                         </td>
                         <td className="px-4 py-3">
                           <span className="text-xs font-semibold capitalize" style={{ color: riskColor }}>{item.risk}</span>
@@ -1653,7 +1653,7 @@ function UtilitiesReport() {
                           <td className="px-4 py-3 text-sm font-semibold whitespace-nowrap" style={{ color: 'var(--primary)' }}>{u.annualCost > 0 ? `£${u.annualCost.toLocaleString()}` : u.monthlyCost > 0 ? `£${u.monthlyCost.toLocaleString()}/mo` : '—'}</td>
                           <td className="px-4 py-3 text-xs text-muted-foreground max-w-[140px] truncate" title={u.tariffRate}>{u.tariffRate}</td>
                           <td className="px-4 py-3">
-                            <span className="text-xs font-semibold px-2 py-0.5 rounded-full capitalize whitespace-nowrap" style={{ background: `${statusColor}18`, color: statusColor }}>{u.status.replace('-', ' ')}</span>
+                            <span className="text-xs font-semibold px-2 py-0.5 rounded-full capitalize whitespace-nowrap" style={{ background: `${statusColor}18`, color: statusColor }}>{(u.status || 'Active').replace('-', ' ')}</span>
                           </td>
                         </tr>
                       );

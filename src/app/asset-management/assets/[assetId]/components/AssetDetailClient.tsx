@@ -392,7 +392,7 @@ export default function AssetDetailClient({ assetId }: { assetId: string }) {
         role: currentUserRole,
         initials: currentUserInitials,
         date: new Date().toISOString(),
-        detail: `Status changed from ${asset.status.replace(/-/g, ' ')} to ${newStatus.replace(/-/g, ' ')}`,
+        detail: `Status changed from ${(asset.status || 'active').replace(/-/g, ' ')} to ${(newStatus || 'active').replace(/-/g, ' ')}`,
         type: 'status',
       },
       ...prev,
@@ -403,7 +403,7 @@ export default function AssetDetailClient({ assetId }: { assetId: string }) {
     }
 
     toast.success('Asset Status Updated', {
-      description: `Status changed to ${newStatus.replace('-', ' ').toUpperCase()}`,
+      description: `Status changed to ${(newStatus || 'active').replace('-', ' ').toUpperCase()}`,
     });
 
     try {
