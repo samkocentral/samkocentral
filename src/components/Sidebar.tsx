@@ -497,9 +497,41 @@ export default function Sidebar({ currentPath }: SidebarProps) {
     );
   };
 
+  const getTabIcon = (tabId: string): React.ReactNode => {
+    switch (tabId) {
+      case 'dashboard': return <LayoutDashboard size={15} />;
+      case 'properties': return <Building2 size={15} />;
+      case 'multi-site': return <Globe size={15} />;
+      case 'fixed-assets':
+      case 'all-assets': return <Package size={15} />;
+      case 'non-fixed-assets':
+      case 'non-fixed': return <Package size={15} />;
+      case 'categories': return <Tag size={15} />;
+      case 'maintenance': return <Calendar size={15} />;
+      case 'compliance': return <ShieldCheck size={15} />;
+      case 'compliance-tracker': return <Calendar size={15} />;
+      case 'insurance': return <Shield size={15} />;
+      case 'contracts': return <ScrollText size={15} />;
+      case 'utilities': return <Zap size={15} />;
+      case 'tasks': return <CheckSquare size={15} />;
+      case 'documents': return <FolderOpen size={15} />;
+      case 'reports': return <BarChart3 size={15} />;
+      case 'inspections': return <ClipboardCheck size={15} />;
+      case 'qr-codes': return <QrCode size={15} />;
+      case 'import': return <Upload size={15} />;
+      case 'recent-logs': return <History size={15} />;
+      case 'users': return <Users size={15} />;
+      case 'settings': return <Settings size={15} />;
+      default: return <Package size={15} />;
+    }
+  };
+
   const bottomNavItems: NavItem[] = [
     ...(isInBottom('recent-logs') && isNavVisible('recent-logs')
       ? [{ id: 'recent-logs', label: getNavLabel('recent-logs', 'Recent Logs'), href: '/recent-logs', icon: <History size={16} /> }]
+      : []),
+    ...(isInBottom('multi-site') && isNavVisible('multi-site')
+      ? [{ id: 'multi-site', label: getNavLabel('multi-site', 'Multi-Site Operations'), href: '/multi-site-operations', icon: <Globe size={16} /> }]
       : []),
     ...(isInBottom('import') && isNavVisible('import')
       ? [{ id: 'import', label: getNavLabel('import', 'Import / Export'), href: '/asset-management/import', icon: <Upload size={16} /> }]
@@ -510,6 +542,17 @@ export default function Sidebar({ currentPath }: SidebarProps) {
     ...(canAccessSettings && isInBottom('settings') && isNavVisible('settings')
       ? [{ id: 'settings', label: getNavLabel('settings', 'Settings'), href: '/settings', icon: <Settings size={16} /> }]
       : []),
+    // Dynamically include any other system tabs assigned to Bottom by Super Admin
+    ...ALL_SYSTEM_TABS.filter((tab) =>
+      !['recent-logs', 'multi-site', 'import', 'users', 'settings'].includes(tab.id) &&
+      isInBottom(tab.id) &&
+      isNavVisible(tab.id)
+    ).map((tab) => ({
+      id: tab.id,
+      label: getNavLabel(tab.id, tab.name),
+      href: tab.path,
+      icon: getTabIcon(tab.id),
+    })),
   ];
 
   // Filter tabs for the Super Admin Section Organizer Modal
@@ -747,6 +790,33 @@ export default function Sidebar({ currentPath }: SidebarProps) {
                 ]
               )}
 
+            {/* Multi-Site (if placed in PropCo or Both) */}
+            {isInPropCo('multi-site') && isTabVisibleInCms('propco', 'multi-site') &&
+              renderNavItem({
+                id: 'multi-site',
+                label: getTabLabel('propco', 'multi-site', 'Multi-Site Operations'),
+                href: getTabPath('propco', 'multi-site', '/multi-site-operations'),
+                icon: <Globe size={15} />,
+              })}
+
+            {/* Inspections (if placed in PropCo or Both) */}
+            {isInPropCo('inspections') && isTabVisibleInCms('propco', 'inspections') &&
+              renderNavItem({
+                id: 'inspections',
+                label: getTabLabel('propco', 'inspections', 'Asset Inspections'),
+                href: getTabPath('propco', 'inspections', '/asset-management/inspections'),
+                icon: <ClipboardCheck size={15} />,
+              })}
+
+            {/* QR Codes (if placed in PropCo or Both) */}
+            {isInPropCo('qr-codes') && isTabVisibleInCms('propco', 'qr-codes') &&
+              renderNavItem({
+                id: 'qr-codes',
+                label: getTabLabel('propco', 'qr-codes', 'QR Codes & Scanner'),
+                href: getTabPath('propco', 'qr-codes', '/asset-management/qr-scanner'),
+                icon: <QrCode size={15} />,
+              })}
+
             {/* Dynamic Custom Tabs Added via CMS */}
             {cmsPropco?.tabs
               ?.filter((t) => t.isCustom && t.enabled)
@@ -920,6 +990,33 @@ export default function Sidebar({ currentPath }: SidebarProps) {
                 label: getTabLabel('opco', 'documents', 'Documents'),
                 href: getTabPath('opco', 'documents', '/document-repository'),
                 icon: <FolderOpen size={15} />,
+              })}
+
+            {/* Multi-Site (if placed in OpCo or Both) */}
+            {isInOpCo('multi-site') && isTabVisibleInCms('opco', 'multi-site') &&
+              renderNavItem({
+                id: 'multi-site',
+                label: getTabLabel('opco', 'multi-site', 'Multi-Site Operations'),
+                href: getTabPath('opco', 'multi-site', '/multi-site-operations'),
+                icon: <Globe size={15} />,
+              })}
+
+            {/* Inspections (if placed in OpCo or Both) */}
+            {isInOpCo('inspections') && isTabVisibleInCms('opco', 'inspections') &&
+              renderNavItem({
+                id: 'inspections',
+                label: getTabLabel('opco', 'inspections', 'Asset Inspections'),
+                href: getTabPath('opco', 'inspections', '/asset-management/inspections'),
+                icon: <ClipboardCheck size={15} />,
+              })}
+
+            {/* QR Codes (if placed in OpCo or Both) */}
+            {isInOpCo('qr-codes') && isTabVisibleInCms('opco', 'qr-codes') &&
+              renderNavItem({
+                id: 'qr-codes',
+                label: getTabLabel('opco', 'qr-codes', 'QR Codes & Scanner'),
+                href: getTabPath('opco', 'qr-codes', '/asset-management/qr-scanner'),
+                icon: <QrCode size={15} />,
               })}
 
             {/* Dynamic Custom Tabs Added via CMS */}
