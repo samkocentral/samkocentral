@@ -4,8 +4,10 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { TASKS, formatDateGB } from '@/lib/mockData';
 import Link from 'next/link';
 import { api } from '@/lib/api';
+import { useDeepPageCms } from '@/lib/deepPageCms';
 
 export default function DashboardUrgentTasks() {
+  const cms = useDeepPageCms('overview');
   const [tasks, setTasks] = useState<any[]>(TASKS);
 
   const fetchLiveTasks = useCallback(async () => {
@@ -39,6 +41,17 @@ export default function DashboardUrgentTasks() {
     low: 'var(--text3)',
   };
 
+  const title = cms.sections?.urgentTasks?.title || 'Urgent Tasks';
+  const displayTasks = (cms.tasks && cms.tasks.length > 0)
+    ? cms.tasks.map((t) => ({
+        id: t.id,
+        title: t.title,
+        site: t.hotelName,
+        due: t.dueDate,
+        priority: t.priority,
+      }))
+    : urgentHighTasks;
+
   return (
     <div className="samko-card" style={{ padding: '18px 20px' }}>
       <div className="flex items-center justify-between mb-4">
@@ -46,7 +59,7 @@ export default function DashboardUrgentTasks() {
           className="font-head text-foreground"
           style={{ fontSize: 13, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em' }}
         >
-          Urgent Tasks
+          {title}
         </h2>
         <Link
           href="/task-manager"
@@ -56,7 +69,7 @@ export default function DashboardUrgentTasks() {
         </Link>
       </div>
       <div className="flex flex-col gap-0.5">
-        {urgentHighTasks.slice(0, 6).map((task) => (
+        {displayTasks.slice(0, 6).map((task) => (
           <div
             key={task.id}
             className="flex items-center gap-3 rounded-lg transition-all duration-150"

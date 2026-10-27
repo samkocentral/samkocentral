@@ -2,14 +2,25 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
-import { Building2, MapPin, Phone, User, Package, ChevronRight, ChevronDown, Search, Plus, X, Loader2 } from 'lucide-react';
+import { Building2, MapPin, Phone, User, Package, ChevronRight, ChevronDown, Search, Plus, X, Loader2, Edit2, Trash2, Sparkles } from 'lucide-react';
 import { HOTELS, MAINTENANCE_RECORDS, ASSETS, getAssetStats, type Hotel } from '@/lib/assetData';
 import { api } from '@/lib/api';
 import { useAuth } from '@/lib/authContext';
 import { toast } from 'sonner';
+import { useDeepPageCms, updatePageItem, deletePageItem } from '@/lib/deepPageCms';
+import PageCMSEditButton from '@/components/cms/PageCMSEditButton';
 
 export default function PropertiesClient() {
   const { isViewer, canEdit } = useAuth();
+  const {
+    title: cmsTitle,
+    subtitle: cmsSubtitle,
+    searchPlaceholder: cmsSearchPlaceholder,
+    primaryActionLabel: cmsPrimaryActionLabel,
+    customLabels: cmsCustomLabels,
+    items: cmsPropertiesList,
+  } = useDeepPageCms('properties');
+
   const [properties, setProperties] = useState<Hotel[]>(HOTELS);
   const [maintenance, setMaintenance] = useState<any[]>(MAINTENANCE_RECORDS);
   const [assets, setAssets] = useState<any[]>(ASSETS);
@@ -25,6 +36,89 @@ export default function PropertiesClient() {
     phone: '',
     status: 'active' as 'active' | 'inactive',
   });
+
+  // Edit property modal state
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editingProperty, setEditingProperty] = useState<any>(null);
+  const [editForm, setEditForm] = useState({
+    name: '',
+    city: '',
+    address: '',
+    manager: '',
+    phone: '',
+    status: 'active' as 'active' | 'inactive',
+    totalAssets: 0,
+    overdueCount: 0,
+    dueTodayCount: 0,
+  });
+
+  const handleOpenEditProperty = (hotel: any) => {
+    setEditingProperty(hotel);
+    setEditForm({
+      name: hotel.name || '',
+      city: hotel.city || 'London',
+      address: hotel.address || '',
+      manager: hotel.manager || '',
+      phone: hotel.phone || '',
+      status: (hotel.status as any) || 'active',
+      totalAssets: hotel.totalAssets || 0,
+      overdueCount: hotel.overdueCount || 0,
+      dueTodayCount: hotel.dueTodayCount || 0,
+    });
+    setShowEditModal(true);
+  };
+
+  const handleSavePropertyEdit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingProperty || !editForm.name.trim()) return;
+
+    const propertyId = editingProperty.id;
+    // 1. Update deep page CMS store
+    updatePageItem('properties', propertyId, editForm);
+
+    // 2. Update local state
+    setProperties((prev) =>
+      prev.map((p) => (p.id === propertyId ? { ...p, ...editForm } : p))
+    );
+
+    // 3. Persist to API/Firestore
+    try {
+      await api.properties.update(propertyId, editForm);
+    } catch (err) {
+      console.warn('API update fallback:', err);
+    }
+
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('samko:data-changed', { detail: { type: 'property', id: propertyId } }));
+    }
+
+    toast.success('Property Details Saved', {
+      description: `"${editForm.name}" updated successfully`,
+    });
+    setShowEditModal(false);
+  };
+
+  const handleDeleteProperty = async (propertyId: string, propertyName: string) => {
+    if (!confirm(`Are you sure you want to delete property "${propertyName}"?`)) return;
+
+    deletePageItem('properties', propertyId);
+    setProperties((prev) => prev.filter((p) => p.id !== propertyId));
+
+    try {
+      await api.properties.delete(propertyId);
+    } catch (err) {
+      console.warn('API delete fallback:', err);
+    }
+
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('samko:data-changed', { detail: { type: 'property', id: propertyId } }));
+    }
+
+    toast.success('Property Deleted', {
+      description: `"${propertyName}" removed from portfolio`,
+    });
+    setShowEditModal(false);
+  };
 
   const loadAllData = useCallback(async () => {
     try {
@@ -117,7 +211,9 @@ export default function PropertiesClient() {
     }
   };
 
-  const filtered = properties?.filter(
+  const effectiveProperties = cmsPropertiesList && cmsPropertiesList.length > 0 ? (cmsPropertiesList as any[]) : properties;
+
+  const filtered = effectiveProperties?.filter(
     (h) =>
       h?.name?.toLowerCase()?.includes(search?.toLowerCase()) ||
       h?.city?.toLowerCase()?.includes(search?.toLowerCase()) ||
@@ -132,9 +228,9 @@ export default function PropertiesClient() {
         style={{ background: 'var(--surface)' }}
       >
         <div>
-          <h1 className="font-head text-xl font-bold">Properties</h1>
+          <h1 className="font-head text-xl font-bold">{cmsTitle || 'Properties'}</h1>
           <p className="text-xs text-muted-foreground mt-0.5">
-            {properties?.length} properties managed {loading && ' (syncing...)'}
+            {cmsSubtitle || `${properties?.length} properties managed ${loading ? ' (syncing...)' : ''}`}
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -145,19 +241,21 @@ export default function PropertiesClient() {
             <Search size={14} className="text-muted-foreground" />
             <input
               className="bg-transparent text-sm outline-none w-48"
-              placeholder="Search properties…"
+              placeholder={cmsSearchPlaceholder || 'Search properties…'}
               value={search}
               onChange={(e) => setSearch(e?.target?.value)}
               style={{ color: 'var(--foreground)' }}
             />
           </div>
 
+          <PageCMSEditButton pageId="properties" pageName="Properties & Sites" />
+
           <button
             onClick={() => setShowAddModal(true)}
             className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-bold transition-all shadow-sm"
             style={{ background: 'var(--primary)', color: '#000' }}
           >
-            <Plus size={14} /> Add Property
+            <Plus size={14} /> {cmsPrimaryActionLabel || 'Add Property'}
           </button>
         </div>
       </div>
@@ -201,44 +299,56 @@ export default function PropertiesClient() {
                       <div className="text-xs text-muted-foreground mt-0.5">{hotel?.city}</div>
                     </div>
                   </div>
-                  {/* Status Badge */}
-                  {!canEdit || isViewer ? (
-                    <span
-                      className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold"
-                      style={{
-                        background: isActive ? 'rgba(61,214,140,0.12)' : 'rgba(245,158,11,0.12)',
-                        color: isActive ? '#3dd68c' : '#f59e0b',
-                        border: `1px solid ${isActive ? 'rgba(61,214,140,0.3)' : 'rgba(245,158,11,0.3)'}`,
-                      }}
-                    >
+                  <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
+                    {/* Status Badge */}
+                    {!canEdit || isViewer ? (
                       <span
-                        className="w-1.5 h-1.5 rounded-full"
-                        style={{ background: isActive ? '#3dd68c' : '#f59e0b' }}
-                      />
-                      {isActive ? 'Active' : 'Inactive'}
-                    </span>
-                  ) : (
-                    <div className="relative inline-block" onClick={(e) => e.stopPropagation()}>
-                      <select
-                        value={hotel?.status || 'active'}
-                        onChange={(e) => handleStatusChange(hotel.id, e.target.value)}
-                        className="appearance-none cursor-pointer pl-4 pr-2.5 py-0.5 rounded-full text-xs font-semibold outline-none transition-all"
-                        title="Click to change status"
+                        className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold"
                         style={{
                           background: isActive ? 'rgba(61,214,140,0.12)' : 'rgba(245,158,11,0.12)',
                           color: isActive ? '#3dd68c' : '#f59e0b',
                           border: `1px solid ${isActive ? 'rgba(61,214,140,0.3)' : 'rgba(245,158,11,0.3)'}`,
                         }}
                       >
-                        <option value="active" style={{ background: '#18181b', color: '#3dd68c' }}>Active</option>
-                        <option value="inactive" style={{ background: '#18181b', color: '#f59e0b' }}>Inactive</option>
-                      </select>
-                      <span
-                        className="w-1.5 h-1.5 rounded-full absolute left-2 top-1/2 -translate-y-1/2 pointer-events-none"
-                        style={{ background: isActive ? '#3dd68c' : '#f59e0b' }}
-                      />
-                    </div>
-                  )}
+                        <span
+                          className="w-1.5 h-1.5 rounded-full"
+                          style={{ background: isActive ? '#3dd68c' : '#f59e0b' }}
+                        />
+                        {isActive ? 'Active' : 'Inactive'}
+                      </span>
+                    ) : (
+                      <div className="relative inline-block">
+                        <select
+                          value={hotel?.status || 'active'}
+                          onChange={(e) => handleStatusChange(hotel.id, e.target.value)}
+                          className="appearance-none cursor-pointer pl-4 pr-2.5 py-0.5 rounded-full text-xs font-semibold outline-none transition-all"
+                          title="Click to change status"
+                          style={{
+                            background: isActive ? 'rgba(61,214,140,0.12)' : 'rgba(245,158,11,0.12)',
+                            color: isActive ? '#3dd68c' : '#f59e0b',
+                            border: `1px solid ${isActive ? 'rgba(61,214,140,0.3)' : 'rgba(245,158,11,0.3)'}`,
+                          }}
+                        >
+                          <option value="active" style={{ background: '#18181b', color: '#3dd68c' }}>Active</option>
+                          <option value="inactive" style={{ background: '#18181b', color: '#f59e0b' }}>Inactive</option>
+                        </select>
+                        <span
+                          className="w-1.5 h-1.5 rounded-full absolute left-2 top-1/2 -translate-y-1/2 pointer-events-none"
+                          style={{ background: isActive ? '#3dd68c' : '#f59e0b' }}
+                        />
+                      </div>
+                    )}
+
+                    {canEdit && (
+                      <button
+                        onClick={() => handleOpenEditProperty(hotel)}
+                        className="p-1.5 rounded-lg border border-border text-muted-foreground hover:text-amber-400 hover:bg-amber-400/10 transition-colors"
+                        title="Edit Property Card"
+                      >
+                        <Edit2 size={13} />
+                      </button>
+                    )}
+                  </div>
                 </div>
                 {/* Details */}
                 <div className="space-y-2 mb-4">
@@ -264,7 +374,7 @@ export default function PropertiesClient() {
                     <div className="font-head font-bold text-lg" style={{ color: '#e8c97a' }}>
                       {assetCount}
                     </div>
-                    <div className="text-xs text-muted-foreground">Assets</div>
+                    <div className="text-xs text-muted-foreground">{cmsCustomLabels.assetsStatLabel || 'Assets'}</div>
                   </div>
                   <div
                     className="rounded-lg p-2.5 text-center"
@@ -276,7 +386,7 @@ export default function PropertiesClient() {
                     >
                       {overdueCount}
                     </div>
-                    <div className="text-xs text-muted-foreground">Overdue</div>
+                    <div className="text-xs text-muted-foreground">{cmsCustomLabels.overdueStatLabel || 'Overdue'}</div>
                   </div>
                   <div
                     className="rounded-lg p-2.5 text-center"
@@ -288,7 +398,7 @@ export default function PropertiesClient() {
                     >
                       {dueTodayCount}
                     </div>
-                    <div className="text-xs text-muted-foreground">Due Today</div>
+                    <div className="text-xs text-muted-foreground">{cmsCustomLabels.dueTodayStatLabel || 'Due Today'}</div>
                   </div>
                 </div>
                 {/* Action */}
@@ -299,7 +409,7 @@ export default function PropertiesClient() {
                 >
                   <span className="flex items-center gap-1.5">
                     <Package size={13} />
-                    View Asset Register
+                    {cmsCustomLabels.viewRegisterLabel || 'View Asset Register'}
                   </span>
                   <ChevronRight size={13} />
                 </Link>
@@ -412,6 +522,175 @@ export default function PropertiesClient() {
                   {saving && <Loader2 size={13} className="animate-spin" />}
                   {saving ? 'Saving...' : 'Save Property'}
                 </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Property Modal */}
+      {showEditModal && editingProperty && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-in fade-in duration-150">
+          <div
+            className="w-full max-w-lg rounded-2xl border border-border overflow-hidden shadow-2xl"
+            style={{ background: '#161a22', borderColor: 'rgba(232, 201, 122, 0.3)' }}
+          >
+            <div
+              className="flex items-center justify-between px-6 py-4 border-b border-border"
+              style={{ background: 'var(--surface2)' }}
+            >
+              <div className="flex items-center gap-2.5">
+                <div
+                  className="w-8 h-8 rounded-lg flex items-center justify-center"
+                  style={{ background: 'rgba(232,201,122,0.15)', color: '#e8c97a' }}
+                >
+                  <Edit2 size={16} />
+                </div>
+                <div>
+                  <h2 className="font-head font-bold text-sm text-foreground">Edit Property Card</h2>
+                  <p className="text-[11px] text-muted-foreground">Modify property details, contacts, and counts</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowEditModal(false)}
+                className="text-muted-foreground hover:text-foreground p-1 rounded-lg border border-border"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            <form onSubmit={handleSavePropertyEdit} className="p-6 space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-muted-foreground mb-1">Property Name *</label>
+                <input
+                  required
+                  value={editForm.name}
+                  onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+                  className="w-full rounded-lg border border-border px-3 py-2 text-sm outline-none font-bold"
+                  style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-muted-foreground mb-1">City / Region</label>
+                  <input
+                    value={editForm.city}
+                    onChange={(e) => setEditForm({ ...editForm, city: e.target.value })}
+                    className="w-full rounded-lg border border-border px-3 py-2 text-sm outline-none"
+                    style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-muted-foreground mb-1">Status</label>
+                  <select
+                    value={editForm.status}
+                    onChange={(e) => setEditForm({ ...editForm, status: e.target.value as any })}
+                    className="w-full rounded-lg border border-border px-3 py-2 text-sm outline-none"
+                    style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
+                  >
+                    <option value="active">Active</option>
+                    <option value="inactive">Inactive</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-muted-foreground mb-1">Full Address</label>
+                <input
+                  value={editForm.address}
+                  onChange={(e) => setEditForm({ ...editForm, address: e.target.value })}
+                  className="w-full rounded-lg border border-border px-3 py-2 text-sm outline-none"
+                  style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-muted-foreground mb-1">General Manager</label>
+                  <input
+                    value={editForm.manager}
+                    onChange={(e) => setEditForm({ ...editForm, manager: e.target.value })}
+                    className="w-full rounded-lg border border-border px-3 py-2 text-sm outline-none"
+                    style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-muted-foreground mb-1">Phone Number</label>
+                  <input
+                    value={editForm.phone}
+                    onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })}
+                    className="w-full rounded-lg border border-border px-3 py-2 text-sm outline-none"
+                    style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
+                  />
+                </div>
+              </div>
+
+              {/* Statistics Counters */}
+              <div className="pt-2 border-t border-border">
+                <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wide">
+                  Card Statistic Counters
+                </span>
+                <div className="grid grid-cols-3 gap-2 mt-2">
+                  <div>
+                    <label className="block text-[10px] text-muted-foreground mb-0.5">Assets Count</label>
+                    <input
+                      type="number"
+                      value={editForm.totalAssets}
+                      onChange={(e) => setEditForm({ ...editForm, totalAssets: parseInt(e.target.value) || 0 })}
+                      className="w-full rounded-lg border border-border px-2.5 py-1.5 text-xs outline-none font-bold text-amber-400"
+                      style={{ background: 'var(--surface2)' }}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] text-muted-foreground mb-0.5">Overdue Count</label>
+                    <input
+                      type="number"
+                      value={editForm.overdueCount}
+                      onChange={(e) => setEditForm({ ...editForm, overdueCount: parseInt(e.target.value) || 0 })}
+                      className="w-full rounded-lg border border-border px-2.5 py-1.5 text-xs outline-none font-bold text-rose-400"
+                      style={{ background: 'var(--surface2)' }}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] text-muted-foreground mb-0.5">Due Today Count</label>
+                    <input
+                      type="number"
+                      value={editForm.dueTodayCount}
+                      onChange={(e) => setEditForm({ ...editForm, dueTodayCount: parseInt(e.target.value) || 0 })}
+                      className="w-full rounded-lg border border-border px-2.5 py-1.5 text-xs outline-none font-bold text-amber-400"
+                      style={{ background: 'var(--surface2)' }}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between pt-4 border-t border-border">
+                <button
+                  type="button"
+                  onClick={() => handleDeleteProperty(editingProperty.id, editingProperty.name)}
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold text-rose-400 hover:bg-rose-500/10 border border-rose-500/30 transition-colors"
+                >
+                  <Trash2 size={13} />
+                  <span>Delete Property</span>
+                </button>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowEditModal(false)}
+                    className="px-4 py-2 rounded-lg text-xs font-semibold border border-border hover:bg-white/[0.04]"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-5 py-2 rounded-lg text-xs font-bold transition-all shadow-sm"
+                    style={{ background: 'var(--primary)', color: '#121316' }}
+                  >
+                    Save Changes
+                  </button>
+                </div>
               </div>
             </form>
           </div>

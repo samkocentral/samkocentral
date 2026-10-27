@@ -6,6 +6,8 @@ import { Building2, Package, AlertTriangle, CheckCircle2, Clock, TrendingUp, Bar
 import { HOTELS, ASSETS, MAINTENANCE_RECORDS, ASSET_CATEGORIES, getAssetStats } from '@/lib/assetData';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import Icon from '@/components/ui/AppIcon';
+import { useDeepPageCms } from '@/lib/deepPageCms';
+import PageCMSEditButton from '@/components/cms/PageCMSEditButton';
 
 
 const CONDITION_COLORS: Record<string, string> = {
@@ -78,6 +80,7 @@ function MaintenanceBadge({ status }: { status: string }) {
 }
 
 export default function AssetDashboardClient() {
+  const cms = useDeepPageCms('assetdashboard');
   const stats = getAssetStats();
 
   const categoryChartData = ASSET_CATEGORIES
@@ -108,10 +111,11 @@ export default function AssetDashboardClient() {
         style={{ background: 'var(--surface)' }}
       >
         <div>
-          <h1 className="font-head text-xl font-bold">Asset Management Dashboard</h1>
-          <p className="text-xs text-muted-foreground mt-0.5">Hotel Asset Register & Preventive Maintenance</p>
+          <h1 className="font-head text-xl font-bold">{cms.title || 'Asset Management Dashboard'}</h1>
+          <p className="text-xs text-muted-foreground mt-0.5">{cms.subtitle || 'Hotel Asset Register & Preventive Maintenance'}</p>
         </div>
         <div className="flex items-center gap-3">
+          <PageCMSEditButton pageId="assetdashboard" pageName="Asset Management Dashboard" />
           {stats.overdueMaintenance > 0 && (
             <span
               className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold"
@@ -127,7 +131,7 @@ export default function AssetDashboardClient() {
             style={{ background: 'var(--primary)', color: '#000' }}
           >
             <Package size={15} />
-            All Assets
+            {cms.primaryActionLabel || 'All Assets'}
           </Link>
         </div>
       </div>

@@ -4,6 +4,8 @@ import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { ClipboardCheck, Clock, CheckCircle2, AlertTriangle, Search, ChevronDown, Calendar, User, ThumbsUp, ThumbsDown, Minus, Plus, Loader2, X } from 'lucide-react';
 import { MAINTENANCE_RECORDS, ASSETS, HOTELS } from '@/lib/assetData';
 import { api } from '@/lib/api';
+import PageCMSEditButton from '@/components/cms/PageCMSEditButton';
+import { useDeepPageCms } from '@/lib/deepPageCms';
 
 type TabId = 'pending' | 'in-progress' | 'completed';
 
@@ -51,6 +53,13 @@ function StatCard({ label, value, color, icon: Icon }: { label: string; value: n
 }
 
 export default function InspectionsClient() {
+  const {
+    title: cmsTitle,
+    subtitle: cmsSubtitle,
+    searchPlaceholder: cmsSearchPlaceholder,
+    primaryActionLabel: cmsPrimaryActionLabel,
+  } = useDeepPageCms('inspections');
+
   const [activeTab, setActiveTab] = useState<TabId>('pending');
   const [search, setSearch] = useState('');
   const [hotelFilter, setHotelFilter] = useState('');
@@ -250,29 +259,32 @@ export default function InspectionsClient() {
       >
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="font-head text-xl font-bold">Inspections</h1>
+            <h1 className="font-head text-xl font-bold">{cmsTitle || 'Inspections'}</h1>
             {loading && <Loader2 size={14} className="animate-spin text-muted-foreground" />}
           </div>
-          <p className="text-xs text-muted-foreground mt-0.5">Asset inspection records and scheduling — {inspections.length} total inspections</p>
+          <p className="text-xs text-muted-foreground mt-0.5">{cmsSubtitle || `Asset inspection records and scheduling — ${inspections.length} total inspections`}</p>
         </div>
-        <button
-          onClick={() => {
-            if (assets.length > 0) {
-              setNewForm((prev) => ({
-                ...prev,
-                assetId: assets[0].id,
-                assetName: assets[0].name,
-                hotelId: assets[0].hotelId,
-                hotelName: assets[0].hotelName,
-              }));
-            }
-            setShowNewModal(true);
-          }}
-          className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-transform active:scale-95"
-          style={{ background: 'var(--primary)', color: '#000' }}
-        >
-          <ClipboardCheck size={15} /> New Inspection
-        </button>
+        <div className="flex items-center gap-2">
+          <PageCMSEditButton pageId="inspections" pageName="Asset Inspections & Audits" />
+          <button
+            onClick={() => {
+              if (assets.length > 0) {
+                setNewForm((prev) => ({
+                  ...prev,
+                  assetId: assets[0].id,
+                  assetName: assets[0].name,
+                  hotelId: assets[0].hotelId,
+                  hotelName: assets[0].hotelName,
+                }));
+              }
+              setShowNewModal(true);
+            }}
+            className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-transform active:scale-95"
+            style={{ background: 'var(--primary)', color: '#000' }}
+          >
+            <ClipboardCheck size={15} /> {cmsPrimaryActionLabel || 'New Inspection'}
+          </button>
+        </div>
       </div>
 
       {/* KPI Row */}
@@ -328,7 +340,7 @@ export default function InspectionsClient() {
           <Search size={14} className="text-muted-foreground flex-shrink-0" />
           <input
             className="bg-transparent text-sm outline-none flex-1"
-            placeholder="Search inspections…"
+            placeholder={cmsSearchPlaceholder || 'Search inspections…'}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             style={{ color: 'var(--foreground)' }}

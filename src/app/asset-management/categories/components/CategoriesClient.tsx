@@ -4,6 +4,8 @@ import React, { useState, useEffect } from 'react';
 import { Plus, Pencil, Trash2, Tag, X, Check } from 'lucide-react';
 import { ASSET_CATEGORIES, ASSETS, type AssetCategory } from '@/lib/assetData';
 import { api } from '@/lib/api';
+import PageCMSEditButton from '@/components/cms/PageCMSEditButton';
+import { useDeepPageCms } from '@/lib/deepPageCms';
 
 const PRESET_COLORS = [
   '#e8c97a', '#60a5fa', '#a78bfa', '#34d399', '#f43f5e',
@@ -185,6 +187,7 @@ export default function CategoriesClient() {
     }
   };
 
+  const { title: cmsTitle, subtitle: cmsSubtitle, primaryActionLabel: cmsPrimaryAction } = useDeepPageCms('categories');
   const totalAssets = liveAssets.length;
 
   return (
@@ -195,18 +198,21 @@ export default function CategoriesClient() {
         style={{ background: 'var(--surface)' }}
       >
         <div>
-          <h1 className="font-head text-xl font-bold">Asset Categories</h1>
+          <h1 className="font-head text-xl font-bold">{cmsTitle || 'Asset Categories'}</h1>
           <p className="text-xs text-muted-foreground mt-0.5">
-            {categories.length} categories · {totalAssets} total assets
+            {cmsSubtitle || `${categories.length} categories · ${totalAssets} total assets`}
           </p>
         </div>
-        <button
-          onClick={() => { setShowAdd(true); setEditingId(null); }}
-          className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold"
-          style={{ background: 'var(--primary)', color: '#000' }}
-        >
-          <Plus size={15} /> Add Category
-        </button>
+        <div className="flex items-center gap-2">
+          <PageCMSEditButton pageId="categories" pageName="Asset Categories" />
+          <button
+            onClick={() => { setShowAdd(true); setEditingId(null); }}
+            className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold"
+            style={{ background: 'var(--primary)', color: '#000' }}
+          >
+            <Plus size={15} /> {cmsPrimaryAction || 'Add Category'}
+          </button>
+        </div>
       </div>
 
       <div className="flex-1 overflow-auto px-6 py-5">

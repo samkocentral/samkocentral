@@ -3,6 +3,7 @@
 import React from 'react';
 import dynamic from 'next/dynamic';
 import { COMPLIANCE_TREND } from '@/lib/mockData';
+import { useDeepPageCms } from '@/lib/deepPageCms';
 
 const ComplianceTrendChart = dynamic(() => import('./ComplianceTrendChart'), {
   ssr: false,
@@ -12,6 +13,19 @@ const ComplianceTrendChart = dynamic(() => import('./ComplianceTrendChart'), {
 });
 
 export default function DashboardComplianceChart() {
+  const cms = useDeepPageCms('overview');
+  const title = cms.sections?.complianceChart?.title || 'Group Compliance Score – 12 Week Trend';
+  const subtitle = cms.sections?.complianceChart?.subtitle || 'Average compliance % across all 5 properties — declining trend requires attention';
+
+  const chartData = (cms.chartData && cms.chartData.length > 0)
+    ? cms.chartData.map((pt) => ({
+        week: pt.week,
+        score: pt.compliance,
+        critical: pt.critical,
+        warnings: 0,
+      }))
+    : COMPLIANCE_TREND;
+
   return (
     <div className="samko-card mb-5" style={{ padding: '18px 20px' }}>
       <div className="flex items-center justify-between mb-4">
@@ -20,10 +34,10 @@ export default function DashboardComplianceChart() {
             className="font-head text-foreground"
             style={{ fontSize: 13, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em' }}
           >
-            Group Compliance Score – 12 Week Trend
+            {title}
           </h2>
           <p className="text-muted-foreground" style={{ fontSize: 11, marginTop: 2 }}>
-            Average compliance % across all 5 properties — declining trend requires attention
+            {subtitle}
           </p>
         </div>
         <div className="flex items-center gap-4">
@@ -43,7 +57,7 @@ export default function DashboardComplianceChart() {
           ))}
         </div>
       </div>
-      <ComplianceTrendChart data={COMPLIANCE_TREND} />
+      <ComplianceTrendChart data={chartData} />
     </div>
   );
 }

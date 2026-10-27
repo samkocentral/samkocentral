@@ -7,9 +7,11 @@ import { useAuth } from '@/lib/authContext';
 import { api } from '@/lib/api';
 import { ASSETS, MAINTENANCE_RECORDS } from '@/lib/assetData';
 import { COMPLIANCE, TASKS, ALERTS, SITES } from '@/lib/mockData';
+import { useDeepPageCms } from '@/lib/deepPageCms';
 
 export default function DashboardModulesSummary() {
   const { activePortal } = useAuth();
+  const cms = useDeepPageCms('overview');
 
   const [assets, setAssets] = useState<any[]>(ASSETS);
   const [maintenance, setMaintenance] = useState<any[]>(MAINTENANCE_RECORDS);
@@ -118,14 +120,16 @@ export default function DashboardModulesSummary() {
   const openTasks = tasks.filter((t) => t.status === 'open').length || 8;
   const urgentTasks = tasks.filter((t) => (t.priority === 'urgent' || t.priority === 'high') && t.status === 'open').length || 3;
 
+  const propcoKpiMap = new Map((cms.propcoKpis || []).map((k) => [k.id, k]));
+
   // PropCo Modules (Asset Owner / Property Company View)
   const propcoModules = [
     {
       id: 'mod-properties',
-      title: 'Properties Portfolio',
+      title: propcoKpiMap.get('mod-properties')?.label || 'Properties Portfolio',
       icon: <Building2 size={16} />,
       href: '/asset-management/properties',
-      color: '#e8c97a',
+      color: propcoKpiMap.get('mod-properties')?.color || '#e8c97a',
       bg: 'rgba(232,201,122,0.1)',
       stats: [
         { label: 'Properties', value: properties.length || 5 },
@@ -133,13 +137,14 @@ export default function DashboardModulesSummary() {
         { label: 'Monitored', value: '100%' },
       ],
       badge: null,
+      enabled: propcoKpiMap.get('mod-properties')?.enabled !== false,
     },
     {
       id: 'mod-fixed-assets',
-      title: 'Fixed Assets',
+      title: propcoKpiMap.get('mod-fixed-assets')?.label || 'Fixed Assets',
       icon: <Package size={16} />,
       href: '/asset-management/assets',
-      color: '#60a5fa',
+      color: propcoKpiMap.get('mod-fixed-assets')?.color || '#60a5fa',
       bg: 'rgba(96,165,250,0.1)',
       stats: [
         { label: 'Fixed Items', value: fixedAssets },
@@ -147,13 +152,14 @@ export default function DashboardModulesSummary() {
         { label: 'Plant & MEP', value: `${Math.round((fixedAssets / totalAssets) * 100)}%` },
       ],
       badge: null,
+      enabled: propcoKpiMap.get('mod-fixed-assets')?.enabled !== false,
     },
     {
       id: 'mod-insurance',
-      title: 'Insurance',
+      title: propcoKpiMap.get('mod-insurance')?.label || 'Insurance',
       icon: <Umbrella size={16} />,
       href: '/insurance-register',
-      color: expiringInsurance > 0 ? 'var(--warning)' : 'var(--ok)',
+      color: propcoKpiMap.get('mod-insurance')?.color || (expiringInsurance > 0 ? 'var(--warning)' : 'var(--ok)'),
       bg: expiringInsurance > 0 ? 'var(--warning-bg)' : 'var(--ok-bg)',
       stats: [
         { label: 'Active', value: activeInsurance },
@@ -161,13 +167,14 @@ export default function DashboardModulesSummary() {
         { label: 'Total Policies', value: totalPolicies },
       ],
       badge: expiringInsurance > 0 ? { label: `${expiringInsurance} Attention`, variant: 'warning' } : null,
+      enabled: propcoKpiMap.get('mod-insurance')?.enabled !== false,
     },
     {
       id: 'mod-contracts',
-      title: 'Contracts Register',
+      title: propcoKpiMap.get('mod-contracts')?.label || 'Contracts Register',
       icon: <FileSignature size={16} />,
       href: '/contracts-register',
-      color: criticalContracts > 0 ? 'var(--critical)' : expiringContracts > 0 ? 'var(--warning)' : 'var(--ok)',
+      color: propcoKpiMap.get('mod-contracts')?.color || (criticalContracts > 0 ? 'var(--critical)' : expiringContracts > 0 ? 'var(--warning)' : 'var(--ok)'),
       bg: criticalContracts > 0 ? 'var(--critical-bg)' : expiringContracts > 0 ? 'var(--warning-bg)' : 'var(--ok-bg)',
       stats: [
         { label: 'Active', value: activeContracts },
@@ -175,13 +182,14 @@ export default function DashboardModulesSummary() {
         { label: 'Total', value: totalContracts },
       ],
       badge: expiringContracts > 0 ? { label: `${expiringContracts} Attention`, variant: 'warning' } : null,
+      enabled: propcoKpiMap.get('mod-contracts')?.enabled !== false,
     },
     {
-      id: 'mod-propco-reports',
-      title: 'PropCo Reports',
+      id: 'mod-reports',
+      title: propcoKpiMap.get('mod-reports')?.label || 'PropCo Reports',
       icon: <BarChart3 size={16} />,
       href: '/asset-management/reports?type=contracts',
-      color: '#a78bfa',
+      color: propcoKpiMap.get('mod-reports')?.color || '#a78bfa',
       bg: 'rgba(167,139,250,0.1)',
       stats: [
         { label: 'Contracts', value: '£1175k' },
@@ -189,28 +197,32 @@ export default function DashboardModulesSummary() {
         { label: 'Sites', value: properties.length || 5 },
       ],
       badge: null,
+      enabled: propcoKpiMap.get('mod-reports')?.enabled !== false,
     },
   ];
+
+  const kpiMap = new Map((cms.kpis || []).map((k) => [k.id, k]));
 
   // OpCo Modules (Operating Company / Management View)
   const opcoModules = [
     {
       id: 'mod-nonfixed',
-      title: 'Non-Fixed Assets',
+      title: kpiMap.get('ov-kpi-1')?.label || 'Non-Fixed Assets',
       icon: <Package size={16} />,
       href: '/asset-management/assets?type=non-fixed',
-      color: '#60a5fa',
+      color: kpiMap.get('ov-kpi-1')?.color || '#60a5fa',
       bg: 'rgba(96,165,250,0.1)',
       stats: [
-        { label: 'Non-Fixed', value: nonFixedAssets },
+        { label: 'Non-Fixed', value: kpiMap.get('ov-kpi-1')?.value || nonFixedAssets },
         { label: 'Kitchen & FF&E', value: Math.round(nonFixedAssets * 0.6) },
         { label: 'IT & Audio', value: Math.round(nonFixedAssets * 0.4) },
       ],
       badge: null,
+      enabled: kpiMap.get('ov-kpi-1')?.enabled !== false,
     },
     {
       id: 'mod-maintenance',
-      title: 'Maintenance',
+      title: kpiMap.get('ov-kpi-2')?.label || 'Maintenance',
       icon: <Wrench size={16} />,
       href: '/asset-management/maintenance',
       color: overdueMaint > 0 ? 'var(--critical)' : 'var(--ok)',
@@ -221,10 +233,11 @@ export default function DashboardModulesSummary() {
         { label: 'Completion', value: `${maintCompletion}%` },
       ],
       badge: overdueMaint > 0 ? { label: `${overdueMaint} Overdue`, variant: 'critical' } : null,
+      enabled: kpiMap.get('ov-kpi-2')?.enabled !== false,
     },
     {
       id: 'mod-compliance',
-      title: 'Compliance',
+      title: kpiMap.get('ov-kpi-3')?.label || 'Compliance',
       icon: <ShieldCheck size={16} />,
       href: '/compliance-register',
       color: criticalCompliance > 0 ? 'var(--critical)' : warningCompliance > 0 ? 'var(--warning)' : 'var(--ok)',
@@ -235,10 +248,11 @@ export default function DashboardModulesSummary() {
         { label: 'Critical', value: criticalCompliance },
       ],
       badge: criticalCompliance > 0 ? { label: `${criticalCompliance} Critical`, variant: 'critical' } : null,
+      enabled: kpiMap.get('ov-kpi-3')?.enabled !== false,
     },
     {
       id: 'mod-tasks',
-      title: 'Tasks & Alerts',
+      title: kpiMap.get('ov-kpi-4')?.label || 'Tasks & Alerts',
       icon: <CheckSquare size={16} />,
       href: '/tasks',
       color: urgentTasks > 0 ? 'var(--warning)' : 'var(--ok)',
@@ -249,13 +263,14 @@ export default function DashboardModulesSummary() {
         { label: 'Alerts', value: ALERTS.length || 6 },
       ],
       badge: urgentTasks > 0 ? { label: `${urgentTasks} Urgent`, variant: 'warning' } : null,
+      enabled: kpiMap.get('ov-kpi-4')?.enabled !== false,
     },
     {
       id: 'mod-utilities',
-      title: 'Utilities & Energy',
+      title: kpiMap.get('ov-kpi-5')?.label || 'Utilities & Energy',
       icon: <Zap size={16} />,
       href: '/utilities-register',
-      color: '#3dd68c',
+      color: kpiMap.get('ov-kpi-5')?.color || '#3dd68c',
       bg: 'rgba(61,214,140,0.1)',
       stats: [
         { label: 'Accounts', value: totalUtilities },
@@ -263,6 +278,7 @@ export default function DashboardModulesSummary() {
         { label: 'Suppliers', value: '4 Active' },
       ],
       badge: null,
+      enabled: kpiMap.get('ov-kpi-5')?.enabled !== false,
     },
   ];
 
@@ -275,19 +291,19 @@ export default function DashboardModulesSummary() {
           className="font-head text-foreground"
           style={{ fontSize: 13, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em' }}
         >
-          {activePortal === 'propco' ? 'PropCo Module Overview' : 'OpCo Module Overview'}
+          {cms.sections?.kpiRadar?.title || (activePortal === 'propco' ? 'PropCo Module Overview' : 'OpCo Module Overview')}
         </h2>
         <span className="text-xs text-muted-foreground font-medium">
-          {activePortal === 'propco'
+          {cms.sections?.kpiRadar?.subtitle || (activePortal === 'propco'
             ? 'Asset management, legal contracts, property insurance & portfolio records'
-            : 'Hotel operations, equipment maintenance, statutory compliance & utilities'}
+            : 'Hotel operations, equipment maintenance, statutory compliance & utilities')}
         </span>
       </div>
       <div
         className="grid gap-3"
         style={{ gridTemplateColumns: 'repeat(5, 1fr)' }}
       >
-        {modules.map((mod) => (
+        {modules.filter((m: any) => m.enabled !== false).map((mod) => (
           <Link
             key={mod.id}
             href={mod.href}

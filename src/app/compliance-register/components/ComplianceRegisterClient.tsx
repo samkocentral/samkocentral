@@ -8,6 +8,8 @@ import { toast } from 'sonner';
 import Icon from '@/components/ui/AppIcon';
 import CustomDropdown from '@/components/ui/CustomDropdown';
 import StatusDropdown from '@/components/ui/StatusDropdown';
+import { useDeepPageCms } from '@/lib/deepPageCms';
+import PageCMSEditButton from '@/components/cms/PageCMSEditButton';
 
 type ComplianceStatus = 'compliant' | 'expiring-soon' | 'overdue' | 'pending';
 type RiskRating = 'low' | 'medium' | 'high' | 'critical';
@@ -173,6 +175,13 @@ function KPICard({ label, value, sub, color, icon: IconComponent }: { label: str
 
 export default function ComplianceRegisterClient() {
   const { isViewer, canEdit } = useAuth();
+  const {
+    title: cmsTitle,
+    subtitle: cmsSubtitle,
+    searchPlaceholder: cmsSearchPlaceholder,
+    primaryActionLabel: cmsPrimaryActionLabel,
+  } = useDeepPageCms('compliance');
+
   const [items, setItems] = useState<ComplianceItem[]>(MOCK_COMPLIANCE);
   const [propertyList, setPropertyList] = useState<string[]>(DEFAULT_HOTELS);
   const [loading, setLoading] = useState(false);
@@ -398,12 +407,14 @@ export default function ComplianceRegisterClient() {
       <div className="flex items-center justify-between px-7 py-4 border-b border-border flex-shrink-0" style={{ background: 'var(--surface)' }}>
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="font-head font-bold text-xl">Compliance & Certification Register</h1>
+            <h1 className="font-head font-bold text-xl">{cmsTitle || 'Compliance & Certification Register'}</h1>
             {loading && <Loader2 size={14} className="animate-spin text-muted-foreground" />}
           </div>
-          <p className="text-xs text-muted-foreground mt-0.5">Manage statutory and internal compliance requirements</p>
+          <p className="text-xs text-muted-foreground mt-0.5">{cmsSubtitle || 'Manage statutory and internal compliance requirements'}</p>
         </div>
         <div className="flex items-center gap-2">
+          <PageCMSEditButton pageId="compliance" pageName="Compliance Register" />
+
           <button
             onClick={handleExport}
             className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium border border-border hover:bg-surface2 transition-all active:scale-95 cursor-pointer"
@@ -417,7 +428,7 @@ export default function ComplianceRegisterClient() {
               className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-transform active:scale-95"
               style={{ background: 'var(--primary)', color: '#000' }}
             >
-              <Plus size={14} /> Add Compliance Item
+              <Plus size={14} /> {cmsPrimaryActionLabel || 'Add Compliance Item'}
             </button>
           )}
           {isViewer && (

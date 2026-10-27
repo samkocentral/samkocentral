@@ -9,7 +9,7 @@ import LoginPageClient from '@/app/login/components/LoginPageClient';
 
 interface AppLayoutProps {
   children: React.ReactNode;
-  currentPath?: string;
+  currentPath?: string | null;
 }
 
 export default function AppLayout({ children, currentPath }: AppLayoutProps) {
@@ -22,13 +22,9 @@ export default function AppLayout({ children, currentPath }: AppLayoutProps) {
     return (
       <div className="h-screen w-screen flex flex-col items-center justify-center bg-background">
         <img
-          src="/assets/images/samko_logo.png?v=5"
+          src="/assets/images/samko_logo.png?v=6"
           alt="SAMKO Logo"
           className="w-20 h-20 object-contain animate-pulse mb-3"
-          style={{
-            borderRadius: '16px',
-            boxShadow: '0 4px 16px rgba(0,0,0,0.25)',
-          }}
         />
         <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground">
           <Loader2 size={14} className="animate-spin text-primary" />

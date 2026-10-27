@@ -9,6 +9,8 @@ import { toast } from 'sonner';
 import Icon from '@/components/ui/AppIcon';
 import CustomDropdown from '@/components/ui/CustomDropdown';
 import StatusDropdown from '@/components/ui/StatusDropdown';
+import { useDeepPageCms } from '@/lib/deepPageCms';
+import PageCMSEditButton from '@/components/cms/PageCMSEditButton';
 
 type TabId = 'all' | 'scheduled' | 'due-today' | 'overdue' | 'completed';
 
@@ -45,6 +47,13 @@ function StatCard({ label, value, color, icon: IconComponent }: { label: string;
 
 export default function MaintenanceClient() {
   const { isViewer, canEdit } = useAuth();
+  const {
+    title: cmsTitle,
+    subtitle: cmsSubtitle,
+    searchPlaceholder: cmsSearchPlaceholder,
+    primaryActionLabel: cmsPrimaryActionLabel,
+  } = useDeepPageCms('maintenance');
+
   const [records, setRecords] = useState<MaintenanceRecord[]>(MAINTENANCE_RECORDS);
   const [properties, setProperties] = useState<Hotel[]>(HOTELS);
   const [liveAssets, setLiveAssets] = useState<any[]>(ASSETS);
@@ -284,10 +293,10 @@ export default function MaintenanceClient() {
       <div className="flex items-center justify-between px-6 py-4 border-b border-border flex-shrink-0" style={{ background: 'var(--surface)' }}>
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="font-head text-xl font-bold">Maintenance</h1>
+            <h1 className="font-head text-xl font-bold">{cmsTitle || 'Maintenance'}</h1>
             {loading && <Loader2 size={14} className="animate-spin text-muted-foreground" />}
           </div>
-          <p className="text-xs text-muted-foreground mt-0.5">Preventive Maintenance Management</p>
+          <p className="text-xs text-muted-foreground mt-0.5">{cmsSubtitle || 'Preventive Maintenance Management'}</p>
         </div>
         <div className="flex items-center gap-3">
           {counts.overdue > 0 && (
@@ -296,13 +305,16 @@ export default function MaintenanceClient() {
               {counts.overdue} Overdue
             </span>
           )}
+
+          <PageCMSEditButton pageId="maintenance" pageName="Planned Maintenance (PPM)" />
+
           {canEdit && (
             <button
               onClick={() => setShowAddModal(true)}
               className="flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-semibold transition-transform active:scale-95"
               style={{ background: 'var(--primary)', color: '#000' }}
             >
-              <Plus size={14} /> Schedule Maintenance
+              <Plus size={14} /> {cmsPrimaryActionLabel || 'Schedule Maintenance'}
             </button>
           )}
           {isViewer && (

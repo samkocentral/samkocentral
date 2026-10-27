@@ -12,6 +12,9 @@ import * as XLSX from 'xlsx';
 import { HOTELS } from '@/lib/assetData';
 import { api } from '@/lib/api';
 import { toast } from 'sonner';
+import { useAppCms } from '@/lib/appCmsConfig';
+import { useDeepPageCms } from '@/lib/deepPageCms';
+import PageCMSEditButton from '@/components/cms/PageCMSEditButton';
 
 type Step = 1 | 2 | 3 | 4 | 5;
 
@@ -868,6 +871,8 @@ const STEPS = [
 ];
 
 export default function ImportClient() {
+  const cms = useDeepPageCms('import');
+  const { importExport: cmsImportExport } = useAppCms();
   const [step, setStep] = useState<Step>(1);
   const [selectedDestinationId, setSelectedDestinationId] = useState<string>('fixed-assets');
   const [selectedProperty, setSelectedProperty] = useState('');
@@ -1184,7 +1189,7 @@ export default function ImportClient() {
       >
         <div>
           <div className="flex items-center gap-2.5">
-            <h1 className="font-head text-xl font-bold">Universal Data Import & Export Hub</h1>
+            <h1 className="font-head text-xl font-bold">{cms.title || cmsImportExport?.moduleTitle || 'Universal Data Import & Export Hub'}</h1>
             <span
               className="text-xs px-2.5 py-0.5 rounded-full font-semibold border flex items-center gap-1.5"
               style={{
@@ -1198,12 +1203,14 @@ export default function ImportClient() {
             </span>
           </div>
           <p className="text-xs text-muted-foreground mt-0.5">
-            Upload, preview, map and export multi-sheet Excel files (.xlsx, .csv) for any module
+            {cms.subtitle || 'Upload, preview, map and export multi-sheet Excel files (.xlsx, .csv) for any module'}
           </p>
         </div>
 
         {/* Top Dropdowns & Action Buttons */}
         <div className="flex flex-wrap items-center gap-2.5">
+          <PageCMSEditButton pageId="import" pageName="Bulk Data Import & Migration Hub" />
+
           {/* Target Place / Module Dropdown */}
           <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border" style={{ background: 'var(--surface2)' }}>
             <span className="text-xs text-muted-foreground font-medium flex items-center gap-1">

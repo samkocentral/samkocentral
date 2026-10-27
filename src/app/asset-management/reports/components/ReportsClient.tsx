@@ -15,6 +15,8 @@ import { toast } from 'sonner';
 import { ASSETS, HOTELS, ASSET_CATEGORIES, MAINTENANCE_RECORDS, DEPARTMENTS, getAssetStats } from '@/lib/assetData';
 import Icon from '@/components/ui/AppIcon';
 import { api } from '@/lib/api';
+import PageCMSEditButton from '@/components/cms/PageCMSEditButton';
+import { useDeepPageCms } from '@/lib/deepPageCms';
 
 
 const stats = getAssetStats();
@@ -1754,6 +1756,7 @@ function UtilitiesReport() {
 
 // ── Asset Report (original) ───────────────────────────────────────────────────
 function AssetReport() {
+  const cms = useDeepPageCms('reports');
   const [activeSection, setActiveSection] = useState<'overview' | 'charts' | 'export'>('overview');
   const [assets, setAssets] = useState<any[]>(ASSETS);
   const [properties, setProperties] = useState<any[]>(HOTELS);
@@ -1789,10 +1792,12 @@ function AssetReport() {
     <div className="flex flex-col h-full">
       <div className="flex items-center justify-between px-6 py-4 border-b border-border flex-shrink-0" style={{ background: 'var(--surface)' }}>
         <div>
-          <h1 className="font-head text-xl font-bold">Asset Reports</h1>
-          <p className="text-xs text-muted-foreground mt-0.5">Asset management insights and exports</p>
+          <h1 className="font-head text-xl font-bold">{cms.title || 'Asset Reports'}</h1>
+          <p className="text-xs text-muted-foreground mt-0.5">{cms.subtitle || 'Asset management insights and exports'}</p>
         </div>
         <div className="flex items-center gap-2">
+          <PageCMSEditButton pageId="reports" pageName="Reports & Analytics" />
+
           {(['overview', 'charts', 'export'] as const).map((s) => (
             <button key={s} onClick={() => setActiveSection(s)} className="px-4 py-2 rounded-lg text-sm font-medium capitalize transition-colors"
               style={{ background: activeSection === s ? 'rgba(232,201,122,0.12)' : 'var(--surface2)', color: activeSection === s ? 'var(--primary)' : 'var(--text2)', border: `1px solid ${activeSection === s ? 'var(--primary)' : 'var(--border)'}` }}>
@@ -1949,7 +1954,7 @@ export default function ReportsClient() {
   const [reportType, setReportType] = useState<string>('asset');
 
   useEffect(() => {
-    const type = searchParams.get('type') || 'asset';
+    const type = searchParams?.get('type') || 'asset';
     setReportType(type);
   }, [searchParams]);
 

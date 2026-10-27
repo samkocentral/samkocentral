@@ -9,11 +9,14 @@ import ComplianceRing from '@/components/ui/ComplianceRing';
 import EmptyState from '@/components/ui/EmptyState';
 import { Building2 } from 'lucide-react';
 import { api } from '@/lib/api';
+import { useDeepPageCms } from '@/lib/deepPageCms';
+import PageCMSEditButton from '@/components/cms/PageCMSEditButton';
 
 type TypeFilter = 'All' | 'Hotel' | 'Restaurant';
 type RiskFilter = 'All' | 'high' | 'medium' | 'low';
 
 export default function MultiSiteClient() {
+  const cms = useDeepPageCms('multisite');
   const [sites, setSites] = useState<any[]>(SITES);
   const [compliance, setCompliance] = useState<any[]>(COMPLIANCE);
   const [tasks, setTasks] = useState<any[]>(TASKS);
@@ -111,12 +114,23 @@ export default function MultiSiteClient() {
     <>
       {/* Group summary strip */}
       <div className="grid gap-4 mb-5" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
-        {[
-          { label: 'Total Sites', val: groupStats.totalSites, color: 'var(--info)', sub: 'Hotels & restaurants' },
-          { label: 'Operational', val: groupStats.operational, color: 'var(--ok)', sub: 'Fully trading sites' },
-          { label: 'High Risk', val: groupStats.highRisk, color: 'var(--critical)', sub: 'Compliance below 70%' },
-          { label: 'Group Avg Compliance', val: `${groupStats.avgCompliance}%`, color: groupStats.avgCompliance >= 80 ? 'var(--warning)' : 'var(--critical)', sub: 'Across all sites' },
-        ].map((s) => (
+        {(cms.kpis && cms.kpis.length >= 4
+          ? cms.kpis.map((kpi, idx) => {
+              const defaultVals = [groupStats.totalSites, groupStats.operational, groupStats.highRisk, `${groupStats.avgCompliance}%`];
+              return {
+                label: kpi.label,
+                val: kpi.value || defaultVals[idx],
+                color: kpi.color || 'var(--info)',
+                sub: kpi.subtitle,
+              };
+            })
+          : [
+              { label: 'Total Sites', val: groupStats.totalSites, color: 'var(--info)', sub: 'Hotels & restaurants' },
+              { label: 'Operational', val: groupStats.operational, color: 'var(--ok)', sub: 'Fully trading sites' },
+              { label: 'High Risk', val: groupStats.highRisk, color: 'var(--critical)', sub: 'Compliance below 70%' },
+              { label: 'Group Avg Compliance', val: `${groupStats.avgCompliance}%`, color: groupStats.avgCompliance >= 80 ? 'var(--warning)' : 'var(--critical)', sub: 'Across all sites' },
+            ]
+        ).map((s) => (
           <div
             key={`gs-${s.label}`}
             className="samko-card"
@@ -159,9 +173,12 @@ export default function MultiSiteClient() {
             </button>
           ))}
         </div>
-        <p className="text-muted-foreground ml-auto" style={{ fontSize: 12 }}>
-          Showing <span style={{ color: 'var(--foreground)', fontWeight: 600 }}>{filtered.length}</span> of {sites.length} sites
-        </p>
+        <div className="flex items-center gap-3 ml-auto">
+          <PageCMSEditButton pageId="multisite" pageName="Multi-Site Operations" />
+          <p className="text-muted-foreground" style={{ fontSize: 12 }}>
+            Showing <span style={{ color: 'var(--foreground)', fontWeight: 600 }}>{filtered.length}</span> of {sites.length} sites
+          </p>
+        </div>
       </div>
 
       {/* Site cards grid */}

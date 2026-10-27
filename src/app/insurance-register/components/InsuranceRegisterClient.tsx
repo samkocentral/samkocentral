@@ -11,6 +11,8 @@ import { useAuth } from '@/lib/authContext';
 import { toast } from 'sonner';
 import Icon from '@/components/ui/AppIcon';
 import CustomDropdown from '@/components/ui/CustomDropdown';
+import { useDeepPageCms } from '@/lib/deepPageCms';
+import PageCMSEditButton from '@/components/cms/PageCMSEditButton';
 
 type PolicyStatus = 'active' | 'expiring-soon' | 'expired' | 'pending-renewal';
 
@@ -219,6 +221,13 @@ function normalizePolicy(item: any): InsurancePolicy {
 
 export default function InsuranceRegisterClient() {
   const { isViewer, canEdit } = useAuth();
+  const {
+    title: cmsTitle,
+    subtitle: cmsSubtitle,
+    searchPlaceholder: cmsSearchPlaceholder,
+    primaryActionLabel: cmsPrimaryActionLabel,
+  } = useDeepPageCms('insurance');
+
   const [policies, setPolicies] = useState<InsurancePolicy[]>(MOCK_POLICIES.map(normalizePolicy));
   const [propertyList, setPropertyList] = useState<string[]>(DEFAULT_HOTELS);
   const [claims, setClaims] = useState<Claim[]>(MOCK_CLAIMS);
@@ -598,12 +607,14 @@ export default function InsuranceRegisterClient() {
       <div className="flex items-center justify-between px-7 py-4 border-b border-border flex-shrink-0" style={{ background: 'var(--surface)' }}>
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="font-head font-bold text-xl">Insurance Management</h1>
+            <h1 className="font-head font-bold text-xl">{cmsTitle || 'Insurance Management'}</h1>
             {loading && <Loader2 size={14} className="animate-spin text-muted-foreground" />}
           </div>
-          <p className="text-xs text-muted-foreground mt-0.5">Manage insurance policies, coverage, premiums, claims, and renewals</p>
+          <p className="text-xs text-muted-foreground mt-0.5">{cmsSubtitle || 'Manage insurance policies, coverage, premiums, claims, and renewals'}</p>
         </div>
         <div className="flex items-center gap-2">
+          <PageCMSEditButton pageId="insurance" pageName="Insurance Register" />
+
           <button
             onClick={handleExport}
             className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium border border-border hover:bg-surface2 transition-all active:scale-95 cursor-pointer"
@@ -617,7 +628,7 @@ export default function InsuranceRegisterClient() {
               className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-transform active:scale-95"
               style={{ background: 'var(--primary)', color: '#000' }}
             >
-              <Plus size={14} /> Add Policy
+              <Plus size={14} /> {cmsPrimaryActionLabel || 'Add Policy'}
             </button>
           )}
           {isViewer && (

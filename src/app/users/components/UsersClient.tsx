@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   Users,
   Shield,
+  ShieldCheck,
   Plus,
   Search,
   Trash2,
@@ -36,13 +37,19 @@ import {
 } from 'lucide-react';
 import { api } from '@/lib/api';
 import { useAuth, type RoleLevel, type PortalType, type AppUser } from '@/lib/authContext';
+import { getAppCmsConfig } from '@/lib/appCmsConfig';
 import { toast } from 'sonner';
 import Modal from '@/components/ui/Modal';
 import TabPermissionsEditor from '@/components/users/TabPermissionsEditor';
+import { useDeepPageCms } from '@/lib/deepPageCms';
+import PageCMSEditButton from '@/components/cms/PageCMSEditButton';
 import {
   ALL_SYSTEM_TABS,
   type UserTabPermissions,
+  type TabAccessMode,
   getDefaultTabPermissionsForRole,
+  getRoleTabPermissions,
+  saveRoleTabPermissions,
 } from '@/lib/permissions';
 import {
   type AuditLogEntry,
@@ -69,7 +76,7 @@ export interface UserRecord {
   tabPermissions?: UserTabPermissions;
 }
 
-const ROLE_LEVEL_CONFIG: Record<
+const BASE_ROLE_LEVEL_CONFIG: Record<
   RoleLevel,
   { label: string; title: string; color: string; badgeBg: string; desc: string }
 > = {
@@ -102,6 +109,34 @@ const ROLE_LEVEL_CONFIG: Record<
     desc: 'Read-only access to their assigned properties (cannot edit or delete)',
   },
 };
+
+function getDynamicRoleConfig(level: RoleLevel) {
+  const base = BASE_ROLE_LEVEL_CONFIG[level] || BASE_ROLE_LEVEL_CONFIG.L4;
+  if (typeof window === 'undefined') return base;
+  try {
+    const cms = getAppCmsConfig();
+    const cmsRole = cms?.roles?.find((r) => r.roleLevel === level);
+    if (!cmsRole) return base;
+    return {
+      label: `${level} – ${cmsRole.title || base.title}`,
+      title: cmsRole.title || base.title,
+      color: cmsRole.badgeColor || base.color,
+      badgeBg: cmsRole.badgeColor ? `${cmsRole.badgeColor}22` : base.badgeBg,
+      desc: cmsRole.description || base.desc,
+    };
+  } catch {
+    return base;
+  }
+}
+
+const ROLE_LEVEL_CONFIG = new Proxy(BASE_ROLE_LEVEL_CONFIG as any, {
+  get(target, prop: string) {
+    if (prop === 'L1' || prop === 'L2' || prop === 'L3' || prop === 'L4') {
+      return getDynamicRoleConfig(prop as RoleLevel);
+    }
+    return target[prop];
+  },
+}) as Record<RoleLevel, { label: string; title: string; color: string; badgeBg: string; desc: string }>;
 
 const PERMISSION_MATRIX: Record<
   RoleLevel,
@@ -146,6 +181,7 @@ const PERMISSION_MATRIX: Record<
 };
 
 export default function UsersClient() {
+  const cms = useDeepPageCms('users');
   const { user: currentAuthUser, isSuperAdmin, isAdmin, canManageUsers, updateUserTabPermissions } = useAuth();
 
   const [users, setUsers] = useState<UserRecord[]>([]);
@@ -163,6 +199,55 @@ export default function UsersClient() {
 
   // Dedicated Tab Matrix Selected User ID
   const [matrixSelectedUserId, setMatrixSelectedUserId] = useState<string>('');
+
+  // Role Tab Permissions View Mode & Sync State
+  const [roleViewMode, setRoleViewMode] = useState<'tabs' | 'capabilities'>('tabs');
+  const [applyingRoleToUsers, setApplyingRoleToUsers] = useState<boolean>(false);
+
+  const handleSyncUsersInRole = async (targetRole: string, perms: UserTabPermissions) => {
+    const matching = users.filter((u) => u.roleLevel === targetRole);
+    setUsers((prev) =>
+      prev.map((u) => (u.roleLevel === targetRole ? { ...u, tabPermissions: perms } : u))
+    );
+    if (currentAuthUser.roleLevel === targetRole) {
+      updateUserTabPermissions(perms);
+    }
+    if (matching.length > 0) {
+      await Promise.allSettled(
+        matching.map((u) => api.users.update(u.id, { tabPermissions: perms }))
+      );
+    }
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('samko:permissions-changed', { detail: { permissions: perms } }));
+    }
+  };
+
+  const handleAssignTabToAllUsers = async (tabId: string, accessLevel: TabAccessMode) => {
+    setUsers((prev) =>
+      prev.map((u) => {
+        const existing = u.tabPermissions || getDefaultTabPermissionsForRole(u.roleLevel);
+        return {
+          ...u,
+          tabPermissions: { ...existing, [tabId]: { enabled: true, accessLevel } },
+        };
+      })
+    );
+    if (currentAuthUser) {
+      const existing = currentAuthUser.tabPermissions || getDefaultTabPermissionsForRole(currentAuthUser.roleLevel);
+      updateUserTabPermissions({ ...existing, [tabId]: { enabled: true, accessLevel } });
+    }
+    await Promise.allSettled(
+      users.map((u) => {
+        const existing = u.tabPermissions || getDefaultTabPermissionsForRole(u.roleLevel);
+        return api.users.update(u.id, {
+          tabPermissions: { ...existing, [tabId]: { enabled: true, accessLevel } },
+        });
+      })
+    );
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('samko:permissions-changed'));
+    }
+  };
 
   // Audit Logs State
   const [auditLogs, setAuditLogs] = useState<AuditLogEntry[]>(INITIAL_AUDIT_LOGS);
@@ -707,7 +792,7 @@ export default function UsersClient() {
       >
         <div>
           <div className="flex items-center gap-2.5">
-            <h1 className="font-head text-lg font-bold">User Management & Role Hierarchy</h1>
+            <h1 className="font-head text-lg font-bold">{cms.title || 'User Management & Role Hierarchy'}</h1>
             <span
               className="px-2 py-0.5 rounded text-[10px] font-extrabold uppercase"
               style={{
@@ -728,23 +813,26 @@ export default function UsersClient() {
             </span>
           </div>
           <p className="text-xs text-muted-foreground mt-0.5">
-            {isSuperAdmin
+            {cms.subtitle || (isSuperAdmin
               ? 'Full authority over Propco & Opco users, role permissions, audit trails, and platform credentials'
               : isAdmin
               ? 'Authorized to create, configure, and manage L3 Uploaders and L4 Viewers within your portal'
-              : 'Auditor inspection rights enabled — read-only access to users, permission matrix, and full system audit trails'}
+              : 'Auditor inspection rights enabled — read-only access to users, permission matrix, and full system audit trails')}
           </p>
         </div>
 
-        {(isSuperAdmin || isAdmin) && (
-          <button
-            onClick={() => setShowAddModal(true)}
-            className="flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold cursor-pointer shadow-md transition-transform active:scale-95"
-            style={{ background: 'var(--primary)', color: '#000' }}
-          >
-            <Plus size={14} /> Add User Account
-          </button>
-        )}
+        <div className="flex items-center gap-2">
+          <PageCMSEditButton pageId="users" pageName="User Management & Role Hierarchy" />
+          {(isSuperAdmin || isAdmin) && (
+            <button
+              onClick={() => setShowAddModal(true)}
+              className="flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold cursor-pointer shadow-md transition-transform active:scale-95"
+              style={{ background: 'var(--primary)', color: '#000' }}
+            >
+              <Plus size={14} /> {cms.primaryActionLabel || 'Add User Account'}
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Tabs */}
@@ -1188,6 +1276,8 @@ export default function UsersClient() {
                     }}
                     roleLevel={targetUser.roleLevel}
                     userName={targetUser.name}
+                    onSyncUsersInRole={handleSyncUsersInRole}
+                    onAssignToAllUsers={handleAssignTabToAllUsers}
                   />
                 </div>
               );
@@ -1259,80 +1349,212 @@ export default function UsersClient() {
                   </div>
                 </div>
 
-                <span
-                  className="px-2.5 py-1 rounded text-xs font-bold"
-                  style={{
-                    background: ROLE_LEVEL_CONFIG[selectedRoleLevel].badgeBg,
-                    color: ROLE_LEVEL_CONFIG[selectedRoleLevel].color,
-                  }}
-                >
-                  {countsByLevel[selectedRoleLevel]} Assigned Users
-                </span>
+                <div className="flex items-center gap-2.5">
+                  {/* View Mode Toggle: Tab Permissions vs General Rights */}
+                  <div className="flex items-center gap-1 p-0.5 rounded-lg border border-border" style={{ background: 'var(--surface)' }}>
+                    <button
+                      type="button"
+                      onClick={() => setRoleViewMode('tabs')}
+                      className="flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-bold transition-all cursor-pointer"
+                      style={{
+                        background: roleViewMode === 'tabs' ? 'var(--primary)' : 'transparent',
+                        color: roleViewMode === 'tabs' ? '#000' : 'var(--muted-foreground)',
+                      }}
+                    >
+                      <SlidersHorizontal size={11} />
+                      <span>Tab Permissions</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setRoleViewMode('capabilities')}
+                      className="flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-bold transition-all cursor-pointer"
+                      style={{
+                        background: roleViewMode === 'capabilities' ? 'var(--primary)' : 'transparent',
+                        color: roleViewMode === 'capabilities' ? '#000' : 'var(--muted-foreground)',
+                      }}
+                    >
+                      <ShieldCheck size={11} />
+                      <span>Capabilities</span>
+                    </button>
+                  </div>
+
+                  <span
+                    className="px-2.5 py-1 rounded text-xs font-bold"
+                    style={{
+                      background: ROLE_LEVEL_CONFIG[selectedRoleLevel].badgeBg,
+                      color: ROLE_LEVEL_CONFIG[selectedRoleLevel].color,
+                    }}
+                  >
+                    {countsByLevel[selectedRoleLevel]} Assigned Users
+                  </span>
+                </div>
               </div>
 
-              <div className="p-5">
-                <div className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-3">
-                  Authorization & Capability Rights
-                </div>
-
-                <div className="space-y-2">
-                  {PERMISSION_MATRIX[selectedRoleLevel].map((perm) => (
-                    <div
-                      key={perm.label}
-                      className="flex items-center justify-between p-3 rounded-lg border border-border/50"
-                      style={{ background: 'var(--surface2)' }}
-                    >
-                      <div>
-                        <div className="text-sm font-semibold text-foreground">{perm.label}</div>
-                        <div className="text-xs text-muted-foreground mt-0.5">{perm.detail}</div>
+              {/* View 1: Tab Permissions Matrix for this Role Level */}
+              {roleViewMode === 'tabs' ? (
+                <div className="p-5 space-y-4">
+                  {/* Super Admin Action Bar for this Role */}
+                  <div
+                    className="p-3.5 rounded-xl border border-border flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+                    style={{ background: 'var(--surface2)' }}
+                  >
+                    <div>
+                      <div className="font-semibold text-xs text-foreground flex items-center gap-1.5">
+                        <SlidersHorizontal size={13} className="text-primary" />
+                        <span>Role Tab Template · {ROLE_LEVEL_CONFIG[selectedRoleLevel].title} ({selectedRoleLevel})</span>
                       </div>
-
-                      {perm.allowed ? (
-                        <span className="flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-bold bg-emerald-500/10 text-emerald-400">
-                          <CheckCircle2 size={13} /> Granted
-                        </span>
-                      ) : (
-                        <span className="flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-bold bg-rose-500/10 text-rose-400">
-                          <XCircle size={13} /> Denied
-                        </span>
-                      )}
+                      <p className="text-[11px] text-muted-foreground mt-0.5">
+                        {isSuperAdmin
+                          ? 'Copy or move tabs to/from this role, or apply this tab template to all assigned users anytime.'
+                          : 'Read-only inspection of role tab access. Super Admin privileges required to edit.'}
+                      </p>
                     </div>
-                  ))}
-                </div>
 
-                {/* Assigned Users in this Role */}
-                <div className="mt-5 pt-4 border-t border-border">
-                  <div className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2.5">
-                    Users Currently Assigned to {ROLE_LEVEL_CONFIG[selectedRoleLevel].title}
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    {users
-                      .filter((u) => u.roleLevel === selectedRoleLevel)
-                      .map((u) => (
-                        <div
-                          key={u.id}
-                          className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-border text-xs"
-                          style={{ background: 'var(--surface2)' }}
+                    {isSuperAdmin && (
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        <button
+                          type="button"
+                          disabled={applyingRoleToUsers || countsByLevel[selectedRoleLevel] === 0}
+                          onClick={async () => {
+                            setApplyingRoleToUsers(true);
+                            try {
+                              const perms = getRoleTabPermissions(selectedRoleLevel);
+                              await handleSyncUsersInRole(selectedRoleLevel, perms);
+                              toast.success(`Applied ${selectedRoleLevel} tab permissions to all ${countsByLevel[selectedRoleLevel]} assigned users!`, {
+                                description: 'Database and active session permissions successfully synchronized.',
+                              });
+                            } catch (e: any) {
+                              toast.error('Failed to sync users', { description: e.message });
+                            } finally {
+                              setApplyingRoleToUsers(false);
+                            }
+                          }}
+                          className="samko-btn-primary flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                          title={`Apply this role's configured tabs to all ${countsByLevel[selectedRoleLevel]} assigned users in database`}
                         >
-                          <span
-                            className="w-4 h-4 rounded-full flex items-center justify-center font-bold text-[9px]"
-                            style={{
-                              background: ROLE_LEVEL_CONFIG[selectedRoleLevel].color,
-                              color: '#000',
-                            }}
-                          >
-                            {u.initials}
-                          </span>
-                          <span className="font-semibold text-foreground">{u.name}</span>
-                          <span className="text-muted-foreground text-[10px]">({u.email})</span>
-                        </div>
-                      ))}
-                    {countsByLevel[selectedRoleLevel] === 0 && (
-                      <span className="text-xs text-muted-foreground italic">No users currently assigned</span>
+                          {applyingRoleToUsers ? <Loader2 size={12} className="animate-spin" /> : <Users size={12} />}
+                          <span>Apply to All {countsByLevel[selectedRoleLevel]} Users</span>
+                        </button>
+                      </div>
                     )}
                   </div>
+
+                  {/* TabPermissionsEditor for this Role */}
+                  <TabPermissionsEditor
+                    key={`role-${selectedRoleLevel}`}
+                    permissions={getRoleTabPermissions(selectedRoleLevel)}
+                    roleLevel={selectedRoleLevel}
+                    readOnly={!isSuperAdmin}
+                    onChange={(newPerms) => {
+                      if (!isSuperAdmin) return;
+                      saveRoleTabPermissions(selectedRoleLevel, newPerms);
+                      toast.success(`Updated ${selectedRoleLevel} role tab template!`, {
+                        description: 'Saved as the active template for this tier.',
+                      });
+                    }}
+                    onSyncUsersInRole={handleSyncUsersInRole}
+                    onAssignToAllUsers={handleAssignTabToAllUsers}
+                  />
+
+                  {/* Assigned Users in this Role */}
+                  <div className="pt-4 border-t border-border">
+                    <div className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2.5">
+                      Users Currently Assigned to {ROLE_LEVEL_CONFIG[selectedRoleLevel].title} ({countsByLevel[selectedRoleLevel]})
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {users
+                        .filter((u) => u.roleLevel === selectedRoleLevel)
+                        .map((u) => (
+                          <div
+                            key={u.id}
+                            className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-border text-xs"
+                            style={{ background: 'var(--surface2)' }}
+                          >
+                            <span
+                              className="w-4 h-4 rounded-full flex items-center justify-center font-bold text-[9px]"
+                              style={{
+                                background: ROLE_LEVEL_CONFIG[selectedRoleLevel].color,
+                                color: '#000',
+                              }}
+                            >
+                              {u.initials}
+                            </span>
+                            <span className="font-semibold text-foreground">{u.name}</span>
+                            <span className="text-muted-foreground text-[10px]">({u.email})</span>
+                          </div>
+                        ))}
+                      {countsByLevel[selectedRoleLevel] === 0 && (
+                        <span className="text-xs text-muted-foreground italic">No users currently assigned</span>
+                      )}
+                    </div>
+                  </div>
                 </div>
-              </div>
+              ) : (
+                /* View 2: Static Capability Matrix */
+                <div className="p-5">
+                  <div className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-3">
+                    Authorization &amp; Capability Rights
+                  </div>
+
+                  <div className="space-y-2">
+                    {PERMISSION_MATRIX[selectedRoleLevel].map((perm) => (
+                      <div
+                        key={perm.label}
+                        className="flex items-center justify-between p-3 rounded-lg border border-border/50"
+                        style={{ background: 'var(--surface2)' }}
+                      >
+                        <div>
+                          <div className="text-sm font-semibold text-foreground">{perm.label}</div>
+                          <div className="text-xs text-muted-foreground mt-0.5">{perm.detail}</div>
+                        </div>
+
+                        {perm.allowed ? (
+                          <span className="flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-bold bg-emerald-500/10 text-emerald-400">
+                            <CheckCircle2 size={13} /> Granted
+                          </span>
+                        ) : (
+                          <span className="flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-bold bg-rose-500/10 text-rose-400">
+                            <XCircle size={13} /> Denied
+                          </span>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Assigned Users in this Role */}
+                  <div className="mt-5 pt-4 border-t border-border">
+                    <div className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2.5">
+                      Users Currently Assigned to {ROLE_LEVEL_CONFIG[selectedRoleLevel].title}
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {users
+                        .filter((u) => u.roleLevel === selectedRoleLevel)
+                        .map((u) => (
+                          <div
+                            key={u.id}
+                            className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-border text-xs"
+                            style={{ background: 'var(--surface2)' }}
+                          >
+                            <span
+                              className="w-4 h-4 rounded-full flex items-center justify-center font-bold text-[9px]"
+                              style={{
+                                background: ROLE_LEVEL_CONFIG[selectedRoleLevel].color,
+                                color: '#000',
+                              }}
+                            >
+                              {u.initials}
+                            </span>
+                            <span className="font-semibold text-foreground">{u.name}</span>
+                            <span className="text-muted-foreground text-[10px]">({u.email})</span>
+                          </div>
+                        ))}
+                      {countsByLevel[selectedRoleLevel] === 0 && (
+                        <span className="text-xs text-muted-foreground italic">No users currently assigned</span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -2228,6 +2450,8 @@ export default function UsersClient() {
               onChange={(newPerms) => isSuperAdmin && setTempModalPermissions(newPerms)}
               roleLevel={permissionsModalUser.roleLevel}
               userName={permissionsModalUser.name}
+              onSyncUsersInRole={handleSyncUsersInRole}
+              onAssignToAllUsers={handleAssignTabToAllUsers}
             />
 
             <div className="flex items-center justify-end gap-3 pt-3 border-t border-border mt-3">

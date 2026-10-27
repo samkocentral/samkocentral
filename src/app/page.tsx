@@ -7,12 +7,15 @@ import DashboardSiteTable from './components/DashboardSiteTable';
 import DashboardComplianceChart from './components/DashboardComplianceChart';
 import DashboardModulesSummary from './components/DashboardModulesSummary';
 
+import PageCMSEditButton from '@/components/cms/PageCMSEditButton';
+
 export default function ExecutiveDashboardPage() {
   return (
     <AppLayout currentPath="/">
       <Topbar
         title="Executive Dashboard"
         subtitle="Group-wide facilities overview — 5 Hotels · Asset Management · Maintenance · Compliance · Insurance · Contracts"
+        actions={<PageCMSEditButton pageId="overview" pageName="Executive Dashboard" />}
       />
       <main
         className="flex-1 overflow-y-auto"

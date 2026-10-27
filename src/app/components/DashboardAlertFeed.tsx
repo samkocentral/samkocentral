@@ -5,8 +5,10 @@ import { ALERTS } from '@/lib/mockData';
 import { AlertCircle, AlertTriangle, Info } from 'lucide-react';
 import Link from 'next/link';
 import { api } from '@/lib/api';
+import { useDeepPageCms } from '@/lib/deepPageCms';
 
 export default function DashboardAlertFeed() {
+  const cms = useDeepPageCms('overview');
   const [alerts, setAlerts] = useState<any[]>(ALERTS);
 
   const fetchLiveAlerts = useCallback(async () => {
@@ -69,6 +71,9 @@ export default function DashboardAlertFeed() {
     info: 'var(--info-bg)',
   };
 
+  const title = cms.sections?.liveAlerts?.title || 'Live Alerts';
+  const displayAlerts = (cms.alerts && cms.alerts.length > 0) ? cms.alerts : alerts;
+
   return (
     <div className="samko-card" style={{ padding: '18px 20px' }}>
       <div className="flex items-center justify-between mb-4">
@@ -76,7 +81,7 @@ export default function DashboardAlertFeed() {
           className="font-head text-foreground"
           style={{ fontSize: 13, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em' }}
         >
-          Live Alerts
+          {title}
         </h2>
         <Link
           href="/compliance-tracker"
@@ -86,7 +91,7 @@ export default function DashboardAlertFeed() {
         </Link>
       </div>
       <div className="flex flex-col">
-        {alerts.slice(0, 5).map((alert, i) => (
+        {displayAlerts.slice(0, 5).map((alert, i) => (
           <div
             key={alert.id}
             className="flex items-start gap-3"

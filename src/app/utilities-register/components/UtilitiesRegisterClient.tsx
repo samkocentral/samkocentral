@@ -6,6 +6,8 @@ import Icon from '@/components/ui/AppIcon';
 import CustomDropdown from '@/components/ui/CustomDropdown';
 import { api } from '@/lib/api';
 import { toast } from 'sonner';
+import PageCMSEditButton from '@/components/cms/PageCMSEditButton';
+import { useDeepPageCms } from '@/lib/deepPageCms';
 
 
 
@@ -312,6 +314,13 @@ function KPICard({ label, value, sub, color, icon: Icon }: { label: string; valu
 }
 
 export default function UtilitiesRegisterClient() {
+  const {
+    title: cmsTitle,
+    subtitle: cmsSubtitle,
+    searchPlaceholder: cmsSearchPlaceholder,
+    primaryActionLabel: cmsPrimaryActionLabel,
+  } = useDeepPageCms('utilities');
+
   const [accounts, setAccounts] = useState<UtilityAccount[]>(UTILITIES);
   const [properties, setProperties] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
@@ -560,12 +569,14 @@ export default function UtilitiesRegisterClient() {
       <div className="flex items-center justify-between px-6 py-3.5 border-b border-border flex-shrink-0" style={{ background: 'var(--surface)' }}>
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="font-head font-bold text-xl">Utilities Register</h1>
+            <h1 className="font-head font-bold text-xl">{cmsTitle || 'Utilities Register'}</h1>
             {loading && <Loader2 size={14} className="animate-spin text-muted-foreground" />}
           </div>
-          <p className="text-xs text-muted-foreground mt-0.5">Centralised utility account management across all properties — {accounts.length} accounts</p>
+          <p className="text-xs text-muted-foreground mt-0.5">{cmsSubtitle || `Centralised utility account management across all properties — ${accounts.length} accounts`}</p>
         </div>
         <div className="flex items-center gap-2">
+          <PageCMSEditButton pageId="utilities" pageName="Utilities Register" />
+
           <button
             onClick={handleExport}
             className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium border border-border hover:bg-surface2 transition-all active:scale-95 cursor-pointer"
@@ -574,7 +585,7 @@ export default function UtilitiesRegisterClient() {
             <Download size={13} /> Export
           </button>
           <button onClick={() => setShowAddModal(true)} className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-transform active:scale-95 cursor-pointer" style={{ background: 'var(--primary)', color: '#000' }}>
-            <Plus size={14} /> Add Account
+            <Plus size={14} /> {cmsPrimaryActionLabel || 'Add Account'}
           </button>
         </div>
       </div>
@@ -621,7 +632,7 @@ export default function UtilitiesRegisterClient() {
       <div className="flex items-center gap-3 px-6 pb-3 flex-shrink-0 flex-wrap">
         <div className="flex items-center gap-2 rounded-lg border border-border px-3 py-1.5 flex-1 min-w-48" style={{ background: 'var(--surface)' }}>
           <Search size={13} className="text-muted-foreground flex-shrink-0" />
-          <input className="bg-transparent text-sm outline-none flex-1 text-foreground placeholder:text-muted-foreground" placeholder="Search by property, supplier, account…" value={search} onChange={(e) => setSearch(e.target.value)} />
+          <input className="bg-transparent text-sm outline-none flex-1 text-foreground placeholder:text-muted-foreground" placeholder={cmsSearchPlaceholder || 'Search by property, supplier, account…'} value={search} onChange={(e) => setSearch(e.target.value)} />
         </div>
         <CustomDropdown
           label="All Properties"

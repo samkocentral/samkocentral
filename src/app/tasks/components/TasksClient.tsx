@@ -9,6 +9,7 @@ import {
 } from '@/data/tasksData';
 import AddItemModal from './AddItemModal';
 import UploadDocumentModal from './UploadDocumentModal';
+import PageCMSEditButton from '@/components/cms/PageCMSEditButton';
 import {
   CheckSquare,
   Square,
@@ -36,10 +37,12 @@ import { toast } from 'sonner';
 import { useAuth } from '@/lib/authContext';
 import CustomDropdown from '@/components/ui/CustomDropdown';
 import { api } from '@/lib/api';
+import { useDeepPageCms } from '@/lib/deepPageCms';
 
 type StatusTab = 'all' | 'open' | 'urgent' | 'completed';
 
 export default function TasksClient() {
+  const cms = useDeepPageCms('tasks');
   const { canWriteTab } = useAuth();
   const canWrite = canWriteTab('tasks');
 
@@ -312,6 +315,8 @@ export default function TasksClient() {
 
           {/* Right Action Buttons: "Upload document" & "Add item" */}
           <div className="flex items-center gap-2.5 flex-shrink-0">
+            <PageCMSEditButton pageId="tasks" pageName="Tasks & Action List" />
+
             {canWrite ? (
               <>
                 {/* "Upload document" Button */}
@@ -323,7 +328,7 @@ export default function TasksClient() {
                   title="Upload proof or document for a task"
                 >
                   <UploadCloud size={13} style={{ color: 'var(--primary)' }} />
-                  <span>Upload Document</span>
+                  <span>{cms.secondaryActionLabel || 'Upload Document'}</span>
                 </button>
 
                 {/* "Add item" Button (Samko Brand Primary Gold) */}
@@ -339,7 +344,7 @@ export default function TasksClient() {
                   }}
                 >
                   <Plus size={14} />
-                  <span>Add Item</span>
+                  <span>{cms.primaryActionLabel || 'Add Item'}</span>
                 </button>
               </>
             ) : (

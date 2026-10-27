@@ -4,6 +4,8 @@ import React, { useState } from 'react';
 import { QrCode, Search, Package, MapPin, Calendar, Wrench, ChevronRight, AlertTriangle, CheckCircle2, Clock } from 'lucide-react';
 import { ASSETS, MAINTENANCE_RECORDS } from '@/lib/assetData';
 import Link from 'next/link';
+import { useDeepPageCms } from '@/lib/deepPageCms';
+import PageCMSEditButton from '@/components/cms/PageCMSEditButton';
 
 const RISK_COLORS: Record<string, string> = {
   low: '#3dd68c',
@@ -168,6 +170,7 @@ function AssetResultCard({ assetId }: { assetId: string }) {
 }
 
 export default function QRScannerClient() {
+  const cms = useDeepPageCms('qr');
   const [manualId, setManualId] = useState('');
   const [searchedId, setSearchedId] = useState('');
   const [recentScans] = useState([
@@ -190,8 +193,11 @@ export default function QRScannerClient() {
         style={{ background: 'var(--surface)' }}
       >
         <div>
-          <h1 className="font-head text-xl font-bold">QR Scanner</h1>
-          <p className="text-xs text-muted-foreground mt-0.5">Scan or search asset QR codes</p>
+          <h1 className="font-head text-xl font-bold">{cms.title || 'QR Scanner'}</h1>
+          <p className="text-xs text-muted-foreground mt-0.5">{cms.subtitle || 'Scan or search asset QR codes'}</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <PageCMSEditButton pageId="qr" pageName="QR Asset Scanner" />
         </div>
       </div>
 

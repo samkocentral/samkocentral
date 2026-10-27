@@ -2,9 +2,12 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { Upload, Plus, ChevronDown, LogOut, Shield, Crown, Eye, UploadCloud, Building2, Check, RefreshCw } from 'lucide-react';
 import { ALERTS } from '@/lib/mockData';
 import { useAuth, DEMO_CREDENTIALS } from '@/lib/authContext';
+import { useAppCms } from '@/lib/appCmsConfig';
+import { getPageConfig, type DeepAppCMSStore } from '@/lib/deepPageCms';
 
 interface TopbarProps {
   title: string;
@@ -19,6 +22,14 @@ export default function Topbar({ title, subtitle, actions, hideDefaultActions = 
   const [pulse, setPulse] = useState(true);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const userMenuRef = useRef<HTMLDivElement>(null);
+  const pathname = usePathname();
+  const { dashboard: cmsDashboard, recentLogs: cmsRecentLogs, importExport: cmsImportExport } = useAppCms();
+  const [cmsOverride, setCmsOverride] = useState<{
+    title?: string;
+    subtitle?: string;
+    primaryActionLabel?: string;
+    secondaryActionLabel?: string;
+  }>({});
 
   const {
     user,
@@ -47,6 +58,98 @@ export default function Topbar({ title, subtitle, actions, hideDefaultActions = 
     return () => clearInterval(interval);
   }, []);
 
+  // Dynamically resolve titles and subtitles edited in CMS
+  useEffect(() => {
+    const resolveCmsTitle = () => {
+      if (!pathname) return;
+      if (pathname === '/') {
+        const ovCfg = getPageConfig('overview');
+        if (ovCfg?.title) {
+          setCmsOverride({
+            title: ovCfg.title,
+            subtitle: ovCfg.subtitle || undefined,
+            primaryActionLabel: ovCfg.primaryActionLabel || undefined,
+            secondaryActionLabel: ovCfg.secondaryActionLabel || undefined,
+          });
+          return;
+        }
+        if (cmsDashboard?.pageTitle) {
+          setCmsOverride({
+            title: cmsDashboard.pageTitle,
+            subtitle: cmsDashboard.pageSubtitle || undefined,
+          });
+          return;
+        }
+      }
+      if (pathname === '/recent-logs') {
+        if (cmsRecentLogs?.moduleTitle) {
+          setCmsOverride({
+            title: cmsRecentLogs.moduleTitle,
+          });
+          return;
+        }
+      }
+      if (pathname.startsWith('/asset-management/import')) {
+        if (cmsImportExport?.moduleTitle) {
+          setCmsOverride({
+            title: cmsImportExport.moduleTitle,
+          });
+          return;
+        }
+      }
+      const pageKeyMap: Record<string, keyof DeepAppCMSStore> = {
+        '/asset-management/properties': 'properties',
+        '/asset-management/assets': 'assets',
+        '/asset-management/categories': 'categories',
+        '/asset-management/maintenance': 'maintenance',
+        '/compliance-register': 'compliance',
+        '/compliance-tracker': 'compliancetracker',
+        '/contracts-register': 'contracts',
+        '/insurance-register': 'insurance',
+        '/utilities-register': 'utilities',
+        '/tasks': 'tasks',
+        '/task-manager': 'tasks',
+        '/document-repository': 'documents',
+        '/asset-management/reports': 'reports',
+        '/asset-management/inspections': 'inspections',
+        '/multi-site-operations': 'multisite',
+        '/recent-logs': 'recentlogs',
+        '/users': 'users',
+        '/asset-management/import': 'import',
+        '/asset-management/qr-scanner': 'qr',
+        '/asset-management': 'assetdashboard',
+      };
+      for (const [route, key] of Object.entries(pageKeyMap)) {
+        if (pathname.startsWith(route)) {
+          const cfg = getPageConfig(key);
+          if (cfg && cfg.title) {
+            setCmsOverride({
+              title: cfg.title,
+              subtitle: cfg.subtitle || undefined,
+              primaryActionLabel: cfg.primaryActionLabel || undefined,
+              secondaryActionLabel: cfg.secondaryActionLabel || undefined,
+            });
+          }
+          return;
+        }
+      }
+      setCmsOverride({});
+    };
+
+    resolveCmsTitle();
+    window.addEventListener('samko:app-cms-updated', resolveCmsTitle);
+    window.addEventListener('samko:deep-page-cms-updated', resolveCmsTitle);
+    window.addEventListener('storage', resolveCmsTitle);
+    return () => {
+      window.removeEventListener('samko:app-cms-updated', resolveCmsTitle);
+      window.removeEventListener('samko:deep-page-cms-updated', resolveCmsTitle);
+      window.removeEventListener('storage', resolveCmsTitle);
+    };
+  }, [pathname, cmsDashboard, cmsRecentLogs, cmsImportExport]);
+
+  const displayTitle = cmsOverride.title || title;
+  const displaySubtitle = cmsOverride.subtitle || subtitle;
+
   // Close dropdown on click outside
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -69,7 +172,7 @@ export default function Topbar({ title, subtitle, actions, hideDefaultActions = 
             className="font-head text-foreground truncate"
             style={{ fontSize: 16, fontWeight: 700, lineHeight: 1.2 }}
           >
-            {title}
+            {displayTitle}
           </h1>
 
           {/* Portal Indicator / Switcher */}
@@ -112,9 +215,9 @@ export default function Topbar({ title, subtitle, actions, hideDefaultActions = 
           )}
         </div>
 
-        {subtitle && (
+        {displaySubtitle && (
           <p className="text-muted-foreground truncate" style={{ fontSize: 11, marginTop: 1 }}>
-            {subtitle}
+            {displaySubtitle}
           </p>
         )}
       </div>
@@ -159,7 +262,7 @@ export default function Topbar({ title, subtitle, actions, hideDefaultActions = 
             style={{ padding: '6px 12px', fontSize: 12 }}
           >
             <Upload size={13} />
-            <span className="hidden sm:inline">Upload Doc</span>
+            <span className="hidden sm:inline">{cmsOverride.secondaryActionLabel || 'Upload Doc'}</span>
           </Link>
         )}
 
@@ -170,7 +273,7 @@ export default function Topbar({ title, subtitle, actions, hideDefaultActions = 
             style={{ padding: '6px 12px', fontSize: 12 }}
           >
             <Plus size={13} />
-            <span className="hidden sm:inline">Add Item</span>
+            <span className="hidden sm:inline">{cmsOverride.primaryActionLabel || 'Add Item'}</span>
           </Link>
         )}
 

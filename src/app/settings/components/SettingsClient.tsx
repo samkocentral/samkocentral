@@ -1,14 +1,72 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Settings, Bell, Shield, Building2, Palette, Mail, Database, Save, ChevronRight, Server, RefreshCw, CheckCircle2, AlertCircle, Sparkles } from 'lucide-react';
+import { useSearchParams } from 'next/navigation';
+import {
+  Settings,
+  Bell,
+  Shield,
+  Building2,
+  Palette,
+  Mail,
+  Database,
+  Save,
+  ChevronRight,
+  Server,
+  RefreshCw,
+  CheckCircle2,
+  AlertCircle,
+  Sparkles,
+  SlidersHorizontal,
+  Sliders,
+  LayoutDashboard,
+  History,
+  Upload,
+  Users,
+  Layers,
+} from 'lucide-react';
 import Icon from '@/components/ui/AppIcon';
+import { useAuth } from '@/lib/authContext';
+import { toast } from 'sonner';
+import CMSFieldManager from '@/components/settings/CMSFieldManager';
+import CompleteAppCMS, { type AppCmsSectionKey } from '@/components/settings/CompleteAppCMS';
+import DeepPageCMSEditor from '@/components/settings/DeepPageCMSEditor';
+import PortalCMSEditor from '@/components/settings/PortalCMSEditor';
 
+type SettingsTab =
+  | 'general'
+  | 'notifications'
+  | 'security'
+  | 'hotels'
+  | 'appearance'
+  | 'email'
+  | 'data'
+  | 'cms-pages'
+  | 'cms-dashboard'
+  | 'cms-propco'
+  | 'cms-opco'
+  | 'cms-recent-logs'
+  | 'cms-import'
+  | 'cms-users'
+  | 'cms-navigation'
+  | 'cms-forms';
 
-type SettingsTab = 'general' | 'notifications' | 'security' | 'hotels' | 'appearance' | 'email' | 'data';
+interface TabItem {
+  id: SettingsTab;
+  label: string;
+  icon: React.ElementType;
+}
 
-const TABS: { id: SettingsTab; label: string; icon: React.ElementType }[] = [
+interface CmsTabItem {
+  id: SettingsTab;
+  label: string;
+  badgeText?: string;
+  badgeColor?: string;
+  icon: React.ElementType;
+}
+
+const BASE_TABS: TabItem[] = [
   { id: 'general', label: 'General', icon: Settings },
   { id: 'notifications', label: 'Notifications', icon: Bell },
   { id: 'security', label: 'Security', icon: Shield },
@@ -16,6 +74,14 @@ const TABS: { id: SettingsTab; label: string; icon: React.ElementType }[] = [
   { id: 'appearance', label: 'Appearance', icon: Palette },
   { id: 'email', label: 'Email', icon: Mail },
   { id: 'data', label: 'Data & Backup', icon: Database },
+];
+
+const CMS_NAV_ITEMS: CmsTabItem[] = [
+  { id: 'cms-opco', label: 'OPCO Portal CMS', icon: Shield, badgeText: 'Operations', badgeColor: '#60a5fa' },
+  { id: 'cms-propco', label: 'PROPCO Portal CMS', icon: Building2, badgeText: 'Asset Co', badgeColor: '#e8c97a' },
+  { id: 'cms-pages', label: 'All Pages (Deep CMS Grid)', icon: LayoutDashboard, badgeText: '21 Pages', badgeColor: '#34d399' },
+  { id: 'cms-forms', label: 'Form & Modal Fields', icon: SlidersHorizontal, badgeText: 'Field CMS', badgeColor: '#a78bfa' },
+  { id: 'cms-navigation', label: 'Portal Navigation & Sidebars', icon: Settings, badgeText: 'Menu Layout', badgeColor: '#f59e0b' },
 ];
 
 function Toggle({ checked = false, onChange }: { checked?: boolean; onChange: (v: boolean) => void }) {
@@ -57,12 +123,32 @@ function SectionCard({ title, children }: { title: string; children: React.React
 }
 
 export default function SettingsClient() {
-  const [activeTab, setActiveTab] = useState<SettingsTab>('general');
+  const { isSuperAdmin, user } = useAuth();
+  const searchParams = useSearchParams();
+  const initialTab = ((searchParams?.get('tab')) as SettingsTab) || 'general';
+  const initialPage = (searchParams?.get('page') as any) || 'properties';
+  const [activeTab, setActiveTab] = useState<SettingsTab>(initialTab);
+
+  useEffect(() => {
+    const tabParam = searchParams?.get('tab') as SettingsTab;
+    if (tabParam) {
+      setActiveTab(tabParam);
+    }
+  }, [searchParams]);
+
+  // Automatically close the main sidebar when opening this page
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('samko:collapse-sidebar', { detail: { collapsed: true } }));
+    }
+  }, []);
+
   const [saved, setSaved] = useState(false);
   const [seedLoading, setSeedLoading] = useState(false);
   const [seedResult, setSeedResult] = useState<string | null>(null);
   const [apiStatus, setApiStatus] = useState<any | null>(null);
   const [statusLoading, setStatusLoading] = useState(false);
+
 
   const checkStatus = async () => {
     setStatusLoading(true);
@@ -117,6 +203,12 @@ export default function SettingsClient() {
 
   const handleSave = () => {
     setSaved(true);
+    toast.success('All settings and CMS configurations saved successfully!');
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('samko:app-cms-updated'));
+      window.dispatchEvent(new CustomEvent('samko:deep-page-cms-updated'));
+      window.dispatchEvent(new CustomEvent('samko:data-changed'));
+    }
     setTimeout(() => setSaved(false), 2000);
   };
 
@@ -140,15 +232,19 @@ export default function SettingsClient() {
 
       <div className="flex flex-1 overflow-hidden">
         {/* Sidebar tabs */}
-        <div className="w-52 flex-shrink-0 border-r border-border overflow-y-auto" style={{ background: 'var(--surface)', padding: '12px 8px' }}>
-          {TABS.map((tab) => {
+        <div className="w-60 flex-shrink-0 border-r border-border overflow-y-auto" style={{ background: 'var(--surface)', padding: '12px 8px' }}>
+          {/* Section 1: Standard Settings */}
+          <div className="px-3 pb-2 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+            System Settings
+          </div>
+          {BASE_TABS.map((tab) => {
             const Icon = tab.icon;
             const active = activeTab === tab.id;
             return (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className="flex items-center gap-2.5 w-full px-3 py-2.5 rounded-lg mb-0.5 text-left transition-colors"
+                className="flex items-center gap-2.5 w-full px-3 py-2 rounded-lg mb-0.5 text-left transition-colors cursor-pointer"
                 style={{
                   background: active ? 'rgba(232,201,122,0.12)' : 'transparent',
                   color: active ? 'var(--primary)' : 'var(--text2)',
@@ -156,16 +252,126 @@ export default function SettingsClient() {
                   fontWeight: active ? 600 : 400,
                 }}
               >
-                <Icon size={15} />
-                <span className="flex-1">{tab.label}</span>
-                {active && <ChevronRight size={12} />}
+                <Icon size={14} />
+                <span className="flex-1 truncate">{tab.label}</span>
+                {active && <ChevronRight size={11} />}
               </button>
             );
           })}
+
+          {/* Section 2: Complete Application CMS (Super Admin) - Organized Systematic Hierarchy */}
+          {(isSuperAdmin || user?.roleLevel === 'L1') && (
+            <div className="pt-3 mt-3 border-t border-border">
+              <div className="px-3 pb-2 text-[10px] font-bold uppercase tracking-wider text-[#e8c97a] flex items-center justify-between">
+                <span className="flex items-center gap-1.5">
+                  <SlidersHorizontal size={11} />
+                  Application CMS
+                </span>
+                <span className="text-[9px] px-1.5 py-0.2 rounded bg-amber-400/20 text-[#e8c97a] border border-[#e8c97a]/30 font-bold">
+                  L1
+                </span>
+              </div>
+
+              {/* Group A: Operational Portals */}
+              <div className="px-3 pt-1 pb-1 text-[9px] font-bold uppercase tracking-wider text-muted-foreground flex items-center justify-between">
+                <span>Portals CMS</span>
+                <span className="text-[8px] text-muted-foreground font-mono">2 Portals</span>
+              </div>
+              {CMS_NAV_ITEMS.slice(0, 2).map((item) => {
+                const Icon = item.icon;
+                const active = activeTab === item.id;
+                return (
+                  <button
+                    key={item.id}
+                    onClick={() => setActiveTab(item.id)}
+                    className="flex items-center gap-2.5 w-full px-3 py-2 rounded-lg mb-0.5 text-left transition-colors cursor-pointer group"
+                    style={{
+                      background: active ? 'rgba(232,201,122,0.12)' : 'transparent',
+                      color: active ? 'var(--primary)' : 'var(--text2)',
+                      fontSize: 12.5,
+                      fontWeight: active ? 600 : 400,
+                    }}
+                  >
+                    <Icon
+                      size={14}
+                      className={active ? 'text-primary' : 'text-muted-foreground group-hover:text-foreground'}
+                    />
+                    <span className="flex-1 truncate">{item.label}</span>
+                    {item.badgeText && (
+                      <span
+                        className="text-[9px] font-bold px-1.5 py-0.2 rounded tracking-wider uppercase flex-shrink-0"
+                        style={{
+                          background: item.badgeColor ? `${item.badgeColor}22` : 'rgba(255,255,255,0.08)',
+                          color: item.badgeColor || 'var(--text2)',
+                          border: item.badgeColor ? `1px solid ${item.badgeColor}40` : '1px solid var(--border)',
+                        }}
+                      >
+                        {item.badgeText}
+                      </span>
+                    )}
+                    {active && <ChevronRight size={11} className="text-primary flex-shrink-0" />}
+                  </button>
+                );
+              })}
+
+              {/* Group B: Directory & Global Tools */}
+              <div className="px-3 pt-2.5 pb-1 text-[9px] font-bold uppercase tracking-wider text-muted-foreground border-t border-border/40 mt-1.5 flex items-center justify-between">
+                <span>Directory & Tools</span>
+                <span className="text-[8px] text-muted-foreground font-mono">3 Tools</span>
+              </div>
+              {CMS_NAV_ITEMS.slice(2).map((item) => {
+                const Icon = item.icon;
+                const active = activeTab === item.id;
+                return (
+                  <button
+                    key={item.id}
+                    onClick={() => setActiveTab(item.id)}
+                    className="flex items-center gap-2.5 w-full px-3 py-2 rounded-lg mb-0.5 text-left transition-colors cursor-pointer group"
+                    style={{
+                      background: active ? 'rgba(232,201,122,0.12)' : 'transparent',
+                      color: active ? 'var(--primary)' : 'var(--text2)',
+                      fontSize: 12.5,
+                      fontWeight: active ? 600 : 400,
+                    }}
+                  >
+                    <Icon
+                      size={14}
+                      className={active ? 'text-primary' : 'text-muted-foreground group-hover:text-foreground'}
+                    />
+                    <span className="flex-1 truncate">{item.label}</span>
+                    {item.badgeText && (
+                      <span
+                        className="text-[9px] font-bold px-1.5 py-0.2 rounded tracking-wider uppercase flex-shrink-0"
+                        style={{
+                          background: item.badgeColor ? `${item.badgeColor}22` : 'rgba(255,255,255,0.08)',
+                          color: item.badgeColor || 'var(--text2)',
+                          border: item.badgeColor ? `1px solid ${item.badgeColor}40` : '1px solid var(--border)',
+                        }}
+                      >
+                        {item.badgeText}
+                      </span>
+                    )}
+                    {active && <ChevronRight size={11} className="text-primary flex-shrink-0" />}
+                  </button>
+                );
+              })}
+            </div>
+          )}
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto p-7">
+        <div
+          className={`flex-1 ${
+            activeTab === 'cms-opco' ||
+            activeTab === 'cms-propco' ||
+            activeTab === 'cms-recent-logs' ||
+            activeTab === 'cms-import' ||
+            activeTab === 'cms-users' ||
+            activeTab === 'cms-navigation'
+              ? 'overflow-hidden flex flex-col p-6 h-full min-h-0'
+              : 'overflow-y-auto p-7'
+          }`}
+        >
           {activeTab === 'general' && (
             <div>
               <SectionCard title="Organisation">
@@ -468,6 +674,22 @@ export default function SettingsClient() {
               </SectionCard>
             </div>
           )}
+
+          {/* Application CMS Active Panels */}
+          {activeTab === 'cms-opco' && <PortalCMSEditor portal="opco" initialTabId={initialPage} />}
+          {activeTab === 'cms-propco' && <PortalCMSEditor portal="propco" initialTabId={initialPage} />}
+          {activeTab === 'cms-pages' && (
+            <DeepPageCMSEditor
+              initialPage={(initialPage as any) || 'properties'}
+              hidePageGrid={false}
+            />
+          )}
+          {activeTab === 'cms-dashboard' && <CompleteAppCMS activeSection="dashboard" />}
+          {activeTab === 'cms-recent-logs' && <PortalCMSEditor portal="opco" initialTabId="recent-logs" />}
+          {activeTab === 'cms-import' && <PortalCMSEditor portal="opco" initialTabId="import" />}
+          {activeTab === 'cms-users' && <PortalCMSEditor portal="opco" initialTabId="users" />}
+          {activeTab === 'cms-navigation' && <PortalCMSEditor portal="opco" initialTabId="settings" />}
+          {activeTab === 'cms-forms' && <CMSFieldManager />}
         </div>
       </div>
     </div>

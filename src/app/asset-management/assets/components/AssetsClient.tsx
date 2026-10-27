@@ -10,6 +10,8 @@ import { useAuth } from '@/lib/authContext';
 import { toast } from 'sonner';
 import CustomDropdown from '@/components/ui/CustomDropdown';
 import StatusDropdown from '@/components/ui/StatusDropdown';
+import { useDeepPageCms, updatePageItem, addPageItem, deletePageItem } from '@/lib/deepPageCms';
+import PageCMSEditButton from '@/components/cms/PageCMSEditButton';
 
 const CONDITION_STYLES: Record<string, { bg: string; color: string }> = {
   excellent: { bg: 'rgba(61,214,140,0.12)', color: '#3dd68c' },
@@ -76,9 +78,44 @@ export default function AssetsClient() {
   const { isViewer, canEdit, canUpload } = useAuth();
   const searchParams = useSearchParams();
   const router = useRouter();
-  const initialHotel = searchParams.get('hotel') || '';
+  const initialHotel = searchParams?.get('hotel') || '';
+  const isNonFixed = searchParams?.get('type') === 'non-fixed';
+  const pageKey = isNonFixed ? 'nonfixed' : 'assets';
 
-  const [assets, setAssets] = useState<Asset[]>(ASSETS);
+  const {
+    title: cmsTitle,
+    subtitle: cmsSubtitle,
+    searchPlaceholder: cmsSearchPlaceholder,
+    primaryActionLabel: cmsPrimaryActionLabel,
+    secondaryActionLabel: cmsSecondaryActionLabel,
+    columns: cmsColumns,
+    items: cmsAssets,
+  } = useDeepPageCms(pageKey);
+
+  const colMap = useMemo(() => {
+    const map: Record<string, { label: string; visible: boolean }> = {};
+    (cmsColumns || []).forEach((c) => {
+      map[c.id] = { label: c.label, visible: c.visible };
+    });
+    return map;
+  }, [cmsColumns]);
+
+  const visibleColCount = useMemo(() => {
+    if (!cmsColumns || cmsColumns.length === 0) return 12;
+    return cmsColumns.filter((c) => c.visible).length;
+  }, [cmsColumns]);
+
+  const [assets, setAssets] = useState<Asset[]>(() => {
+    if (cmsAssets && cmsAssets.length > 0) return cmsAssets as Asset[];
+    return ASSETS;
+  });
+
+  useEffect(() => {
+    if (cmsAssets && cmsAssets.length > 0) {
+      setAssets(cmsAssets as Asset[]);
+    }
+  }, [cmsAssets]);
+
   const [properties, setProperties] = useState<{ value: string; label: string }[]>(
     HOTELS.map((h) => ({ value: h.id, label: h.name }))
   );
@@ -222,6 +259,7 @@ export default function AssetsClient() {
     };
 
     setAssets((prev) => [assetToSave as any, ...prev]);
+    addPageItem('assets', assetToSave);
     setShowAddAssetModal(false);
     toast.success('Asset created', { description: `${assetToSave.name} saved to database` });
 
@@ -258,6 +296,7 @@ export default function AssetsClient() {
       updatedAt: new Date().toISOString(),
     };
     setAssets((prev) => prev.map((a) => (a.id === updated.id ? updated : a)));
+    updatePageItem('assets', updated.id, updated);
     setShowEditAssetModal(false);
     toast.success('Asset updated', { description: `${updated.name} updated successfully` });
     if (typeof window !== 'undefined') {
@@ -277,6 +316,7 @@ export default function AssetsClient() {
     const id = assetToDelete.id;
     setDeletingAsset(true);
     setAssets((prev) => prev.filter((a) => a.id !== id));
+    deletePageItem('assets', id);
     toast.success('Asset deleted', { description: `${assetToDelete.name} removed from register` });
     if (typeof window !== 'undefined') {
       window.dispatchEvent(new CustomEvent('samko:data-changed', { detail: { type: 'assets', id } }));
@@ -361,11 +401,13 @@ export default function AssetsClient() {
       >
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="font-head text-xl font-bold">Asset Register</h1>
+            <h1 className="font-head text-xl font-bold">{cmsTitle || 'Asset Register'}</h1>
             {loading && <Loader2 size={14} className="animate-spin text-muted-foreground" />}
           </div>
           <p className="text-xs text-muted-foreground mt-0.5">
-            {filtered.length} of {assets.length} assets
+            {cmsSubtitle
+              ? cmsSubtitle.replace('98 of 98', `${filtered.length} of ${assets.length}`)
+              : `${filtered.length} of ${assets.length} assets`}
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -378,6 +420,12 @@ export default function AssetsClient() {
               <X size={12} /> Clear Filters
             </button>
           )}
+
+          <PageCMSEditButton
+            pageId={pageKey}
+            pageName={isNonFixed ? 'Non-Fixed Assets (FF&E)' : 'Fixed Assets Register'}
+          />
+
           {canUpload && (
             <Link
               href="/asset-management/import"
@@ -385,7 +433,7 @@ export default function AssetsClient() {
               style={{ background: 'var(--surface2)', color: 'var(--text2)', border: '1px solid var(--border)' }}
             >
               <FileSpreadsheet size={14} style={{ color: 'var(--primary)' }} />
-              Import Excel
+              {cmsSecondaryActionLabel || 'Import Excel'}
             </Link>
           )}
           {canEdit && (
@@ -404,7 +452,7 @@ export default function AssetsClient() {
                 style={{ background: 'var(--primary)', color: '#000' }}
               >
                 <Plus size={14} />
-                Add Asset
+                {cmsPrimaryActionLabel || 'Add Asset'}
               </button>
             </>
           )}
@@ -461,7 +509,7 @@ export default function AssetsClient() {
           <Search size={14} className="text-muted-foreground flex-shrink-0" />
           <input
             className="bg-transparent text-sm outline-none flex-1"
-            placeholder="Search assets, ID, location, serial…"
+            placeholder={cmsSearchPlaceholder || 'Search assets, ID, location, serial…'}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             style={{ color: 'var(--foreground)' }}
@@ -509,22 +557,72 @@ export default function AssetsClient() {
             style={{ background: 'var(--surface)' }}
           >
             <tr>
-              {['Asset ID', 'Asset Name', 'Category', 'Property', 'Department', 'Location', 'Qty', 'Condition', 'Risk', 'Next Inspection', 'Status', 'Actions'].map(
-                (h) => (
-                  <th
-                    key={h}
-                    className="text-left text-xs font-bold uppercase tracking-wide text-muted-foreground px-3.5 py-3 border-b border-border whitespace-nowrap"
-                  >
-                    {h}
-                  </th>
-                )
+              {colMap['assetId']?.visible !== false && (
+                <th className="text-left text-xs font-bold uppercase tracking-wide text-muted-foreground px-3.5 py-3 border-b border-border whitespace-nowrap">
+                  {colMap['assetId']?.label || 'Asset ID'}
+                </th>
+              )}
+              {colMap['name']?.visible !== false && (
+                <th className="text-left text-xs font-bold uppercase tracking-wide text-muted-foreground px-3.5 py-3 border-b border-border whitespace-nowrap">
+                  {colMap['name']?.label || 'Asset Name'}
+                </th>
+              )}
+              {colMap['category']?.visible !== false && (
+                <th className="text-left text-xs font-bold uppercase tracking-wide text-muted-foreground px-3.5 py-3 border-b border-border whitespace-nowrap">
+                  {colMap['category']?.label || 'Category'}
+                </th>
+              )}
+              {colMap['property']?.visible !== false && (
+                <th className="text-left text-xs font-bold uppercase tracking-wide text-muted-foreground px-3.5 py-3 border-b border-border whitespace-nowrap">
+                  {colMap['property']?.label || 'Property'}
+                </th>
+              )}
+              {colMap['department']?.visible !== false && (
+                <th className="text-left text-xs font-bold uppercase tracking-wide text-muted-foreground px-3.5 py-3 border-b border-border whitespace-nowrap">
+                  {colMap['department']?.label || 'Department'}
+                </th>
+              )}
+              {colMap['location']?.visible !== false && (
+                <th className="text-left text-xs font-bold uppercase tracking-wide text-muted-foreground px-3.5 py-3 border-b border-border whitespace-nowrap">
+                  {colMap['location']?.label || 'Location'}
+                </th>
+              )}
+              {colMap['qty']?.visible !== false && (
+                <th className="text-left text-xs font-bold uppercase tracking-wide text-muted-foreground px-3.5 py-3 border-b border-border whitespace-nowrap">
+                  {colMap['qty']?.label || 'Qty'}
+                </th>
+              )}
+              {colMap['condition']?.visible !== false && (
+                <th className="text-left text-xs font-bold uppercase tracking-wide text-muted-foreground px-3.5 py-3 border-b border-border whitespace-nowrap">
+                  {colMap['condition']?.label || 'Condition'}
+                </th>
+              )}
+              {colMap['risk']?.visible !== false && (
+                <th className="text-left text-xs font-bold uppercase tracking-wide text-muted-foreground px-3.5 py-3 border-b border-border whitespace-nowrap">
+                  {colMap['risk']?.label || 'Risk'}
+                </th>
+              )}
+              {colMap['nextInspection']?.visible !== false && (
+                <th className="text-left text-xs font-bold uppercase tracking-wide text-muted-foreground px-3.5 py-3 border-b border-border whitespace-nowrap">
+                  {colMap['nextInspection']?.label || 'Next Inspection'}
+                </th>
+              )}
+              {colMap['status']?.visible !== false && (
+                <th className="text-left text-xs font-bold uppercase tracking-wide text-muted-foreground px-3.5 py-3 border-b border-border whitespace-nowrap">
+                  {colMap['status']?.label || 'Status'}
+                </th>
+              )}
+              {colMap['actions']?.visible !== false && (
+                <th className="text-left text-xs font-bold uppercase tracking-wide text-muted-foreground px-3.5 py-3 border-b border-border whitespace-nowrap">
+                  {colMap['actions']?.label || 'Actions'}
+                </th>
               )}
             </tr>
           </thead>
           <tbody>
             {filtered.length === 0 ? (
               <tr>
-                <td colSpan={12} className="text-center py-16 text-muted-foreground text-sm">
+                <td colSpan={visibleColCount} className="text-center py-16 text-muted-foreground text-sm">
                   No assets found matching your filters.
                 </td>
               </tr>
@@ -544,55 +642,78 @@ export default function AssetsClient() {
                     onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.background = 'var(--surface2)')}
                     onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.background = 'transparent')}
                   >
-                    <td className="px-3 py-2.5 font-mono text-xs font-semibold" style={{ color: 'var(--primary)' }}>
-                      {asset.assetId}
-                    </td>
-                    <td className="px-3 py-2.5">
-                      <span
-                        className="font-medium text-sm"
-                        style={{ color: 'var(--foreground)' }}
-                      >
-                        {asset.name}
-                      </span>
-                    </td>
-                    <td className="px-3 py-2.5">
-                      <span className="text-xs px-2 py-0.5 rounded-full font-medium" style={{ background: 'var(--surface3)', color: 'var(--text2)' }}>
-                        {asset.category}
-                      </span>
-                    </td>
-                    <td className="px-3 py-2.5 text-xs text-muted-foreground" title={propDisplayName}>
-                      {propDisplayName.split(' ').slice(0, 2).join(' ')}
-                    </td>
-                    <td className="px-3 py-2.5 text-xs text-muted-foreground">{asset.department}</td>
-                    <td className="px-3 py-2.5 text-xs text-muted-foreground">{asset.location}</td>
-                    <td className="px-3 py-2.5 text-xs font-semibold">{asset.quantity}</td>
-                    <td className="px-3 py-2.5">
-                      <Badge label={asset.condition} style={CONDITION_STYLES[asset.condition] || CONDITION_STYLES.good} />
-                    </td>
-                    <td className="px-3 py-2.5">
-                      <Badge label={asset.riskLevel} style={RISK_STYLES[asset.riskLevel] || RISK_STYLES.low} />
-                    </td>
-                    <td className="px-3 py-2.5 text-xs text-muted-foreground whitespace-nowrap">
-                      {asset.nextInspectionDate ? new Date(asset.nextInspectionDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: '2-digit' }) : '—'}
-                    </td>
-                    <td className="px-3 py-2.5" onClick={(e) => e.stopPropagation()}>
-                      {!canEdit || isViewer ? (
-                        <Badge label={STATUS_CONFIG[asset.status]?.label || asset.status} style={s} />
-                      ) : (
-                        <StatusDropdown
-                          value={asset.status}
-                          options={[
-                            { value: 'active', label: 'Active', color: '#3dd68c', bg: 'rgba(61,214,140,0.12)' },
-                            { value: 'under-maintenance', label: 'Under Maintenance', color: '#f59e0b', bg: 'rgba(245,158,11,0.12)' },
-                            { value: 'inactive', label: 'Inactive', color: '#94a3b8', bg: 'rgba(148,163,184,0.12)' },
-                            { value: 'disposed', label: 'Disposed', color: '#f43f5e', bg: 'rgba(244,63,94,0.12)' },
-                            { value: 'lost', label: 'Lost', color: '#f43f5e', bg: 'rgba(244,63,94,0.12)' },
-                          ]}
-                          onChange={(val) => handleStatusChange(asset.id, val)}
-                        />
-                      )}
-                    </td>
-                    <td className="px-3 py-2.5" onClick={(e) => e.stopPropagation()}>
+                    {colMap['assetId']?.visible !== false && (
+                      <td className="px-3 py-2.5 font-mono text-xs font-semibold" style={{ color: 'var(--primary)' }}>
+                        {asset.assetId}
+                      </td>
+                    )}
+                    {colMap['name']?.visible !== false && (
+                      <td className="px-3 py-2.5">
+                        <span
+                          className="font-medium text-sm"
+                          style={{ color: 'var(--foreground)' }}
+                        >
+                          {asset.name}
+                        </span>
+                      </td>
+                    )}
+                    {colMap['category']?.visible !== false && (
+                      <td className="px-3 py-2.5">
+                        <span className="text-xs px-2 py-0.5 rounded-full font-medium" style={{ background: 'var(--surface3)', color: 'var(--text2)' }}>
+                          {asset.category}
+                        </span>
+                      </td>
+                    )}
+                    {colMap['property']?.visible !== false && (
+                      <td className="px-3 py-2.5 text-xs text-muted-foreground" title={propDisplayName}>
+                        {propDisplayName.split(' ').slice(0, 2).join(' ')}
+                      </td>
+                    )}
+                    {colMap['department']?.visible !== false && (
+                      <td className="px-3 py-2.5 text-xs text-muted-foreground">{asset.department}</td>
+                    )}
+                    {colMap['location']?.visible !== false && (
+                      <td className="px-3 py-2.5 text-xs text-muted-foreground">{asset.location}</td>
+                    )}
+                    {colMap['qty']?.visible !== false && (
+                      <td className="px-3 py-2.5 text-xs font-semibold">{asset.quantity}</td>
+                    )}
+                    {colMap['condition']?.visible !== false && (
+                      <td className="px-3 py-2.5">
+                        <Badge label={asset.condition} style={CONDITION_STYLES[asset.condition] || CONDITION_STYLES.good} />
+                      </td>
+                    )}
+                    {colMap['risk']?.visible !== false && (
+                      <td className="px-3 py-2.5">
+                        <Badge label={asset.riskLevel} style={RISK_STYLES[asset.riskLevel] || RISK_STYLES.low} />
+                      </td>
+                    )}
+                    {colMap['nextInspection']?.visible !== false && (
+                      <td className="px-3 py-2.5 text-xs text-muted-foreground whitespace-nowrap">
+                        {asset.nextInspectionDate ? new Date(asset.nextInspectionDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: '2-digit' }) : '—'}
+                      </td>
+                    )}
+                    {colMap['status']?.visible !== false && (
+                      <td className="px-3 py-2.5" onClick={(e) => e.stopPropagation()}>
+                        {!canEdit || isViewer ? (
+                          <Badge label={STATUS_CONFIG[asset.status]?.label || asset.status} style={s} />
+                        ) : (
+                          <StatusDropdown
+                            value={asset.status}
+                            options={[
+                              { value: 'active', label: 'Active', color: '#3dd68c', bg: 'rgba(61,214,140,0.12)' },
+                              { value: 'under-maintenance', label: 'Under Maintenance', color: '#f59e0b', bg: 'rgba(245,158,11,0.12)' },
+                              { value: 'inactive', label: 'Inactive', color: '#94a3b8', bg: 'rgba(148,163,184,0.12)' },
+                              { value: 'disposed', label: 'Disposed', color: '#f43f5e', bg: 'rgba(244,63,94,0.12)' },
+                              { value: 'lost', label: 'Lost', color: '#f43f5e', bg: 'rgba(244,63,94,0.12)' },
+                            ]}
+                            onChange={(val) => handleStatusChange(asset.id, val)}
+                          />
+                        )}
+                      </td>
+                    )}
+                    {colMap['actions']?.visible !== false && (
+                      <td className="px-3 py-2.5" onClick={(e) => e.stopPropagation()}>
                       <div className="flex items-center gap-1.5 whitespace-nowrap">
                         <Link
                           href={`/asset-management/assets/${asset.id}`}
@@ -620,6 +741,7 @@ export default function AssetsClient() {
                         </button>
                       </div>
                     </td>
+                    )}
                   </tr>
                 );
               })

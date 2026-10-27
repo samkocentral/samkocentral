@@ -9,6 +9,7 @@ import EmptyState from '@/components/ui/EmptyState';
 import { toast } from 'sonner';
 import { api } from '@/lib/api';
 import { useAuth } from '@/lib/authContext';
+import PageCMSEditButton from '@/components/cms/PageCMSEditButton';
 
 const DEFAULT_CATEGORIES = ['All', ...Array.from(new Set(DOCUMENTS.map((d) => d.category))).sort()];
 const DEFAULT_SITES = ['All Sites', ...Array.from(new Set(DOCUMENTS.map((d) => d.site))).sort()];
@@ -316,16 +317,19 @@ export default function DocumentRepositoryClient() {
           ))}
         </select>
 
-        {canUpload ? (
-          <button
-            onClick={() => setUploadOpen(true)}
-            className="samko-btn-primary flex items-center gap-2 ml-auto transition-transform active:scale-95"
-            style={{ padding: '8px 16px', fontSize: 12 }}
-          >
-            <Upload size={13} />
-            Upload Document
-          </button>
-        ) : isViewer ? (
+        <div className="flex items-center gap-2 ml-auto">
+          <PageCMSEditButton pageId="documents" pageName="Document Repository" />
+
+          {canUpload ? (
+            <button
+              onClick={() => setUploadOpen(true)}
+              className="samko-btn-primary flex items-center gap-2 transition-transform active:scale-95"
+              style={{ padding: '8px 16px', fontSize: 12 }}
+            >
+              <Upload size={13} />
+              Upload Document
+            </button>
+          ) : isViewer ? (
           <span
             className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold ml-auto"
             style={{ background: 'rgba(148,163,184,0.12)', color: '#94a3b8', border: '1px solid rgba(148,163,184,0.25)' }}
@@ -333,6 +337,7 @@ export default function DocumentRepositoryClient() {
             L4 · Read-Only Access
           </span>
         ) : null}
+        </div>
       </div>
 
       {/* Category filter chips */}

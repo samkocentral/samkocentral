@@ -6,6 +6,9 @@ import Icon from '@/components/ui/AppIcon';
 import CustomDropdown from '@/components/ui/CustomDropdown';
 import { api } from '@/lib/api';
 import { toast } from 'sonner';
+import { useCMSForm } from '@/lib/cmsConfig';
+import { useDeepPageCms } from '@/lib/deepPageCms';
+import PageCMSEditButton from '@/components/cms/PageCMSEditButton';
 
 
 type ContractStatus = 'active' | 'expiring-soon' | 'expired' | 'pending' | 'terminated';
@@ -546,6 +549,13 @@ function KPICard({ label, value, sub, color, icon: Icon }: { label: string; valu
 }
 
 export default function ContractsRegisterClient() {
+  const {
+    title: cmsTitle,
+    subtitle: cmsSubtitle,
+    searchPlaceholder: cmsSearchPlaceholder,
+    primaryActionLabel: cmsPrimaryActionLabel,
+  } = useDeepPageCms('contracts');
+
   const [contracts, setContracts] = useState<Contract[]>(MOCK_CONTRACTS.map(normalizeContract));
   const [properties, setProperties] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
@@ -642,6 +652,18 @@ export default function ContractsRegisterClient() {
   const propertyOptions = properties.length > 0
     ? Array.from(new Set([...properties.map((p) => p.name), ...HOTELS]))
     : HOTELS;
+
+  const { getDropdownOptions, getFieldLabel, customFields } = useCMSForm('contracts');
+
+  const cmsCategoryOptions = getDropdownOptions('category', CONTRACT_CATEGORIES.map((c) => ({ value: c, label: c })));
+  const cmsStatusOptions = getDropdownOptions('status', [
+    { value: 'active', label: 'Active', color: '#3dd68c' },
+    { value: 'expiring-soon', label: 'Expiring Soon', color: '#f59e0b' },
+    { value: 'expired', label: 'Expired', color: '#f43f5e' },
+    { value: 'pending', label: 'Pending', color: '#60a5fa' },
+    { value: 'terminated', label: 'Terminated', color: '#94a3b8' },
+  ]);
+  const cmsHotelOptions = getDropdownOptions('hotel', propertyOptions.map((h) => ({ value: h, label: h })));
 
   const handleStatusChange = async (id: string, newStatus: ContractStatus) => {
     setContracts((prev) =>
@@ -866,12 +888,14 @@ export default function ContractsRegisterClient() {
       <div className="flex items-center justify-between px-7 py-4 border-b border-border flex-shrink-0" style={{ background: 'var(--surface)' }}>
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="font-head font-bold text-xl">Contracts Register</h1>
+            <h1 className="font-head font-bold text-xl">{cmsTitle || 'Contracts Register'}</h1>
             {loading && <Loader2 size={14} className="animate-spin text-muted-foreground" />}
           </div>
-          <p className="text-xs text-muted-foreground mt-0.5">Centralise all supplier and service contracts — {contracts.length} contracts across all properties</p>
+          <p className="text-xs text-muted-foreground mt-0.5">{cmsSubtitle || `Centralise all supplier and service contracts — ${contracts.length} contracts across all properties`}</p>
         </div>
         <div className="flex items-center gap-2">
+          <PageCMSEditButton pageId="contracts" pageName="Contracts Register" />
+
           <button
             onClick={handleExport}
             className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium border border-border hover:bg-surface2 transition-all active:scale-95 cursor-pointer"
@@ -880,7 +904,7 @@ export default function ContractsRegisterClient() {
             <Download size={13} /> Export
           </button>
           <button onClick={() => setShowAddModal(true)} className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-transform active:scale-95 cursor-pointer" style={{ background: 'var(--primary)', color: '#000' }}>
-            <Plus size={14} /> Add Contract
+            <Plus size={14} /> {cmsPrimaryActionLabel || 'Add Contract'}
           </button>
         </div>
       </div>
@@ -915,30 +939,24 @@ export default function ContractsRegisterClient() {
                 <input className="bg-transparent text-sm outline-none flex-1 text-foreground placeholder:text-muted-foreground" placeholder="Search contracts…" value={search} onChange={(e) => setSearch(e.target.value)} />
               </div>
               <CustomDropdown
-                label="All Statuses"
+                label={`All ${getFieldLabel('status', 'Statuses')}`}
                 value={filterStatus}
                 multiple
-                options={[
-                  { value: 'active', label: 'Active', color: '#3dd68c' },
-                  { value: 'expiring-soon', label: 'Expiring Soon', color: '#f59e0b' },
-                  { value: 'expired', label: 'Expired', color: '#f43f5e' },
-                  { value: 'pending', label: 'Pending', color: '#60a5fa' },
-                  { value: 'terminated', label: 'Terminated', color: '#94a3b8' },
-                ]}
+                options={cmsStatusOptions}
                 onChange={setFilterStatus}
               />
               <CustomDropdown
-                label="All Properties"
+                label={`All ${getFieldLabel('hotel', 'Properties')}`}
                 value={filterHotel}
                 multiple
-                options={propertyOptions.map((h) => ({ value: h, label: h }))}
+                options={cmsHotelOptions}
                 onChange={setFilterHotel}
               />
               <CustomDropdown
-                label="All Categories"
+                label={`All ${getFieldLabel('category', 'Categories')}`}
                 value={filterCategory}
                 multiple
-                options={CONTRACT_CATEGORIES.map((c) => ({ value: c, label: c }))}
+                options={cmsCategoryOptions}
                 onChange={setFilterCategory}
               />
               <span className="text-xs text-muted-foreground">{filtered.length} contracts</span>
@@ -1293,25 +1311,29 @@ export default function ContractsRegisterClient() {
                   />
                 </div>
                 <div className="flex flex-col gap-1">
-                  <label className="text-xs font-medium text-muted-foreground">Category</label>
+                  <label className="text-xs font-medium text-muted-foreground">{getFieldLabel('category', 'Category')}</label>
                   <select
                     value={formData.category}
                     onChange={(e) => setFormData({ ...formData, category: e.target.value })}
                     className="rounded-lg border border-border px-3 py-2 text-sm outline-none"
                     style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
                   >
-                    {CONTRACT_CATEGORIES.map((c) => <option key={c}>{c}</option>)}
+                    {cmsCategoryOptions.map((c) => (
+                      <option key={c.value} value={c.value}>{c.label}</option>
+                    ))}
                   </select>
                 </div>
                 <div className="flex flex-col gap-1">
-                  <label className="text-xs font-medium text-muted-foreground">Property</label>
+                  <label className="text-xs font-medium text-muted-foreground">{getFieldLabel('hotel', 'Property')}</label>
                   <select
                     value={formData.hotel}
                     onChange={(e) => setFormData({ ...formData, hotel: e.target.value })}
                     className="rounded-lg border border-border px-3 py-2 text-sm outline-none"
                     style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
                   >
-                    {propertyOptions.map((h) => <option key={h}>{h}</option>)}
+                    {cmsHotelOptions.map((h) => (
+                      <option key={h.value} value={h.value}>{h.label}</option>
+                    ))}
                   </select>
                 </div>
                 <div className="flex flex-col gap-1">
@@ -1445,20 +1467,50 @@ export default function ContractsRegisterClient() {
                   <label htmlFor="autoRenew" className="text-sm font-medium">Auto Renew</label>
                 </div>
                 <div className="flex flex-col gap-1">
-                  <label className="text-xs font-medium text-muted-foreground">Initial Status</label>
+                  <label className="text-xs font-medium text-muted-foreground">{getFieldLabel('status', 'Initial Status')}</label>
                   <select
                     value={formData.status}
                     onChange={(e) => setFormData({ ...formData, status: e.target.value as ContractStatus })}
                     className="rounded-lg border border-border px-3 py-2 text-sm outline-none"
                     style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
                   >
-                    <option value="active">Active</option>
-                    <option value="expiring-soon">Expiring Soon</option>
-                    <option value="expired">Expired</option>
-                    <option value="pending">Pending</option>
-                    <option value="terminated">Terminated</option>
+                    {cmsStatusOptions.map((s) => (
+                      <option key={s.value} value={s.value}>{s.label}</option>
+                    ))}
                   </select>
                 </div>
+
+                {/* Dynamic Custom Fields Added via CMS */}
+                {customFields.map((cf) => (
+                  <div key={cf.id} className="flex flex-col gap-1">
+                    <label className="text-xs font-medium text-muted-foreground flex items-center justify-between">
+                      <span>{cf.label} {cf.required && <span className="text-rose-400">*</span>}</span>
+                      <span className="text-[10px] text-emerald-400 font-semibold">(CMS Field)</span>
+                    </label>
+                    {cf.type === 'select' ? (
+                      <select
+                        value={(formData as any)[cf.id] || ''}
+                        onChange={(e) => setFormData({ ...formData, [cf.id]: e.target.value } as any)}
+                        className="rounded-lg border border-border px-3 py-2 text-sm outline-none"
+                        style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
+                      >
+                        <option value="">Select {cf.label}...</option>
+                        {cf.options?.map((opt) => (
+                          <option key={opt.value} value={opt.value}>{opt.label}</option>
+                        ))}
+                      </select>
+                    ) : (
+                      <input
+                        type={cf.type === 'number' ? 'number' : cf.type === 'date' ? 'date' : 'text'}
+                        value={(formData as any)[cf.id] || ''}
+                        placeholder={cf.placeholder || `Enter ${cf.label}...`}
+                        onChange={(e) => setFormData({ ...formData, [cf.id]: e.target.value } as any)}
+                        className="rounded-lg border border-border px-3 py-2 text-sm outline-none"
+                        style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
+                      />
+                    )}
+                  </div>
+                ))}
                 <div className="col-span-2 flex flex-col gap-1">
                   <label className="text-xs font-medium text-muted-foreground">SLA Terms</label>
                   <input

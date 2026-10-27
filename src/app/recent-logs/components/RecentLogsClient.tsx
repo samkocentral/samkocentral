@@ -34,6 +34,9 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import CustomDropdown from '@/components/ui/CustomDropdown';
+import { useAppCms } from '@/lib/appCmsConfig';
+import { useDeepPageCms } from '@/lib/deepPageCms';
+import PageCMSEditButton from '@/components/cms/PageCMSEditButton';
 
 type PresetType = 'today' | '1week' | '30days' | '45days' | '90days' | 'all' | 'custom';
 
@@ -44,6 +47,8 @@ function toDateInputValue(d: Date): string {
 }
 
 export default function RecentLogsClient() {
+  const deepCms = useDeepPageCms('recentlogs');
+  const { recentLogs: cmsRecentLogs } = useAppCms();
   const [logs] = useState<AuditLogEntry[]>(() => getRecentLogs());
   
   // Requirement 2: Default view defaults to showing "Today's Logs"
@@ -227,16 +232,16 @@ export default function RecentLogsClient() {
         >
           <div>
             <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-              {preset === 'today' ? "Today's Logs" : 'Filtered Logs'}
+              {deepCms.kpis?.[0]?.label || (preset === 'today' ? "Today's Logs" : 'Filtered Logs')}
             </div>
             <div className="text-2xl font-bold mt-1 text-foreground flex items-center gap-2">
-              {totalCount}
+              {deepCms.kpis?.[0]?.value || totalCount}
               {preset === 'today' && (
                 <span className="flex h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
               )}
             </div>
             <div className="text-[11px] text-muted-foreground mt-0.5">
-              {preset === 'today' ? 'Activity from today' : `Active preset: ${preset.toUpperCase()}`}
+              {deepCms.kpis?.[0]?.subtitle || (preset === 'today' ? 'Activity from today' : `Active preset: ${preset.toUpperCase()}`)}
             </div>
           </div>
           <div
@@ -253,13 +258,13 @@ export default function RecentLogsClient() {
         >
           <div>
             <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-              Active Users
+              {deepCms.kpis?.[1]?.label || 'Active Users'}
             </div>
             <div className="text-2xl font-bold mt-1 text-foreground">
-              {uniqueUsersCount}
+              {deepCms.kpis?.[1]?.value || uniqueUsersCount}
             </div>
             <div className="text-[11px] text-muted-foreground mt-0.5">
-              Actors with recorded operations
+              {deepCms.kpis?.[1]?.subtitle || 'Actors with recorded operations'}
             </div>
           </div>
           <div
@@ -276,13 +281,13 @@ export default function RecentLogsClient() {
         >
           <div>
             <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-              Compliance Sign-Offs
+              {deepCms.kpis?.[2]?.label || 'Compliance Sign-Offs'}
             </div>
             <div className="text-2xl font-bold mt-1 text-emerald-400">
-              {complianceCount}
+              {deepCms.kpis?.[2]?.value || complianceCount}
             </div>
             <div className="text-[11px] text-muted-foreground mt-0.5">
-              Inspections & certifications
+              {deepCms.kpis?.[2]?.subtitle || 'Inspections & certifications'}
             </div>
           </div>
           <div
@@ -299,13 +304,13 @@ export default function RecentLogsClient() {
         >
           <div>
             <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-              Security & Alerts
+              {deepCms.kpis?.[3]?.label || 'Security & Alerts'}
             </div>
             <div className="text-2xl font-bold mt-1" style={{ color: alertCount > 0 ? '#f43f5e' : '#fbbf24' }}>
-              {alertCount + warningCount}
+              {deepCms.kpis?.[3]?.value || (alertCount + warningCount)}
             </div>
             <div className="text-[11px] text-muted-foreground mt-0.5">
-              {alertCount} security alerts, {warningCount} warnings
+              {deepCms.kpis?.[3]?.subtitle || `${alertCount} security alerts, ${warningCount} warnings`}
             </div>
           </div>
           <div
@@ -452,19 +457,23 @@ export default function RecentLogsClient() {
             </div>
 
             {/* Export CSV Button */}
-            <button
-              type="button"
-              onClick={handleExportCSV}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-foreground transition-all hover:bg-surface3"
-              style={{
-                background: 'var(--surface2)',
-                border: '1px solid var(--border)',
-              }}
-              title="Export currently filtered audit logs to CSV"
-            >
-              <Download size={13} className="text-primary" />
-              <span>Export CSV</span>
-            </button>
+            {cmsRecentLogs?.allowExport !== false && (
+              <button
+                type="button"
+                onClick={handleExportCSV}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-foreground transition-all hover:bg-surface3"
+                style={{
+                  background: 'var(--surface2)',
+                  border: '1px solid var(--border)',
+                }}
+                title="Export currently filtered audit logs to CSV"
+              >
+                <Download size={13} className="text-primary" />
+                <span>Export CSV</span>
+              </button>
+            )}
+
+            <PageCMSEditButton pageId="recentlogs" pageName="Recent Logs & Audit Trail" />
 
             {/* Reset Filter Button */}
             <button
@@ -670,12 +679,12 @@ export default function RecentLogsClient() {
                   color: 'var(--text2)',
                 }}
               >
-                <th className="py-3 px-4 font-semibold uppercase tracking-wider text-[11px]">Timestamp</th>
-                <th className="py-3 px-4 font-semibold uppercase tracking-wider text-[11px]">User (Actor)</th>
-                <th className="py-3 px-4 font-semibold uppercase tracking-wider text-[11px]">Action & Module</th>
-                <th className="py-3 px-4 font-semibold uppercase tracking-wider text-[11px]">Affected Property & Target</th>
-                <th className="py-3 px-4 font-semibold uppercase tracking-wider text-[11px]">Log Details</th>
-                <th className="py-3 px-4 font-semibold uppercase tracking-wider text-[11px]">Status</th>
+                <th className="py-3 px-4 font-semibold uppercase tracking-wider text-[11px]">{deepCms.getColLabel('timestamp', 'Timestamp')}</th>
+                <th className="py-3 px-4 font-semibold uppercase tracking-wider text-[11px]">{deepCms.getColLabel('actor', 'User (Actor)')}</th>
+                <th className="py-3 px-4 font-semibold uppercase tracking-wider text-[11px]">{deepCms.getColLabel('action', 'Action & Module')}</th>
+                <th className="py-3 px-4 font-semibold uppercase tracking-wider text-[11px]">{deepCms.getColLabel('resource', 'Affected Property & Target')}</th>
+                <th className="py-3 px-4 font-semibold uppercase tracking-wider text-[11px]">{deepCms.getColLabel('ipAddress', 'Log Details')}</th>
+                <th className="py-3 px-4 font-semibold uppercase tracking-wider text-[11px]">{deepCms.getColLabel('status', 'Status')}</th>
                 <th className="py-3 px-4 font-semibold uppercase tracking-wider text-[11px] text-right">Inspect</th>
               </tr>
             </thead>

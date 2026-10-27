@@ -20,9 +20,13 @@ import { useAuth } from '@/lib/authContext';
 import { api } from '@/lib/api';
 import { ASSETS, MAINTENANCE_RECORDS } from '@/lib/assetData';
 import { TASKS, ALERTS, DOCUMENTS, COMPLIANCE, SITES } from '@/lib/mockData';
+import { useAppCms } from '@/lib/appCmsConfig';
+import { useDeepPageCms } from '@/lib/deepPageCms';
 
 export default function DashboardKPIGrid() {
   const { activePortal, setActivePortal, canSwitchPortal } = useAuth();
+  const { dashboard: cmsDashboard } = useAppCms();
+  const cms = useDeepPageCms('overview');
 
   const [assets, setAssets] = useState<any[]>(ASSETS);
   const [maintenance, setMaintenance] = useState<any[]>(MAINTENANCE_RECORDS);
@@ -289,7 +293,20 @@ export default function DashboardKPIGrid() {
     },
   ];
 
-  const cards = activePortal === 'propco' ? propcoCards : opcoCards;
+  const baseCards = activePortal === 'propco' ? propcoCards : opcoCards;
+  const activeCmsKpis = activePortal === 'propco' ? (cms.propcoTopKpis || []) : (cms.topKpis || []);
+  const cards = baseCards.map((card, idx) => {
+    const cmsKpi = activeCmsKpis.find((k) => k.id === card.id || k.id === `propco-kpi-${idx + 1}` || k.id === `top-kpi-${idx + 1}`);
+    if (!cmsKpi) return card;
+    if (cmsKpi.enabled === false) return null;
+    return {
+      ...card,
+      label: cmsKpi.label || card.label,
+      value: cmsKpi.value !== undefined && cmsKpi.value !== '' ? cmsKpi.value : card.value,
+      sub: cmsKpi.subtitle || card.sub,
+      customColor: cmsKpi.color,
+    };
+  }).filter(Boolean) as (typeof baseCards[0] & { customColor?: string })[];
 
   const variantColors = {
     critical: { border: 'var(--critical)', value: 'var(--critical)', bg: 'var(--critical-bg)', top: 'var(--critical)' },
@@ -300,6 +317,18 @@ export default function DashboardKPIGrid() {
 
   return (
     <div className="mb-5">
+      {cmsDashboard?.welcomeGreeting && (
+        <div
+          className="mb-3.5 px-4 py-2.5 rounded-xl border flex items-center justify-between"
+          style={{ background: 'rgba(232, 201, 122, 0.08)', borderColor: 'rgba(232, 201, 122, 0.25)' }}
+        >
+          <span className="text-xs font-semibold text-foreground flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
+            {cmsDashboard.welcomeGreeting}
+          </span>
+        </div>
+      )}
+
       {/* Portal Active View Indicator Banner */}
       <div className="flex items-center justify-between mb-3 px-1">
         <div className="flex items-center gap-2">
@@ -354,6 +383,8 @@ export default function DashboardKPIGrid() {
       >
         {cards.map((card) => {
           const colors = variantColors[card.variant];
+          const topColor = card.customColor || colors.top;
+          const valueColor = card.customColor || colors.value;
           return (
             <a
               key={card.id}
@@ -361,7 +392,7 @@ export default function DashboardKPIGrid() {
               className="samko-card relative overflow-hidden block transition-transform hover:-translate-y-0.5"
               style={{
                 padding: '18px 20px',
-                borderTop: `3px solid ${colors.top}`,
+                borderTop: `3px solid ${topColor}`,
                 textDecoration: 'none',
                 cursor: 'pointer',
               }}
@@ -372,8 +403,8 @@ export default function DashboardKPIGrid() {
                   style={{
                     width: 34,
                     height: 34,
-                    background: colors.bg,
-                    color: colors.value,
+                    background: card.customColor ? `${card.customColor}18` : colors.bg,
+                    color: valueColor,
                   }}
                 >
                   {card.icon}
@@ -396,7 +427,7 @@ export default function DashboardKPIGrid() {
                   fontSize: 32,
                   fontWeight: 800,
                   lineHeight: 1,
-                  color: colors.value,
+                  color: valueColor,
                   marginBottom: 4,
                 }}
               >

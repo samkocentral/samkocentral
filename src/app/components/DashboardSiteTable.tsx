@@ -6,8 +6,10 @@ import { ASSETS, MAINTENANCE_RECORDS } from '@/lib/assetData';
 import StatusBadge from '@/components/ui/StatusBadge';
 import Link from 'next/link';
 import { api } from '@/lib/api';
+import { useDeepPageCms } from '@/lib/deepPageCms';
 
 export default function DashboardSiteTable() {
+  const cms = useDeepPageCms('overview');
   const [properties, setProperties] = useState<any[]>(SITES);
   const [assets, setAssets] = useState<any[]>(ASSETS);
   const [maintenance, setMaintenance] = useState<any[]>(MAINTENANCE_RECORDS);
@@ -42,7 +44,7 @@ export default function DashboardSiteTable() {
   }, [fetchLiveTable]);
 
   // Map site names to dynamic property asset/maintenance data
-  const siteRows = properties.map((site) => {
+  const fallbackRows = properties.map((site) => {
     const siteName = site.name || site.propertyName || '';
     const siteFirstWord = siteName.toLowerCase().split(' ')[0];
 
@@ -72,14 +74,147 @@ export default function DashboardSiteTable() {
       name: siteName,
       city: site.city || site.location || 'London',
       manager: site.manager || site.generalManager || 'Marcus Webb',
-      status: site.status || 'operational',
-      risk: site.risk || (overdueCount > 2 ? 'high' : overdueCount > 0 ? 'medium' : 'low'),
+      status: (site.status || 'operational').toLowerCase(),
+      risk: (site.risk || (overdueCount > 2 ? 'high' : overdueCount > 0 ? 'medium' : 'low')).toLowerCase(),
       compliance: site.compliance || (overdueCount > 2 ? 78 : overdueCount > 0 ? 86 : 94),
       assetCount,
       overdueCount,
       openIssues,
     };
   });
+
+  // Use CMS items if available so edits made in Deep CMS reflect directly live
+  const siteRows = cms.items && cms.items.length > 0
+    ? cms.items.map((item: any, idx: number) => ({
+        id: item.id || `prop-ov-${idx}`,
+        name: item.name || '',
+        city: item.city || '',
+        manager: item.manager || '',
+        status: (item.status || 'operational').toLowerCase(),
+        risk: (item.risk || 'low').toLowerCase(),
+        compliance: Number(item.compliance) || 90,
+        assetCount: Number(item.assetCount) || 0,
+        overdueCount: Number(item.overdueCount) || 0,
+        openIssues: Number(item.openIssues) || 0,
+      }))
+    : fallbackRows;
+
+  // Active columns configured via CMS
+  const activeColumns = cms.columns && cms.columns.length > 0
+    ? cms.columns.filter((c) => c.visible)
+    : [
+        { id: 'name', label: 'Property' },
+        { id: 'city', label: 'City' },
+        { id: 'manager', label: 'Manager' },
+        { id: 'status', label: 'Status' },
+        { id: 'risk', label: 'Risk Level' },
+        { id: 'assetCount', label: 'Assets' },
+        { id: 'overdueCount', label: 'Overdue Maint.' },
+        { id: 'openIssues', label: 'Open Issues' },
+        { id: 'compliance', label: 'Compliance Score' },
+      ];
+
+  const renderCell = (site: any, colId: string) => {
+    switch (colId) {
+      case 'name':
+        return (
+          <span className="text-foreground font-medium" style={{ fontSize: 13 }}>
+            {site.name}
+          </span>
+        );
+      case 'city':
+        return <span className="text-muted2" style={{ fontSize: 12 }}>{site.city}</span>;
+      case 'manager':
+        return <span className="text-muted2" style={{ fontSize: 12 }}>{site.manager}</span>;
+      case 'status':
+        return (
+          <StatusBadge
+            variant={site.status.includes('oper') ? 'ok' : 'maintenance'}
+            label={site.status.includes('oper') ? 'Operational' : 'Maintenance'}
+          />
+        );
+      case 'risk':
+        return (
+          <StatusBadge
+            variant={site.risk === 'high' ? 'critical' : site.risk === 'medium' ? 'warning' : 'ok'}
+            label={site.risk.charAt(0).toUpperCase() + site.risk.slice(1)}
+          />
+        );
+      case 'assetCount':
+        return (
+          <span className="font-head tabular-nums" style={{ fontSize: 13, fontWeight: 700, color: 'var(--info)' }}>
+            {site.assetCount}
+          </span>
+        );
+      case 'overdueCount':
+        return (
+          <span
+            className="font-head tabular-nums"
+            style={{
+              fontSize: 13,
+              fontWeight: 700,
+              color: site.overdueCount > 0 ? 'var(--critical)' : 'var(--ok)',
+            }}
+          >
+            {site.overdueCount}
+          </span>
+        );
+      case 'openIssues':
+        return (
+          <span
+            className="font-head tabular-nums"
+            style={{
+              fontSize: 14,
+              fontWeight: 700,
+              color:
+                site.openIssues > 5
+                  ? 'var(--critical)'
+                  : site.openIssues > 2
+                  ? 'var(--warning)'
+                  : 'var(--ok)',
+            }}
+          >
+            {site.openIssues}
+          </span>
+        );
+      case 'compliance':
+        return (
+          <div className="flex items-center gap-3">
+            <div className="comp-bar-track" style={{ width: 80 }}>
+              <div
+                className="comp-bar-fill"
+                style={{
+                  width: `${site.compliance}%`,
+                  background:
+                    site.compliance >= 90
+                      ? 'var(--ok)'
+                      : site.compliance >= 70
+                      ? 'var(--warning)'
+                      : 'var(--critical)',
+                }}
+              />
+            </div>
+            <span
+              className="font-head tabular-nums"
+              style={{
+                fontSize: 13,
+                fontWeight: 700,
+                color:
+                  site.compliance >= 90
+                    ? 'var(--ok)'
+                    : site.compliance >= 70
+                    ? 'var(--warning)'
+                    : 'var(--critical)',
+              }}
+            >
+              {site.compliance}%
+            </span>
+          </div>
+        );
+      default:
+        return <span className="text-foreground">{String(site[colId] || '')}</span>;
+    }
+  };
 
   return (
     <div className="samko-card" style={{ padding: 0, overflow: 'hidden' }}>
@@ -91,124 +226,34 @@ export default function DashboardSiteTable() {
           className="font-head text-foreground"
           style={{ fontSize: 13, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em' }}
         >
-          Property Portfolio Overview
+          {cms.sections?.propertyTable?.title || 'Property Portfolio Overview'}
         </h2>
         <Link
           href="/asset-management/properties"
           style={{ fontSize: 11, color: 'var(--primary)', textDecoration: 'none' }}
         >
-          View all properties →
+          {cms.customLabels?.viewAllProperties || 'View all properties →'}
         </Link>
       </div>
       <div style={{ overflowX: 'auto' }}>
         <table style={{ width: '100%', minWidth: 880, borderCollapse: 'collapse' }}>
           <thead>
             <tr>
-              {['Property', 'City', 'Manager', 'Status', 'Risk Level', 'Assets', 'Overdue Maint.', 'Open Issues', 'Compliance Score'].map(
-                (h) => (
-                  <th key={`th-${h}`} className="table-header-cell">
-                    {h}
-                  </th>
-                )
-              )}
+              {activeColumns.map((col) => (
+                <th key={`th-${col.id}`} className="table-header-cell">
+                  {col.label}
+                </th>
+              ))}
             </tr>
           </thead>
           <tbody>
-            {siteRows.map((site) => (
+            {siteRows.map((site: any) => (
               <tr key={site.id} className="table-row-hover">
-                <td className="table-cell">
-                  <span className="text-foreground font-medium" style={{ fontSize: 13 }}>
-                    {site.name}
-                  </span>
-                </td>
-                <td className="table-cell text-muted2" style={{ fontSize: 12 }}>
-                  {site.city}
-                </td>
-                <td className="table-cell text-muted2" style={{ fontSize: 12 }}>
-                  {site.manager}
-                </td>
-                <td className="table-cell">
-                  <StatusBadge
-                    variant={site.status === 'operational' ? 'ok' : 'maintenance'}
-                    label={site.status === 'operational' ? 'Operational' : 'Maintenance'}
-                  />
-                </td>
-                <td className="table-cell">
-                  <StatusBadge
-                    variant={site.risk === 'high' ? 'critical' : site.risk === 'medium' ? 'warning' : 'ok'}
-                    label={site.risk.charAt(0).toUpperCase() + site.risk.slice(1)}
-                  />
-                </td>
-                <td className="table-cell">
-                  <span
-                    className="font-head tabular-nums"
-                    style={{ fontSize: 13, fontWeight: 700, color: 'var(--info)' }}
-                  >
-                    {site.assetCount}
-                  </span>
-                </td>
-                <td className="table-cell">
-                  <span
-                    className="font-head tabular-nums"
-                    style={{
-                      fontSize: 13,
-                      fontWeight: 700,
-                      color: site.overdueCount > 0 ? 'var(--critical)' : 'var(--ok)',
-                    }}
-                  >
-                    {site.overdueCount}
-                  </span>
-                </td>
-                <td className="table-cell">
-                  <span
-                    className="font-head tabular-nums"
-                    style={{
-                      fontSize: 14,
-                      fontWeight: 700,
-                      color:
-                        site.openIssues > 5
-                          ? 'var(--critical)'
-                          : site.openIssues > 2
-                          ? 'var(--warning)'
-                          : 'var(--ok)',
-                    }}
-                  >
-                    {site.openIssues}
-                  </span>
-                </td>
-                <td className="table-cell">
-                  <div className="flex items-center gap-3">
-                    <div className="comp-bar-track" style={{ width: 80 }}>
-                      <div
-                        className="comp-bar-fill"
-                        style={{
-                          width: `${site.compliance}%`,
-                          background:
-                            site.compliance >= 90
-                              ? 'var(--ok)'
-                              : site.compliance >= 70
-                              ? 'var(--warning)'
-                              : 'var(--critical)',
-                        }}
-                      />
-                    </div>
-                    <span
-                      className="font-head tabular-nums"
-                      style={{
-                        fontSize: 13,
-                        fontWeight: 700,
-                        color:
-                          site.compliance >= 90
-                            ? 'var(--ok)'
-                            : site.compliance >= 70
-                            ? 'var(--warning)'
-                            : 'var(--critical)',
-                      }}
-                    >
-                      {site.compliance}%
-                    </span>
-                  </div>
-                </td>
+                {activeColumns.map((col) => (
+                  <td key={`${site.id}-${col.id}`} className="table-cell">
+                    {renderCell(site, col.id)}
+                  </td>
+                ))}
               </tr>
             ))}
           </tbody>

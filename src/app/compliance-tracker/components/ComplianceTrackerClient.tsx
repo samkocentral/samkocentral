@@ -9,8 +9,17 @@ import EmptyState from '@/components/ui/EmptyState';
 import StatusDropdown from '@/components/ui/StatusDropdown';
 import { api } from '@/lib/api';
 import { toast } from 'sonner';
+import PageCMSEditButton from '@/components/cms/PageCMSEditButton';
+import { useDeepPageCms } from '@/lib/deepPageCms';
 
 export default function ComplianceTrackerClient() {
+  const {
+    title: cmsTitle,
+    subtitle: cmsSubtitle,
+    searchPlaceholder: cmsSearchPlaceholder,
+    primaryActionLabel: cmsPrimaryActionLabel,
+  } = useDeepPageCms('compliancetracker');
+
   const [complianceList, setComplianceList] = useState<ComplianceItem[]>(COMPLIANCE);
   const [loading, setLoading] = useState(false);
   const [statusFilter, setStatusFilter] = useState<'All' | 'critical' | 'warning' | 'ok'>('All');
@@ -348,7 +357,7 @@ export default function ComplianceTrackerClient() {
           <Search size={14} style={{ color: 'var(--text3)', flexShrink: 0 }} />
           <input
             type="text"
-            placeholder="Search compliance items, assignees…"
+            placeholder={cmsSearchPlaceholder || 'Search compliance items, assignees…'}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             style={{
@@ -395,12 +404,13 @@ export default function ComplianceTrackerClient() {
           <p className="text-muted-foreground" style={{ fontSize: 12 }}>
             <span style={{ color: 'var(--foreground)', fontWeight: 600 }}>{filtered.length}</span> of {complianceList.length} items
           </p>
+          <PageCMSEditButton pageId="compliancetracker" pageName="Compliance Expiry Tracker" />
           <button
             onClick={() => setShowAddModal(true)}
             className="flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-semibold transition-transform active:scale-95"
             style={{ background: 'var(--primary)', color: '#000' }}
           >
-            <Plus size={14} /> Log Compliance / Issue
+            <Plus size={14} /> {cmsPrimaryActionLabel || 'Log Compliance / Issue'}
           </button>
         </div>
       </div>
