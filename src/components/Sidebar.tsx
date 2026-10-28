@@ -71,6 +71,12 @@ export default function Sidebar({ currentPath }: SidebarProps) {
   const getTabLabel = (portal: 'propco' | 'opco', tabId: string, fallback: string) => {
     const portalConfig = portal === 'propco' ? cmsPropco : cmsOpco;
     const tab = portalConfig?.tabs?.find((t) => t.id === tabId);
+    if (tabId === 'propco-dashboard' && (!tab?.name || tab?.name === 'Dashboard')) {
+      return 'PropCo Dashboard';
+    }
+    if (tabId === 'opco-dashboard' && (!tab?.name || tab?.name === 'Dashboard')) {
+      return 'OpCo Dashboard';
+    }
     return tab?.name || fallback;
   };
 
@@ -958,7 +964,7 @@ export default function Sidebar({ currentPath }: SidebarProps) {
             {isTabVisibleInCms('propco', 'propco-dashboard') &&
               renderPropCoNavItem({
                 id: 'propco-dashboard',
-                label: getTabLabel('propco', 'propco-dashboard', 'Dashboard'),
+                label: getTabLabel('propco', 'propco-dashboard', 'PropCo Dashboard'),
                 href: getTabPath('propco', 'propco-dashboard', '/?portal=propco'),
                 icon: <LayoutDashboard size={15} />,
               })}
@@ -1042,7 +1048,7 @@ export default function Sidebar({ currentPath }: SidebarProps) {
             {isTabVisibleInCms('opco', 'opco-dashboard') &&
               renderOpCoNavItem({
                 id: 'opco-dashboard',
-                label: getTabLabel('opco', 'opco-dashboard', 'Dashboard'),
+                label: getTabLabel('opco', 'opco-dashboard', 'OpCo Dashboard'),
                 href: getTabPath('opco', 'opco-dashboard', '/?portal=opco'),
                 icon: <LayoutDashboard size={15} />,
               })}

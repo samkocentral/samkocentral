@@ -102,6 +102,7 @@ export const AVAILABLE_ICONS = [
 export function resolvePageIdFromTab(tab: { id: string; path: string }): string {
   const p = (tab.path || '').toLowerCase();
   const id = (tab.id || '').toLowerCase();
+  if (id.includes('dashboard') || p === '/' || p.includes('portal=')) return 'overview';
   if (id.includes('proper') || id.includes('hotel') || p.includes('/properties') || p.includes('/hotels')) return 'properties';
   if (id.includes('asset') || p.includes('/assets')) return 'assets';
   if (id.includes('categor') || p.includes('/categories')) return 'categories';

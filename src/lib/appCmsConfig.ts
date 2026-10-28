@@ -114,7 +114,7 @@ const EVENT_KEY = 'samko:app-cms-updated';
 // ─── FACTORY SYSTEM DEFAULTS ──────────────────────────────────────────────────
 
 export const DEFAULT_APP_CMS: AppCmsConfig = {
-  version: '2.1',
+  version: '2.2',
   propco: {
     id: 'propco',
     title: 'PROPCO',
@@ -127,7 +127,7 @@ export const DEFAULT_APP_CMS: AppCmsConfig = {
     tabs: [
       {
         id: 'propco-dashboard',
-        name: 'Dashboard',
+        name: 'PropCo Dashboard',
         path: '/?portal=propco',
         iconName: 'LayoutDashboard',
         description: 'Asset Co portfolio overview, fixed plant infrastructure & contract values',
@@ -216,7 +216,7 @@ export const DEFAULT_APP_CMS: AppCmsConfig = {
     tabs: [
       {
         id: 'opco-dashboard',
-        name: 'Dashboard',
+        name: 'OpCo Dashboard',
         path: '/?portal=opco',
         iconName: 'LayoutDashboard',
         description: 'Operations pulse, loose FF&E, maintenance PPM, statutory compliance & energy utilities',
@@ -458,7 +458,7 @@ export function getAppCmsConfig(): AppCmsConfig {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(DEFAULT_APP_CMS));
       return DEFAULT_APP_CMS;
     }
-    return {
+    const config: AppCmsConfig = {
       ...DEFAULT_APP_CMS,
       ...parsed,
       propco: { ...DEFAULT_APP_CMS.propco, ...(parsed.propco || {}) },
@@ -469,6 +469,23 @@ export function getAppCmsConfig(): AppCmsConfig {
       roles: parsed.roles || DEFAULT_APP_CMS.roles,
       navigationItems: parsed.navigationItems || DEFAULT_APP_CMS.navigationItems,
     };
+
+    if (config.propco?.tabs) {
+      config.propco.tabs.forEach((t) => {
+        if (t.id === 'propco-dashboard' && (!t.name || t.name === 'Dashboard')) {
+          t.name = 'PropCo Dashboard';
+        }
+      });
+    }
+    if (config.opco?.tabs) {
+      config.opco.tabs.forEach((t) => {
+        if (t.id === 'opco-dashboard' && (!t.name || t.name === 'Dashboard')) {
+          t.name = 'OpCo Dashboard';
+        }
+      });
+    }
+
+    return config;
   } catch (err) {
     console.error('Error reading App CMS config:', err);
     return DEFAULT_APP_CMS;
