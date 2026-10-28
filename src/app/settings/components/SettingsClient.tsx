@@ -79,9 +79,7 @@ const BASE_TABS: TabItem[] = [
 const CMS_NAV_ITEMS: CmsTabItem[] = [
   { id: 'cms-opco', label: 'OpCo Portal', icon: Shield, badgeText: 'Operations', badgeColor: '#60a5fa' },
   { id: 'cms-propco', label: 'PropCo Portal', icon: Building2, badgeText: 'Asset Co', badgeColor: '#e8c97a' },
-  { id: 'cms-pages', label: 'All Pages CMS', icon: LayoutDashboard, badgeText: 'Pages', badgeColor: '#34d399' },
-  { id: 'cms-forms', label: 'Forms & Fields', icon: SlidersHorizontal, badgeText: 'Fields', badgeColor: '#a78bfa' },
-  { id: 'cms-navigation', label: 'Portal Navigation', icon: Settings, badgeText: 'Layout', badgeColor: '#f59e0b' },
+  { id: 'cms-navigation', label: 'Portal Navigation', icon: SlidersHorizontal, badgeText: 'Layout', badgeColor: '#f59e0b' },
 ];
 
 function Toggle({ checked = false, onChange }: { checked?: boolean; onChange: (v: boolean) => void }) {
@@ -259,7 +257,7 @@ export default function SettingsClient() {
             );
           })}
 
-          {/* Section 2: Complete Application CMS (Super Admin) - Organized Systematic Hierarchy */}
+          {/* Section 2: Complete Application CMS (Super Admin) - Streamlined */}
           {(isSuperAdmin || user?.roleLevel === 'L1') && (
             <div className="pt-3 mt-3 border-t border-border">
               <div className="px-3 pb-2 text-[10px] font-bold uppercase tracking-wider text-[#e8c97a] flex items-center justify-between">
@@ -272,54 +270,7 @@ export default function SettingsClient() {
                 </span>
               </div>
 
-              {/* Group A: Operational Portals */}
-              <div className="px-3 pt-1 pb-1 text-[9px] font-bold uppercase tracking-wider text-muted-foreground flex items-center justify-between">
-                <span>Portals CMS</span>
-                <span className="text-[8px] text-muted-foreground font-mono">2 Portals</span>
-              </div>
-              {CMS_NAV_ITEMS.slice(0, 2).map((item) => {
-                const Icon = item.icon;
-                const active = activeTab === item.id;
-                return (
-                  <button
-                    key={item.id}
-                    onClick={() => setActiveTab(item.id)}
-                    className="flex items-center gap-2.5 w-full px-3 py-2 rounded-lg mb-0.5 text-left transition-colors cursor-pointer group"
-                    style={{
-                      background: active ? 'rgba(232,201,122,0.12)' : 'transparent',
-                      color: active ? 'var(--primary)' : 'var(--text2)',
-                      fontSize: 12.5,
-                      fontWeight: active ? 600 : 400,
-                    }}
-                  >
-                    <Icon
-                      size={14}
-                      className={active ? 'text-primary' : 'text-muted-foreground group-hover:text-foreground'}
-                    />
-                    <span className="flex-1 truncate">{item.label}</span>
-                    {item.badgeText && (
-                      <span
-                        className="text-[9px] font-bold px-1.5 py-0.2 rounded tracking-wider uppercase flex-shrink-0"
-                        style={{
-                          background: item.badgeColor ? `${item.badgeColor}22` : 'rgba(255,255,255,0.08)',
-                          color: item.badgeColor || 'var(--text2)',
-                          border: item.badgeColor ? `1px solid ${item.badgeColor}40` : '1px solid var(--border)',
-                        }}
-                      >
-                        {item.badgeText}
-                      </span>
-                    )}
-                    {active && <ChevronRight size={11} className="text-primary flex-shrink-0" />}
-                  </button>
-                );
-              })}
-
-              {/* Group B: Directory & Global Tools */}
-              <div className="px-3 pt-2.5 pb-1 text-[9px] font-bold uppercase tracking-wider text-muted-foreground border-t border-border/40 mt-1.5 flex items-center justify-between">
-                <span>Directory & Tools</span>
-                <span className="text-[8px] text-muted-foreground font-mono">3 Tools</span>
-              </div>
-              {CMS_NAV_ITEMS.slice(2).map((item) => {
+              {CMS_NAV_ITEMS.map((item) => {
                 const Icon = item.icon;
                 const active = activeTab === item.id;
                 return (
@@ -688,7 +639,7 @@ export default function SettingsClient() {
           {activeTab === 'cms-recent-logs' && <PortalCMSEditor portal="opco" initialTabId="recent-logs" />}
           {activeTab === 'cms-import' && <PortalCMSEditor portal="opco" initialTabId="import" />}
           {activeTab === 'cms-users' && <PortalCMSEditor portal="opco" initialTabId="users" />}
-          {activeTab === 'cms-navigation' && <PortalCMSEditor portal="opco" initialTabId="settings" />}
+          {activeTab === 'cms-navigation' && <CompleteAppCMS activeSection="navigation" />}
           {activeTab === 'cms-forms' && <CMSFieldManager />}
         </div>
       </div>
