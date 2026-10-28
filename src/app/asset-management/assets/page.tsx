@@ -2,13 +2,16 @@
 
 import React, { Suspense } from 'react';
 import AppLayout from '@/components/AppLayout';
-import { usePathname } from 'next/navigation';
+import { usePathname, useSearchParams } from 'next/navigation';
 import AssetsClient from './components/AssetsClient';
 
 function AssetsPageInner() {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const queryStr = searchParams?.toString();
+  const fullPath = queryStr ? `${pathname}?${queryStr}` : (pathname || '/asset-management/assets');
   return (
-    <AppLayout currentPath={pathname}>
+    <AppLayout currentPath={fullPath}>
       <AssetsClient />
     </AppLayout>
   );

@@ -4,7 +4,7 @@ import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Search, ChevronDown, X, ExternalLink, Loader2, FileSpreadsheet, Plus, Tag, Edit2, Trash2, AlertTriangle, Check } from 'lucide-react';
-import { ASSETS, HOTELS, ASSET_CATEGORIES, DEPARTMENTS, type Asset } from '@/lib/assetData';
+import { ASSETS, HOTELS, ASSET_CATEGORIES, DEPARTMENTS, type Asset, isAssetFixed } from '@/lib/assetData';
 import { api } from '@/lib/api';
 import { useAuth } from '@/lib/authContext';
 import { toast } from 'sonner';
@@ -129,7 +129,24 @@ export default function AssetsClient() {
   const [departmentFilter, setDepartmentFilter] = useState<string[]>([]);
   const [statusFilter, setStatusFilter] = useState<string[]>([]);
   const [customDropdownFilters, setCustomDropdownFilters] = useState<Record<string, string[]>>({});
-  const [activeTab, setActiveTab] = useState<'all' | 'fixed' | 'non-fixed'>('all');
+  const [activeTab, setActiveTab] = useState<'all' | 'active' | 'under-maintenance'>('all');
+
+  useEffect(() => {
+    setActiveTab('all');
+    setCategoryFilter([]);
+  }, [isNonFixed]);
+
+  const scopedAssets = useMemo(() => {
+    return assets.filter((a) => (isNonFixed ? !isAssetFixed(a) : isAssetFixed(a)));
+  }, [assets, isNonFixed]);
+
+  const availableCategories = useMemo(() => {
+    const set = new Set<string>();
+    scopedAssets.forEach((a) => {
+      if (a.category) set.add(a.category);
+    });
+    return Array.from(set);
+  }, [scopedAssets]);
 
   const customCmsDropdowns = useMemo(() => {
     if (!cmsDropdowns) return [];
@@ -273,17 +290,18 @@ export default function AssetsClient() {
     e.preventDefault();
     if (!newAssetForm.name.trim()) return;
     setSavingAsset(true);
-    const newId = `AST-${Date.now().toString().slice(-4)}`;
+    const newId = isNonFixed ? `FFE-${Date.now().toString().slice(-4)}` : `AST-${Date.now().toString().slice(-4)}`;
     const assetToSave = {
       ...newAssetForm,
       id: newId,
       assetId: newId,
+      isFixed: !isNonFixed,
       nextInspection: new Date(Date.now() + 180 * 86400000).toISOString().slice(0, 10),
       createdAt: new Date().toISOString(),
     };
 
     setAssets((prev) => [assetToSave as any, ...prev]);
-    addPageItem('assets', assetToSave);
+    addPageItem(pageKey, assetToSave);
     setShowAddAssetModal(false);
     toast.success('Asset created', { description: `${assetToSave.name} saved to database` });
 
@@ -320,7 +338,7 @@ export default function AssetsClient() {
       updatedAt: new Date().toISOString(),
     };
     setAssets((prev) => prev.map((a) => (a.id === updated.id ? updated : a)));
-    updatePageItem('assets', updated.id, updated);
+    updatePageItem(pageKey, updated.id, updated);
     setShowEditAssetModal(false);
     toast.success('Asset updated', { description: `${updated.name} updated successfully` });
     if (typeof window !== 'undefined') {
@@ -340,7 +358,7 @@ export default function AssetsClient() {
     const id = assetToDelete.id;
     setDeletingAsset(true);
     setAssets((prev) => prev.filter((a) => a.id !== id));
-    deletePageItem('assets', id);
+    deletePageItem(pageKey, id);
     toast.success('Asset deleted', { description: `${assetToDelete.name} removed from register` });
     if (typeof window !== 'undefined') {
       window.dispatchEvent(new CustomEvent('samko:data-changed', { detail: { type: 'assets', id } }));
@@ -356,7 +374,7 @@ export default function AssetsClient() {
   };
 
   const filtered = useMemo(() => {
-    return assets.filter((a) => {
+    return scopedAssets.filter((a) => {
       const q = search.toLowerCase();
       const matchSearch =
         !search ||
@@ -371,15 +389,22 @@ export default function AssetsClient() {
       const matchHotel =
         hotelFilter.length === 0 ||
         hotelFilter.includes(a.hotelId) ||
-        hotelFilter.includes((a as any).propertyId);
+        hotelFilter.includes((a as any).propertyId) ||
+        hotelFilter.includes((a as any).property);
       const matchCategory =
         categoryFilter.length === 0 || categoryFilter.includes(a.category);
       const matchDept =
         departmentFilter.length === 0 || departmentFilter.includes(a.department);
       const matchStatus =
         statusFilter.length === 0 || statusFilter.includes(a.status);
-      const matchFixed =
-        activeTab === 'all' ? true : activeTab === 'fixed' ? a.isFixed : !a.isFixed;
+      const matchTab =
+        activeTab === 'all'
+          ? true
+          : activeTab === 'active'
+          ? (a.status || '').toLowerCase() === 'active'
+          : activeTab === 'under-maintenance'
+          ? (a.status || '').toLowerCase() === 'under-maintenance' || (a.status || '').toLowerCase() === 'maintenance'
+          : true;
 
       const matchCustom = Object.entries(customDropdownFilters).every(([key, vals]) => {
         if (!vals || vals.length === 0) return true;
@@ -388,9 +413,9 @@ export default function AssetsClient() {
         return vals.some((v) => v.toLowerCase() === assetVal || assetVal.includes(v.toLowerCase()));
       });
 
-      return matchSearch && matchHotel && matchCategory && matchDept && matchStatus && matchFixed && matchCustom;
+      return matchSearch && matchHotel && matchCategory && matchDept && matchStatus && matchTab && matchCustom;
     });
-  }, [assets, search, hotelFilter, categoryFilter, departmentFilter, statusFilter, customDropdownFilters, activeTab]);
+  }, [scopedAssets, search, hotelFilter, categoryFilter, departmentFilter, statusFilter, customDropdownFilters, activeTab]);
 
   const hasFilters =
     Boolean(search) ||
@@ -407,11 +432,28 @@ export default function AssetsClient() {
     setStatusFilter([]);
   };
 
-  const tabs = [
-    { id: 'all', label: 'All Assets', count: assets.length },
-    { id: 'fixed', label: 'Fixed Assets', count: assets.filter((a) => a.isFixed).length },
-    { id: 'non-fixed', label: 'Non-Fixed Assets', count: assets.filter((a) => !a.isFixed).length },
-  ] as const;
+  const tabs = useMemo(() => {
+    const activeCount = scopedAssets.filter(
+      (a) => (a.status || '').toLowerCase() === 'active'
+    ).length;
+    const maintCount = scopedAssets.filter((a) => {
+      const s = (a.status || '').toLowerCase();
+      return s === 'under-maintenance' || s === 'maintenance';
+    }).length;
+
+    if (isNonFixed) {
+      return [
+        { id: 'all' as const, label: 'All Non-Fixed Assets', count: scopedAssets.length },
+        { id: 'active' as const, label: 'Active', count: activeCount },
+        { id: 'under-maintenance' as const, label: 'Under Maintenance', count: maintCount },
+      ];
+    }
+    return [
+      { id: 'all' as const, label: 'All Fixed Assets', count: scopedAssets.length },
+      { id: 'active' as const, label: 'Active', count: activeCount },
+      { id: 'under-maintenance' as const, label: 'Under Maintenance', count: maintCount },
+    ];
+  }, [isNonFixed, scopedAssets]);
 
   const cacheAssetForDetail = (a: Asset) => {
     try {
@@ -432,13 +474,19 @@ export default function AssetsClient() {
       >
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="font-head text-xl font-bold">{cmsTitle || 'Asset Register'}</h1>
+            <h1 className="font-head text-xl font-bold">
+              {cmsTitle && cmsTitle !== 'Asset Register'
+                ? cmsTitle
+                : isNonFixed
+                ? 'Non-Fixed Assets (FF&E Register)'
+                : 'Fixed Assets Register'}
+            </h1>
             {loading && <Loader2 size={14} className="animate-spin text-muted-foreground" />}
           </div>
           <p className="text-xs text-muted-foreground mt-0.5">
-            {cmsSubtitle
-              ? cmsSubtitle.replace('98 of 98', `${filtered.length} of ${assets.length}`)
-              : `${filtered.length} of ${assets.length} assets`}
+            {cmsSubtitle && !cmsSubtitle.includes('of 98') && !cmsSubtitle.includes('of 100')
+              ? cmsSubtitle
+              : `${filtered.length} of ${scopedAssets.length} ${isNonFixed ? 'non-fixed' : 'fixed'} assets managed across all portfolio properties`}
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -555,7 +603,7 @@ export default function AssetsClient() {
         <FilterSelect
           label={categoryLabel}
           value={categoryFilter}
-          options={categories}
+          options={availableCategories.length > 0 ? availableCategories : categories}
           onChange={setCategoryFilter}
         />
         <FilterSelect
