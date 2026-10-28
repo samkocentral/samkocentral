@@ -14,6 +14,13 @@
 
 import { useState, useEffect, useCallback } from 'react';
 
+export interface AppCmsSubTab {
+  id: string;
+  label: string;
+  path: string;
+  iconName?: string;
+}
+
 export interface AppCmsTab {
   id: string;
   name: string;
@@ -26,6 +33,8 @@ export interface AppCmsTab {
   order: number;
   isCustom?: boolean;
   badgeCount?: number;
+  parentTabId?: string;
+  subtabs?: AppCmsSubTab[];
 }
 
 export interface AppCmsPortalSection {
@@ -105,7 +114,7 @@ const EVENT_KEY = 'samko:app-cms-updated';
 // ─── FACTORY SYSTEM DEFAULTS ──────────────────────────────────────────────────
 
 export const DEFAULT_APP_CMS: AppCmsConfig = {
-  version: '2.0',
+  version: '2.1',
   propco: {
     id: 'propco',
     title: 'PROPCO',
@@ -148,6 +157,11 @@ export const DEFAULT_APP_CMS: AppCmsConfig = {
         section: 'propco',
         enabled: true,
         order: 3,
+        subtabs: [
+          { id: 'register', label: 'Insurance Register', path: '/insurance-register' },
+          { id: 'claims', label: 'Claims', path: '/insurance-register?tab=claims' },
+          { id: 'renewals', label: 'Renewals', path: '/insurance-register?tab=renewals' },
+        ],
       },
       {
         id: 'contracts',
@@ -159,6 +173,12 @@ export const DEFAULT_APP_CMS: AppCmsConfig = {
         section: 'propco',
         enabled: true,
         order: 4,
+        subtabs: [
+          { id: 'register', label: 'Contracts Register', path: '/contracts-register' },
+          { id: 'suppliers', label: 'Suppliers', path: '/contracts-register?tab=suppliers' },
+          { id: 'renewals', label: 'Renewals', path: '/contracts-register?tab=renewals' },
+          { id: 'slas', label: 'SLAs', path: '/contracts-register?tab=slas' },
+        ],
       },
       {
         id: 'reports',
@@ -204,6 +224,12 @@ export const DEFAULT_APP_CMS: AppCmsConfig = {
         section: 'opco',
         enabled: true,
         order: 2,
+        subtabs: [
+          { id: 'scheduled', label: 'Scheduled', path: '/asset-management/maintenance?filter=scheduled' },
+          { id: 'due-today', label: 'Due Today', path: '/asset-management/maintenance?filter=due-today' },
+          { id: 'overdue', label: 'Overdue', path: '/asset-management/maintenance?filter=overdue' },
+          { id: 'completed', label: 'Completed', path: '/asset-management/maintenance?filter=completed' },
+        ],
       },
       {
         id: 'compliance',
@@ -215,6 +241,12 @@ export const DEFAULT_APP_CMS: AppCmsConfig = {
         section: 'opco',
         enabled: true,
         order: 3,
+        subtabs: [
+          { id: 'register', label: 'Compliance Register', path: '/compliance-register' },
+          { id: 'certifications', label: 'Certifications', path: '/compliance-register?tab=certifications' },
+          { id: 'statutory', label: 'Statutory Inspections', path: '/compliance-register?tab=statutory' },
+          { id: 'expiry', label: 'Expiry Dashboard', path: '/compliance-tracker' },
+        ],
       },
       {
         id: 'tasks',
@@ -259,6 +291,10 @@ export const DEFAULT_APP_CMS: AppCmsConfig = {
         section: 'opco',
         enabled: true,
         order: 7,
+        subtabs: [
+          { id: 'register', label: 'Utilities Register', path: '/utilities-register' },
+          { id: 'energy', label: 'Energy & Water Accounts', path: '/utilities-register?type=electricity' },
+        ],
       },
     ],
   },
@@ -546,6 +582,120 @@ export function copyTabAcrossPortals(
 
   saveAppCmsConfig(current);
   return true;
+}
+
+export function addDropdownSubtab(
+  section: 'propco' | 'opco',
+  parentTabId: string,
+  subtab: { label: string; path: string; iconName?: string }
+): boolean {
+  const current = getAppCmsConfig();
+  const portal = current[section];
+  if (!portal) return false;
+  const parentTab = portal.tabs.find((t) => t.id === parentTabId);
+  if (!parentTab) return false;
+  if (!parentTab.subtabs) {
+    parentTab.subtabs = [];
+  }
+  const id = `sub-${Date.now()}`;
+  parentTab.subtabs.push({
+    id,
+    label: subtab.label,
+    path: subtab.path,
+    iconName: subtab.iconName || 'Package',
+  });
+  saveAppCmsConfig(current);
+  return true;
+}
+
+export function deleteDropdownSubtab(
+  section: 'propco' | 'opco',
+  parentTabId: string,
+  subtabId: string
+): boolean {
+  const current = getAppCmsConfig();
+  const portal = current[section];
+  if (!portal) return false;
+  const parentTab = portal.tabs.find((t) => t.id === parentTabId);
+  if (!parentTab || !parentTab.subtabs) return false;
+  parentTab.subtabs = parentTab.subtabs.filter((s) => s.id !== subtabId);
+  saveAppCmsConfig(current);
+  return true;
+}
+
+export function addCustomTabOrDropdown(params: {
+  section: 'propco' | 'opco' | 'both' | 'bottom';
+  targetTabId?: string; // If specified, adds as dropdown/subtab under this tab
+  name: string;
+  path: string;
+  iconName?: string;
+  description?: string;
+}): { success: boolean; message: string } {
+  const { section, targetTabId, name, path, iconName = 'Package', description = '' } = params;
+  if (!name.trim()) return { success: false, message: 'Name cannot be empty' };
+
+  const current = getAppCmsConfig();
+  const cleanPath = path.trim() || `/${name.toLowerCase().replace(/[^a-z0-9]/g, '-')}`;
+
+  // If adding under a specific target tab as a dropdown/subtab
+  if (targetTabId && targetTabId !== 'root') {
+    const targetSection = section === 'both' ? 'opco' : section === 'bottom' ? 'opco' : section;
+    const portal = current[targetSection];
+    const parentTab = portal?.tabs.find((t) => t.id === targetTabId);
+    if (parentTab) {
+      if (!parentTab.subtabs) parentTab.subtabs = [];
+      parentTab.subtabs.push({
+        id: `sub-${Date.now()}`,
+        label: name.trim(),
+        path: cleanPath,
+        iconName,
+      });
+      saveAppCmsConfig(current);
+      return {
+        success: true,
+        message: `Dropdown sub-tab "${name.trim()}" added inside ${parentTab.name}!`,
+      };
+    }
+  }
+
+  // Adding as a top-level tab in section
+  const newTabId = `tab-${Date.now()}`;
+  const newTab: AppCmsTab = {
+    id: newTabId,
+    name: name.trim(),
+    path: cleanPath,
+    iconName,
+    description: description.trim() || `Custom module: ${name.trim()}`,
+    group: section === 'propco' ? 'Asset Management' : 'Maintenance',
+    section,
+    enabled: true,
+    order: (current[section === 'opco' ? 'opco' : 'propco']?.tabs.length || 0) + 1,
+    isCustom: true,
+  };
+
+  if (section === 'both') {
+    current.propco.tabs.push({ ...newTab, section: 'both', order: current.propco.tabs.length + 1 });
+    current.opco.tabs.push({ ...newTab, section: 'both', order: current.opco.tabs.length + 1 });
+  } else if (section === 'propco') {
+    current.propco.tabs.push(newTab);
+  } else if (section === 'opco') {
+    current.opco.tabs.push(newTab);
+  } else if (section === 'bottom') {
+    current.navigationItems.push({
+      id: newTabId,
+      label: name.trim(),
+      href: cleanPath,
+      iconName,
+      enabled: true,
+      order: current.navigationItems.length + 1,
+    });
+  }
+
+  saveAppCmsConfig(current);
+  return {
+    success: true,
+    message: `Tab "${name.trim()}" added to ${section.toUpperCase()}!`,
+  };
 }
 
 export function updateDashboardConfig(updates: Partial<AppCmsDashboardConfig>): AppCmsConfig {

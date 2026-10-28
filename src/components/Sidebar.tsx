@@ -8,7 +8,7 @@ import {
   FileCheck, Flame, ScrollText, Users, FileBarChart, Calendar, CheckSquare,
   AlertCircle, RefreshCw, Handshake, Star, Zap, History, Eye, ClipboardList,
   Tag, FolderOpen, ClipboardCheck, QrCode, Globe, SlidersHorizontal, ArrowRightLeft,
-  Copy, Layers, Check, Search
+  Copy, Layers, Check, Search, Plus
 } from 'lucide-react';
 import { ALERTS, TASKS } from '@/lib/mockData';
 import { MAINTENANCE_RECORDS } from '@/lib/assetData';
@@ -23,7 +23,7 @@ import {
   copyTabToSection,
   moveTabToSection,
 } from '@/lib/permissions';
-import { useAppCms, type AppCmsNavigationItem } from '@/lib/appCmsConfig';
+import { useAppCms, type AppCmsNavigationItem, addCustomTabOrDropdown } from '@/lib/appCmsConfig';
 import Modal from '@/components/ui/Modal';
 import { toast } from 'sonner';
 
@@ -50,7 +50,7 @@ const SECTION_BADGE_STYLES: Record<TabSectionLocation, { label: string; badgeBg:
 export default function Sidebar({ currentPath }: SidebarProps) {
   const { user, activePortal, roleBadgeColor, canManageUsers, canAccessSettings, isViewer, isTabEnabled, getTabAccess } = useAuth();
   const isSuperAdmin = user.roleLevel === 'L1';
-  const { propco: cmsPropco, opco: cmsOpco, navigationItems } = useAppCms();
+  const { propco: cmsPropco, opco: cmsOpco, navigationItems, refresh: refreshCms } = useAppCms();
 
   const navItemsMap = useMemo(() => {
     const map: Record<string, AppCmsNavigationItem> = {};
@@ -132,6 +132,62 @@ export default function Sidebar({ currentPath }: SidebarProps) {
   const [showSectionModal, setShowSectionModal] = useState<boolean>(false);
   const [sectionSearch, setSectionSearch] = useState<string>('');
   const [sectionFilter, setSectionFilter] = useState<string>('ALL');
+
+  // Add new tab/dropdown form state inside section modal
+  const [showAddForm, setShowAddForm] = useState<boolean>(false);
+  const [newTabSection, setNewTabSection] = useState<'propco' | 'opco' | 'both' | 'bottom'>('opco');
+  const [newTabTarget, setNewTabTarget] = useState<string>('root');
+  const [newTabName, setNewTabName] = useState<string>('');
+  const [newTabPath, setNewTabPath] = useState<string>('');
+  const [newTabIcon, setNewTabIcon] = useState<string>('Package');
+
+  const updateSuggestedPath = (name: string, target: string) => {
+    const slug = name.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-');
+    if (!slug) return;
+    if (target === 'root') {
+      setNewTabPath(`/${slug}`);
+    } else if (target === 'insurance') {
+      setNewTabPath(`/insurance-register?tab=${slug}`);
+    } else if (target === 'contracts') {
+      setNewTabPath(`/contracts-register?tab=${slug}`);
+    } else if (target === 'maintenance') {
+      setNewTabPath(`/asset-management/maintenance?filter=${slug}`);
+    } else if (target === 'compliance') {
+      setNewTabPath(`/compliance-register?tab=${slug}`);
+    } else if (target === 'utilities') {
+      setNewTabPath(`/utilities-register?type=${slug}`);
+    } else {
+      setNewTabPath(`/${target}?sub=${slug}`);
+    }
+  };
+
+  const handleAddNewTabOrDropdown = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newTabName.trim()) {
+      toast.error('Please enter a tab / dropdown name');
+      return;
+    }
+    const res = addCustomTabOrDropdown({
+      section: newTabSection,
+      targetTabId: newTabTarget,
+      name: newTabName.trim(),
+      path: newTabPath.trim(),
+      iconName: newTabIcon,
+    });
+    if (res.success) {
+      toast.success(res.message);
+      setNewTabName('');
+      setNewTabPath('');
+      setShowAddForm(false);
+      refreshCms();
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('samko:app-cms-updated'));
+        window.dispatchEvent(new CustomEvent('samko:sections-changed'));
+      }
+    } else {
+      toast.error(res.message);
+    }
+  };
 
   useEffect(() => {
     const handleSectionChange = () => {
@@ -387,58 +443,59 @@ export default function Sidebar({ currentPath }: SidebarProps) {
 
     // Planned Preventive Maintenance tabs
     if (cPath === '/asset-management/maintenance' && hPath === '/asset-management/maintenance') {
-      const cParams = new URLSearchParams(cQuery || '');
       const hParams = new URLSearchParams(hQuery || '');
-      const cFilter = cParams.get('filter');
       const hFilter = hParams.get('filter');
-
-      if (hFilter) {
-        if (hFilter === 'scheduled') {
-          return !cFilter || cFilter === 'scheduled';
-        }
-        return cFilter === hFilter;
+      if (!hFilter) return true;
+      const cParams = new URLSearchParams(cQuery || '');
+      const cFilter = cParams.get('filter');
+      if (hFilter === 'scheduled') {
+        return !cFilter || cFilter === 'scheduled';
       }
-      return !cFilter || cFilter === 'scheduled';
+      return cFilter === hFilter;
     }
 
     // Insurance Register tabs
     if (cPath === '/insurance-register' && hPath === '/insurance-register') {
-      const cParams = new URLSearchParams(cQuery || '');
       const hParams = new URLSearchParams(hQuery || '');
-      const cTab = cParams.get('tab');
       const hTab = hParams.get('tab');
-      if (hTab) return cTab === hTab;
-      return !cTab || cTab === 'register';
+      if (!hTab) return true;
+      const cParams = new URLSearchParams(cQuery || '');
+      const cTab = cParams.get('tab');
+      if (hTab === 'register') return !cTab || cTab === 'register';
+      return cTab === hTab;
     }
 
     // Contracts Register tabs
     if (cPath === '/contracts-register' && hPath === '/contracts-register') {
-      const cParams = new URLSearchParams(cQuery || '');
       const hParams = new URLSearchParams(hQuery || '');
-      const cTab = cParams.get('tab');
       const hTab = hParams.get('tab');
-      if (hTab) return cTab === hTab;
-      return !cTab || cTab === 'register';
+      if (!hTab) return true;
+      const cParams = new URLSearchParams(cQuery || '');
+      const cTab = cParams.get('tab');
+      if (hTab === 'register') return !cTab || cTab === 'register';
+      return cTab === hTab;
     }
 
     // Compliance Register tabs
     if (cPath === '/compliance-register' && hPath === '/compliance-register') {
-      const cParams = new URLSearchParams(cQuery || '');
       const hParams = new URLSearchParams(hQuery || '');
-      const cTab = cParams.get('tab');
       const hTab = hParams.get('tab');
-      if (hTab) return cTab === hTab;
-      return !cTab || cTab === 'register';
+      if (!hTab) return true;
+      const cParams = new URLSearchParams(cQuery || '');
+      const cTab = cParams.get('tab');
+      if (hTab === 'register') return !cTab || cTab === 'register';
+      return cTab === hTab;
     }
 
     // Utilities Register types
     if (cPath === '/utilities-register' && hPath === '/utilities-register') {
-      const cParams = new URLSearchParams(cQuery || '');
       const hParams = new URLSearchParams(hQuery || '');
-      const cType = cParams.get('type');
       const hType = hParams.get('type');
-      if (hType) return cType === hType;
-      return !cType || cType === 'all';
+      if (!hType) return true;
+      const cParams = new URLSearchParams(cQuery || '');
+      const cType = cParams.get('type');
+      if (hType === 'all') return !cType || cType === 'all';
+      return cType === hType;
     }
 
     if (hQuery) {
@@ -904,32 +961,23 @@ export default function Sidebar({ currentPath }: SidebarProps) {
                 icon: <Package size={15} />,
               })}
 
-            {/* Insurance Dropdown */}
+            {/* 3. Insurance Tab */}
             {isTabVisibleInCms('propco', 'insurance') &&
-              renderPropCoSubDropdown(
-                'insurance',
-                getTabLabel('propco', 'insurance', 'Insurance'),
-                <Shield size={15} />,
-                [
-                  { id: 'insurance-register', label: getTabLabel('propco', 'insurance-register', 'Insurance Register'), href: '/insurance-register', icon: <Shield size={13} /> },
-                  { id: 'claims', label: getTabLabel('propco', 'claims', 'Claims'), href: '/insurance-register?tab=claims', icon: <FileBarChart size={13} /> },
-                  { id: 'insurance-renewals', label: getTabLabel('propco', 'insurance-renewals', 'Renewals'), href: '/insurance-register?tab=renewals', icon: <RefreshCw size={13} /> },
-                ]
-              )}
+              renderPropCoNavItem({
+                id: 'insurance',
+                label: getTabLabel('propco', 'insurance', 'Insurance'),
+                href: getTabPath('propco', 'insurance', '/insurance-register'),
+                icon: <Shield size={15} />,
+              })}
 
-            {/* Contracts Dropdown */}
+            {/* 4. Contracts Tab */}
             {isTabVisibleInCms('propco', 'contracts') &&
-              renderPropCoSubDropdown(
-                'contracts',
-                getTabLabel('propco', 'contracts', 'Contracts'),
-                <ScrollText size={15} />,
-                [
-                  { id: 'contracts-register', label: getTabLabel('propco', 'contracts-register', 'Contracts Register'), href: '/contracts-register', icon: <ScrollText size={13} /> },
-                  { id: 'suppliers', label: getTabLabel('propco', 'suppliers', 'Suppliers'), href: '/contracts-register?tab=suppliers', icon: <Handshake size={13} /> },
-                  { id: 'contracts-renewals', label: getTabLabel('propco', 'contracts-renewals', 'Renewals'), href: '/contracts-register?tab=renewals', icon: <RefreshCw size={13} /> },
-                  { id: 'slas', label: getTabLabel('propco', 'slas', 'SLAs'), href: '/contracts-register?tab=slas', icon: <Star size={13} /> },
-                ]
-              )}
+              renderPropCoNavItem({
+                id: 'contracts',
+                label: getTabLabel('propco', 'contracts', 'Contracts'),
+                href: getTabPath('propco', 'contracts', '/contracts-register'),
+                icon: <ScrollText size={15} />,
+              })}
 
             {/* Reports */}
             {isTabVisibleInCms('propco', 'reports') &&
@@ -979,37 +1027,27 @@ export default function Sidebar({ currentPath }: SidebarProps) {
                 icon: <Package size={15} />,
               })}
 
-            {/* 2. Maintenance Dropdown */}
+            {/* 2. Maintenance */}
             {isTabVisibleInCms('opco', 'maintenance') &&
-              renderOpCoSubDropdown(
-                'maintenance',
-                getTabLabel('opco', 'maintenance', 'Maintenance'),
-                <Calendar size={15} />,
-                [
-                  { id: 'maintenance-scheduled', label: getTabLabel('opco', 'maintenance-scheduled', 'Scheduled'), href: '/asset-management/maintenance?filter=scheduled', icon: <Calendar size={13} /> },
-                  { id: 'maintenance-due', label: getTabLabel('opco', 'maintenance-due', 'Due Today'), href: '/asset-management/maintenance?filter=due-today', icon: <AlertCircle size={13} />, badgeCount: dueTodayCount, badgeVariant: 'warning' },
-                  { id: 'maintenance-overdue', label: getTabLabel('opco', 'maintenance-overdue', 'Overdue'), href: '/asset-management/maintenance?filter=overdue', icon: <AlertTriangle size={13} />, badgeCount: overdueCount, badgeVariant: 'critical' },
-                  { id: 'maintenance-completed', label: getTabLabel('opco', 'maintenance-completed', 'Completed'), href: '/asset-management/maintenance?filter=completed', icon: <CheckSquare size={13} /> },
-                ],
-                overdueCount > 0 ? overdueCount : dueTodayCount > 0 ? dueTodayCount : undefined,
-                overdueCount > 0 ? 'critical' : 'warning'
-              )}
+              renderOpCoNavItem({
+                id: 'maintenance',
+                label: getTabLabel('opco', 'maintenance', 'Maintenance'),
+                href: getTabPath('opco', 'maintenance', '/asset-management/maintenance'),
+                icon: <Calendar size={15} />,
+                badgeCount: overdueCount > 0 ? overdueCount : dueTodayCount > 0 ? dueTodayCount : undefined,
+                badgeVariant: overdueCount > 0 ? 'critical' : 'warning',
+              })}
 
-            {/* 3. Compliance Dropdown */}
+            {/* 3. Compliance */}
             {isTabVisibleInCms('opco', 'compliance') &&
-              renderOpCoSubDropdown(
-                'compliance',
-                getTabLabel('opco', 'compliance', 'Compliance'),
-                <ShieldCheck size={15} />,
-                [
-                  { id: 'compliance-register', label: getTabLabel('opco', 'compliance-register', 'Compliance Register'), href: '/compliance-register', icon: <ShieldCheck size={13} />, badgeCount: criticalCount, badgeVariant: 'critical' },
-                  { id: 'certifications', label: getTabLabel('opco', 'certifications', 'Certifications'), href: '/compliance-register?tab=certifications', icon: <FileCheck size={13} /> },
-                  { id: 'statutory', label: getTabLabel('opco', 'statutory', 'Statutory Inspections'), href: '/compliance-register?tab=statutory', icon: <Flame size={13} /> },
-                  { id: 'expiry-dashboard', label: getTabLabel('opco', 'expiry-dashboard', 'Expiry Dashboard'), href: '/compliance-tracker', icon: <AlertTriangle size={13} /> },
-                ],
-                criticalCount > 0 ? criticalCount : undefined,
-                'critical'
-              )}
+              renderOpCoNavItem({
+                id: 'compliance',
+                label: getTabLabel('opco', 'compliance', 'Compliance'),
+                href: getTabPath('opco', 'compliance', '/compliance-register'),
+                icon: <ShieldCheck size={15} />,
+                badgeCount: criticalCount > 0 ? criticalCount : undefined,
+                badgeVariant: 'critical',
+              })}
 
             {/* 4. Tasks and Alerts */}
             {isTabVisibleInCms('opco', 'tasks') &&
@@ -1040,17 +1078,14 @@ export default function Sidebar({ currentPath }: SidebarProps) {
                 icon: <ClipboardList size={15} />,
               })}
 
-            {/* 7. Utility Dropdown */}
+            {/* 7. Utility */}
             {isTabVisibleInCms('opco', 'utilities') &&
-              renderOpCoSubDropdown(
-                'utilities',
-                getTabLabel('opco', 'utilities', 'Utility'),
-                <Zap size={15} />,
-                [
-                  { id: 'utilities-register', label: getTabLabel('opco', 'utilities-register', 'Utilities Register'), href: '/utilities-register', icon: <Zap size={13} /> },
-                  { id: 'utilities-energy', label: getTabLabel('opco', 'utilities-energy', 'Energy & Water Accounts'), href: '/utilities-register?type=electricity', icon: <Zap size={13} /> },
-                ]
-              )}
+              renderOpCoNavItem({
+                id: 'utilities',
+                label: getTabLabel('opco', 'utilities', 'Utility'),
+                href: getTabPath('opco', 'utilities', '/utilities-register'),
+                icon: <Zap size={15} />,
+              })}
 
             {/* Dynamic Custom Tabs Added via CMS */}
             {cmsOpco?.tabs
@@ -1185,6 +1220,157 @@ export default function Sidebar({ currentPath }: SidebarProps) {
                   Click <strong className="text-emerald-400">Both Sections</strong> to copy a tab so it displays in both PropCo and OpCo without removing it from either. Or click <strong className="text-amber-400">PropCo</strong> / <strong className="text-blue-400">OpCo</strong> to assign it exclusively.
                 </div>
               </div>
+            </div>
+
+            {/* ── LOCATION SELECTION & ADD NEW TAB / DROPDOWN CARD ── */}
+            <div
+              className="p-3.5 rounded-xl border border-border transition-all"
+              style={{ background: 'var(--surface2)' }}
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div
+                    className="w-7 h-7 rounded-lg flex items-center justify-center font-bold text-xs"
+                    style={{ background: 'var(--primary)', color: '#000' }}
+                  >
+                    <Plus size={15} />
+                  </div>
+                  <div>
+                    <div className="font-bold text-foreground text-xs">Add New Tab or Dropdown</div>
+                    <div className="text-[10.5px] text-muted-foreground">
+                      Select section and target tab location to add into that section or specific tab dropdown
+                    </div>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setShowAddForm(!showAddForm)}
+                  className="px-2.5 py-1 rounded-md text-[11px] font-bold border transition-all cursor-pointer"
+                  style={{
+                    background: showAddForm ? 'var(--primary)' : 'var(--surface)',
+                    color: showAddForm ? '#000' : 'var(--foreground)',
+                    borderColor: 'var(--border)',
+                  }}
+                >
+                  {showAddForm ? 'Close Form' : '+ Add Tab / Dropdown'}
+                </button>
+              </div>
+
+              {showAddForm && (
+                <form onSubmit={handleAddNewTabOrDropdown} className="mt-3 pt-3 border-t border-border/60 space-y-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                    {/* 1. Section Selection Dropdown */}
+                    <div>
+                      <label className="block text-[10px] font-bold uppercase text-muted-foreground mb-1">
+                        1. Section Location
+                      </label>
+                      <select
+                        value={newTabSection}
+                        onChange={(e) => {
+                          const s = e.target.value as 'propco' | 'opco' | 'both' | 'bottom';
+                          setNewTabSection(s);
+                          setNewTabTarget('root');
+                        }}
+                        className="w-full px-2.5 py-1.5 text-xs rounded-lg border border-border bg-surface text-foreground outline-none font-medium"
+                      >
+                        <option value="opco">OpCo (Operations Portal)</option>
+                        <option value="propco">PropCo (Asset Co Portal)</option>
+                        <option value="both">Both Sections (PropCo &amp; OpCo)</option>
+                        <option value="bottom">Bottom Nav List</option>
+                      </select>
+                    </div>
+
+                    {/* 2. Target Location / Tab Dropdown */}
+                    <div>
+                      <label className="block text-[10px] font-bold uppercase text-muted-foreground mb-1">
+                        2. Target Location / Tab
+                      </label>
+                      <select
+                        value={newTabTarget}
+                        onChange={(e) => {
+                          const target = e.target.value;
+                          setNewTabTarget(target);
+                          if (newTabName) {
+                            updateSuggestedPath(newTabName, target);
+                          }
+                        }}
+                        className="w-full px-2.5 py-1.5 text-xs rounded-lg border border-border bg-surface text-foreground outline-none font-medium"
+                      >
+                        <option value="root">Section Root (New Top-Level Sidebar Tab)</option>
+                        {newTabSection === 'opco' && (
+                          <optgroup label="Inside OpCo Tabs (Add Dropdown Sub-Tab)">
+                            <option value="non-fixed">Inside Non-Fixed Assets</option>
+                            <option value="maintenance">Inside Maintenance (PPM / Work Orders)</option>
+                            <option value="compliance">Inside Compliance (Certs / Statutory)</option>
+                            <option value="tasks">Inside Tasks and Alerts</option>
+                            <option value="reports">Inside Reports</option>
+                            <option value="task-module">Inside Task Module</option>
+                            <option value="utilities">Inside Utility (Electricity / Gas / Water)</option>
+                          </optgroup>
+                        )}
+                        {newTabSection === 'propco' && (
+                          <optgroup label="Inside PropCo Tabs (Add Dropdown Sub-Tab)">
+                            <option value="properties">Inside Properties</option>
+                            <option value="all-assets">Inside Fixed Assets</option>
+                            <option value="insurance">Inside Insurance (Claims / Renewals)</option>
+                            <option value="contracts">Inside Contracts (Suppliers / SLAs)</option>
+                            <option value="reports">Inside Reports</option>
+                          </optgroup>
+                        )}
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                    {/* Tab/Dropdown Title */}
+                    <div>
+                      <label className="block text-[10px] font-bold uppercase text-muted-foreground mb-1">
+                        Tab or Dropdown Title
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="e.g. Energy Audit, Water Log, Gas Safety..."
+                        value={newTabName}
+                        onChange={(e) => {
+                          const name = e.target.value;
+                          setNewTabName(name);
+                          updateSuggestedPath(name, newTabTarget);
+                        }}
+                        className="w-full px-2.5 py-1.5 text-xs rounded-lg border border-border bg-surface text-foreground outline-none"
+                      />
+                    </div>
+
+                    {/* Route Path */}
+                    <div>
+                      <label className="block text-[10px] font-bold uppercase text-muted-foreground mb-1">
+                        Page Route / URL
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="e.g. /utilities-register?type=water"
+                        value={newTabPath}
+                        onChange={(e) => setNewTabPath(e.target.value)}
+                        className="w-full px-2.5 py-1.5 text-xs rounded-lg border border-border bg-surface text-foreground outline-none font-mono"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between pt-1">
+                    <span className="text-[10.5px] text-muted-foreground">
+                      {newTabTarget === 'root'
+                        ? `Will appear as a new tab under ${newTabSection.toUpperCase()}`
+                        : `Will appear inside the ${newTabTarget} page and dropdown in ${newTabSection.toUpperCase()}`}
+                    </span>
+                    <button
+                      type="submit"
+                      className="samko-btn-primary px-3.5 py-1.5 rounded-lg text-xs font-bold cursor-pointer"
+                    >
+                      Save Tab / Dropdown
+                    </button>
+                  </div>
+                </form>
+              )}
             </div>
 
             {/* Filter and Search Bar */}

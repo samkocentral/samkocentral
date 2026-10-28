@@ -603,7 +603,7 @@ export default function PortalCMSEditor({ portal, initialTabId }: PortalCMSEdito
           </div>
 
           {/* Subtabs Bar for Dropdown Tabs */}
-          {currentTab.subtabs && currentTab.subtabs.length > 0 && (
+          {((matchedCmsTab?.subtabs && matchedCmsTab.subtabs.length > 0) || (currentTab.subtabs && currentTab.subtabs.length > 0)) && (
             <div
               className="rounded-xl border p-3 flex flex-col gap-2 shadow-sm flex-shrink-0"
               style={{ background: 'var(--surface)', borderColor: 'var(--border)' }}
@@ -611,17 +611,17 @@ export default function PortalCMSEditor({ portal, initialTabId }: PortalCMSEdito
               <div className="flex items-center justify-between text-xs font-bold text-muted-foreground uppercase tracking-wider px-1">
                 <span className="flex items-center gap-1.5 text-foreground">
                   <Layers size={13} style={{ color: themeColor }} />
-                  Dropdown Sub-Tabs ({currentTab.subtabs.length})
+                  Dropdown Sub-Tabs ({(matchedCmsTab?.subtabs?.length || currentTab.subtabs?.length || 0)})
                 </span>
                 <span className="text-[10px] text-muted-foreground normal-case font-normal">
-                  All subtabs synchronized with live page filters
+                  All subtabs displayed inside their respective page places
                 </span>
               </div>
               <div className="flex items-center gap-2 flex-wrap">
-                {currentTab.subtabs.map((sub) => (
+                {(matchedCmsTab?.subtabs || currentTab.subtabs || []).map((sub: any) => (
                   <Link
                     key={sub.id}
-                    href={sub.livePath}
+                    href={sub.path || sub.livePath}
                     target="_blank"
                     className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border border-border/70 hover:border-primary/50 bg-surface2/60 hover:bg-surface2 transition-all group"
                   >
