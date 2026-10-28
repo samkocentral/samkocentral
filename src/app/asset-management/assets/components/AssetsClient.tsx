@@ -143,7 +143,9 @@ export default function AssetsClient() {
   const availableCategories = useMemo(() => {
     const set = new Set<string>();
     scopedAssets.forEach((a) => {
-      if (a.category) set.add(a.category);
+      const raw = (a as any).category;
+      const cat = typeof raw === 'object' && raw !== null ? (raw.name || raw.label) : raw;
+      if (cat) set.add(String(cat));
     });
     return Array.from(set);
   }, [scopedAssets]);
@@ -378,13 +380,13 @@ export default function AssetsClient() {
       const q = search.toLowerCase();
       const matchSearch =
         !search ||
-        a.name.toLowerCase().includes(q) ||
-        a.assetId.toLowerCase().includes(q) ||
-        (a.department || '').toLowerCase().includes(q) ||
-        (a.location || '').toLowerCase().includes(q) ||
-        (a.category || '').toLowerCase().includes(q) ||
-        (a.manufacturer || '').toLowerCase().includes(q) ||
-        (a.serialNumber || '').toLowerCase().includes(q);
+        String(a.name || '').toLowerCase().includes(q) ||
+        String(a.assetId || '').toLowerCase().includes(q) ||
+        String(a.department || '').toLowerCase().includes(q) ||
+        String(a.location || '').toLowerCase().includes(q) ||
+        String(a.category || '').toLowerCase().includes(q) ||
+        String(a.manufacturer || '').toLowerCase().includes(q) ||
+        String(a.serialNumber || '').toLowerCase().includes(q);
 
       const matchHotel =
         hotelFilter.length === 0 ||

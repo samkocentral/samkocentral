@@ -73,8 +73,17 @@ export function isAssetFixed(a: any): boolean {
   if (!a) return false;
   if (a.isFixed === false) return false;
 
-  const cat = (a.category || '').toLowerCase();
-  const name = (a.name || a.assetName || '').toLowerCase();
+  const rawCat =
+    typeof a.category === 'object' && a.category !== null
+      ? (a.category.name || a.category.label || '')
+      : a.category;
+  const cat = String(rawCat ?? '').toLowerCase();
+
+  const rawName =
+    typeof a.name === 'object' && a.name !== null
+      ? (a.name.name || a.name.label || '')
+      : (a.name || a.assetName);
+  const name = String(rawName ?? '').toLowerCase();
 
   // Categories that are strictly Non-Fixed (FF&E / Loose Items)
   if (
