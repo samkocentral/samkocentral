@@ -18,6 +18,20 @@ export const ALL_SYSTEM_TABS: TabConfig[] = [
     description: 'High-level operational KPIs, alerts, property status & live counters',
   },
   {
+    id: 'propco-dashboard',
+    name: 'PropCo Dashboard',
+    group: 'Asset Management',
+    path: '/?portal=propco',
+    description: 'PropCo asset owner KPIs, property valuation, fixed plant assets & contracts',
+  },
+  {
+    id: 'opco-dashboard',
+    name: 'OpCo Dashboard',
+    group: 'Maintenance',
+    path: '/?portal=opco',
+    description: 'OpCo operational KPIs, maintenance PPM, statutory compliance & energy utilities',
+  },
+  {
     id: 'properties',
     name: 'Properties & Hotel Sites',
     group: 'Core & Portfolio',
@@ -380,6 +394,7 @@ export type TabSectionLocation = 'propco' | 'opco' | 'both' | 'bottom';
 
 export const DEFAULT_TAB_SECTIONS: Record<string, TabSectionLocation> = {
   // PropCo
+  'propco-dashboard': 'propco',
   properties: 'propco',
   'fixed-assets': 'propco',
   'all-assets': 'propco',
@@ -389,6 +404,7 @@ export const DEFAULT_TAB_SECTIONS: Record<string, TabSectionLocation> = {
   reports: 'both',
 
   // OpCo
+  'opco-dashboard': 'opco',
   'non-fixed-assets': 'opco',
   'non-fixed': 'opco',
   maintenance: 'opco',

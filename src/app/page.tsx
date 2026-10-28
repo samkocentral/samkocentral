@@ -1,3 +1,6 @@
+'use client';
+
+import React, { Suspense } from 'react';
 import AppLayout from '@/components/AppLayout';
 import Topbar from '@/components/Topbar';
 import DashboardKPIGrid from './components/DashboardKPIGrid';
@@ -6,12 +9,17 @@ import DashboardUrgentTasks from './components/DashboardUrgentTasks';
 import DashboardSiteTable from './components/DashboardSiteTable';
 import DashboardComplianceChart from './components/DashboardComplianceChart';
 import DashboardModulesSummary from './components/DashboardModulesSummary';
-
 import PageCMSEditButton from '@/components/cms/PageCMSEditButton';
+import { usePathname, useSearchParams } from 'next/navigation';
 
-export default function ExecutiveDashboardPage() {
+function ExecutiveDashboardInner() {
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const queryStr = searchParams?.toString();
+  const fullPath = queryStr ? `${pathname}?${queryStr}` : (pathname || '/');
+
   return (
-    <AppLayout currentPath="/">
+    <AppLayout currentPath={fullPath}>
       <Topbar
         title="Executive Dashboard"
         subtitle="Group-wide facilities overview — 5 Hotels · Asset Management · Maintenance · Compliance · Insurance · Contracts"
@@ -34,5 +42,13 @@ export default function ExecutiveDashboardPage() {
         <DashboardSiteTable />
       </main>
     </AppLayout>
+  );
+}
+
+export default function ExecutiveDashboardPage() {
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center h-screen text-muted-foreground text-sm">Loading dashboard…</div>}>
+      <ExecutiveDashboardInner />
+    </Suspense>
   );
 }

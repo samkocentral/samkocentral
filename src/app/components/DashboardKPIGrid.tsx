@@ -22,11 +22,20 @@ import { ASSETS, MAINTENANCE_RECORDS } from '@/lib/assetData';
 import { TASKS, ALERTS, DOCUMENTS, COMPLIANCE, SITES } from '@/lib/mockData';
 import { useAppCms } from '@/lib/appCmsConfig';
 import { useDeepPageCms } from '@/lib/deepPageCms';
+import { useSearchParams } from 'next/navigation';
 
 export default function DashboardKPIGrid() {
   const { activePortal, setActivePortal, canSwitchPortal } = useAuth();
+  const searchParams = useSearchParams();
   const { dashboard: cmsDashboard } = useAppCms();
   const cms = useDeepPageCms('overview');
+
+  useEffect(() => {
+    const portal = searchParams?.get('portal');
+    if ((portal === 'propco' || portal === 'opco') && portal !== activePortal) {
+      setActivePortal(portal);
+    }
+  }, [searchParams, activePortal, setActivePortal]);
 
   const [assets, setAssets] = useState<any[]>(ASSETS);
   const [maintenance, setMaintenance] = useState<any[]>(MAINTENANCE_RECORDS);
@@ -353,7 +362,10 @@ export default function DashboardKPIGrid() {
         <div className="flex items-center gap-1 bg-surface2 p-0.5 rounded-lg border border-border">
           <button
             type="button"
-            onClick={() => setActivePortal('propco')}
+            onClick={() => {
+              setActivePortal('propco');
+              window.history.replaceState(null, '', '/?portal=propco');
+            }}
             className="px-2.5 py-1 rounded text-[11px] font-bold transition-all cursor-pointer"
             style={{
               background: activePortal === 'propco' ? 'var(--primary)' : 'transparent',
@@ -364,7 +376,10 @@ export default function DashboardKPIGrid() {
           </button>
           <button
             type="button"
-            onClick={() => setActivePortal('opco')}
+            onClick={() => {
+              setActivePortal('opco');
+              window.history.replaceState(null, '', '/?portal=opco');
+            }}
             className="px-2.5 py-1 rounded text-[11px] font-bold transition-all cursor-pointer"
             style={{
               background: activePortal === 'opco' ? 'var(--primary)' : 'transparent',

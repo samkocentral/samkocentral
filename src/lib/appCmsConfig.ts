@@ -126,6 +126,17 @@ export const DEFAULT_APP_CMS: AppCmsConfig = {
       'Capital infrastructure, real estate properties, fixed plant machinery, statutory compliance & long-term supplier contracts',
     tabs: [
       {
+        id: 'propco-dashboard',
+        name: 'Dashboard',
+        path: '/?portal=propco',
+        iconName: 'LayoutDashboard',
+        description: 'Asset Co portfolio overview, fixed plant infrastructure & contract values',
+        group: 'Asset Management',
+        section: 'propco',
+        enabled: true,
+        order: 0,
+      },
+      {
         id: 'properties',
         name: 'Properties',
         path: '/asset-management/properties',
@@ -203,6 +214,17 @@ export const DEFAULT_APP_CMS: AppCmsConfig = {
     description:
       'Daily operations, preventative maintenance tasks, reactive work orders, routine checklists & hotel site actions',
     tabs: [
+      {
+        id: 'opco-dashboard',
+        name: 'Dashboard',
+        path: '/?portal=opco',
+        iconName: 'LayoutDashboard',
+        description: 'Operations pulse, loose FF&E, maintenance PPM, statutory compliance & energy utilities',
+        group: 'Overview',
+        section: 'opco',
+        enabled: true,
+        order: 0,
+      },
       {
         id: 'non-fixed',
         name: 'Non-Fixed Assets',

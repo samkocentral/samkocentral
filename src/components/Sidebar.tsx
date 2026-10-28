@@ -48,7 +48,7 @@ const SECTION_BADGE_STYLES: Record<TabSectionLocation, { label: string; badgeBg:
 };
 
 export default function Sidebar({ currentPath }: SidebarProps) {
-  const { user, activePortal, roleBadgeColor, canManageUsers, canAccessSettings, isViewer, isTabEnabled, getTabAccess } = useAuth();
+  const { user, activePortal, setActivePortal, roleBadgeColor, canManageUsers, canAccessSettings, isViewer, isTabEnabled, getTabAccess } = useAuth();
   const isSuperAdmin = user.roleLevel === 'L1';
   const { propco: cmsPropco, opco: cmsOpco, navigationItems, refresh: refreshCms } = useAppCms();
 
@@ -296,6 +296,7 @@ export default function Sidebar({ currentPath }: SidebarProps) {
     const openSub: Record<string, boolean> = {};
 
     if (
+      p.includes('portal=opco') ||
       p.includes('type=non-fixed') ||
       p.startsWith('/asset-management/maintenance') ||
       p.startsWith('/compliance-register') ||
@@ -309,6 +310,7 @@ export default function Sidebar({ currentPath }: SidebarProps) {
     }
 
     if (
+      p.includes('portal=propco') ||
       p.startsWith('/asset-management/properties') ||
       p.startsWith('/asset-management/hotels') ||
       (p.startsWith('/asset-management/assets') && !p.includes('type=non-fixed')) ||
@@ -418,7 +420,9 @@ export default function Sidebar({ currentPath }: SidebarProps) {
       : (currentPath || '');
 
     if (!effectiveCurrent || !href) return false;
-    if (href === '/') return effectiveCurrent === '/' || currentPath === '/';
+    if (href === '/') {
+      return (effectiveCurrent === '/' || currentPath === '/') && !effectiveCurrent.includes('portal=');
+    }
 
     const [hPath, hQuery] = href.split('?');
     const [cPath, cQuery] = effectiveCurrent.split('?');
@@ -555,6 +559,13 @@ export default function Sidebar({ currentPath }: SidebarProps) {
         key={`nav-${item.id}`}
         href={item.href}
         title={collapsed ? `${item.label}${isReadOnly ? ' (Read Only)' : ''}` : undefined}
+        onClick={() => {
+          if (portalContext === 'propco' && setActivePortal) {
+            setActivePortal('propco');
+          } else if (portalContext === 'opco' && setActivePortal) {
+            setActivePortal('opco');
+          }
+        }}
         className="flex items-center gap-2 rounded-lg transition-all duration-150 group relative"
         style={{
           padding: collapsed ? '8px 10px' : '7px 10px',
@@ -943,6 +954,15 @@ export default function Sidebar({ currentPath }: SidebarProps) {
 
         {(openPortals.propco || collapsed) && (
           <div className="flex flex-col gap-0.5 mb-2 pl-0.5">
+            {/* PropCo Dashboard */}
+            {isTabVisibleInCms('propco', 'propco-dashboard') &&
+              renderPropCoNavItem({
+                id: 'propco-dashboard',
+                label: getTabLabel('propco', 'propco-dashboard', 'Dashboard'),
+                href: getTabPath('propco', 'propco-dashboard', '/?portal=propco'),
+                icon: <LayoutDashboard size={15} />,
+              })}
+
             {/* Properties */}
             {isTabVisibleInCms('propco', 'properties') &&
               renderPropCoNavItem({
@@ -1018,6 +1038,15 @@ export default function Sidebar({ currentPath }: SidebarProps) {
 
         {(openPortals.opco || collapsed) && (
           <div className="flex flex-col gap-0.5 mb-2 pl-0.5">
+            {/* OpCo Dashboard */}
+            {isTabVisibleInCms('opco', 'opco-dashboard') &&
+              renderOpCoNavItem({
+                id: 'opco-dashboard',
+                label: getTabLabel('opco', 'opco-dashboard', 'Dashboard'),
+                href: getTabPath('opco', 'opco-dashboard', '/?portal=opco'),
+                icon: <LayoutDashboard size={15} />,
+              })}
+
             {/* 1. Non-Fixed Assets */}
             {isTabVisibleInCms('opco', 'non-fixed') &&
               renderOpCoNavItem({

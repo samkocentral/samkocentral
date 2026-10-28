@@ -182,7 +182,12 @@ export default function Topbar({ title, subtitle, actions, hideDefaultActions = 
           >
             <button
               type="button"
-              onClick={() => setActivePortal('propco')}
+              onClick={() => {
+                setActivePortal('propco');
+                if (pathname === '/') {
+                  window.history.replaceState(null, '', '/?portal=propco');
+                }
+              }}
               className="px-2.5 py-1 rounded text-[11px] font-bold transition-all cursor-pointer"
               style={{
                 background: activePortal === 'propco' ? 'var(--primary)' : 'transparent',
@@ -193,7 +198,12 @@ export default function Topbar({ title, subtitle, actions, hideDefaultActions = 
             </button>
             <button
               type="button"
-              onClick={() => setActivePortal('opco')}
+              onClick={() => {
+                setActivePortal('opco');
+                if (pathname === '/') {
+                  window.history.replaceState(null, '', '/?portal=opco');
+                }
+              }}
               className="px-2.5 py-1 rounded text-[11px] font-bold transition-all cursor-pointer"
               style={{
                 background: activePortal === 'opco' ? 'var(--primary)' : 'transparent',

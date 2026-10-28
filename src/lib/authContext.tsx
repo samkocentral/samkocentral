@@ -390,6 +390,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (perms[tabId] !== undefined) return perms[tabId].enabled;
 
       // Match common aliases used in sidebar
+      if (tabId.endsWith('-dashboard') && perms['dashboard'] !== undefined) return perms['dashboard'].enabled;
       if (tabId === 'all-assets' && perms['fixed-assets'] !== undefined) return perms['fixed-assets'].enabled;
       if (tabId === 'non-fixed' && perms['non-fixed-assets'] !== undefined) return perms['non-fixed-assets'].enabled;
       if (tabId.startsWith('maintenance') && perms['maintenance'] !== undefined) return perms['maintenance'].enabled;
@@ -415,6 +416,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (!isTabEnabled(tabId)) return 'none';
       const perms = user.tabPermissions || getDefaultTabPermissionsForRole(user.roleLevel);
       let perm = perms[tabId];
+      if (!perm && tabId.endsWith('-dashboard')) perm = perms['dashboard'];
       if (!perm && tabId === 'all-assets') perm = perms['fixed-assets'];
       if (!perm && tabId === 'non-fixed') perm = perms['non-fixed-assets'];
       if (!perm && tabId.startsWith('maintenance')) perm = perms['maintenance'];
