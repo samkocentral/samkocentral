@@ -11,6 +11,8 @@ import { useAuth } from '@/lib/authContext';
 import Modal from '@/components/ui/Modal';
 import EmptyState from '@/components/ui/EmptyState';
 import StatusDropdown from '@/components/ui/StatusDropdown';
+import LoadingPagination from '@/components/ui/LoadingPagination';
+import { useLoadingPagination } from '@/hooks/useLoadingPagination';
 import { toast } from 'sonner';
 
 const PRIORITY_FILTERS = ['All', 'urgent', 'high', 'medium', 'low'] as const;
@@ -128,6 +130,16 @@ export default function TaskManagerClient() {
     });
     return result;
   }, [priorityFilter, statusFilter, search, taskStatuses, tasks]);
+
+  const {
+    currentPage,
+    pageSize,
+    totalRecords,
+    paginatedItems: paginatedTasks,
+    isPageLoading,
+    changePage,
+    changePageSize,
+  } = useLoadingPagination(filtered, 7);
 
   const taskCounts = useMemo(() => ({
     urgent: tasks.filter((t) => t.priority === 'urgent').length,
@@ -311,7 +323,8 @@ export default function TaskManagerClient() {
             }
           />
         ) : (
-          <div style={{ overflowX: 'auto' }}>
+          <>
+            <div style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', minWidth: 860, borderCollapse: 'collapse' }}>
               <thead>
                 <tr>
@@ -321,7 +334,7 @@ export default function TaskManagerClient() {
                 </tr>
               </thead>
               <tbody>
-                {filtered.map((task) => {
+                {paginatedTasks.map((task) => {
                   const days = daysUntil(task.due);
                   const currentStatus = getTaskStatus(task);
                   const isDropdownOpen = openStatusDropdown === task.id;
@@ -439,6 +452,17 @@ export default function TaskManagerClient() {
               </tbody>
             </table>
           </div>
+            <LoadingPagination
+              currentPage={currentPage}
+              totalRecords={totalRecords}
+              pageSize={pageSize}
+              pageSizeOptions={[5, 7, 10, 20]}
+              onPageChange={changePage}
+              onPageSizeChange={changePageSize}
+              isLoading={isPageLoading}
+              recordName="tasks"
+            />
+          </>
         )}
       </div>
 

@@ -8,6 +8,8 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import Icon from '@/components/ui/AppIcon';
 import { useDeepPageCms } from '@/lib/deepPageCms';
 import PageCMSEditButton from '@/components/cms/PageCMSEditButton';
+import LoadingPagination from '@/components/ui/LoadingPagination';
+import { useLoadingPagination } from '@/hooks/useLoadingPagination';
 
 
 const CONDITION_COLORS: Record<string, string> = {
@@ -82,6 +84,16 @@ function MaintenanceBadge({ status }: { status: string }) {
 export default function AssetDashboardClient() {
   const cms = useDeepPageCms('assetdashboard');
   const stats = getAssetStats();
+
+  const {
+    currentPage,
+    pageSize,
+    totalRecords,
+    paginatedItems: paginatedHotels,
+    isPageLoading,
+    changePage,
+    changePageSize,
+  } = useLoadingPagination(HOTELS, 5);
 
   const categoryChartData = ASSET_CATEGORIES
     .map((c) => ({ name: c.name.replace(' & ', ' & '), value: stats.byCategory[c.name] || 0, color: c.color }))
@@ -319,7 +331,7 @@ export default function AssetDashboardClient() {
                 </tr>
               </thead>
               <tbody>
-                {HOTELS.map((hotel) => (
+                {paginatedHotels.map((hotel) => (
                   <tr key={hotel.id} className="border-t border-border group">
                     <td className="py-3 pr-4">
                       <div className="font-medium text-sm">{hotel.name}</div>
@@ -364,6 +376,16 @@ export default function AssetDashboardClient() {
               </tbody>
             </table>
           </div>
+          <LoadingPagination
+            currentPage={currentPage}
+            totalRecords={totalRecords}
+            pageSize={pageSize}
+            pageSizeOptions={[5, 7, 10]}
+            onPageChange={changePage}
+            onPageSizeChange={changePageSize}
+            isLoading={isPageLoading}
+            recordName="properties"
+          />
         </div>
       </div>
     </div>
