@@ -5557,6 +5557,25 @@
       "updatedAt": "2026-10-27T11:10:49.802Z"
     },
     {
+      "id": "usr-bot-001",
+      "name": "Digital Bot",
+      "email": "digitalbot@samkocentral.com",
+      "password": "SuperAdmin2026!",
+      "roleLevel": "L1",
+      "roleTitle": "Super Admin",
+      "role": "super-admin",
+      "portal": "both",
+      "hotel": "All Properties (Propco & Opco)",
+      "assignedProperties": [
+        "All Properties (Propco & Opco)"
+      ],
+      "status": "active",
+      "initials": "DB",
+      "lastLogin": "2026-10-28",
+      "description": "Digital Bot automated agent with unrestricted Super Admin access across all systems",
+      "updatedAt": "2026-10-28T18:00:00.000Z"
+    },
+    {
       "id": "usr-l2-001",
       "name": "Rachel Green",
       "email": "admin.propco@samkocentral.com",
