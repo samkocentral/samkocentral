@@ -324,16 +324,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     if (!targetDemo && ['admin', '\\.admin', '.admin', 'superadmin', 'super admin'].includes(cleanLower)) {
       targetDemo = DEMO_CREDENTIALS[0]; // Super Admin
-    } else if (!targetDemo && ['digitalbot', 'digital bot', 'bot', 'digital.bot', 'digital_bot'].includes(cleanLower)) {
-      targetDemo = DEMO_CREDENTIALS.find((d) => d.user.id === 'usr-bot-001') || DEMO_CREDENTIALS[1]; // Digital Bot
     } else if (!targetDemo && ['propco', 'admin.propco'].includes(cleanLower)) {
-      targetDemo = DEMO_CREDENTIALS[1]; // Propco Admin
+      targetDemo = DEMO_CREDENTIALS[2]; // Propco Admin
     } else if (!targetDemo && ['opco', 'admin.opco'].includes(cleanLower)) {
-      targetDemo = DEMO_CREDENTIALS[2]; // Opco Admin
+      targetDemo = DEMO_CREDENTIALS[3]; // Opco Admin
     } else if (!targetDemo && ['uploader'].includes(cleanLower)) {
-      targetDemo = DEMO_CREDENTIALS[3]; // Uploader
+      targetDemo = DEMO_CREDENTIALS[4]; // Uploader
     } else if (!targetDemo && ['viewer', 'auditor'].includes(cleanLower)) {
-      targetDemo = DEMO_CREDENTIALS[4]; // Viewer
+      targetDemo = DEMO_CREDENTIALS[5]; // Viewer
     }
 
     let authedUser: AppUser;
@@ -362,11 +360,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // Re-throw immediately on invalid credentials or server errors
       // Only in severe offline network failure allow matching demo user with EXACT matching password
       const isNetworkFail = err?.message?.includes('Failed to fetch') || err?.message?.includes('NetworkError');
-      if (
-        isNetworkFail &&
-        targetDemo &&
-        (targetDemo.password === password || password === 'SuperAdmin2026!' || password === 'DigitalBot2026!')
-      ) {
+      if (isNetworkFail && targetDemo && targetDemo.password === password) {
         authedUser = targetDemo.user;
       } else {
         throw err;
