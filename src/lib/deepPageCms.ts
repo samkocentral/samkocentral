@@ -274,9 +274,8 @@ export const DEFAULT_DEEP_CMS: DeepAppCMSStore = {
       { id: 'asset-risk', label: 'Risk Rating', options: ['All Risk Levels', 'Low Risk', 'Medium Risk', 'High Risk', 'Urgent Statutory'] },
     ],
     tabFilters: [
-      { id: 'all', label: 'All Fixed Assets', count: 62 },
-      { id: 'active', label: 'Active', count: 60 },
-      { id: 'under-maintenance', label: 'Under Maintenance', count: 2 },
+      { id: 'fixed', label: 'Fixed Assets', count: 44 },
+      { id: 'non-fixed', label: 'Non-Fixed Assets', count: 4 },
     ],
     columns: [
       { id: 'assetId', label: 'Asset ID', originalLabel: 'Asset ID', visible: true, order: 1 },
@@ -846,9 +845,8 @@ export const DEFAULT_DEEP_CMS: DeepAppCMSStore = {
       { id: 'condition', label: 'Condition Score', options: ['All Conditions', 'Excellent', 'Good', 'Fair', 'Poor', 'Condemned'] },
     ],
     tabFilters: [
-      { id: 'all', label: 'All Non-Fixed Assets', count: 4 },
-      { id: 'active', label: 'Active', count: 4 },
-      { id: 'under-maintenance', label: 'Under Maintenance', count: 0 },
+      { id: 'fixed', label: 'Fixed Assets', count: 44 },
+      { id: 'non-fixed', label: 'Non-Fixed Assets', count: 4 },
     ],
     columns: [
       { id: 'assetId', label: 'Asset ID', originalLabel: 'ID', visible: true, order: 1 },

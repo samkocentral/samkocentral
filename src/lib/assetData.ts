@@ -85,13 +85,22 @@ export function isAssetFixed(a: any): boolean {
       : (a.name || a.assetName);
   const name = String(rawName ?? '').toLowerCase();
 
+  const assetId = String(a.assetId || a.id || '').toUpperCase();
+  if (assetId.startsWith('FFE') || assetId.startsWith('NF-')) {
+    return false;
+  }
+
   // Categories that are strictly Non-Fixed (FF&E / Loose Items)
   if (
     cat.includes('furniture') ||
     cat.includes('soft furnish') ||
     cat.includes('linen') ||
     cat.includes('joinery') ||
-    cat.includes('guest room')
+    cat.includes('guest room') ||
+    cat.includes('audio visual') ||
+    cat.includes('tech') ||
+    cat.includes('appliance') ||
+    cat.includes('kitchenware')
   ) {
     return false;
   }
@@ -109,6 +118,8 @@ export function isAssetFixed(a: any): boolean {
     name.includes('hospitality unit') ||
     name.includes('mirror') ||
     name.includes('television') ||
+    name.includes(' tv') ||
+    name.includes('tv ') ||
     name.includes('in-room safe') ||
     name.includes('chair') ||
     name.includes('sofa') ||

@@ -129,10 +129,10 @@ export default function AssetsClient() {
   const [departmentFilter, setDepartmentFilter] = useState<string[]>([]);
   const [statusFilter, setStatusFilter] = useState<string[]>([]);
   const [customDropdownFilters, setCustomDropdownFilters] = useState<Record<string, string[]>>({});
-  const [activeTab, setActiveTab] = useState<'all' | 'active' | 'under-maintenance'>('all');
+  const [activeTab, setActiveTab] = useState<'fixed' | 'non-fixed'>(isNonFixed ? 'non-fixed' : 'fixed');
 
   useEffect(() => {
-    setActiveTab('all');
+    setActiveTab(isNonFixed ? 'non-fixed' : 'fixed');
     setCategoryFilter([]);
   }, [isNonFixed]);
 
@@ -399,15 +399,6 @@ export default function AssetsClient() {
         departmentFilter.length === 0 || departmentFilter.includes(a.department);
       const matchStatus =
         statusFilter.length === 0 || statusFilter.includes(a.status);
-      const matchTab =
-        activeTab === 'all'
-          ? true
-          : activeTab === 'active'
-          ? (a.status || '').toLowerCase() === 'active'
-          : activeTab === 'under-maintenance'
-          ? (a.status || '').toLowerCase() === 'under-maintenance' || (a.status || '').toLowerCase() === 'maintenance'
-          : true;
-
       const matchCustom = Object.entries(customDropdownFilters).every(([key, vals]) => {
         if (!vals || vals.length === 0) return true;
         if (vals.some((v) => v.toLowerCase().startsWith('all '))) return true;
@@ -415,9 +406,9 @@ export default function AssetsClient() {
         return vals.some((v) => v.toLowerCase() === assetVal || assetVal.includes(v.toLowerCase()));
       });
 
-      return matchSearch && matchHotel && matchCategory && matchDept && matchStatus && matchTab && matchCustom;
+      return matchSearch && matchHotel && matchCategory && matchDept && matchStatus && matchCustom;
     });
-  }, [scopedAssets, search, hotelFilter, categoryFilter, departmentFilter, statusFilter, customDropdownFilters, activeTab]);
+  }, [scopedAssets, search, hotelFilter, categoryFilter, departmentFilter, statusFilter, customDropdownFilters]);
 
   const hasFilters =
     Boolean(search) ||
@@ -434,28 +425,33 @@ export default function AssetsClient() {
     setStatusFilter([]);
   };
 
-  const tabs = useMemo(() => {
-    const activeCount = scopedAssets.filter(
-      (a) => (a.status || '').toLowerCase() === 'active'
-    ).length;
-    const maintCount = scopedAssets.filter((a) => {
-      const s = (a.status || '').toLowerCase();
-      return s === 'under-maintenance' || s === 'maintenance';
-    }).length;
-
-    if (isNonFixed) {
-      return [
-        { id: 'all' as const, label: 'All Non-Fixed Assets', count: scopedAssets.length },
-        { id: 'active' as const, label: 'Active', count: activeCount },
-        { id: 'under-maintenance' as const, label: 'Under Maintenance', count: maintCount },
-      ];
+  const fixedCount = useMemo(() => {
+    if (!isNonFixed) {
+      return assets.filter((a) => isAssetFixed(a)).length;
     }
-    return [
-      { id: 'all' as const, label: 'All Fixed Assets', count: scopedAssets.length },
-      { id: 'active' as const, label: 'Active', count: activeCount },
-      { id: 'under-maintenance' as const, label: 'Under Maintenance', count: maintCount },
-    ];
-  }, [isNonFixed, scopedAssets]);
+    return ASSETS.filter((a) => isAssetFixed(a)).length;
+  }, [assets, isNonFixed]);
+
+  const nonFixedCount = useMemo(() => {
+    if (isNonFixed) {
+      return assets.filter((a) => !isAssetFixed(a)).length;
+    }
+    return 4;
+  }, [assets, isNonFixed]);
+
+  const tabs = [
+    { id: 'fixed' as const, label: 'Fixed Assets', count: fixedCount },
+    { id: 'non-fixed' as const, label: 'Non-Fixed Assets', count: nonFixedCount },
+  ];
+
+  const handleTabClick = (tabId: 'fixed' | 'non-fixed') => {
+    setActiveTab(tabId);
+    if (tabId === 'non-fixed') {
+      router.push('/asset-management/assets?type=non-fixed');
+    } else {
+      router.push('/asset-management/assets');
+    }
+  };
 
   const cacheAssetForDetail = (a: Asset) => {
     try {
@@ -556,7 +552,7 @@ export default function AssetsClient() {
         {tabs.map((tab) => (
           <button
             key={tab.id}
-            onClick={() => setActiveTab(tab.id)}
+            onClick={() => handleTabClick(tab.id)}
             className="flex items-center gap-2 px-4 py-2.5 text-sm font-semibold border-b-2 transition-colors"
             style={{
               borderColor: activeTab === tab.id ? 'var(--primary)' : 'transparent',
