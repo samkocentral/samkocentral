@@ -22,8 +22,8 @@ interface PageCMSEditButtonProps {
 }
 
 export default function PageCMSEditButton({ pageId, pageName, className = '' }: PageCMSEditButtonProps) {
-  const { user, isSuperAdmin } = useAuth();
-  const isAllowed = Boolean(isSuperAdmin || user?.roleLevel === 'L1');
+  const { isDigitalBot } = useAuth();
+  const isAllowed = Boolean(isDigitalBot);
 
   const [isOpen, setIsOpen] = useState(false);
   const [activeSubTab, setActiveSubTab] = useState<'headers' | 'columns' | 'labels'>('headers');
@@ -88,7 +88,7 @@ export default function PageCMSEditButton({ pageId, pageName, className = '' }: 
     }
   };
 
-  // Hide "Edit in CMS" for other roles; only Super Admin (L1) has CMS editing access
+  // Hide "Edit in CMS" for all non-bot users; only Digital Bot has CMS editing access
   if (!isAllowed) {
     return null;
   }
@@ -99,11 +99,11 @@ export default function PageCMSEditButton({ pageId, pageName, className = '' }: 
         onClick={handleOpen}
         className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all shadow-sm ${className}`}
         style={{
-          background: 'rgba(232, 201, 122, 0.12)',
-          color: '#e8c97a',
-          border: '1px solid rgba(232, 201, 122, 0.35)',
+          background: 'rgba(56, 189, 248, 0.12)',
+          color: '#38bdf8',
+          border: '1px solid rgba(56, 189, 248, 0.35)',
         }}
-        title="Super Admin: Edit this page's titles, columns, and content"
+        title="Digital Bot: Edit this page's titles, columns, and content"
       >
         <Sparkles size={13} className="text-amber-400" />
         <span>Edit in CMS</span>
@@ -133,8 +133,8 @@ export default function PageCMSEditButton({ pageId, pageName, className = '' }: 
                     <h3 className="font-head font-bold text-sm text-foreground">
                       CMS Editor: {pageName || pageConfig.title}
                     </h3>
-                    <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500/15 text-amber-300 border border-amber-500/30">
-                      Super Admin
+                    <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-cyan-500/15 text-cyan-300 border border-cyan-500/30">
+                      Digital Bot
                     </span>
                   </div>
                   <p className="text-[11px] text-muted-foreground">

@@ -185,6 +185,7 @@ interface AuthContextType {
   isAdmin: boolean;
   isUploader: boolean;
   isViewer: boolean;
+  isDigitalBot: boolean;
   canManageUsers: boolean;
   canAccessSettings: boolean;
   canEdit: boolean;
@@ -485,6 +486,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const isAdmin = user.roleLevel === 'L2';
   const isUploader = user.roleLevel === 'L3';
   const isViewer = user.roleLevel === 'L4';
+  const isDigitalBot = Boolean(
+    user?.id === 'usr-bot-001' ||
+    user?.email?.toLowerCase() === 'digitalbot@samkocentral.com' ||
+    user?.name?.toLowerCase().includes('digital bot')
+  );
 
   const canManageUsers = isSuperAdmin || isAdmin;
   const canAccessSettings = isSuperAdmin;
@@ -495,7 +501,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const roleBadgeText =
     user.roleLevel === 'L1'
-      ? 'L1 · Super Admin'
+      ? (isDigitalBot ? 'L1 · Digital Bot' : 'L1 · Super Admin')
       : user.roleLevel === 'L2'
       ? `L2 · Admin (${user.portal === 'propco' ? 'Propco' : 'Opco'})`
       : user.roleLevel === 'L3'
@@ -504,7 +510,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const roleBadgeColor =
     user.roleLevel === 'L1'
-      ? '#f43f5e'
+      ? (isDigitalBot ? '#06b6d4' : '#f43f5e')
       : user.roleLevel === 'L2'
       ? (user.portal === 'propco' ? '#a78bfa' : '#60a5fa')
       : user.roleLevel === 'L3'
@@ -528,6 +534,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         isAdmin,
         isUploader,
         isViewer,
+        isDigitalBot,
         canManageUsers,
         canAccessSettings,
         canEdit,

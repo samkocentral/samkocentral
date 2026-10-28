@@ -121,7 +121,7 @@ function SectionCard({ title, children }: { title: string; children: React.React
 }
 
 export default function SettingsClient() {
-  const { isSuperAdmin, user } = useAuth();
+  const { isSuperAdmin, isDigitalBot, user } = useAuth();
   const searchParams = useSearchParams();
   const initialTab = ((searchParams?.get('tab')) as SettingsTab) || 'general';
   const initialPage = (searchParams?.get('page') as any) || 'properties';
@@ -130,9 +130,15 @@ export default function SettingsClient() {
   useEffect(() => {
     const tabParam = searchParams?.get('tab') as SettingsTab;
     if (tabParam) {
-      setActiveTab(tabParam);
+      if (tabParam.startsWith('cms-') && !isDigitalBot) {
+        setActiveTab('general');
+      } else {
+        setActiveTab(tabParam);
+      }
+    } else if (activeTab.startsWith('cms-') && !isDigitalBot) {
+      setActiveTab('general');
     }
-  }, [searchParams]);
+  }, [searchParams, isDigitalBot, activeTab]);
 
   // Automatically close the main sidebar when opening this page
   useEffect(() => {
@@ -257,16 +263,16 @@ export default function SettingsClient() {
             );
           })}
 
-          {/* Section 2: Complete Application CMS (Super Admin) - Streamlined */}
-          {(isSuperAdmin || user?.roleLevel === 'L1') && (
+          {/* Section 2: Complete Application CMS (Digital Bot Only) */}
+          {isDigitalBot && (
             <div className="pt-3 mt-3 border-t border-border">
-              <div className="px-3 pb-2 text-[10px] font-bold uppercase tracking-wider text-[#e8c97a] flex items-center justify-between">
+              <div className="px-3 pb-2 text-[10px] font-bold uppercase tracking-wider text-[#38bdf8] flex items-center justify-between">
                 <span className="flex items-center gap-1.5">
                   <SlidersHorizontal size={11} />
                   Application CMS
                 </span>
-                <span className="text-[9px] px-1.5 py-0.2 rounded bg-amber-400/20 text-[#e8c97a] border border-[#e8c97a]/30 font-bold">
-                  L1
+                <span className="text-[9px] px-1.5 py-0.2 rounded bg-cyan-400/20 text-[#38bdf8] border border-[#38bdf8]/30 font-bold">
+                  BOT ONLY
                 </span>
               </div>
 
@@ -622,21 +628,25 @@ export default function SettingsClient() {
             </div>
           )}
 
-          {/* Application CMS Active Panels */}
-          {activeTab === 'cms-opco' && <PortalCMSEditor portal="opco" initialTabId={initialPage} />}
-          {activeTab === 'cms-propco' && <PortalCMSEditor portal="propco" initialTabId={initialPage} />}
-          {activeTab === 'cms-pages' && (
-            <DeepPageCMSEditor
-              initialPage={(initialPage as any) || 'properties'}
-              hidePageGrid={false}
-            />
+          {/* Application CMS Active Panels (Restricted strictly to Digital Bot) */}
+          {isDigitalBot && (
+            <>
+              {activeTab === 'cms-opco' && <PortalCMSEditor portal="opco" initialTabId={initialPage} />}
+              {activeTab === 'cms-propco' && <PortalCMSEditor portal="propco" initialTabId={initialPage} />}
+              {activeTab === 'cms-pages' && (
+                <DeepPageCMSEditor
+                  initialPage={(initialPage as any) || 'properties'}
+                  hidePageGrid={false}
+                />
+              )}
+              {activeTab === 'cms-dashboard' && <CompleteAppCMS activeSection="dashboard" />}
+              {activeTab === 'cms-recent-logs' && <PortalCMSEditor portal="opco" initialTabId="recent-logs" />}
+              {activeTab === 'cms-import' && <PortalCMSEditor portal="opco" initialTabId="import" />}
+              {activeTab === 'cms-users' && <PortalCMSEditor portal="opco" initialTabId="users" />}
+              {activeTab === 'cms-navigation' && <CompleteAppCMS activeSection="navigation" />}
+              {activeTab === 'cms-forms' && <CMSFieldManager />}
+            </>
           )}
-          {activeTab === 'cms-dashboard' && <CompleteAppCMS activeSection="dashboard" />}
-          {activeTab === 'cms-recent-logs' && <PortalCMSEditor portal="opco" initialTabId="recent-logs" />}
-          {activeTab === 'cms-import' && <PortalCMSEditor portal="opco" initialTabId="import" />}
-          {activeTab === 'cms-users' && <PortalCMSEditor portal="opco" initialTabId="users" />}
-          {activeTab === 'cms-navigation' && <CompleteAppCMS activeSection="navigation" />}
-          {activeTab === 'cms-forms' && <CMSFieldManager />}
         </div>
       </div>
     </div>
