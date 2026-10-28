@@ -130,12 +130,12 @@ export default function SettingsClient() {
   useEffect(() => {
     const tabParam = searchParams?.get('tab') as SettingsTab;
     if (tabParam) {
-      if (tabParam.startsWith('cms-') && !isDigitalBot) {
+      if ((tabParam.startsWith('cms-') || tabParam === 'data') && !isDigitalBot) {
         setActiveTab('general');
       } else {
         setActiveTab(tabParam);
       }
-    } else if (activeTab.startsWith('cms-') && !isDigitalBot) {
+    } else if ((activeTab.startsWith('cms-') || activeTab === 'data') && !isDigitalBot) {
       setActiveTab('general');
     }
   }, [searchParams, isDigitalBot, activeTab]);
@@ -241,7 +241,7 @@ export default function SettingsClient() {
           <div className="px-3 pb-2 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
             System Settings
           </div>
-          {BASE_TABS.map((tab) => {
+          {BASE_TABS.filter((tab) => tab.id !== 'data' || isDigitalBot).map((tab) => {
             const Icon = tab.icon;
             const active = activeTab === tab.id;
             return (
@@ -258,6 +258,11 @@ export default function SettingsClient() {
               >
                 <Icon size={14} />
                 <span className="flex-1 truncate">{tab.label}</span>
+                {tab.id === 'data' && (
+                  <span className="text-[9px] px-1.5 py-0.2 rounded bg-cyan-400/20 text-[#38bdf8] border border-[#38bdf8]/30 font-bold">
+                    BOT
+                  </span>
+                )}
                 {active && <ChevronRight size={11} />}
               </button>
             );
@@ -518,7 +523,7 @@ export default function SettingsClient() {
             </div>
           )}
 
-          {activeTab === 'data' && (
+          {activeTab === 'data' && isDigitalBot && (
             <div className="space-y-6">
               <SectionCard title="Firebase & Firestore Backend">
                 <div className="mb-4 text-xs text-muted-foreground leading-relaxed">
