@@ -313,15 +313,11 @@ export default function SettingsClient() {
         {/* Content */}
         <div
           className={`flex-1 ${
-            activeTab === 'cms-opco' ||
-            activeTab === 'cms-propco' ||
-            activeTab === 'cms-recent-logs' ||
-            activeTab === 'cms-import' ||
-            activeTab === 'cms-users' ||
-            activeTab === 'cms-navigation'
+            activeTab === 'cms-opco' || activeTab === 'cms-propco'
               ? 'overflow-hidden flex flex-col p-6 h-full min-h-0'
-              : 'overflow-y-auto p-7'
+              : 'overflow-y-auto p-6 md:p-8 h-full'
           }`}
+          style={{ scrollbarWidth: 'thin' }}
         >
           {activeTab === 'general' && (
             <div>

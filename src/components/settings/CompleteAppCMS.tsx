@@ -346,7 +346,7 @@ export default function CompleteAppCMS({ activeSection, onSelectSection }: Props
   };
 
   return (
-    <div className="flex flex-col gap-6 max-w-6xl pb-16">
+    <div className="flex flex-col gap-6 max-w-6xl pb-24 w-full">
       {/* CMS Top Header */}
       <div
         className="rounded-2xl border p-6 relative overflow-hidden shadow-sm"
