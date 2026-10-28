@@ -439,10 +439,16 @@ export default function AssetsClient() {
     return 4;
   }, [assets, isNonFixed]);
 
-  const tabs = [
-    { id: 'fixed' as const, label: 'Fixed Assets', count: fixedCount },
-    { id: 'non-fixed' as const, label: 'Non-Fixed Assets', count: nonFixedCount },
-  ];
+  const tabs = useMemo(() => {
+    if (isNonFixed) {
+      return [
+        { id: 'non-fixed' as const, label: 'Non-Fixed Assets', count: nonFixedCount },
+      ];
+    }
+    return [
+      { id: 'fixed' as const, label: 'Fixed Assets', count: fixedCount },
+    ];
+  }, [isNonFixed, fixedCount, nonFixedCount]);
 
   const handleTabClick = (tabId: 'fixed' | 'non-fixed') => {
     setActiveTab(tabId);
