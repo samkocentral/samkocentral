@@ -11,6 +11,8 @@ import CustomDropdown from '@/components/ui/CustomDropdown';
 import StatusDropdown from '@/components/ui/StatusDropdown';
 import { useDeepPageCms } from '@/lib/deepPageCms';
 import PageCMSEditButton from '@/components/cms/PageCMSEditButton';
+import LoadingPagination from '@/components/ui/LoadingPagination';
+import { useLoadingPagination } from '@/hooks/useLoadingPagination';
 
 type ComplianceStatus = 'compliant' | 'expiring-soon' | 'overdue' | 'pending';
 type RiskRating = 'low' | 'medium' | 'high' | 'critical';
@@ -397,6 +399,16 @@ export default function ComplianceRegisterClient() {
     ? [...filtered].sort((a, b) => daysUntil(a.expiryDate) - daysUntil(b.expiryDate))
     : filtered;
 
+  const {
+    currentPage,
+    pageSize,
+    totalRecords,
+    paginatedItems: paginatedCompliance,
+    isPageLoading,
+    changePage,
+    changePageSize,
+  } = useLoadingPagination(displayItems, 7);
+
   const handleExport = () => {
     const headers = ['Compliance ID', 'Name', 'Category', 'Type', 'Property', 'Authority', 'Certificate Number', 'Expiry Date', 'Status', 'Risk Rating'];
     const rows = displayItems.map((c: any) => [
@@ -545,7 +557,7 @@ export default function ComplianceRegisterClient() {
               </tr>
             </thead>
             <tbody>
-              {displayItems.map((item) => {
+              {paginatedCompliance.map((item) => {
                 const days = daysUntil(item.expiryDate);
                 const statusCfg = STATUS_CONFIG[item.status] || STATUS_CONFIG.compliant;
                 const riskCfg = RISK_CONFIG[item.riskRating] || RISK_CONFIG.low;
@@ -627,6 +639,16 @@ export default function ComplianceRegisterClient() {
               <p className="text-sm">No compliance items found</p>
             </div>
           )}
+          <LoadingPagination
+            currentPage={currentPage}
+            totalRecords={totalRecords}
+            pageSize={pageSize}
+            pageSizeOptions={[5, 7, 10, 20]}
+            onPageChange={changePage}
+            onPageSizeChange={changePageSize}
+            isLoading={loading || isPageLoading}
+            recordName="compliance items"
+          />
         </div>
       </div>
 

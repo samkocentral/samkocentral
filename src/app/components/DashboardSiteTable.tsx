@@ -7,6 +7,8 @@ import StatusBadge from '@/components/ui/StatusBadge';
 import Link from 'next/link';
 import { api } from '@/lib/api';
 import { useDeepPageCms } from '@/lib/deepPageCms';
+import { useLoadingPagination } from '@/hooks/useLoadingPagination';
+import LoadingPagination from '@/components/ui/LoadingPagination';
 
 export default function DashboardSiteTable() {
   const cms = useDeepPageCms('overview');
@@ -98,6 +100,16 @@ export default function DashboardSiteTable() {
         openIssues: Number(item.openIssues) || 0,
       }))
     : fallbackRows;
+
+  const {
+    currentPage,
+    pageSize,
+    totalRecords,
+    paginatedItems,
+    isPageLoading,
+    changePage,
+    changePageSize,
+  } = useLoadingPagination(siteRows, 5);
 
   // Active columns configured via CMS
   const activeColumns = cms.columns && cms.columns.length > 0
@@ -247,7 +259,7 @@ export default function DashboardSiteTable() {
             </tr>
           </thead>
           <tbody>
-            {siteRows.map((site: any) => (
+            {paginatedItems.map((site: any) => (
               <tr key={site.id} className="table-row-hover">
                 {activeColumns.map((col) => (
                   <td key={`${site.id}-${col.id}`} className="table-cell">
@@ -259,6 +271,16 @@ export default function DashboardSiteTable() {
           </tbody>
         </table>
       </div>
+      <LoadingPagination
+        currentPage={currentPage}
+        totalRecords={totalRecords}
+        pageSize={pageSize}
+        pageSizeOptions={[5, 7, 10]}
+        onPageChange={changePage}
+        onPageSizeChange={changePageSize}
+        isLoading={isPageLoading}
+        recordName="properties"
+      />
     </div>
   );
 }

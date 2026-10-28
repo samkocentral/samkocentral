@@ -6,6 +6,8 @@ import { ASSET_CATEGORIES, ASSETS, type AssetCategory } from '@/lib/assetData';
 import { api } from '@/lib/api';
 import PageCMSEditButton from '@/components/cms/PageCMSEditButton';
 import { useDeepPageCms } from '@/lib/deepPageCms';
+import LoadingPagination from '@/components/ui/LoadingPagination';
+import { useLoadingPagination } from '@/hooks/useLoadingPagination';
 
 const PRESET_COLORS = [
   '#e8c97a', '#60a5fa', '#a78bfa', '#34d399', '#f43f5e',
@@ -190,6 +192,16 @@ export default function CategoriesClient() {
   const { title: cmsTitle, subtitle: cmsSubtitle, primaryActionLabel: cmsPrimaryAction } = useDeepPageCms('categories');
   const totalAssets = liveAssets.length;
 
+  const {
+    currentPage,
+    pageSize,
+    totalRecords,
+    paginatedItems: paginatedCategories,
+    isPageLoading,
+    changePage,
+    changePageSize,
+  } = useLoadingPagination(categories, 6);
+
   return (
     <div className="flex flex-col h-full">
       {/* Header */}
@@ -234,7 +246,7 @@ export default function CategoriesClient() {
             )}
 
             <div className="grid gap-3" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))' }}>
-              {categories.map((cat) => {
+              {paginatedCategories.map((cat) => {
                 const count = assetCountByCategory(cat.name);
                 const pct = totalAssets > 0 ? Math.round((count / totalAssets) * 100) : 0;
                 const isEditing = editingId === cat.id;
@@ -343,6 +355,18 @@ export default function CategoriesClient() {
                 );
               })}
             </div>
+
+            {/* Loading Pagination Bar */}
+            <LoadingPagination
+              currentPage={currentPage}
+              totalRecords={totalRecords}
+              pageSize={pageSize}
+              pageSizeOptions={[6, 9, 12, 18]}
+              onPageChange={changePage}
+              onPageSizeChange={changePageSize}
+              isLoading={isPageLoading}
+              recordName="categories"
+            />
           </div>
 
           {/* Summary Panel */}

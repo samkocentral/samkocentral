@@ -11,6 +11,8 @@ import { api } from '@/lib/api';
 import { toast } from 'sonner';
 import PageCMSEditButton from '@/components/cms/PageCMSEditButton';
 import { useDeepPageCms } from '@/lib/deepPageCms';
+import LoadingPagination from '@/components/ui/LoadingPagination';
+import { useLoadingPagination } from '@/hooks/useLoadingPagination';
 
 export default function ComplianceTrackerClient() {
   const {
@@ -210,6 +212,16 @@ export default function ComplianceTrackerClient() {
     });
     return items;
   }, [complianceList, statusFilter, categoryFilter, siteFilter, search]);
+
+  const {
+    currentPage,
+    pageSize,
+    totalRecords,
+    paginatedItems: paginatedCompliance,
+    isPageLoading,
+    changePage,
+    changePageSize,
+  } = useLoadingPagination(filtered, 7);
 
   const trafficLight = (status: string) => {
     if (status === 'critical') return { emoji: '🔴', label: 'Overdue', color: 'var(--critical)' };
@@ -442,7 +454,7 @@ export default function ComplianceTrackerClient() {
                 </tr>
               </thead>
               <tbody>
-                {filtered.map((item) => {
+                {paginatedCompliance.map((item) => {
                   const days = daysUntil(item.dueDate);
                   const tl = trafficLight(item.status);
                   const isExpanded = expandedRow === item.id;
@@ -579,6 +591,16 @@ export default function ComplianceTrackerClient() {
                 })}
               </tbody>
             </table>
+            <LoadingPagination
+              currentPage={currentPage}
+              totalRecords={totalRecords}
+              pageSize={pageSize}
+              pageSizeOptions={[5, 7, 10, 20]}
+              onPageChange={changePage}
+              onPageSizeChange={changePageSize}
+              isLoading={loading || isPageLoading}
+              recordName="compliance items"
+            />
           </div>
         )}
       </div>

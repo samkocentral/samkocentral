@@ -12,6 +12,8 @@ import CustomDropdown from '@/components/ui/CustomDropdown';
 import StatusDropdown from '@/components/ui/StatusDropdown';
 import { useDeepPageCms } from '@/lib/deepPageCms';
 import PageCMSEditButton from '@/components/cms/PageCMSEditButton';
+import LoadingPagination from '@/components/ui/LoadingPagination';
+import { useLoadingPagination } from '@/hooks/useLoadingPagination';
 
 type TabId = 'all' | 'scheduled' | 'due-today' | 'overdue' | 'completed';
 
@@ -196,6 +198,16 @@ export default function MaintenanceClient() {
       return matchTab && matchSearch && matchHotel;
     });
   }, [records, activeTab, search, propertyFilter]);
+
+  const {
+    currentPage,
+    pageSize,
+    totalRecords,
+    paginatedItems: paginatedRecords,
+    isPageLoading,
+    changePage,
+    changePageSize,
+  } = useLoadingPagination(filtered, 7);
 
   const handleStatusChange = async (id: string, newStatus: string) => {
     setUpdatingId(id);
@@ -480,7 +492,7 @@ export default function MaintenanceClient() {
                 </td>
               </tr>
             ) : (
-              filtered.map((m) => {
+              paginatedRecords.map((m) => {
                 const s = STATUS_STYLES[m.status] || STATUS_STYLES.scheduled;
                 const propDisplayName = m.hotelName || (m as any).propertyName || 'Property';
                 const isItemUpdating = updatingId === m.id;
@@ -554,6 +566,18 @@ export default function MaintenanceClient() {
           </tbody>
         </table>
       </div>
+
+      {/* Loading Pagination Bar */}
+      <LoadingPagination
+        currentPage={currentPage}
+        totalRecords={totalRecords}
+        pageSize={pageSize}
+        pageSizeOptions={[5, 7, 10, 20]}
+        onPageChange={changePage}
+        onPageSizeChange={changePageSize}
+        isLoading={loading || isPageLoading}
+        recordName="maintenance tasks"
+      />
 
       {/* Schedule Maintenance Modal */}
       {showAddModal && (

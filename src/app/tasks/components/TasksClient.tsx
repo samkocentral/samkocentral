@@ -10,6 +10,8 @@ import {
 import AddItemModal from './AddItemModal';
 import UploadDocumentModal from './UploadDocumentModal';
 import PageCMSEditButton from '@/components/cms/PageCMSEditButton';
+import LoadingPagination from '@/components/ui/LoadingPagination';
+import { useLoadingPagination } from '@/hooks/useLoadingPagination';
 import {
   CheckSquare,
   Square,
@@ -194,6 +196,16 @@ export default function TasksClient() {
       return true;
     });
   }, [tasks, selectedProperty, selectedAssignee, activeTab, searchQuery]);
+
+  const {
+    currentPage,
+    pageSize,
+    totalRecords,
+    paginatedItems: paginatedTasks,
+    isPageLoading,
+    changePage,
+    changePageSize,
+  } = useLoadingPagination(filteredTasks, 7);
 
   // Summary Metrics calculations (across selected properties)
   const scopedTasks = useMemo(() => {
@@ -772,7 +784,7 @@ export default function TasksClient() {
           className="rounded-2xl border divide-y divide-border overflow-hidden"
           style={{ background: 'var(--card)', borderColor: 'var(--border)' }}
         >
-          {filteredTasks.map((task) => (
+          {paginatedTasks.map((task) => (
             <TaskCardRow
               key={task.id}
               task={task}
@@ -782,6 +794,20 @@ export default function TasksClient() {
             />
           ))}
         </div>
+      )}
+
+      {/* Loading Pagination Bar */}
+      {filteredTasks.length > 0 && (
+        <LoadingPagination
+          currentPage={currentPage}
+          totalRecords={totalRecords}
+          pageSize={pageSize}
+          pageSizeOptions={[5, 7, 10, 20]}
+          onPageChange={changePage}
+          onPageSizeChange={changePageSize}
+          isLoading={isPageLoading}
+          recordName="tasks"
+        />
       )}
 
       {/* ───────────────────────────────────────────────────────────── */}

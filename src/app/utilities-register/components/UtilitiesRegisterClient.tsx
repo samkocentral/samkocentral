@@ -9,6 +9,8 @@ import { api } from '@/lib/api';
 import { toast } from 'sonner';
 import PageCMSEditButton from '@/components/cms/PageCMSEditButton';
 import { useDeepPageCms } from '@/lib/deepPageCms';
+import LoadingPagination from '@/components/ui/LoadingPagination';
+import { useLoadingPagination } from '@/hooks/useLoadingPagination';
 
 
 
@@ -560,6 +562,16 @@ export default function UtilitiesRegisterClient() {
     });
   }, [accounts, search, filterType, filterProperty, filterStatus]);
 
+  const {
+    currentPage,
+    pageSize,
+    totalRecords,
+    paginatedItems: paginatedAccounts,
+    isPageLoading,
+    changePage,
+    changePageSize,
+  } = useLoadingPagination(filtered, 7);
+
   const handleExport = () => {
     const headers = ['Property', 'Utility Type', 'Supplier', 'Account Number', 'Meter Reference', 'Annual Cost', 'Monthly Cost', 'Contract Start', 'Contract End', 'Status'];
     const rows = filtered.map((u: any) => [
@@ -692,7 +704,7 @@ export default function UtilitiesRegisterClient() {
               </tr>
             </thead>
             <tbody>
-              {filtered.map((account) => {
+              {paginatedAccounts.map((account) => {
                 const TypeIcon = UTILITY_ICONS[account.utilityType];
                 const color = UTILITY_COLORS[account.utilityType];
                 const sc = STATUS_CONFIG[account.status] || STATUS_CONFIG.active;
@@ -784,6 +796,16 @@ export default function UtilitiesRegisterClient() {
               })}
             </tbody>
           </table>
+          <LoadingPagination
+            currentPage={currentPage}
+            totalRecords={totalRecords}
+            pageSize={pageSize}
+            pageSizeOptions={[5, 7, 10, 20]}
+            onPageChange={changePage}
+            onPageSizeChange={changePageSize}
+            isLoading={loading || isPageLoading}
+            recordName="utility accounts"
+          />
         </div>
       </div>
 

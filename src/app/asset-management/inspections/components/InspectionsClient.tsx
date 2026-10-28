@@ -6,6 +6,8 @@ import { MAINTENANCE_RECORDS, ASSETS, HOTELS } from '@/lib/assetData';
 import { api } from '@/lib/api';
 import PageCMSEditButton from '@/components/cms/PageCMSEditButton';
 import { useDeepPageCms } from '@/lib/deepPageCms';
+import LoadingPagination from '@/components/ui/LoadingPagination';
+import { useLoadingPagination } from '@/hooks/useLoadingPagination';
 
 type TabId = 'pending' | 'in-progress' | 'completed';
 
@@ -165,6 +167,16 @@ export default function InspectionsClient() {
       return matchTab && matchSearch && matchHotel;
     });
   }, [inspections, activeTab, search, hotelFilter]);
+
+  const {
+    currentPage,
+    pageSize,
+    totalRecords,
+    paginatedItems: paginatedInspections,
+    isPageLoading,
+    changePage,
+    changePageSize,
+  } = useLoadingPagination(filtered, 7);
 
   const selected = selectedId ? inspections.find((i) => i.id === selectedId) : null;
 
@@ -386,7 +398,7 @@ export default function InspectionsClient() {
                 </tr>
               </thead>
               <tbody>
-                {filtered.map((insp) => (
+                {paginatedInspections.map((insp) => (
                   <tr
                     key={insp.id}
                     onClick={() => setSelectedId(selectedId === insp.id ? null : insp.id)}
@@ -482,6 +494,16 @@ export default function InspectionsClient() {
               </tbody>
             </table>
           )}
+          <LoadingPagination
+            currentPage={currentPage}
+            totalRecords={totalRecords}
+            pageSize={pageSize}
+            pageSizeOptions={[5, 7, 10, 20]}
+            onPageChange={changePage}
+            onPageSizeChange={changePageSize}
+            isLoading={loading || isPageLoading}
+            recordName="inspections"
+          />
         </div>
 
         {/* Detail Panel */}

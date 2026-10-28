@@ -10,6 +10,8 @@ import { toast } from 'sonner';
 import { api } from '@/lib/api';
 import { useAuth } from '@/lib/authContext';
 import PageCMSEditButton from '@/components/cms/PageCMSEditButton';
+import LoadingPagination from '@/components/ui/LoadingPagination';
+import { useLoadingPagination } from '@/hooks/useLoadingPagination';
 
 const DEFAULT_CATEGORIES = ['All', ...Array.from(new Set(DOCUMENTS.map((d) => d.category))).sort()];
 const DEFAULT_SITES = ['All Sites', ...Array.from(new Set(DOCUMENTS.map((d) => d.site))).sort()];
@@ -111,6 +113,16 @@ export default function DocumentRepositoryClient() {
     });
     return docs;
   }, [documents, search, categoryFilter, siteFilter, statusFilter, sortCol, sortDir]);
+
+  const {
+    currentPage,
+    pageSize,
+    totalRecords,
+    paginatedItems: paginatedDocs,
+    isPageLoading,
+    changePage,
+    changePageSize,
+  } = useLoadingPagination(filtered, 7);
 
   const handleSort = (col: typeof sortCol) => {
     if (sortCol === col) setSortDir(sortDir === 'asc' ? 'desc' : 'asc');
@@ -436,7 +448,7 @@ export default function DocumentRepositoryClient() {
                 </tr>
               </thead>
               <tbody>
-                {filtered.map((doc) => {
+                {paginatedDocs.map((doc) => {
                   const days = daysUntil(doc.expiry);
                   return (
                     <tr key={doc.id} className="table-row-hover">
@@ -600,6 +612,16 @@ export default function DocumentRepositoryClient() {
                 })}
               </tbody>
             </table>
+            <LoadingPagination
+              currentPage={currentPage}
+              totalRecords={totalRecords}
+              pageSize={pageSize}
+              pageSizeOptions={[5, 7, 10, 20]}
+              onPageChange={changePage}
+              onPageSizeChange={changePageSize}
+              isLoading={isPageLoading}
+              recordName="documents"
+            />
           </div>
         )}
       </div>

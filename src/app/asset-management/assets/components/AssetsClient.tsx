@@ -12,6 +12,8 @@ import CustomDropdown from '@/components/ui/CustomDropdown';
 import StatusDropdown from '@/components/ui/StatusDropdown';
 import { useDeepPageCms, updatePageItem, addPageItem, deletePageItem } from '@/lib/deepPageCms';
 import PageCMSEditButton from '@/components/cms/PageCMSEditButton';
+import LoadingPagination from '@/components/ui/LoadingPagination';
+import { useLoadingPagination } from '@/hooks/useLoadingPagination';
 
 const CONDITION_STYLES: Record<string, { bg: string; color: string }> = {
   excellent: { bg: 'rgba(61,214,140,0.12)', color: '#3dd68c' },
@@ -410,6 +412,17 @@ export default function AssetsClient() {
     });
   }, [scopedAssets, search, hotelFilter, categoryFilter, departmentFilter, statusFilter, customDropdownFilters]);
 
+  // Loading pagination: 7 records default per page (adjustable to 5, 7, 10, 20)
+  const {
+    currentPage,
+    pageSize,
+    totalRecords,
+    paginatedItems: paginatedAssets,
+    isPageLoading,
+    changePage,
+    changePageSize,
+  } = useLoadingPagination(filtered, 7);
+
   const hasFilters =
     Boolean(search) ||
     hotelFilter.length > 0 ||
@@ -720,7 +733,7 @@ export default function AssetsClient() {
                 </td>
               </tr>
             ) : (
-              filtered.map((asset) => {
+              paginatedAssets.map((asset) => {
                 const s = STATUS_CONFIG[asset.status] || STATUS_CONFIG.active;
                 const propDisplayName = asset.hotelName || (asset as any).propertyName || 'Property';
 
@@ -842,6 +855,18 @@ export default function AssetsClient() {
           </tbody>
         </table>
       </div>
+
+      {/* Loading Pagination Bar */}
+      <LoadingPagination
+        currentPage={currentPage}
+        totalRecords={totalRecords}
+        pageSize={pageSize}
+        pageSizeOptions={[5, 7, 10, 20]}
+        onPageChange={changePage}
+        onPageSizeChange={changePageSize}
+        isLoading={loading || isPageLoading}
+        recordName="assets"
+      />
 
       {/* Add Category Modal */}
       {showAddCategoryModal && (

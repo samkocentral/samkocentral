@@ -43,6 +43,8 @@ import Modal from '@/components/ui/Modal';
 import TabPermissionsEditor from '@/components/users/TabPermissionsEditor';
 import { useDeepPageCms } from '@/lib/deepPageCms';
 import PageCMSEditButton from '@/components/cms/PageCMSEditButton';
+import LoadingPagination from '@/components/ui/LoadingPagination';
+import { useLoadingPagination } from '@/hooks/useLoadingPagination';
 import {
   ALL_SYSTEM_TABS,
   type UserTabPermissions,
@@ -724,6 +726,16 @@ export default function UsersClient() {
     });
   }, [users, search, isAdmin, currentAuthUser.portal]);
 
+  const {
+    currentPage,
+    pageSize,
+    totalRecords,
+    paginatedItems: paginatedUsers,
+    isPageLoading,
+    changePage,
+    changePageSize,
+  } = useLoadingPagination(filtered, 7);
+
   const countsByLevel = useMemo(() => {
     return {
       L1: users.filter((u) => u.roleLevel === 'L1').length,
@@ -939,7 +951,7 @@ export default function UsersClient() {
                   </tr>
                 </thead>
                 <tbody>
-                  {filtered.map((user) => {
+                  {paginatedUsers.map((user) => {
                     const conf = ROLE_LEVEL_CONFIG[user.roleLevel] || ROLE_LEVEL_CONFIG.L3;
                     return (
                       <tr
@@ -1112,6 +1124,16 @@ export default function UsersClient() {
                   })}
                 </tbody>
               </table>
+              <LoadingPagination
+                currentPage={currentPage}
+                totalRecords={totalRecords}
+                pageSize={pageSize}
+                pageSizeOptions={[5, 7, 10, 20]}
+                onPageChange={changePage}
+                onPageSizeChange={changePageSize}
+                isLoading={isPageLoading}
+                recordName="users"
+              />
             </div>
           </div>
         )}

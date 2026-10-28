@@ -14,6 +14,8 @@ import Icon from '@/components/ui/AppIcon';
 import CustomDropdown from '@/components/ui/CustomDropdown';
 import { useDeepPageCms } from '@/lib/deepPageCms';
 import PageCMSEditButton from '@/components/cms/PageCMSEditButton';
+import LoadingPagination from '@/components/ui/LoadingPagination';
+import { useLoadingPagination } from '@/hooks/useLoadingPagination';
 
 type PolicyStatus = 'active' | 'expiring-soon' | 'expired' | 'pending-renewal';
 
@@ -618,6 +620,16 @@ export default function InsuranceRegisterClient() {
     return matchSearch && matchType && matchHotel;
   });
 
+  const {
+    currentPage,
+    pageSize,
+    totalRecords,
+    paginatedItems: paginatedPolicies,
+    isPageLoading,
+    changePage,
+    changePageSize,
+  } = useLoadingPagination(filtered, 7);
+
   const renewalsDue = policies.filter((p) => {
     const d = daysUntil(p.renewalDate);
     return d >= 0 && d <= 90;
@@ -764,7 +776,7 @@ export default function InsuranceRegisterClient() {
                   </tr>
                 </thead>
                 <tbody>
-                  {filtered.map((policy) => {
+                  {paginatedPolicies.map((policy) => {
                     const days = daysUntil(policy.expiryDate);
                     const sc = STATUS_CONFIG[policy.status] || STATUS_CONFIG.active;
                     return (
@@ -846,6 +858,17 @@ export default function InsuranceRegisterClient() {
                 </tbody>
               </table>
             </div>
+
+            <LoadingPagination
+              currentPage={currentPage}
+              totalRecords={totalRecords}
+              pageSize={pageSize}
+              pageSizeOptions={[5, 7, 10, 20]}
+              onPageChange={changePage}
+              onPageSizeChange={changePageSize}
+              isLoading={loading || isPageLoading}
+              recordName="policies"
+            />
           </>
         )}
 

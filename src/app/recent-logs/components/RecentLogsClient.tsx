@@ -37,6 +37,8 @@ import CustomDropdown from '@/components/ui/CustomDropdown';
 import { useAppCms } from '@/lib/appCmsConfig';
 import { useDeepPageCms } from '@/lib/deepPageCms';
 import PageCMSEditButton from '@/components/cms/PageCMSEditButton';
+import LoadingPagination from '@/components/ui/LoadingPagination';
+import { useLoadingPagination } from '@/hooks/useLoadingPagination';
 
 type PresetType = 'today' | '1week' | '30days' | '45days' | '90days' | 'all' | 'custom';
 
@@ -198,6 +200,16 @@ export default function RecentLogsClient() {
       return true;
     });
   }, [logs, preset, todayStr, fromDate, toDate, selectedUser, selectedCategory, selectedStatus, searchQuery]);
+
+  const {
+    currentPage,
+    pageSize,
+    totalRecords,
+    paginatedItems: paginatedLogs,
+    isPageLoading,
+    changePage,
+    changePageSize,
+  } = useLoadingPagination(filteredLogs, 7);
 
   // Export to CSV
   const handleExportCSV = () => {
@@ -714,7 +726,7 @@ export default function RecentLogsClient() {
                   </td>
                 </tr>
               ) : (
-                filteredLogs.map((log) => {
+                paginatedLogs.map((log) => {
                   const actionStyle = ACTION_STYLES[log.action] || {
                     bg: 'rgba(255,255,255,0.08)',
                     color: '#fff',
@@ -873,22 +885,17 @@ export default function RecentLogsClient() {
           </table>
         </div>
 
-        {/* Table Footer with Summary */}
-        <div
-          className="p-3 border-t flex flex-wrap items-center justify-between text-xs text-muted-foreground"
-          style={{ background: 'var(--surface2)', borderColor: 'var(--border)' }}
-        >
-          <div>
-            Showing <span className="font-semibold text-foreground">{filteredLogs.length}</span> entries of{' '}
-            <span className="font-semibold text-foreground">{logs.length}</span> total logs recorded in system
-          </div>
-          <div className="flex items-center gap-3">
-            <span className="flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-emerald-400" />
-              <span>Real-time Audit Ledger Active</span>
-            </span>
-          </div>
-        </div>
+        {/* Loading Pagination Bar */}
+        <LoadingPagination
+          currentPage={currentPage}
+          totalRecords={totalRecords}
+          pageSize={pageSize}
+          pageSizeOptions={[5, 7, 10, 20]}
+          onPageChange={changePage}
+          onPageSizeChange={changePageSize}
+          isLoading={isPageLoading}
+          recordName="audit logs"
+        />
       </div>
 
       {/* Audit Detail & Diff Inspection Modal */}

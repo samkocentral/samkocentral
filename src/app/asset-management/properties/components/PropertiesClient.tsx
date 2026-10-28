@@ -10,6 +10,8 @@ import { toast } from 'sonner';
 import { useDeepPageCms, updatePageItem, deletePageItem } from '@/lib/deepPageCms';
 import PageCMSEditButton from '@/components/cms/PageCMSEditButton';
 import CustomDropdown from '@/components/ui/CustomDropdown';
+import LoadingPagination from '@/components/ui/LoadingPagination';
+import { useLoadingPagination } from '@/hooks/useLoadingPagination';
 
 export default function PropertiesClient() {
   const { isViewer, canEdit } = useAuth();
@@ -246,6 +248,16 @@ export default function PropertiesClient() {
     return matchSearch && matchCity && matchStatus && customMatches;
   });
 
+  const {
+    currentPage,
+    pageSize,
+    totalRecords,
+    paginatedItems: paginatedProperties,
+    isPageLoading,
+    changePage,
+    changePageSize,
+  } = useLoadingPagination(filtered || [], 6);
+
   return (
     <div className="flex flex-col h-full">
       {/* Topbar */}
@@ -309,7 +321,7 @@ export default function PropertiesClient() {
       {/* Grid */}
       <div className="flex-1 overflow-y-auto px-6 py-5">
         <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
-          {filtered?.map((hotel) => {
+          {paginatedProperties?.map((hotel) => {
             const assetCount =
               assets.filter(
                 (a) => a.hotelId === hotel?.id || a.hotelName === hotel?.name || (a as any).propertyId === hotel?.id
@@ -464,6 +476,18 @@ export default function PropertiesClient() {
           })}
         </div>
       </div>
+
+      {/* Loading Pagination Bar */}
+      <LoadingPagination
+        currentPage={currentPage}
+        totalRecords={totalRecords}
+        pageSize={pageSize}
+        pageSizeOptions={[6, 9, 12, 18]}
+        onPageChange={changePage}
+        onPageSizeChange={changePageSize}
+        isLoading={loading || isPageLoading}
+        recordName="properties"
+      />
 
       {/* Add Property Modal */}
       {showAddModal && (

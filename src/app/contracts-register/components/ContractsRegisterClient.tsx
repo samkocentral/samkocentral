@@ -10,6 +10,8 @@ import { toast } from 'sonner';
 import { useCMSForm } from '@/lib/cmsConfig';
 import { useDeepPageCms } from '@/lib/deepPageCms';
 import PageCMSEditButton from '@/components/cms/PageCMSEditButton';
+import LoadingPagination from '@/components/ui/LoadingPagination';
+import { useLoadingPagination } from '@/hooks/useLoadingPagination';
 
 
 type ContractStatus = 'active' | 'expiring-soon' | 'expired' | 'pending' | 'terminated';
@@ -874,6 +876,16 @@ export default function ContractsRegisterClient() {
     return matchSearch && matchStatus && matchHotel && matchCat;
   });
 
+  const {
+    currentPage,
+    pageSize,
+    totalRecords,
+    paginatedItems: paginatedContracts,
+    isPageLoading,
+    changePage,
+    changePageSize,
+  } = useLoadingPagination(filtered, 7);
+
   const suppliers = Array.from(new Map(contracts.map((c) => [c.supplierName, c])).values());
   const renewals = contracts.filter((c) => { const d = daysUntil(c.renewalDate); return d >= 0 && d <= 120; }).sort((a, b) => daysUntil(a.renewalDate) - daysUntil(b.renewalDate));
 
@@ -994,7 +1006,7 @@ export default function ContractsRegisterClient() {
                   </tr>
                 </thead>
                 <tbody>
-                  {filtered.map((contract) => {
+                  {paginatedContracts.map((contract) => {
                     const days = daysUntil(contract.endDate);
                     const sc = STATUS_CONFIG[contract.status] || STATUS_CONFIG.active;
                     return (
@@ -1068,6 +1080,17 @@ export default function ContractsRegisterClient() {
                 </tbody>
               </table>
             </div>
+
+            <LoadingPagination
+              currentPage={currentPage}
+              totalRecords={totalRecords}
+              pageSize={pageSize}
+              pageSizeOptions={[5, 7, 10, 20]}
+              onPageChange={changePage}
+              onPageSizeChange={changePageSize}
+              isLoading={loading || isPageLoading}
+              recordName="contracts"
+            />
           </>
         )}
 
