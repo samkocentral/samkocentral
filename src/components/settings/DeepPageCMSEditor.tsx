@@ -64,6 +64,8 @@ import {
   deleteTaskItem,
   updateChartDataPoint,
   updatePageDropdown,
+  addPageDropdown,
+  deletePageDropdown,
   addDropdownOption,
   removeDropdownOption,
   updatePageSection,
@@ -186,10 +188,18 @@ export default function DeepPageCMSEditor({
     dueTodayCount: 0,
   });
 
+  // Dropdown CMS states (Add, Edit, Delete with Confirmation)
+  const [showAddDropdownModal, setShowAddDropdownModal] = useState(false);
+  const [newDropdownLabel, setNewDropdownLabel] = useState('');
+  const [newDropdownKey, setNewDropdownKey] = useState('');
+  const [newDropdownOptionInput, setNewDropdownOptionInput] = useState('');
+  const [newDropdownOptionsList, setNewDropdownOptionsList] = useState<string[]>([]);
+  const [dropdownToDelete, setDropdownToDelete] = useState<DeepPageDropdown | null>(null);
+
   const currentPage = store[selectedPage];
 
   const hasKpis = Boolean(currentPage?.topKpis || (currentPage?.kpis && currentPage.kpis.length > 0 && selectedPage !== 'properties' && selectedPage !== 'assets' && selectedPage !== 'nonfixed' && selectedPage !== 'categories' && selectedPage !== 'import' && selectedPage !== 'qr'));
-  const hasDropdowns = Boolean(currentPage?.dropdowns && currentPage.dropdowns.length > 0 && selectedPage !== 'properties' && selectedPage !== 'overview' && selectedPage !== 'categories' && selectedPage !== 'multisite' && selectedPage !== 'import' && selectedPage !== 'qr' && selectedPage !== 'reports' && selectedPage !== 'assetdashboard');
+  const hasDropdowns = selectedPage !== 'overview';
   const hasColumns = Boolean(currentPage?.columns && currentPage.columns.length > 0 && selectedPage !== 'properties' && selectedPage !== 'overview' && selectedPage !== 'categories' && selectedPage !== 'multisite' && selectedPage !== 'import' && selectedPage !== 'qr' && selectedPage !== 'assetdashboard');
 
   const dropdownSectionNum = 1 + (hasKpis ? 1 : 0) + 1;
@@ -293,6 +303,37 @@ export default function DeepPageCMSEditor({
 
   const handleUpdateDropdownLabel = (dropdownId: string, label: string) => {
     updatePageDropdown(selectedPage, dropdownId, { label });
+    refresh();
+  };
+
+  const handleAddNewDropdown = () => {
+    if (!newDropdownLabel.trim()) {
+      toast.error('Please enter a dropdown label');
+      return;
+    }
+    const slug = newDropdownKey.trim() || newDropdownLabel.trim().toLowerCase().replace(/[^a-z0-9_-]/g, '-');
+    const opts = newDropdownOptionsList.filter((o) => o.trim().length > 0);
+    if (opts.length === 0) {
+      opts.push(`All ${newDropdownLabel.trim()}`);
+    }
+    addPageDropdown(selectedPage, {
+      id: slug,
+      label: newDropdownLabel.trim(),
+      options: opts,
+    });
+    toast.success(`Dropdown "${newDropdownLabel.trim()}" created successfully`);
+    setShowAddDropdownModal(false);
+    setNewDropdownLabel('');
+    setNewDropdownKey('');
+    setNewDropdownOptionInput('');
+    setNewDropdownOptionsList([]);
+    refresh();
+  };
+
+  const handleDeleteDropdown = (dropdownId: string) => {
+    deletePageDropdown(selectedPage, dropdownId);
+    toast.success('Dropdown deleted successfully');
+    setDropdownToDelete(null);
     refresh();
   };
 
@@ -1360,108 +1401,182 @@ export default function DeepPageCMSEditor({
       )}
 
       {/* ─── 3. FILTER DROPDOWNS & SELECT OPTIONS ─── */}
-      {hasDropdowns && currentPage.dropdowns && (
+      {hasDropdowns && (
         <div
           className="rounded-xl border p-5 flex flex-col gap-4 shadow-sm"
           style={{ background: 'var(--surface)', borderColor: 'var(--border)' }}
         >
-          <div className="flex items-center justify-between pb-3 border-b border-border">
+          <div className="flex items-center justify-between pb-3 border-b border-border flex-wrap gap-2">
             <div>
               <span className="font-head font-bold text-sm text-foreground flex items-center gap-2">
                 <Filter size={15} className="text-primary" />
                 {dropdownSectionNum}. Filter Dropdowns, Select Options & Labels
+                <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">
+                  {(currentPage.dropdowns || []).length} Dropdowns
+                </span>
               </span>
               <p className="text-[11px] text-muted-foreground mt-0.5">
                 Customize filter dropdown labels and edit, add, or remove selectable dropdown options
               </p>
             </div>
+
+            <button
+              type="button"
+              onClick={() => {
+                setNewDropdownLabel('');
+                setNewDropdownKey('');
+                setNewDropdownOptionInput('');
+                setNewDropdownOptionsList([]);
+                setShowAddDropdownModal(true);
+              }}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all shadow-sm active:scale-95 cursor-pointer hover:brightness-110"
+              style={{ background: 'var(--primary)', color: '#000' }}
+            >
+              <Plus size={13} strokeWidth={2.5} />
+              Add Dropdown
+            </button>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {currentPage.dropdowns.map((dropdown) => (
-              <div
-                key={dropdown.id}
-                className="p-3.5 rounded-xl border border-border flex flex-col gap-2.5"
-                style={{ background: 'var(--surface2)' }}
+          {(currentPage.dropdowns || []).length === 0 ? (
+            <div className="p-8 rounded-xl border border-dashed border-border/80 flex flex-col items-center justify-center text-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+                <Filter size={18} />
+              </div>
+              <div>
+                <p className="text-sm font-bold text-foreground">No Filter Dropdowns Configured</p>
+                <p className="text-xs text-muted-foreground mt-0.5 max-w-sm">
+                  Add custom filter dropdowns with selectable options to filter records on this page.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setNewDropdownLabel('');
+                  setNewDropdownKey('');
+                  setNewDropdownOptionInput('');
+                  setNewDropdownOptionsList([]);
+                  setShowAddDropdownModal(true);
+                }}
+                className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all shadow-sm active:scale-95 cursor-pointer mt-1"
+                style={{ background: 'var(--primary)', color: '#000' }}
               >
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                    Dropdown: {dropdown.id}
-                  </span>
-                  <span className="text-[10px] font-semibold text-muted-foreground">
-                    {dropdown.options.length} Options
-                  </span>
-                </div>
-
-                <div className="flex flex-col gap-1">
-                  <label className="text-[10px] font-semibold text-muted-foreground">Dropdown Label Text</label>
-                  <input
-                    type="text"
-                    value={dropdown.label}
-                    onChange={(e) => handleUpdateDropdownLabel(dropdown.id, e.target.value)}
-                    className="rounded border border-border px-2 py-1 text-xs outline-none font-bold"
-                    style={{ background: 'var(--surface)', color: 'var(--foreground)' }}
-                  />
-                </div>
-
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-[10px] font-semibold text-muted-foreground">Selectable Options</label>
-                  <div className="flex flex-wrap gap-1.5 max-h-36 overflow-y-auto p-1.5 rounded border border-border/60 bg-black/20">
-                    {dropdown.options.map((opt, optIdx) => (
-                      <span
-                        key={optIdx}
-                        className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] border border-border bg-surface text-foreground"
-                      >
-                        <span>{opt}</span>
-                        <button
-                          type="button"
-                          onClick={() => handleRemoveDropdownOption(dropdown.id, optIdx)}
-                          className="text-muted-foreground hover:text-rose-400 p-0.5 cursor-pointer"
-                          title="Remove option"
-                        >
-                          <X size={10} />
-                        </button>
+                <Plus size={13} strokeWidth={2.5} />
+                Add Dropdown
+              </button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 items-stretch">
+              {(currentPage.dropdowns || []).map((dropdown) => (
+                <div
+                  key={dropdown.id}
+                  className="p-4 rounded-xl border border-border flex flex-col justify-between h-full min-h-[290px] transition-all hover:border-primary/40 relative group"
+                  style={{ background: 'var(--surface2)' }}
+                >
+                  {/* Top Bar: Dropdown ID + Options Count + Delete Button */}
+                  <div className="flex items-center justify-between gap-2 pb-2.5 border-b border-border/60">
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground truncate px-1.5 py-0.5 rounded bg-black/25 border border-border/40">
+                        {dropdown.id}
                       </span>
-                    ))}
-                  </div>
+                      <span className="text-[10px] font-semibold text-primary px-1.5 py-0.5 rounded bg-primary/10 whitespace-nowrap">
+                        {dropdown.options.length} {dropdown.options.length === 1 ? 'Option' : 'Options'}
+                      </span>
+                    </div>
 
-                  {/* Add new option input */}
-                  <div className="flex items-center gap-1.5 pt-1">
-                    <input
-                      type="text"
-                      id={`new_opt_${dropdown.id}`}
-                      placeholder={`Add new option to ${dropdown.label}...`}
-                      className="rounded border border-border px-2 py-1 text-xs outline-none flex-1"
-                      style={{ background: 'var(--surface)', color: 'var(--foreground)' }}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') {
-                          e.preventDefault();
-                          const val = (e.target as HTMLInputElement).value.trim();
-                          if (val) {
-                            handleAddDropdownOption(dropdown.id, val);
-                            (e.target as HTMLInputElement).value = '';
-                          }
-                        }
-                      }}
-                    />
                     <button
                       type="button"
-                      onClick={() => {
-                        const input = document.getElementById(`new_opt_${dropdown.id}`) as HTMLInputElement;
-                        if (input && input.value.trim()) {
-                          handleAddDropdownOption(dropdown.id, input.value.trim());
-                          input.value = '';
-                        }
-                      }}
-                      className="px-2.5 py-1 rounded text-xs font-bold border border-primary/40 bg-primary/10 text-primary hover:bg-primary/20 cursor-pointer"
+                      onClick={() => setDropdownToDelete(dropdown)}
+                      className="p-1.5 rounded-lg text-muted-foreground hover:text-rose-400 hover:bg-rose-500/10 border border-transparent hover:border-rose-500/30 transition-colors cursor-pointer flex-shrink-0"
+                      title={`Delete dropdown "${dropdown.label}"`}
                     >
-                      + Add
+                      <Trash2 size={13} />
                     </button>
                   </div>
+
+                  {/* Dropdown Label Input */}
+                  <div className="flex flex-col gap-1 mt-2.5">
+                    <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
+                      Dropdown Label Text
+                    </label>
+                    <input
+                      type="text"
+                      value={dropdown.label}
+                      onChange={(e) => handleUpdateDropdownLabel(dropdown.id, e.target.value)}
+                      className="rounded-lg border border-border px-2.5 py-1.5 text-xs outline-none font-bold focus:border-primary focus:ring-1 focus:ring-primary/30 transition-all"
+                      style={{ background: 'var(--surface)', color: 'var(--foreground)' }}
+                      placeholder="Display label text..."
+                    />
+                  </div>
+
+                  {/* Selectable Options List */}
+                  <div className="flex flex-col gap-1.5 mt-2.5 flex-1">
+                    <div className="flex items-center justify-between">
+                      <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
+                        Selectable Options
+                      </label>
+                      <span className="text-[9px] text-muted-foreground">Click × to remove</span>
+                    </div>
+                    <div className="flex flex-wrap gap-1.5 max-h-36 overflow-y-auto custom-scrollbar p-2 rounded-lg border border-border/60 bg-black/25 flex-1 content-start">
+                      {dropdown.options.length === 0 ? (
+                        <span className="text-[11px] text-muted-foreground italic p-1">No options configured</span>
+                      ) : (
+                        dropdown.options.map((opt, optIdx) => (
+                          <span
+                            key={optIdx}
+                            className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[11px] border border-border bg-surface text-foreground font-medium max-w-full break-all"
+                          >
+                            <span className="truncate">{opt}</span>
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveDropdownOption(dropdown.id, optIdx)}
+                              className="text-muted-foreground hover:text-rose-400 p-0.5 cursor-pointer rounded transition-colors"
+                              title={`Remove "${opt}"`}
+                            >
+                              <X size={10} />
+                            </button>
+                          </span>
+                        ))
+                      )}
+                    </div>
+
+                    {/* Add new option input */}
+                    <div className="flex items-center gap-1.5 pt-1.5">
+                      <input
+                        type="text"
+                        id={`new_opt_${dropdown.id}`}
+                        placeholder={`Add option to ${dropdown.label}...`}
+                        className="rounded-lg border border-border px-2.5 py-1.5 text-xs outline-none flex-1 focus:border-primary transition-all min-w-0"
+                        style={{ background: 'var(--surface)', color: 'var(--foreground)' }}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            const val = (e.target as HTMLInputElement).value.trim();
+                            if (val) {
+                              handleAddDropdownOption(dropdown.id, val);
+                              (e.target as HTMLInputElement).value = '';
+                            }
+                          }
+                        }}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const input = document.getElementById(`new_opt_${dropdown.id}`) as HTMLInputElement;
+                          if (input && input.value.trim()) {
+                            handleAddDropdownOption(dropdown.id, input.value.trim());
+                            input.value = '';
+                          }
+                        }}
+                        className="px-3 py-1.5 rounded-lg text-xs font-bold border border-primary/40 bg-primary/10 text-primary hover:bg-primary/20 active:scale-95 transition-all cursor-pointer whitespace-nowrap"
+                      >
+                        + Add
+                      </button>
+                    </div>
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
@@ -2602,6 +2717,236 @@ export default function DeepPageCMSEditor({
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* ─── DELETE DROPDOWN CONFIRMATION MODAL ─── */}
+      {dropdownToDelete && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-in fade-in duration-150"
+          onClick={() => setDropdownToDelete(null)}
+        >
+          <div
+            className="w-full max-w-md rounded-2xl border border-border p-6 shadow-2xl flex flex-col gap-4 animate-in zoom-in-95 duration-150"
+            style={{ background: 'var(--surface)' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-rose-500/15 border border-rose-500/30 flex items-center justify-center text-rose-400 flex-shrink-0">
+                <AlertTriangle size={20} />
+              </div>
+              <div>
+                <h3 className="font-head font-bold text-base text-foreground">Delete Filter Dropdown?</h3>
+                <p className="text-xs text-muted-foreground mt-0.5">Please confirm dropdown removal</p>
+              </div>
+            </div>
+
+            <div className="p-3.5 rounded-xl border border-border/80 bg-surface2/60 text-xs text-muted-foreground flex flex-col gap-1.5">
+              <div>
+                Are you sure you want to delete the filter dropdown <strong className="text-foreground">"{dropdownToDelete.label}"</strong>?
+              </div>
+              <div className="text-[11px] text-muted-foreground/90 mt-0.5">
+                ID: <span className="font-mono text-foreground">{dropdownToDelete.id}</span> · Selectable options: <span className="font-bold text-foreground">{dropdownToDelete.options.length}</span>
+              </div>
+              <div className="text-[11px] text-rose-400 mt-1 font-medium">
+                This will remove this filter dropdown from the page filter bar.
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-2.5 pt-2 border-t border-border">
+              <button
+                type="button"
+                onClick={() => setDropdownToDelete(null)}
+                className="px-4 py-2 rounded-lg text-xs font-semibold border border-border hover:bg-surface2 transition-colors cursor-pointer text-foreground"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => handleDeleteDropdown(dropdownToDelete.id)}
+                className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-bold bg-rose-600 hover:bg-rose-500 text-white transition-all shadow-sm active:scale-95 cursor-pointer"
+              >
+                <Trash2 size={13} />
+                Delete Dropdown
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── ADD NEW DROPDOWN MODAL ─── */}
+      {showAddDropdownModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-in fade-in duration-150"
+          onClick={() => setShowAddDropdownModal(false)}
+        >
+          <div
+            className="w-full max-w-lg rounded-2xl border border-border p-6 shadow-2xl flex flex-col gap-4 animate-in zoom-in-95 duration-150"
+            style={{ background: 'var(--surface)' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between pb-3 border-b border-border">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-lg bg-primary/15 border border-primary/30 flex items-center justify-center text-primary">
+                  <Plus size={18} />
+                </div>
+                <div>
+                  <h3 className="font-head font-bold text-base text-foreground">Add New Filter Dropdown</h3>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Create a custom filter for {TAB_PAGES.find((t) => t.id === selectedPage)?.label || currentPage?.title || selectedPage}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowAddDropdownModal(false)}
+                className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-surface2 transition-colors cursor-pointer"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            <div className="flex flex-col gap-3.5">
+              {/* Dropdown Label */}
+              <div className="flex flex-col gap-1">
+                <label className="text-xs font-semibold text-foreground">
+                  Dropdown Label / Title <span className="text-rose-400">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={newDropdownLabel}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setNewDropdownLabel(val);
+                    if (!newDropdownKey || newDropdownKey === newDropdownLabel.toLowerCase().replace(/[^a-z0-9_-]/g, '-')) {
+                      setNewDropdownKey(val.toLowerCase().replace(/[^a-z0-9_-]/g, '-'));
+                    }
+                  }}
+                  placeholder="e.g. Priority Level, Vendor, Room Type, Service Frequency..."
+                  className="rounded-lg border border-border px-3 py-2 text-xs outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 transition-all font-medium"
+                  style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
+                  autoFocus
+                />
+              </div>
+
+              {/* Dropdown ID / Key */}
+              <div className="flex flex-col gap-1">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-semibold text-foreground">
+                    Dropdown Identifier / Key
+                  </label>
+                  <span className="text-[11px] text-muted-foreground font-mono">system slug</span>
+                </div>
+                <input
+                  type="text"
+                  value={newDropdownKey}
+                  onChange={(e) => setNewDropdownKey(e.target.value.toLowerCase().replace(/[^a-z0-9_-]/g, '-'))}
+                  placeholder="e.g. priority_level, vendor, room_type..."
+                  className="rounded-lg border border-border px-3 py-2 text-xs outline-none focus:border-primary font-mono transition-all"
+                  style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
+                />
+              </div>
+
+              {/* Options */}
+              <div className="flex flex-col gap-1.5">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-semibold text-foreground">
+                    Selectable Options ({newDropdownOptionsList.length})
+                  </label>
+                  {newDropdownLabel && !newDropdownOptionsList.some(o => o.toLowerCase() === `all ${newDropdownLabel.toLowerCase()}`) && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setNewDropdownOptionsList(prev => [`All ${newDropdownLabel}`, ...prev]);
+                      }}
+                      className="text-[11px] font-semibold text-primary hover:underline cursor-pointer"
+                    >
+                      + Add "All {newDropdownLabel}"
+                    </button>
+                  )}
+                </div>
+
+                <div className="flex flex-wrap gap-1.5 min-h-[50px] max-h-36 overflow-y-auto p-2 rounded-lg border border-border/70 bg-black/25 content-start">
+                  {newDropdownOptionsList.length === 0 ? (
+                    <span className="text-xs text-muted-foreground italic p-1">
+                      No options added yet. Type below and press Enter or click + Add Option.
+                    </span>
+                  ) : (
+                    newDropdownOptionsList.map((opt, idx) => (
+                      <span
+                        key={idx}
+                        className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-xs border border-border bg-surface text-foreground font-medium"
+                      >
+                        <span>{opt}</span>
+                        <button
+                          type="button"
+                          onClick={() => setNewDropdownOptionsList(prev => prev.filter((_, i) => i !== idx))}
+                          className="text-muted-foreground hover:text-rose-400 p-0.5 cursor-pointer"
+                        >
+                          <X size={11} />
+                        </button>
+                      </span>
+                    ))
+                  )}
+                </div>
+
+                {/* Add option input inside modal */}
+                <div className="flex items-center gap-2 pt-1">
+                  <input
+                    type="text"
+                    value={newDropdownOptionInput}
+                    onChange={(e) => setNewDropdownOptionInput(e.target.value)}
+                    placeholder="Type an option name and press Enter..."
+                    className="rounded-lg border border-border px-3 py-2 text-xs outline-none flex-1 focus:border-primary"
+                    style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        const val = newDropdownOptionInput.trim();
+                        if (val && !newDropdownOptionsList.includes(val)) {
+                          setNewDropdownOptionsList(prev => [...prev, val]);
+                          setNewDropdownOptionInput('');
+                        }
+                      }
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const val = newDropdownOptionInput.trim();
+                      if (val && !newDropdownOptionsList.includes(val)) {
+                        setNewDropdownOptionsList(prev => [...prev, val]);
+                        setNewDropdownOptionInput('');
+                      }
+                    }}
+                    className="px-3.5 py-2 rounded-lg text-xs font-bold border border-primary/40 bg-primary/10 text-primary hover:bg-primary/20 active:scale-95 transition-all cursor-pointer whitespace-nowrap"
+                  >
+                    + Add Option
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-border">
+              <button
+                type="button"
+                onClick={() => setShowAddDropdownModal(false)}
+                className="px-4 py-2 rounded-lg text-xs font-semibold border border-border hover:bg-surface2 transition-colors cursor-pointer text-foreground"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleAddNewDropdown}
+                disabled={!newDropdownLabel.trim()}
+                className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-bold transition-all shadow-sm active:scale-95 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                style={{ background: 'var(--primary)', color: '#000' }}
+              >
+                <Plus size={14} />
+                Create Dropdown
+              </button>
+            </div>
           </div>
         </div>
       )}

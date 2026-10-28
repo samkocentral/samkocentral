@@ -90,6 +90,7 @@ export default function AssetsClient() {
     secondaryActionLabel: cmsSecondaryActionLabel,
     columns: cmsColumns,
     items: cmsAssets,
+    dropdowns: cmsDropdowns,
   } = useDeepPageCms(pageKey);
 
   const colMap = useMemo(() => {
@@ -127,7 +128,30 @@ export default function AssetsClient() {
   const [categoryFilter, setCategoryFilter] = useState<string[]>([]);
   const [departmentFilter, setDepartmentFilter] = useState<string[]>([]);
   const [statusFilter, setStatusFilter] = useState<string[]>([]);
+  const [customDropdownFilters, setCustomDropdownFilters] = useState<Record<string, string[]>>({});
   const [activeTab, setActiveTab] = useState<'all' | 'fixed' | 'non-fixed'>('all');
+
+  const customCmsDropdowns = useMemo(() => {
+    if (!cmsDropdowns) return [];
+    const coreIds = new Set(['property', 'asset-hotel', 'category', 'asset-cat', 'department', 'asset-dept', 'status']);
+    return cmsDropdowns.filter((d) => !coreIds.has(d.id));
+  }, [cmsDropdowns]);
+
+  const propertyLabel = useMemo(() => {
+    return cmsDropdowns?.find((d) => d.id === 'property' || d.id === 'asset-hotel')?.label || 'All Properties';
+  }, [cmsDropdowns]);
+
+  const categoryLabel = useMemo(() => {
+    return cmsDropdowns?.find((d) => d.id === 'category' || d.id === 'asset-cat')?.label || 'Category';
+  }, [cmsDropdowns]);
+
+  const departmentLabel = useMemo(() => {
+    return cmsDropdowns?.find((d) => d.id === 'department' || d.id === 'asset-dept')?.label || 'Department';
+  }, [cmsDropdowns]);
+
+  const statusLabel = useMemo(() => {
+    return cmsDropdowns?.find((d) => d.id === 'status')?.label || 'Status';
+  }, [cmsDropdowns]);
 
   const [showAddCategoryModal, setShowAddCategoryModal] = useState(false);
   const [newCatName, setNewCatName] = useState('');
@@ -357,9 +381,16 @@ export default function AssetsClient() {
       const matchFixed =
         activeTab === 'all' ? true : activeTab === 'fixed' ? a.isFixed : !a.isFixed;
 
-      return matchSearch && matchHotel && matchCategory && matchDept && matchStatus && matchFixed;
+      const matchCustom = Object.entries(customDropdownFilters).every(([key, vals]) => {
+        if (!vals || vals.length === 0) return true;
+        if (vals.some((v) => v.toLowerCase().startsWith('all '))) return true;
+        const assetVal = String((a as any)[key] || (a as any).metadata?.[key] || (a as any).condition || (a as any).riskLevel || '').toLowerCase();
+        return vals.some((v) => v.toLowerCase() === assetVal || assetVal.includes(v.toLowerCase()));
+      });
+
+      return matchSearch && matchHotel && matchCategory && matchDept && matchStatus && matchFixed && matchCustom;
     });
-  }, [assets, search, hotelFilter, categoryFilter, departmentFilter, statusFilter, activeTab]);
+  }, [assets, search, hotelFilter, categoryFilter, departmentFilter, statusFilter, customDropdownFilters, activeTab]);
 
   const hasFilters =
     Boolean(search) ||
@@ -516,26 +547,26 @@ export default function AssetsClient() {
           />
         </div>
         <FilterSelect
-          label="All Properties"
+          label={propertyLabel}
           value={hotelFilter}
           options={properties}
           onChange={setHotelFilter}
         />
         <FilterSelect
-          label="Category"
+          label={categoryLabel}
           value={categoryFilter}
           options={categories}
           onChange={setCategoryFilter}
         />
         <FilterSelect
-          label="Department"
+          label={departmentLabel}
           value={departmentFilter}
           options={DEPARTMENTS}
           onChange={setDepartmentFilter}
           align="right"
         />
         <FilterSelect
-          label="Status"
+          label={statusLabel}
           value={statusFilter}
           options={[
             { value: 'active', label: 'Active' },
@@ -547,6 +578,16 @@ export default function AssetsClient() {
           onChange={setStatusFilter}
           align="right"
         />
+        {customCmsDropdowns.map((drop) => (
+          <FilterSelect
+            key={drop.id}
+            label={drop.label}
+            value={customDropdownFilters[drop.id] || []}
+            options={drop.options.map((opt) => ({ value: opt, label: opt }))}
+            onChange={(val) => setCustomDropdownFilters((prev) => ({ ...prev, [drop.id]: val }))}
+            align="right"
+          />
+        ))}
       </div>
 
       {/* Table */}

@@ -9,6 +9,7 @@ import { useAuth } from '@/lib/authContext';
 import { toast } from 'sonner';
 import { useDeepPageCms, updatePageItem, deletePageItem } from '@/lib/deepPageCms';
 import PageCMSEditButton from '@/components/cms/PageCMSEditButton';
+import CustomDropdown from '@/components/ui/CustomDropdown';
 
 export default function PropertiesClient() {
   const { isViewer, canEdit } = useAuth();
@@ -19,8 +20,10 @@ export default function PropertiesClient() {
     primaryActionLabel: cmsPrimaryActionLabel,
     customLabels: cmsCustomLabels,
     items: cmsPropertiesList,
+    dropdowns: cmsDropdowns,
   } = useDeepPageCms('properties');
 
+  const [selectedFilters, setSelectedFilters] = useState<Record<string, string[]>>({});
   const [properties, setProperties] = useState<Hotel[]>(HOTELS);
   const [maintenance, setMaintenance] = useState<any[]>(MAINTENANCE_RECORDS);
   const [assets, setAssets] = useState<any[]>(ASSETS);
@@ -213,12 +216,35 @@ export default function PropertiesClient() {
 
   const effectiveProperties = cmsPropertiesList && cmsPropertiesList.length > 0 ? (cmsPropertiesList as any[]) : properties;
 
-  const filtered = effectiveProperties?.filter(
-    (h) =>
+  const filtered = effectiveProperties?.filter((h) => {
+    const matchSearch =
+      !search ||
       h?.name?.toLowerCase()?.includes(search?.toLowerCase()) ||
       h?.city?.toLowerCase()?.includes(search?.toLowerCase()) ||
-      h?.manager?.toLowerCase()?.includes(search?.toLowerCase())
-  );
+      h?.manager?.toLowerCase()?.includes(search?.toLowerCase());
+
+    const cityFilter = selectedFilters['city'] || [];
+    const matchCity =
+      cityFilter.length === 0 ||
+      cityFilter.includes('All Cities') ||
+      cityFilter.some((c) => c.toLowerCase() === h?.city?.toLowerCase());
+
+    const statusFilter = selectedFilters['status'] || [];
+    const matchStatus =
+      statusFilter.length === 0 ||
+      statusFilter.includes('All Statuses') ||
+      statusFilter.some((s) => s.toLowerCase() === (h?.status || 'active').toLowerCase());
+
+    // Generic match for newly added custom dropdowns
+    const customMatches = Object.entries(selectedFilters).every(([key, vals]) => {
+      if (key === 'city' || key === 'status' || !vals || vals.length === 0) return true;
+      if (vals.some((v) => v.toLowerCase().startsWith('all '))) return true;
+      const propVal = String(h?.[key] || h?.metadata?.[key] || '').toLowerCase();
+      return vals.some((v) => v.toLowerCase() === propVal || propVal.includes(v.toLowerCase()));
+    });
+
+    return matchSearch && matchCity && matchStatus && customMatches;
+  });
 
   return (
     <div className="flex flex-col h-full">
@@ -259,6 +285,26 @@ export default function PropertiesClient() {
           </button>
         </div>
       </div>
+
+      {/* Dynamic CMS Filters Row */}
+      {cmsDropdowns && cmsDropdowns.length > 0 && (
+        <div
+          className="flex items-center gap-2.5 px-6 py-2.5 border-b border-border flex-shrink-0 flex-wrap"
+          style={{ background: 'var(--surface)' }}
+        >
+          {cmsDropdowns.map((drop) => (
+            <CustomDropdown
+              key={drop.id}
+              label={drop.label}
+              value={selectedFilters[drop.id] || []}
+              options={drop.options.map((opt) => ({ value: opt, label: opt }))}
+              onChange={(val) => setSelectedFilters((prev) => ({ ...prev, [drop.id]: val }))}
+              multiple
+            />
+          ))}
+          <span className="text-xs text-muted-foreground ml-auto">{filtered.length} properties</span>
+        </div>
+      )}
 
       {/* Grid */}
       <div className="flex-1 overflow-y-auto px-6 py-5">

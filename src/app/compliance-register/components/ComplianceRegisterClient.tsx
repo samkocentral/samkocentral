@@ -493,7 +493,7 @@ export default function ComplianceRegisterClient() {
       </div>
 
       {/* Filters */}
-      <div className="flex items-center gap-3 px-6 py-2.5 border-b border-border flex-shrink-0" style={{ background: 'var(--surface2)' }}>
+      <div className="flex items-center gap-3 px-6 py-2.5 border-b border-border flex-shrink-0 flex-wrap" style={{ background: 'var(--surface2)' }}>
         <div className="flex items-center gap-2 rounded-lg border border-border px-3 py-1.5 flex-1 max-w-xs" style={{ background: 'var(--surface)' }}>
           <Search size={13} className="text-muted-foreground flex-shrink-0" />
           <input

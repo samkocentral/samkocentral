@@ -140,6 +140,10 @@ export const DEFAULT_DEEP_CMS: DeepAppCMSStore = {
     badgeColor: '#e8c97a',
     searchPlaceholder: 'Search properties by name, city, manager, phone...',
     primaryActionLabel: '+ Add Property',
+    dropdowns: [
+      { id: 'city', label: 'City / Region', options: ['All Cities', 'London', 'Surrey', 'West Sussex', 'Bedfordshire'] },
+      { id: 'status', label: 'Property Status', options: ['All Statuses', 'active', 'inactive'] },
+    ],
     customLabels: {
       assetsStatLabel: 'Assets',
       overdueStatLabel: 'Overdue',
@@ -315,6 +319,9 @@ export const DEFAULT_DEEP_CMS: DeepAppCMSStore = {
     badgeColor: '#e8c97a',
     searchPlaceholder: 'Search categories...',
     primaryActionLabel: '+ Add Category',
+    dropdowns: [
+      { id: 'categoryType', label: 'Category Group', options: ['All Groups', 'Fixed Capital', 'FF&E Movable', 'Life Safety', 'Kitchen & Food Ops'] },
+    ],
     items: ASSET_CATEGORIES.map((c) => ({
       id: c.id,
       name: c.name,
@@ -622,6 +629,10 @@ export const DEFAULT_DEEP_CMS: DeepAppCMSStore = {
     searchPlaceholder: 'Search reports and portfolio metrics...',
     primaryActionLabel: 'Export Full Portfolio Report',
     secondaryActionLabel: 'Custom Query',
+    dropdowns: [
+      { id: 'property', label: 'Property Site', options: ['All Properties', ...HOTELS.map((h) => h.name)] },
+      { id: 'category', label: 'Asset Category', options: ['All Categories', ...ASSET_CATEGORIES.map((c) => c.name)] },
+    ],
     kpis: [
       { id: 'rep-kpi-1', label: 'Total Catalogued Assets', value: '98 Items', subtitle: 'Across all portfolio properties', color: '#60a5fa', enabled: true },
       { id: 'rep-kpi-2', label: 'Fixed Capital Assets', value: '60 Fixed', subtitle: 'Plant, boilers & lifts', color: '#e8c97a', enabled: true },
@@ -688,6 +699,10 @@ export const DEFAULT_DEEP_CMS: DeepAppCMSStore = {
     searchPlaceholder: 'Filter sites by property name, manager, city, phone...',
     primaryActionLabel: '+ Add Site',
     secondaryActionLabel: 'View Map',
+    dropdowns: [
+      { id: 'region', label: 'Portfolio Region', options: ['All Regions', 'London & Greater London', 'Surrey & South East', 'Home Counties'] },
+      { id: 'status', label: 'Operational Status', options: ['All Statuses', 'Fully Operational', 'Under Refurbishment', 'Restricted Operations'] },
+    ],
     kpis: [
       { id: 'ms-kpi-1', label: 'Total Sites', value: '8 Sites', subtitle: 'Hotels & venues portfolio', color: '#60a5fa', enabled: true },
       { id: 'ms-kpi-2', label: 'Operational', value: '7 Sites', subtitle: 'Fully trading sites', color: '#3dd68c', enabled: true },
@@ -793,6 +808,9 @@ export const DEFAULT_DEEP_CMS: DeepAppCMSStore = {
     searchPlaceholder: 'Search import schemas...',
     primaryActionLabel: 'Upload Spreadsheet',
     secondaryActionLabel: 'Download Sample Excel',
+    dropdowns: [
+      { id: 'targetModule', label: 'Module Destination', options: ['All Modules', 'Assets Register', 'Maintenance Records', 'Compliance Documents', 'Contracts & Suppliers'] },
+    ],
   },
   qr: {
     id: 'qr',
@@ -803,6 +821,9 @@ export const DEFAULT_DEEP_CMS: DeepAppCMSStore = {
     searchPlaceholder: 'Type or scan Asset ID (e.g. AST-001, AST-002)...',
     primaryActionLabel: 'Activate Camera',
     secondaryActionLabel: 'Print QR Codes',
+    dropdowns: [
+      { id: 'property', label: 'Target Property', options: ['All Properties', ...HOTELS.map((h) => h.name)] },
+    ],
   },
   nonfixed: {
     id: 'nonfixed',
@@ -1062,12 +1083,9 @@ export function getDeepCMSStore(): DeepAppCMSStore {
                 return existing ? { ...defKpi, ...existing } : defKpi;
               })
             : undefined,
-          dropdowns: def.dropdowns
-            ? def.dropdowns.map((defDrop) => {
-                const existing = saved.dropdowns?.find((d) => d.id === defDrop.id);
-                return existing ? { ...defDrop, ...existing } : defDrop;
-              })
-            : undefined,
+          dropdowns: Array.isArray(saved.dropdowns)
+            ? saved.dropdowns
+            : (def.dropdowns ? [...def.dropdowns] : []),
           columns: def.columns
             ? def.columns.map((defCol) => {
                 const existing = saved.columns?.find((c) => c.id === defCol.id);
@@ -1253,6 +1271,54 @@ export function updatePageDropdown(
   if (!page) return false;
   if (!page.dropdowns) page.dropdowns = [];
   page.dropdowns = page.dropdowns.map((d) => (d.id === dropdownId ? { ...d, ...updates } : d));
+  saveDeepCMSStore(store);
+  return true;
+}
+
+export function addPageDropdown(
+  pageId: keyof DeepAppCMSStore,
+  dropdown: DeepPageDropdown
+): boolean {
+  const store = getDeepCMSStore();
+  const page = store[pageId];
+  if (!page) return false;
+  if (!page.dropdowns) page.dropdowns = [];
+
+  let cleanId = (dropdown.id || '').trim().toLowerCase().replace(/[^a-z0-9_-]/g, '-');
+  if (!cleanId) {
+    cleanId = (dropdown.label || 'filter').trim().toLowerCase().replace(/[^a-z0-9_-]/g, '-');
+  }
+  if (!cleanId) cleanId = `drop-${Date.now()}`;
+
+  let finalId = cleanId;
+  let counter = 1;
+  while (page.dropdowns.some((d) => d.id === finalId)) {
+    finalId = `${cleanId}-${counter}`;
+    counter++;
+  }
+
+  const cleanOptions = (dropdown.options || [])
+    .map((o) => o.trim())
+    .filter((o) => o.length > 0);
+
+  page.dropdowns.push({
+    id: finalId,
+    label: dropdown.label.trim() || 'New Filter',
+    options: cleanOptions.length > 0 ? cleanOptions : [`All ${dropdown.label.trim() || 'Options'}`],
+  });
+
+  saveDeepCMSStore(store);
+  return true;
+}
+
+export function deletePageDropdown(
+  pageId: keyof DeepAppCMSStore,
+  dropdownId: string
+): boolean {
+  const store = getDeepCMSStore();
+  const page = store[pageId];
+  if (!page || !page.dropdowns) return false;
+  page.dropdowns = page.dropdowns.filter((d) => d.id !== dropdownId);
   saveDeepCMSStore(store);
   return true;
 }

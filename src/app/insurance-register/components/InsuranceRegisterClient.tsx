@@ -727,7 +727,7 @@ export default function InsuranceRegisterClient() {
       <div className="flex-1 overflow-auto px-6 py-4">
         {activeTab === 'register' && (
           <>
-            <div className="flex items-center gap-3 mb-4">
+            <div className="flex items-center gap-3 mb-4 flex-wrap">
               <div className="flex items-center gap-2 rounded-lg border border-border px-3 py-1.5 flex-1 max-w-xs" style={{ background: 'var(--surface)' }}>
                 <Search size={13} className="text-muted-foreground flex-shrink-0" />
                 <input
