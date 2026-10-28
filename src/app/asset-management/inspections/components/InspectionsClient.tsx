@@ -176,7 +176,7 @@ export default function InspectionsClient() {
     isPageLoading,
     changePage,
     changePageSize,
-  } = useLoadingPagination(filtered, 7);
+  } = useLoadingPagination(filtered, 4);
 
   const selected = selectedId ? inspections.find((i) => i.id === selectedId) : null;
 

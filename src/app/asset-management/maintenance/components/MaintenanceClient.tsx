@@ -207,7 +207,7 @@ export default function MaintenanceClient() {
     isPageLoading,
     changePage,
     changePageSize,
-  } = useLoadingPagination(filtered, 7);
+  } = useLoadingPagination(filtered, 4);
 
   const handleStatusChange = async (id: string, newStatus: string) => {
     setUpdatingId(id);

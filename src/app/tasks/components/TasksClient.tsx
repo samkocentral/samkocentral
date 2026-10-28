@@ -205,7 +205,7 @@ export default function TasksClient() {
     isPageLoading,
     changePage,
     changePageSize,
-  } = useLoadingPagination(filteredTasks, 7);
+  } = useLoadingPagination(filteredTasks, 4);
 
   // Summary Metrics calculations (across selected properties)
   const scopedTasks = useMemo(() => {

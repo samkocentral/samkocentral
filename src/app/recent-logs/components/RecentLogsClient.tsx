@@ -209,7 +209,7 @@ export default function RecentLogsClient() {
     isPageLoading,
     changePage,
     changePageSize,
-  } = useLoadingPagination(filteredLogs, 7);
+  } = useLoadingPagination(filteredLogs, 4);
 
   // Export to CSV
   const handleExportCSV = () => {

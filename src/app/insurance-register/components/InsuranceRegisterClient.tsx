@@ -628,7 +628,7 @@ export default function InsuranceRegisterClient() {
     isPageLoading,
     changePage,
     changePageSize,
-  } = useLoadingPagination(filtered, 7);
+  } = useLoadingPagination(filtered, 4);
 
   const renewalsDue = policies.filter((p) => {
     const d = daysUntil(p.renewalDate);

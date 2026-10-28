@@ -884,7 +884,7 @@ export default function ContractsRegisterClient() {
     isPageLoading,
     changePage,
     changePageSize,
-  } = useLoadingPagination(filtered, 7);
+  } = useLoadingPagination(filtered, 4);
 
   const suppliers = Array.from(new Map(contracts.map((c) => [c.supplierName, c])).values());
   const renewals = contracts.filter((c) => { const d = daysUntil(c.renewalDate); return d >= 0 && d <= 120; }).sort((a, b) => daysUntil(a.renewalDate) - daysUntil(b.renewalDate));

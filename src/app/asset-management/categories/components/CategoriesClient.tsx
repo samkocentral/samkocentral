@@ -200,7 +200,7 @@ export default function CategoriesClient() {
     isPageLoading,
     changePage,
     changePageSize,
-  } = useLoadingPagination(categories, 6);
+  } = useLoadingPagination(categories, 4);
 
   return (
     <div className="flex flex-col h-full">

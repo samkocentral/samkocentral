@@ -122,7 +122,7 @@ export default function DocumentRepositoryClient() {
     isPageLoading,
     changePage,
     changePageSize,
-  } = useLoadingPagination(filtered, 7);
+  } = useLoadingPagination(filtered, 4);
 
   const handleSort = (col: typeof sortCol) => {
     if (sortCol === col) setSortDir(sortDir === 'asc' ? 'desc' : 'asc');

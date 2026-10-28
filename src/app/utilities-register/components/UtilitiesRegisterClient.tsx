@@ -570,7 +570,7 @@ export default function UtilitiesRegisterClient() {
     isPageLoading,
     changePage,
     changePageSize,
-  } = useLoadingPagination(filtered, 7);
+  } = useLoadingPagination(filtered, 4);
 
   const handleExport = () => {
     const headers = ['Property', 'Utility Type', 'Supplier', 'Account Number', 'Meter Reference', 'Annual Cost', 'Monthly Cost', 'Contract Start', 'Contract End', 'Status'];

@@ -109,7 +109,7 @@ export default function DashboardSiteTable() {
     isPageLoading,
     changePage,
     changePageSize,
-  } = useLoadingPagination(siteRows, 5);
+  } = useLoadingPagination(siteRows, 4);
 
   // Active columns configured via CMS
   const activeColumns = cms.columns && cms.columns.length > 0

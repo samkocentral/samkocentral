@@ -734,7 +734,7 @@ export default function UsersClient() {
     isPageLoading,
     changePage,
     changePageSize,
-  } = useLoadingPagination(filtered, 7);
+  } = useLoadingPagination(filtered, 4);
 
   const countsByLevel = useMemo(() => {
     return {

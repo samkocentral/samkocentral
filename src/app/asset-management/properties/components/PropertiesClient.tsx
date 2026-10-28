@@ -256,7 +256,7 @@ export default function PropertiesClient() {
     isPageLoading,
     changePage,
     changePageSize,
-  } = useLoadingPagination(filtered || [], 6);
+  } = useLoadingPagination(filtered || [], 4);
 
   return (
     <div className="flex flex-col h-full">

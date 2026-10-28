@@ -221,7 +221,7 @@ export default function ComplianceTrackerClient() {
     isPageLoading,
     changePage,
     changePageSize,
-  } = useLoadingPagination(filtered, 7);
+  } = useLoadingPagination(filtered, 4);
 
   const trafficLight = (status: string) => {
     if (status === 'critical') return { emoji: '🔴', label: 'Overdue', color: 'var(--critical)' };

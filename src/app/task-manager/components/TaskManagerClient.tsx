@@ -139,7 +139,7 @@ export default function TaskManagerClient() {
     isPageLoading,
     changePage,
     changePageSize,
-  } = useLoadingPagination(filtered, 7);
+  } = useLoadingPagination(filtered, 4);
 
   const taskCounts = useMemo(() => ({
     urgent: tasks.filter((t) => t.priority === 'urgent').length,

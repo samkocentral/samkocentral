@@ -421,7 +421,7 @@ export default function AssetsClient() {
     isPageLoading,
     changePage,
     changePageSize,
-  } = useLoadingPagination(filtered, 7);
+  } = useLoadingPagination(filtered, 4);
 
   const hasFilters =
     Boolean(search) ||

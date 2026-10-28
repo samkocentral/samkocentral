@@ -407,7 +407,7 @@ export default function ComplianceRegisterClient() {
     isPageLoading,
     changePage,
     changePageSize,
-  } = useLoadingPagination(displayItems, 7);
+  } = useLoadingPagination(displayItems, 4);
 
   const handleExport = () => {
     const headers = ['Compliance ID', 'Name', 'Category', 'Type', 'Property', 'Authority', 'Certificate Number', 'Expiry Date', 'Status', 'Risk Rating'];
