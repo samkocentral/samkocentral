@@ -22,8 +22,8 @@ interface PageCMSEditButtonProps {
 }
 
 export default function PageCMSEditButton({ pageId, pageName, className = '' }: PageCMSEditButtonProps) {
-  const { user, isSuperAdmin, canEdit } = useAuth();
-  const isAllowed = isSuperAdmin || user?.roleLevel === 'L1' || canEdit;
+  const { user, isSuperAdmin } = useAuth();
+  const isAllowed = Boolean(isSuperAdmin || user?.roleLevel === 'L1');
 
   const [isOpen, setIsOpen] = useState(false);
   const [activeSubTab, setActiveSubTab] = useState<'headers' | 'columns' | 'labels'>('headers');
@@ -88,8 +88,10 @@ export default function PageCMSEditButton({ pageId, pageName, className = '' }: 
     }
   };
 
-  // Always allow live editing across all pages as requested
-  // isAllowed is enabled globally
+  // Hide "Edit in CMS" for other roles; only Super Admin (L1) has CMS editing access
+  if (!isAllowed) {
+    return null;
+  }
 
   return (
     <>
