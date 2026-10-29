@@ -147,6 +147,15 @@ export default function AssetsClient() {
   }, [activeColumns]);
 
   const [assets, setAssets] = useState<Asset[]>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const cached = sessionStorage.getItem('samko_all_assets');
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        }
+      } catch {}
+    }
     if (cmsAssets && cmsAssets.length > 0) return cmsAssets as Asset[];
     return ASSETS;
   });

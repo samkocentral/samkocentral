@@ -1150,43 +1150,62 @@ export default function Sidebar({ currentPath }: SidebarProps) {
 
             {/* Maintenance (when moved to PropCo) */}
             {isInPropCo('maintenance') &&
-              renderPropCoNavItem({
-                id: 'maintenance',
-                label: getTabLabel('opco', 'maintenance', 'Maintenance'),
-                href: getTabPath('opco', 'maintenance', '/asset-management/maintenance'),
-                icon: <Calendar size={15} />,
-                badgeCount: overdueCount > 0 ? overdueCount : dueTodayCount > 0 ? dueTodayCount : undefined,
-                badgeVariant: overdueCount > 0 ? 'critical' : 'warning',
-              })}
+              renderPropCoSubDropdown(
+                'maintenance',
+                getTabLabel('opco', 'maintenance', 'Maintenance'),
+                <Calendar size={15} />,
+                [
+                  { id: 'maintenance-scheduled', label: getTabLabel('opco', 'maintenance-scheduled', 'Scheduled'), href: '/asset-management/maintenance?filter=scheduled', icon: <Calendar size={13} /> },
+                  { id: 'maintenance-due', label: getTabLabel('opco', 'maintenance-due', 'Due Today'), href: '/asset-management/maintenance?filter=due-today', icon: <AlertCircle size={13} />, badgeCount: dueTodayCount, badgeVariant: 'warning' },
+                  { id: 'maintenance-overdue', label: getTabLabel('opco', 'maintenance-overdue', 'Overdue'), href: '/asset-management/maintenance?filter=overdue', icon: <AlertTriangle size={13} />, badgeCount: overdueCount, badgeVariant: 'critical' },
+                  { id: 'maintenance-completed', label: getTabLabel('opco', 'maintenance-completed', 'Completed'), href: '/asset-management/maintenance?filter=completed', icon: <CheckSquare size={13} /> },
+                ],
+                overdueCount > 0 ? overdueCount : dueTodayCount > 0 ? dueTodayCount : undefined,
+                overdueCount > 0 ? 'critical' : 'warning'
+              )}
 
             {/* Compliance (when moved to PropCo) */}
             {isInPropCo('compliance') &&
-              renderPropCoNavItem({
-                id: 'compliance',
-                label: getTabLabel('opco', 'compliance', 'Compliance'),
-                href: getTabPath('opco', 'compliance', '/compliance-register'),
-                icon: <ShieldCheck size={15} />,
-                badgeCount: criticalCount > 0 ? criticalCount : undefined,
-                badgeVariant: 'critical',
-              })}
+              renderPropCoSubDropdown(
+                'compliance',
+                getTabLabel('opco', 'compliance', 'Compliance'),
+                <ShieldCheck size={15} />,
+                [
+                  { id: 'compliance-register', label: getTabLabel('opco', 'compliance-register', 'Compliance Register'), href: '/compliance-register', icon: <ShieldCheck size={13} />, badgeCount: criticalCount, badgeVariant: 'critical' },
+                  { id: 'certifications', label: getTabLabel('opco', 'certifications', 'Certifications'), href: '/compliance-register?tab=certifications', icon: <FileCheck size={13} /> },
+                  { id: 'statutory', label: getTabLabel('opco', 'statutory', 'Statutory Inspections'), href: '/compliance-register?tab=statutory', icon: <Flame size={13} /> },
+                  { id: 'expiry-dashboard', label: getTabLabel('opco', 'expiry-dashboard', 'Expiry Dashboard'), href: '/compliance-tracker', icon: <AlertTriangle size={13} /> },
+                ],
+                criticalCount > 0 ? criticalCount : undefined,
+                'critical'
+              )}
 
-            {/* Insurance Tab */}
+            {/* Insurance Tab / Dropdown */}
             {isInPropCo('insurance') && isTabVisibleInCms('propco', 'insurance') &&
-              renderPropCoNavItem({
-                id: 'insurance',
-                label: getTabLabel('propco', 'insurance', 'Insurance'),
-                href: getTabPath('propco', 'insurance', '/insurance-register'),
-                icon: <Shield size={15} />,
-              })}
+              renderPropCoSubDropdown(
+                'insurance',
+                getTabLabel('propco', 'insurance', 'Insurance'),
+                <Shield size={15} />,
+                [
+                  { id: 'insurance-register', label: getTabLabel('propco', 'insurance-register', 'Insurance Register'), href: '/insurance-register', icon: <Shield size={13} /> },
+                  { id: 'claims', label: getTabLabel('propco', 'claims', 'Claims'), href: '/insurance-register?tab=claims', icon: <FileBarChart size={13} /> },
+                  { id: 'insurance-renewals', label: getTabLabel('propco', 'insurance-renewals', 'Renewals'), href: '/insurance-register?tab=renewals', icon: <RefreshCw size={13} /> },
+                ]
+              )}
 
-            {/* Contracts Tab */}
+            {/* Contracts Tab / Dropdown */}
             {isInPropCo('contracts') && isTabVisibleInCms('propco', 'contracts') &&
-              renderPropCoNavItem({
-                id: 'contracts',
-                label: getTabLabel('propco', 'contracts', 'Contracts'),
-                href: getTabPath('propco', 'contracts', '/contracts-register'),
-                icon: <ScrollText size={15} />,
-              })}
+              renderPropCoSubDropdown(
+                'contracts',
+                getTabLabel('propco', 'contracts', 'Contracts'),
+                <ScrollText size={15} />,
+                [
+                  { id: 'contracts-register', label: getTabLabel('propco', 'contracts-register', 'Contracts Register'), href: '/contracts-register', icon: <ScrollText size={13} /> },
+                  { id: 'suppliers', label: getTabLabel('propco', 'suppliers', 'Suppliers'), href: '/contracts-register?tab=suppliers', icon: <Handshake size={13} /> },
+                  { id: 'contracts-renewals', label: getTabLabel('propco', 'contracts-renewals', 'Renewals'), href: '/contracts-register?tab=renewals', icon: <RefreshCw size={13} /> },
+                  { id: 'slas', label: getTabLabel('propco', 'slas', 'SLAs'), href: '/contracts-register?tab=slas', icon: <Star size={13} /> },
+                ]
+              )}
 
             {/* Tasks (when moved to PropCo) */}
             {isInPropCo('tasks') &&
@@ -1201,12 +1220,15 @@ export default function Sidebar({ currentPath }: SidebarProps) {
 
             {/* Utilities (when moved to PropCo) */}
             {isInPropCo('utilities') &&
-              renderPropCoNavItem({
-                id: 'utilities',
-                label: getTabLabel('opco', 'utilities', 'Utility'),
-                href: getTabPath('opco', 'utilities', '/utilities-register'),
-                icon: <Zap size={15} />,
-              })}
+              renderPropCoSubDropdown(
+                'utilities',
+                getTabLabel('opco', 'utilities', 'Utility'),
+                <Zap size={15} />,
+                [
+                  { id: 'utilities-register', label: getTabLabel('opco', 'utilities-register', 'Utilities Register'), href: '/utilities-register', icon: <Zap size={13} /> },
+                  { id: 'utilities-energy', label: getTabLabel('opco', 'utilities-energy', 'Energy & Water Accounts'), href: '/utilities-register?type=electricity', icon: <Zap size={13} /> },
+                ]
+              )}
 
             {/* Reports */}
             {isInPropCo('reports') && isTabVisibleInCms('propco', 'reports') &&
@@ -1319,45 +1341,64 @@ export default function Sidebar({ currentPath }: SidebarProps) {
                 icon: <Package size={15} />,
               })}
 
-            {/* 2. Maintenance */}
+            {/* 2. Maintenance Dropdown */}
             {isInOpCo('maintenance') && isTabVisibleInCms('opco', 'maintenance') &&
-              renderOpCoNavItem({
-                id: 'maintenance',
-                label: getTabLabel('opco', 'maintenance', 'Maintenance'),
-                href: getTabPath('opco', 'maintenance', '/asset-management/maintenance'),
-                icon: <Calendar size={15} />,
-                badgeCount: overdueCount > 0 ? overdueCount : dueTodayCount > 0 ? dueTodayCount : undefined,
-                badgeVariant: overdueCount > 0 ? 'critical' : 'warning',
-              })}
+              renderOpCoSubDropdown(
+                'maintenance',
+                getTabLabel('opco', 'maintenance', 'Maintenance'),
+                <Calendar size={15} />,
+                [
+                  { id: 'maintenance-scheduled', label: getTabLabel('opco', 'maintenance-scheduled', 'Scheduled'), href: '/asset-management/maintenance?filter=scheduled', icon: <Calendar size={13} /> },
+                  { id: 'maintenance-due', label: getTabLabel('opco', 'maintenance-due', 'Due Today'), href: '/asset-management/maintenance?filter=due-today', icon: <AlertCircle size={13} />, badgeCount: dueTodayCount, badgeVariant: 'warning' },
+                  { id: 'maintenance-overdue', label: getTabLabel('opco', 'maintenance-overdue', 'Overdue'), href: '/asset-management/maintenance?filter=overdue', icon: <AlertTriangle size={13} />, badgeCount: overdueCount, badgeVariant: 'critical' },
+                  { id: 'maintenance-completed', label: getTabLabel('opco', 'maintenance-completed', 'Completed'), href: '/asset-management/maintenance?filter=completed', icon: <CheckSquare size={13} /> },
+                ],
+                overdueCount > 0 ? overdueCount : dueTodayCount > 0 ? dueTodayCount : undefined,
+                overdueCount > 0 ? 'critical' : 'warning'
+              )}
 
-            {/* 3. Compliance */}
+            {/* 3. Compliance Dropdown */}
             {isInOpCo('compliance') && isTabVisibleInCms('opco', 'compliance') &&
-              renderOpCoNavItem({
-                id: 'compliance',
-                label: getTabLabel('opco', 'compliance', 'Compliance'),
-                href: getTabPath('opco', 'compliance', '/compliance-register'),
-                icon: <ShieldCheck size={15} />,
-                badgeCount: criticalCount > 0 ? criticalCount : undefined,
-                badgeVariant: 'critical',
-              })}
+              renderOpCoSubDropdown(
+                'compliance',
+                getTabLabel('opco', 'compliance', 'Compliance'),
+                <ShieldCheck size={15} />,
+                [
+                  { id: 'compliance-register', label: getTabLabel('opco', 'compliance-register', 'Compliance Register'), href: '/compliance-register', icon: <ShieldCheck size={13} />, badgeCount: criticalCount, badgeVariant: 'critical' },
+                  { id: 'certifications', label: getTabLabel('opco', 'certifications', 'Certifications'), href: '/compliance-register?tab=certifications', icon: <FileCheck size={13} /> },
+                  { id: 'statutory', label: getTabLabel('opco', 'statutory', 'Statutory Inspections'), href: '/compliance-register?tab=statutory', icon: <Flame size={13} /> },
+                  { id: 'expiry-dashboard', label: getTabLabel('opco', 'expiry-dashboard', 'Expiry Dashboard'), href: '/compliance-tracker', icon: <AlertTriangle size={13} /> },
+                ],
+                criticalCount > 0 ? criticalCount : undefined,
+                'critical'
+              )}
 
             {/* Insurance (when moved to OpCo) */}
             {isInOpCo('insurance') &&
-              renderOpCoNavItem({
-                id: 'insurance',
-                label: getTabLabel('propco', 'insurance', 'Insurance'),
-                href: getTabPath('propco', 'insurance', '/insurance-register'),
-                icon: <Shield size={15} />,
-              })}
+              renderOpCoSubDropdown(
+                'insurance',
+                getTabLabel('propco', 'insurance', 'Insurance'),
+                <Shield size={15} />,
+                [
+                  { id: 'insurance-register', label: getTabLabel('propco', 'insurance-register', 'Insurance Register'), href: '/insurance-register', icon: <Shield size={13} /> },
+                  { id: 'claims', label: getTabLabel('propco', 'claims', 'Claims'), href: '/insurance-register?tab=claims', icon: <FileBarChart size={13} /> },
+                  { id: 'insurance-renewals', label: getTabLabel('propco', 'insurance-renewals', 'Renewals'), href: '/insurance-register?tab=renewals', icon: <RefreshCw size={13} /> },
+                ]
+              )}
 
             {/* Contracts (when moved to OpCo) */}
             {isInOpCo('contracts') &&
-              renderOpCoNavItem({
-                id: 'contracts',
-                label: getTabLabel('propco', 'contracts', 'Contracts'),
-                href: getTabPath('propco', 'contracts', '/contracts-register'),
-                icon: <ScrollText size={15} />,
-              })}
+              renderOpCoSubDropdown(
+                'contracts',
+                getTabLabel('propco', 'contracts', 'Contracts'),
+                <ScrollText size={15} />,
+                [
+                  { id: 'contracts-register', label: getTabLabel('propco', 'contracts-register', 'Contracts Register'), href: '/contracts-register', icon: <ScrollText size={13} /> },
+                  { id: 'suppliers', label: getTabLabel('propco', 'suppliers', 'Suppliers'), href: '/contracts-register?tab=suppliers', icon: <Handshake size={13} /> },
+                  { id: 'contracts-renewals', label: getTabLabel('propco', 'contracts-renewals', 'Renewals'), href: '/contracts-register?tab=renewals', icon: <RefreshCw size={13} /> },
+                  { id: 'slas', label: getTabLabel('propco', 'slas', 'SLAs'), href: '/contracts-register?tab=slas', icon: <Star size={13} /> },
+                ]
+              )}
 
             {/* 4. Tasks and Alerts */}
             {isInOpCo('tasks') && isTabVisibleInCms('opco', 'tasks') &&
@@ -1388,14 +1429,17 @@ export default function Sidebar({ currentPath }: SidebarProps) {
                 icon: <ClipboardList size={15} />,
               })}
 
-            {/* 7. Utility */}
+            {/* 7. Utility Dropdown */}
             {isInOpCo('utilities') && isTabVisibleInCms('opco', 'utilities') &&
-              renderOpCoNavItem({
-                id: 'utilities',
-                label: getTabLabel('opco', 'utilities', 'Utility'),
-                href: getTabPath('opco', 'utilities', '/utilities-register'),
-                icon: <Zap size={15} />,
-              })}
+              renderOpCoSubDropdown(
+                'utilities',
+                getTabLabel('opco', 'utilities', 'Utility'),
+                <Zap size={15} />,
+                [
+                  { id: 'utilities-register', label: getTabLabel('opco', 'utilities-register', 'Utilities Register'), href: '/utilities-register', icon: <Zap size={13} /> },
+                  { id: 'utilities-energy', label: getTabLabel('opco', 'utilities-energy', 'Energy & Water Accounts'), href: '/utilities-register?type=electricity', icon: <Zap size={13} /> },
+                ]
+              )}
 
             {/* Recent Logs (when moved to OpCo) */}
             {isInOpCo('recent-logs') && isNavVisible('recent-logs') &&

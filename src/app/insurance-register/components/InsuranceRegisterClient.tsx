@@ -231,7 +231,18 @@ export default function InsuranceRegisterClient() {
     primaryActionLabel: cmsPrimaryActionLabel,
   } = useDeepPageCms('insurance');
 
-  const [policies, setPolicies] = useState<InsurancePolicy[]>(MOCK_POLICIES.map(normalizePolicy));
+  const [policies, setPolicies] = useState<InsurancePolicy[]>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const cached = sessionStorage.getItem('samko_cache_insurance');
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          if (Array.isArray(parsed) && parsed.length > 0) return parsed.map(normalizePolicy);
+        }
+      } catch {}
+    }
+    return MOCK_POLICIES.map(normalizePolicy);
+  });
   const [propertyList, setPropertyList] = useState<string[]>(DEFAULT_HOTELS);
   const [claims, setClaims] = useState<Claim[]>(MOCK_CLAIMS);
   const [loading, setLoading] = useState(false);
@@ -319,6 +330,9 @@ export default function InsuranceRegisterClient() {
 
       if (insRes.status === 'fulfilled' && insRes.value.success && insRes.value.data && insRes.value.data.length > 0) {
         setPolicies(insRes.value.data.map(normalizePolicy));
+        try {
+          sessionStorage.setItem('samko_cache_insurance', JSON.stringify(insRes.value.data));
+        } catch {}
       }
       if (propsRes.status === 'fulfilled' && propsRes.value.success && propsRes.value.data && propsRes.value.data.length > 0) {
         setPropertyList(propsRes.value.data.map((p: any) => p.name));

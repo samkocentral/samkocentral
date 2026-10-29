@@ -589,6 +589,15 @@ export default function ContractsRegisterClient() {
     tabParam === 'suppliers' || tabParam === 'renewals' || tabParam === 'slas' ? tabParam : 'register';
 
   const [contracts, setContracts] = useState<Contract[]>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const cached = sessionStorage.getItem('samko_cache_contracts');
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          if (Array.isArray(parsed) && parsed.length > 0) return parsed.map(normalizeContract);
+        }
+      } catch {}
+    }
     if (cmsItems && cmsItems.length > 0) return (cmsItems as any).map(normalizeContract);
     return MOCK_CONTRACTS.map(normalizeContract);
   });
@@ -677,6 +686,9 @@ export default function ContractsRegisterClient() {
       ]);
       if (res.success && res.data && res.data.length > 0) {
         setContracts(res.data.map(normalizeContract));
+        try {
+          sessionStorage.setItem('samko_cache_contracts', JSON.stringify(res.data));
+        } catch {}
       } else {
         setContracts(MOCK_CONTRACTS.map(normalizeContract));
       }

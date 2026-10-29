@@ -48,13 +48,27 @@ export default function TasksClient() {
   const { canWriteTab } = useAuth();
   const canWrite = canWriteTab('tasks');
 
-  const [tasks, setTasks] = useState<TaskItem[]>(() => getInitialTasks());
+  const [tasks, setTasks] = useState<TaskItem[]>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const cached = sessionStorage.getItem('samko_cache_tasks');
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        }
+      } catch {}
+    }
+    return getInitialTasks();
+  });
 
   const fetchTasks = React.useCallback(async () => {
     try {
       const res = await api.tasks.getAll();
       if (res.success && res.data && res.data.length > 0) {
         setTasks(res.data);
+        try {
+          sessionStorage.setItem('samko_cache_tasks', JSON.stringify(res.data));
+        } catch {}
       }
     } catch (e) {
       console.warn('Tasks live fetch fallback:', e);

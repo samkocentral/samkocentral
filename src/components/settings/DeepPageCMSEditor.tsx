@@ -812,10 +812,10 @@ export default function DeepPageCMSEditor({
           </div>
         </>
       ) : (
-        <div className="flex items-center justify-between pb-3 border-b border-border/80">
-          <div className="flex items-center gap-2.5">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 pb-3.5 border-b border-border/80">
+          <div className="flex items-center gap-2.5 min-w-0">
             <div
-              className="w-8 h-8 rounded-lg flex items-center justify-center font-bold text-xs"
+              className="w-8 h-8 rounded-lg flex items-center justify-center font-bold text-xs shrink-0"
               style={{
                 background: 'linear-gradient(135deg, rgba(232, 201, 122, 0.25) 0%, rgba(232, 201, 122, 0.1) 100%)',
                 color: 'var(--primary)',
@@ -824,33 +824,33 @@ export default function DeepPageCMSEditor({
             >
               <Sparkles size={16} />
             </div>
-            <div>
-              <div className="flex items-center gap-2">
+            <div className="min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
                 <span className="font-head font-bold text-base text-foreground">
                   {currentPage?.title || 'Module'} Content & Data CMS
                 </span>
-                <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-primary/15 text-primary border border-primary/30 uppercase">
+                <span className="text-[10px] px-2.5 py-0.5 rounded-full font-bold bg-primary/15 text-primary border border-primary/30 uppercase whitespace-nowrap shrink-0">
                   Live Page Editable
                 </span>
               </div>
-              <p className="text-xs text-muted-foreground mt-0.5">
+              <p className="text-xs text-muted-foreground mt-0.5 truncate">
                 Editing live layout, columns, labels, and all data records for this tab.
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-shrink-0">
             <Link
               href={TAB_PAGES.find((p) => p.id === selectedPage)?.livePath || '#'}
               target="_blank"
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border border-primary/40 hover:bg-primary/10 text-primary transition-colors"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border border-primary/40 hover:bg-primary/10 text-primary transition-colors whitespace-nowrap"
             >
               <span>View Live Page</span>
               <ExternalLink size={12} />
             </Link>
             <button
               onClick={handleReset}
-              className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium border border-border text-muted-foreground hover:text-foreground hover:bg-white/[0.04]"
+              className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium border border-border text-muted-foreground hover:text-foreground hover:bg-white/[0.04] whitespace-nowrap"
             >
               <RefreshCw size={12} /> Reset Defaults
             </button>

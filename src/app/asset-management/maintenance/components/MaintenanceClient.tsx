@@ -117,6 +117,15 @@ export default function MaintenanceClient() {
     : (searchParams?.has('filter') ? 'all' : 'all');
 
   const [records, setRecords] = useState<MaintenanceRecord[]>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const cached = sessionStorage.getItem('samko_cache_maintenance');
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        }
+      } catch {}
+    }
     if (cmsItems && cmsItems.length > 0) return cmsItems as any;
     return MAINTENANCE_RECORDS;
   });
@@ -184,6 +193,9 @@ export default function MaintenanceClient() {
 
       if (mRes.status === 'fulfilled' && mRes.value.success && mRes.value.data && mRes.value.data.length > 0) {
         setRecords(mRes.value.data);
+        try {
+          sessionStorage.setItem('samko_cache_maintenance', JSON.stringify(mRes.value.data));
+        } catch {}
       }
       if (pRes.status === 'fulfilled' && pRes.value.success && pRes.value.data && pRes.value.data.length > 0) {
         setProperties(pRes.value.data);

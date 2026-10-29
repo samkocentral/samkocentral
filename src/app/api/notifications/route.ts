@@ -4,13 +4,20 @@ import { getDb } from '@/lib/firebase';
 import { collection, doc, getDocs, setDoc, deleteDoc, writeBatch, query, orderBy, limit } from 'firebase/firestore';
 import { INITIAL_NOTIFICATIONS, AppNotification } from '@/lib/notificationsData';
 
+function withTimeout<T>(promise: Promise<T>, ms = 1800): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<T>((_, reject) => setTimeout(() => reject(new Error('Timeout ' + ms + 'ms')), ms)),
+  ]);
+}
+
 export async function GET() {
   const adminDb = getAdminDb();
   if (adminDb) {
     try {
-      const snap = await adminDb.collection('notifications').orderBy('timestamp', 'desc').limit(50).get();
+      const snap = await withTimeout(adminDb.collection('notifications').orderBy('timestamp', 'desc').limit(50).get(), 1800);
       if (!snap.empty && snap.docs.length >= 6) {
-        const notifs = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+        const notifs = snap.docs.map((d: any) => ({ id: d.id, ...d.data() }));
         return NextResponse.json({ success: true, data: notifs });
       } else {
         const batch = adminDb.batch();
@@ -18,12 +25,12 @@ export async function GET() {
           const ref = adminDb.collection('notifications').doc(n.id);
           batch.set(ref, n, { merge: true });
         });
-        await batch.commit();
-        const refreshed = await adminDb.collection('notifications').orderBy('timestamp', 'desc').limit(50).get();
-        return NextResponse.json({ success: true, data: refreshed.docs.map((d) => ({ id: d.id, ...d.data() })) });
+        await withTimeout(batch.commit(), 1800);
+        const refreshed = await withTimeout(adminDb.collection('notifications').orderBy('timestamp', 'desc').limit(50).get(), 1800);
+        return NextResponse.json({ success: true, data: refreshed.docs.map((d: any) => ({ id: d.id, ...d.data() })) });
       }
     } catch (e) {
-      console.warn('[api/notifications] Admin GET failed:', e);
+      console.warn('[api/notifications] Admin GET failed or timed out:', e);
     }
   }
 
@@ -31,24 +38,23 @@ export async function GET() {
   if (clientDb) {
     try {
       const q = query(collection(clientDb, 'notifications'), orderBy('timestamp', 'desc'), limit(50));
-      const snap = await getDocs(q);
+      const snap = await withTimeout(getDocs(q), 1800);
       if (!snap.empty && snap.docs.length >= 6) {
         const notifs = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
         return NextResponse.json({ success: true, data: notifs });
       } else {
-        // Ensure all default alarms (3 critical, 3 warnings, 1 info) exist in Firestore
         const batch = writeBatch(clientDb);
         INITIAL_NOTIFICATIONS.forEach((n) => {
           const ref = doc(clientDb, 'notifications', n.id);
           batch.set(ref, n, { merge: true });
         });
-        await batch.commit();
-        const refreshedSnap = await getDocs(q);
+        await withTimeout(batch.commit(), 1800);
+        const refreshedSnap = await withTimeout(getDocs(q), 1800);
         const notifs = refreshedSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
         return NextResponse.json({ success: true, data: notifs });
       }
     } catch (e) {
-      console.warn('[api/notifications] Client GET failed:', e);
+      console.warn('[api/notifications] Client GET failed or timed out:', e);
     }
   }
 

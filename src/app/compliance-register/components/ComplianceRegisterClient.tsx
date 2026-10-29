@@ -206,6 +206,15 @@ export default function ComplianceRegisterClient() {
   }, [cmsColumns]);
 
   const [items, setItems] = useState<ComplianceItem[]>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const cached = sessionStorage.getItem('samko_cache_compliance');
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        }
+      } catch {}
+    }
     if (cmsItems && cmsItems.length > 0) return cmsItems as any;
     return MOCK_COMPLIANCE;
   });
@@ -285,6 +294,9 @@ export default function ComplianceRegisterClient() {
 
       if (compRes.status === 'fulfilled' && compRes.value.success && compRes.value.data && compRes.value.data.length > 0) {
         setItems(compRes.value.data);
+        try {
+          sessionStorage.setItem('samko_cache_compliance', JSON.stringify(compRes.value.data));
+        } catch {}
       }
       if (propsRes.status === 'fulfilled' && propsRes.value.success && propsRes.value.data && propsRes.value.data.length > 0) {
         setPropertyList(propsRes.value.data.map((p: any) => p.name));

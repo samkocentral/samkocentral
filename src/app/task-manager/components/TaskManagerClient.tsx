@@ -62,7 +62,18 @@ export default function TaskManagerClient() {
     ];
   }, [cmsColumns]);
 
-  const [tasks, setTasks] = useState<Task[]>(TASKS);
+  const [tasks, setTasks] = useState<Task[]>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const cached = sessionStorage.getItem('samko_cache_tasks');
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        }
+      } catch {}
+    }
+    return TASKS;
+  });
   const [propertyList, setPropertyList] = useState<string[]>([
     'Crowne Plaza Kingston-south',
     'Stanhill Court',
@@ -88,6 +99,9 @@ export default function TaskManagerClient() {
 
       if (tasksRes.status === 'fulfilled' && tasksRes.value.success && tasksRes.value.data && tasksRes.value.data.length > 0) {
         setTasks(tasksRes.value.data);
+        try {
+          sessionStorage.setItem('samko_cache_tasks', JSON.stringify(tasksRes.value.data));
+        } catch {}
       }
       if (propsRes.status === 'fulfilled' && propsRes.value.success && propsRes.value.data && propsRes.value.data.length > 0) {
         setPropertyList(propsRes.value.data.map((p: any) => p.name));

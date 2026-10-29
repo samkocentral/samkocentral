@@ -128,6 +128,7 @@ const OPCO_SECTION_TABS: SubTabDef[] = [
     id: 'task-module',
     label: 'Task Module',
     icon: Layers,
+    deepPage: 'tasks',
     livePath: '/task-manager',
     description: 'Kanban operational task workflow and ticket tracking',
   },

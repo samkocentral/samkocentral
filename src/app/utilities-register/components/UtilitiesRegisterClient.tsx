@@ -346,6 +346,15 @@ export default function UtilitiesRegisterClient() {
   }, [cmsColumns]);
 
   const [accounts, setAccounts] = useState<UtilityAccount[]>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const cached = sessionStorage.getItem('samko_cache_utilities');
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        }
+      } catch {}
+    }
     if (cmsItems && cmsItems.length > 0) return cmsItems as any;
     return UTILITIES;
   });
@@ -422,6 +431,9 @@ export default function UtilitiesRegisterClient() {
       ]);
       if (res.success && res.data && res.data.length > 0) {
         setAccounts(res.data);
+        try {
+          sessionStorage.setItem('samko_cache_utilities', JSON.stringify(res.data));
+        } catch {}
       }
       if (propsRes.success && propsRes.data && propsRes.data.length > 0) {
         setProperties(propsRes.data);
