@@ -356,7 +356,7 @@ export default function TasksClient() {
                   }}
                 >
                   <Plus size={14} />
-                  <span>{(cms.primaryActionLabel || 'Add Item').replace(/^\+\s*/, '')}</span>
+                  <span>{(cms.primaryActionLabel || 'Add Item').replace(/^[\+\s]+/, '').trim()}</span>
                 </button>
               </>
             ) : (

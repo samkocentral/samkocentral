@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { getAdminDb } from '@/lib/firebaseAdmin';
 import { getDb } from '@/lib/firebase';
 import { collection, doc, getDocs, setDoc, deleteDoc, writeBatch, query, orderBy, limit } from 'firebase/firestore';
-import { INITIAL_NOTIFICATIONS, AppNotification } from '@/lib/notifications';
+import { INITIAL_NOTIFICATIONS, AppNotification } from '@/lib/notificationsData';
 
 export async function GET() {
   const adminDb = getAdminDb();

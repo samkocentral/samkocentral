@@ -99,6 +99,20 @@ export default function AssetsClient() {
     if (cmsColumns && cmsColumns.length > 0) {
       return [...cmsColumns].sort((a, b) => a.order - b.order).filter((c) => c.visible !== false);
     }
+    if (isNonFixed) {
+      return [
+        { id: 'assetId', label: 'Asset ID', visible: true, order: 1 },
+        { id: 'name', label: 'Item Name / Description', visible: true, order: 2 },
+        { id: 'property', label: 'Property', visible: true, order: 3 },
+        { id: 'location', label: 'Room / Area', visible: true, order: 4 },
+        { id: 'category', label: 'Category', visible: true, order: 5 },
+        { id: 'department', label: 'Department', visible: true, order: 6 },
+        { id: 'quantity', label: 'Quantity', visible: true, order: 7 },
+        { id: 'condition', label: 'Condition', visible: true, order: 8 },
+        { id: 'status', label: 'Status', visible: true, order: 9 },
+        { id: 'actions', label: 'Actions', visible: true, order: 10 },
+      ];
+    }
     return [
       { id: 'assetId', label: 'Asset ID', visible: true, order: 1 },
       { id: 'name', label: 'Asset Name', visible: true, order: 2 },
@@ -113,10 +127,10 @@ export default function AssetsClient() {
       { id: 'status', label: 'Status', visible: true, order: 11 },
       { id: 'actions', label: 'Actions', visible: true, order: 12 },
     ];
-  }, [cmsColumns]);
+  }, [cmsColumns, isNonFixed]);
 
   const customColumns = useMemo(() => {
-    const standardKeys = new Set(['assetid', 'name', 'category', 'property', 'department', 'location', 'qty', 'condition', 'risk', 'nextinspection', 'status', 'actions']);
+    const standardKeys = new Set(['assetid', 'name', 'category', 'property', 'department', 'location', 'qty', 'quantity', 'condition', 'risk', 'nextinspection', 'status', 'actions']);
     return (cmsColumns || []).filter((c) => !standardKeys.has(c.id.toLowerCase()));
   }, [cmsColumns]);
 
@@ -477,7 +491,7 @@ export default function AssetsClient() {
     isPageLoading,
     changePage,
     changePageSize,
-  } = useLoadingPagination(filtered, 4);
+  } = useLoadingPagination(filtered, isNonFixed ? 7 : 4);
 
   const hasFilters =
     Boolean(search) ||
@@ -604,7 +618,7 @@ export default function AssetsClient() {
                 style={{ background: 'var(--primary)', color: '#000' }}
               >
                 <Plus size={14} />
-                {(cmsPrimaryActionLabel || 'Add Asset').replace(/^\+\s*/, '')}
+                {(cmsPrimaryActionLabel || (isNonFixed ? 'Add FF&E Asset' : 'Add Asset')).replace(/^[\+\s]+/, '').trim()}
               </button>
             </>
           )}
@@ -798,7 +812,7 @@ export default function AssetsClient() {
                           <td key={col.id} className="px-3 py-2.5 text-xs text-muted-foreground">{asset.location}</td>
                         );
                       }
-                      if (colKey === 'qty') {
+                      if (colKey === 'qty' || colKey === 'quantity') {
                         return (
                           <td key={col.id} className="px-3 py-2.5 text-xs font-semibold">{asset.quantity}</td>
                         );

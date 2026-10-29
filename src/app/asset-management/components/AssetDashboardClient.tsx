@@ -143,7 +143,7 @@ export default function AssetDashboardClient() {
             style={{ background: 'var(--primary)', color: '#000' }}
           >
             <Package size={15} />
-            {(cms.primaryActionLabel || 'All Assets').replace(/^\+\s*/, '')}
+            {(cms.primaryActionLabel || 'All Assets').replace(/^[\+\s]+/, '').trim()}
           </Link>
         </div>
       </div>

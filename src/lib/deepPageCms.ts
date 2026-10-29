@@ -120,12 +120,12 @@ export interface DeepAppCMSStore {
   qr: DeepPageConfig;
 }
 
-const STORAGE_KEY = 'samko:deep_page_cms_v11';
+const STORAGE_KEY = 'samko:deep_page_cms_v12';
 const EVENT_KEY = 'samko:deep-page-cms-updated';
 
 // Automatically purge legacy cache keys once in browser
 if (typeof window !== 'undefined') {
-  for (let i = 1; i <= 10; i++) {
+  for (let i = 1; i <= 11; i++) {
     try {
       localStorage.removeItem(`samko:deep_page_cms_v${i}`);
     } catch {}
@@ -860,8 +860,11 @@ export const DEFAULT_DEEP_CMS: DeepAppCMSStore = {
       { id: 'property', label: 'Property', originalLabel: 'Property', visible: true, order: 3 },
       { id: 'location', label: 'Room / Area', originalLabel: 'Location', visible: true, order: 4 },
       { id: 'category', label: 'Category', originalLabel: 'Category', visible: true, order: 5 },
-      { id: 'condition', label: 'Condition', originalLabel: 'Condition', visible: true, order: 6 },
+      { id: 'department', label: 'Department', originalLabel: 'Department', visible: true, order: 6 },
       { id: 'quantity', label: 'Quantity', originalLabel: 'Qty', visible: true, order: 7 },
+      { id: 'condition', label: 'Condition', originalLabel: 'Condition', visible: true, order: 8 },
+      { id: 'status', label: 'Status', originalLabel: 'Status', visible: true, order: 9 },
+      { id: 'actions', label: 'Actions', originalLabel: 'Actions', visible: true, order: 10 },
     ],
     items: [
       { id: 'ffe-1', assetId: 'FFE-101', name: 'King Size Pocket Sprung Bed', property: 'Crowne Plaza Kingston-south', location: 'Suite 204', category: 'Furniture & Joinery', condition: 'Good', quantity: 1, status: 'active' },
@@ -1066,7 +1069,7 @@ export function getDeepCMSStore(): DeepAppCMSStore {
           badgeText: saved.badgeText ?? def.badgeText,
           badgeColor: saved.badgeColor ?? def.badgeColor,
           searchPlaceholder: saved.searchPlaceholder || def.searchPlaceholder,
-          primaryActionLabel: (saved.primaryActionLabel || def.primaryActionLabel)?.replace(/^\+\s*/, ''),
+          primaryActionLabel: (saved.primaryActionLabel || def.primaryActionLabel)?.replace(/^[\+\s]+/, '').trim(),
           secondaryActionLabel: saved.secondaryActionLabel || def.secondaryActionLabel,
           topKpis: def.topKpis
             ? def.topKpis.map((defKpi) => {
@@ -1166,7 +1169,7 @@ export function getPageConfig(pageId: keyof DeepAppCMSStore): DeepPageConfig {
   if (page && page.primaryActionLabel) {
     return {
       ...page,
-      primaryActionLabel: page.primaryActionLabel.replace(/^\+\s*/, ''),
+      primaryActionLabel: page.primaryActionLabel.replace(/^[\+\s]+/, '').trim(),
     };
   }
   return page;
@@ -1179,7 +1182,7 @@ export function updatePageConfig(
   const store = getDeepCMSStore();
   const sanitizedUpdates = { ...updates };
   if (sanitizedUpdates.primaryActionLabel) {
-    sanitizedUpdates.primaryActionLabel = sanitizedUpdates.primaryActionLabel.replace(/^\+\s*/, '');
+    sanitizedUpdates.primaryActionLabel = sanitizedUpdates.primaryActionLabel.replace(/^[\+\s]+/, '').trim();
   }
   store[pageId] = {
     ...store[pageId],
@@ -1776,7 +1779,7 @@ export function useDeepPageCms(pageId: keyof DeepAppCMSStore) {
     title: pageConfig.title,
     subtitle: pageConfig.subtitle,
     searchPlaceholder: pageConfig.searchPlaceholder,
-    primaryActionLabel: pageConfig.primaryActionLabel?.replace(/^\+\s*/, '') || '',
+    primaryActionLabel: pageConfig.primaryActionLabel?.replace(/^[\+\s]+/, '').trim() || '',
     secondaryActionLabel: pageConfig.secondaryActionLabel,
     columns: pageConfig.columns || [],
     sortedVisibleColumns: (pageConfig.columns || [])

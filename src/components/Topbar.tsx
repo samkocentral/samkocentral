@@ -124,7 +124,7 @@ export default function Topbar({ title, subtitle, actions, hideDefaultActions = 
           setCmsOverride({
             title: ovCfg.title,
             subtitle: ovCfg.subtitle || undefined,
-            primaryActionLabel: ovCfg.primaryActionLabel ? ovCfg.primaryActionLabel.replace(/^\+\s*/, '') : undefined,
+            primaryActionLabel: ovCfg.primaryActionLabel ? ovCfg.primaryActionLabel.replace(/^[\+\s]+/, '').trim() : undefined,
             secondaryActionLabel: ovCfg.secondaryActionLabel || undefined,
           });
           return;
@@ -182,7 +182,7 @@ export default function Topbar({ title, subtitle, actions, hideDefaultActions = 
             setCmsOverride({
               title: cfg.title,
               subtitle: cfg.subtitle || undefined,
-              primaryActionLabel: cfg.primaryActionLabel ? cfg.primaryActionLabel.replace(/^\+\s*/, '') : undefined,
+              primaryActionLabel: cfg.primaryActionLabel ? cfg.primaryActionLabel.replace(/^[\+\s]+/, '').trim() : undefined,
               secondaryActionLabel: cfg.secondaryActionLabel || undefined,
             });
           }
@@ -671,7 +671,7 @@ export default function Topbar({ title, subtitle, actions, hideDefaultActions = 
             style={{ padding: '6px 12px', fontSize: 12 }}
           >
             <Plus size={13} />
-            <span className="hidden sm:inline">{(cmsOverride.primaryActionLabel || 'Add Item').replace(/^\+\s*/, '')}</span>
+            <span className="hidden sm:inline">{(cmsOverride.primaryActionLabel || 'Add Item').replace(/^[\+\s]+/, '').trim()}</span>
           </Link>
         )}
 

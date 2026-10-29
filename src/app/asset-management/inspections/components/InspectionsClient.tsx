@@ -312,7 +312,7 @@ export default function InspectionsClient() {
             className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-transform active:scale-95"
             style={{ background: 'var(--primary)', color: '#000' }}
           >
-            <ClipboardCheck size={15} /> {(cmsPrimaryActionLabel || 'New Inspection').replace(/^\+\s*/, '')}
+            <ClipboardCheck size={15} /> {(cmsPrimaryActionLabel || 'New Inspection').replace(/^[\+\s]+/, '').trim()}
           </button>
         </div>
       </div>

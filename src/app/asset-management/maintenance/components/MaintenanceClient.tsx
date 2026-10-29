@@ -412,7 +412,7 @@ export default function MaintenanceClient() {
               className="flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-semibold transition-transform active:scale-95"
               style={{ background: 'var(--primary)', color: '#000' }}
             >
-              <Plus size={14} /> {(cmsPrimaryActionLabel || 'Schedule Maintenance').replace(/^\+\s*/, '')}
+              <Plus size={14} /> {(cmsPrimaryActionLabel || 'Schedule Maintenance').replace(/^[\+\s]+/, '').trim()}
             </button>
           )}
           {isViewer && (

@@ -422,7 +422,7 @@ export default function ComplianceTrackerClient() {
             className="flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-semibold transition-transform active:scale-95"
             style={{ background: 'var(--primary)', color: '#000' }}
           >
-            <Plus size={14} /> {(cmsPrimaryActionLabel || 'Log Compliance / Issue').replace(/^\+\s*/, '')}
+            <Plus size={14} /> {(cmsPrimaryActionLabel || 'Log Compliance / Issue').replace(/^[\+\s]+/, '').trim()}
           </button>
         </div>
       </div>
