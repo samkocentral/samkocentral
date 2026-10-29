@@ -70,27 +70,114 @@ export default function Sidebar({ currentPath }: SidebarProps) {
 
   const getTabLabel = (portal: 'propco' | 'opco', tabId: string, fallback: string) => {
     const portalConfig = portal === 'propco' ? cmsPropco : cmsOpco;
-    const tab = portalConfig?.tabs?.find((t) => t.id === tabId);
+    const tab = portalConfig?.tabs?.find(
+      (t) =>
+        t.id === tabId ||
+        (tabId === 'all-assets' && t.id === 'fixed-assets') ||
+        (tabId === 'task-module' && (t.id === 'task-manager' || t.id === 'tasks')) ||
+        (tabId === 'reports' && t.id === 'maintenance-reports')
+    );
     if (tabId === 'propco-dashboard' && (!tab?.name || tab?.name === 'Dashboard')) {
       return 'PropCo Dashboard';
     }
     if (tabId === 'opco-dashboard' && (!tab?.name || tab?.name === 'Dashboard')) {
       return 'OpCo Dashboard';
     }
-    return tab?.name || fallback;
+    if (tab?.name) return tab.name;
+
+    // Check inside subtabs of all tabs in portalConfig
+    if (portalConfig?.tabs) {
+      for (const t of portalConfig.tabs) {
+        if (t.subtabs) {
+          const sub = t.subtabs.find(
+            (s) =>
+              s.id === tabId ||
+              `${t.id}-${s.id}` === tabId ||
+              tabId.endsWith(s.id) ||
+              s.label.toLowerCase() === fallback.toLowerCase()
+          );
+          if (sub?.label) return sub.label;
+        }
+      }
+    }
+    return fallback;
   };
 
   const isTabVisibleInCms = (portal: 'propco' | 'opco', tabId: string) => {
     const portalConfig = portal === 'propco' ? cmsPropco : cmsOpco;
-    const tab = portalConfig?.tabs?.find((t) => t.id === tabId);
+    const tab = portalConfig?.tabs?.find(
+      (t) =>
+        t.id === tabId ||
+        (tabId === 'all-assets' && t.id === 'fixed-assets') ||
+        (tabId === 'task-module' && (t.id === 'task-manager' || t.id === 'tasks')) ||
+        (tabId === 'reports' && t.id === 'maintenance-reports')
+    );
     if (!tab) return true;
     return tab.enabled !== false;
   };
 
   const getTabPath = (portal: 'propco' | 'opco', tabId: string, fallback: string) => {
     const portalConfig = portal === 'propco' ? cmsPropco : cmsOpco;
-    const tab = portalConfig?.tabs?.find((t) => t.id === tabId);
-    return tab?.path || fallback;
+    const tab = portalConfig?.tabs?.find(
+      (t) =>
+        t.id === tabId ||
+        (tabId === 'all-assets' && t.id === 'fixed-assets') ||
+        (tabId === 'task-module' && (t.id === 'task-manager' || t.id === 'tasks')) ||
+        (tabId === 'reports' && t.id === 'maintenance-reports')
+    );
+    if (tab?.path) return tab.path;
+
+    // Check inside subtabs of all tabs
+    if (portalConfig?.tabs) {
+      for (const t of portalConfig.tabs) {
+        if (t.subtabs) {
+          const sub = t.subtabs.find(
+            (s) => s.id === tabId || `${t.id}-${s.id}` === tabId || tabId.endsWith(s.id)
+          );
+          if (sub?.path) return sub.path;
+        }
+      }
+    }
+    return fallback;
+  };
+
+  const getDropdownNavItems = (
+    portal: 'propco' | 'opco',
+    tabId: string,
+    defaultItems: NavItem[]
+  ): NavItem[] => {
+    const portalConfig = portal === 'propco' ? cmsPropco : cmsOpco;
+    const tab = portalConfig?.tabs?.find(
+      (t) =>
+        t.id === tabId ||
+        (tabId === 'all-assets' && t.id === 'fixed-assets') ||
+        (tabId === 'task-module' && (t.id === 'task-manager' || t.id === 'tasks')) ||
+        (tabId === 'reports' && t.id === 'maintenance-reports')
+    );
+
+    if (tab?.subtabs && tab.subtabs.length > 0) {
+      return tab.subtabs.map((sub, idx) => {
+        const match = defaultItems.find(
+          (d) =>
+            d.id === sub.id ||
+            d.id === `${tabId}-${sub.id}` ||
+            sub.id === `${tabId}-${d.id}` ||
+            d.href === sub.path ||
+            d.label.toLowerCase() === sub.label.toLowerCase()
+        );
+
+        return {
+          id: match?.id || sub.id || `${tabId}-sub-${idx}`,
+          label: sub.label,
+          href: sub.path,
+          icon: match?.icon || <Package size={13} />,
+          badgeCount: match?.badgeCount,
+          badgeVariant: match?.badgeVariant,
+        };
+      });
+    }
+
+    return defaultItems;
   };
 
   const [collapsed, setCollapsed] = useState(() => {
@@ -1186,11 +1273,11 @@ export default function Sidebar({ currentPath }: SidebarProps) {
                 'insurance',
                 getTabLabel('propco', 'insurance', 'Insurance'),
                 <Shield size={15} />,
-                [
-                  { id: 'insurance-register', label: getTabLabel('propco', 'insurance-register', 'Insurance Register'), href: '/insurance-register', icon: <Shield size={13} /> },
-                  { id: 'claims', label: getTabLabel('propco', 'claims', 'Claims'), href: '/insurance-register?tab=claims', icon: <FileBarChart size={13} /> },
-                  { id: 'insurance-renewals', label: getTabLabel('propco', 'insurance-renewals', 'Renewals'), href: '/insurance-register?tab=renewals', icon: <RefreshCw size={13} /> },
-                ]
+                getDropdownNavItems('propco', 'insurance', [
+                  { id: 'insurance-register', label: 'Insurance Register', href: '/insurance-register', icon: <Shield size={13} /> },
+                  { id: 'claims', label: 'Claims', href: '/insurance-register?tab=claims', icon: <FileBarChart size={13} /> },
+                  { id: 'insurance-renewals', label: 'Renewals', href: '/insurance-register?tab=renewals', icon: <RefreshCw size={13} /> },
+                ])
               )}
 
             {/* Contracts Tab / Dropdown */}
@@ -1199,12 +1286,12 @@ export default function Sidebar({ currentPath }: SidebarProps) {
                 'contracts',
                 getTabLabel('propco', 'contracts', 'Contracts'),
                 <ScrollText size={15} />,
-                [
-                  { id: 'contracts-register', label: getTabLabel('propco', 'contracts-register', 'Contracts Register'), href: '/contracts-register', icon: <ScrollText size={13} /> },
-                  { id: 'suppliers', label: getTabLabel('propco', 'suppliers', 'Suppliers'), href: '/contracts-register?tab=suppliers', icon: <Handshake size={13} /> },
-                  { id: 'contracts-renewals', label: getTabLabel('propco', 'contracts-renewals', 'Renewals'), href: '/contracts-register?tab=renewals', icon: <RefreshCw size={13} /> },
-                  { id: 'slas', label: getTabLabel('propco', 'slas', 'SLAs'), href: '/contracts-register?tab=slas', icon: <Star size={13} /> },
-                ]
+                getDropdownNavItems('propco', 'contracts', [
+                  { id: 'contracts-register', label: 'Contracts Register', href: '/contracts-register', icon: <ScrollText size={13} /> },
+                  { id: 'suppliers', label: 'Suppliers', href: '/contracts-register?tab=suppliers', icon: <Handshake size={13} /> },
+                  { id: 'contracts-renewals', label: 'Renewals', href: '/contracts-register?tab=renewals', icon: <RefreshCw size={13} /> },
+                  { id: 'slas', label: 'SLAs', href: '/contracts-register?tab=slas', icon: <Star size={13} /> },
+                ])
               )}
 
             {/* Tasks (when moved to PropCo) */}
@@ -1347,12 +1434,12 @@ export default function Sidebar({ currentPath }: SidebarProps) {
                 'maintenance',
                 getTabLabel('opco', 'maintenance', 'Maintenance'),
                 <Calendar size={15} />,
-                [
-                  { id: 'maintenance-scheduled', label: getTabLabel('opco', 'maintenance-scheduled', 'Scheduled'), href: '/asset-management/maintenance?filter=scheduled', icon: <Calendar size={13} /> },
-                  { id: 'maintenance-due', label: getTabLabel('opco', 'maintenance-due', 'Due Today'), href: '/asset-management/maintenance?filter=due-today', icon: <AlertCircle size={13} />, badgeCount: dueTodayCount, badgeVariant: 'warning' },
-                  { id: 'maintenance-overdue', label: getTabLabel('opco', 'maintenance-overdue', 'Overdue'), href: '/asset-management/maintenance?filter=overdue', icon: <AlertTriangle size={13} />, badgeCount: overdueCount, badgeVariant: 'critical' },
-                  { id: 'maintenance-completed', label: getTabLabel('opco', 'maintenance-completed', 'Completed'), href: '/asset-management/maintenance?filter=completed', icon: <CheckSquare size={13} /> },
-                ],
+                getDropdownNavItems('opco', 'maintenance', [
+                  { id: 'maintenance-scheduled', label: 'Scheduled', href: '/asset-management/maintenance?filter=scheduled', icon: <Calendar size={13} /> },
+                  { id: 'maintenance-due', label: 'Due Today', href: '/asset-management/maintenance?filter=due-today', icon: <AlertCircle size={13} />, badgeCount: dueTodayCount, badgeVariant: 'warning' },
+                  { id: 'maintenance-overdue', label: 'Overdue', href: '/asset-management/maintenance?filter=overdue', icon: <AlertTriangle size={13} />, badgeCount: overdueCount, badgeVariant: 'critical' },
+                  { id: 'maintenance-completed', label: 'Completed', href: '/asset-management/maintenance?filter=completed', icon: <CheckSquare size={13} /> },
+                ]),
                 overdueCount > 0 ? overdueCount : dueTodayCount > 0 ? dueTodayCount : undefined,
                 overdueCount > 0 ? 'critical' : 'warning'
               )}
@@ -1363,12 +1450,12 @@ export default function Sidebar({ currentPath }: SidebarProps) {
                 'compliance',
                 getTabLabel('opco', 'compliance', 'Compliance'),
                 <ShieldCheck size={15} />,
-                [
-                  { id: 'compliance-register', label: getTabLabel('opco', 'compliance-register', 'Compliance Register'), href: '/compliance-register', icon: <ShieldCheck size={13} />, badgeCount: criticalCount, badgeVariant: 'critical' },
-                  { id: 'certifications', label: getTabLabel('opco', 'certifications', 'Certifications'), href: '/compliance-register?tab=certifications', icon: <FileCheck size={13} /> },
-                  { id: 'statutory', label: getTabLabel('opco', 'statutory', 'Statutory Inspections'), href: '/compliance-register?tab=statutory', icon: <Flame size={13} /> },
-                  { id: 'expiry-dashboard', label: getTabLabel('opco', 'expiry-dashboard', 'Expiry Dashboard'), href: '/compliance-tracker', icon: <AlertTriangle size={13} /> },
-                ],
+                getDropdownNavItems('opco', 'compliance', [
+                  { id: 'compliance-register', label: 'Compliance Register', href: '/compliance-register', icon: <ShieldCheck size={13} />, badgeCount: criticalCount, badgeVariant: 'critical' },
+                  { id: 'certifications', label: 'Certifications', href: '/compliance-register?tab=certifications', icon: <FileCheck size={13} /> },
+                  { id: 'statutory', label: 'Statutory Inspections', href: '/compliance-register?tab=statutory', icon: <Flame size={13} /> },
+                  { id: 'expiry-dashboard', label: 'Expiry Dashboard', href: '/compliance-tracker', icon: <AlertTriangle size={13} /> },
+                ]),
                 criticalCount > 0 ? criticalCount : undefined,
                 'critical'
               )}
@@ -1435,10 +1522,10 @@ export default function Sidebar({ currentPath }: SidebarProps) {
                 'utilities',
                 getTabLabel('opco', 'utilities', 'Utility'),
                 <Zap size={15} />,
-                [
-                  { id: 'utilities-register', label: getTabLabel('opco', 'utilities-register', 'Utilities Register'), href: '/utilities-register', icon: <Zap size={13} /> },
-                  { id: 'utilities-energy', label: getTabLabel('opco', 'utilities-energy', 'Energy & Water Accounts'), href: '/utilities-register?type=electricity', icon: <Zap size={13} /> },
-                ]
+                getDropdownNavItems('opco', 'utilities', [
+                  { id: 'utilities-register', label: 'Utilities Register', href: '/utilities-register', icon: <Zap size={13} /> },
+                  { id: 'utilities-energy', label: 'Energy & Water Accounts', href: '/utilities-register?type=electricity', icon: <Zap size={13} /> },
+                ])
               )}
 
             {/* Recent Logs (when moved to OpCo) */}

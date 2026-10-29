@@ -485,6 +485,27 @@ export function getAppCmsConfig(): AppCmsConfig {
       });
     }
 
+        const ensureSubtabs = (portalKey: 'propco' | 'opco') => {
+      const defaultPortal = DEFAULT_APP_CMS[portalKey];
+      const portal = config[portalKey];
+      if (!portal || !portal.tabs) return;
+      defaultPortal.tabs.forEach((defTab) => {
+        if (defTab.subtabs && defTab.subtabs.length > 0) {
+          const match = portal.tabs.find(
+            (t) =>
+              t.id === defTab.id ||
+              (defTab.id === 'all-assets' && t.id === 'fixed-assets') ||
+              (defTab.id === 'maintenance-reports' && t.id === 'reports') ||
+              (defTab.id === 'task-manager' && (t.id === 'task-module' || t.id === 'tasks'))
+          );
+          if (match && (!match.subtabs || match.subtabs.length === 0)) {
+            match.subtabs = JSON.parse(JSON.stringify(defTab.subtabs));
+          }
+        }
+      });
+    };
+    ensureSubtabs('propco');
+    ensureSubtabs('opco');
     return config;
   } catch (err) {
     console.error('Error reading App CMS config:', err);
@@ -623,6 +644,58 @@ export function copyTabAcrossPortals(
   return true;
 }
 
+function findParentTab(portal: AppCmsPortalSection, id: string): AppCmsTab | undefined {
+  return portal.tabs.find(
+    (t) =>
+      t.id === id ||
+      (id === 'all-assets' && t.id === 'fixed-assets') ||
+      (id === 'fixed-assets' && t.id === 'all-assets') ||
+      (id === 'task-module' && (t.id === 'task-manager' || t.id === 'tasks')) ||
+      (id === 'task-manager' && (t.id === 'task-module' || t.id === 'tasks')) ||
+      (id === 'tasks' && (t.id === 'task-module' || t.id === 'task-manager')) ||
+      (id === 'reports' && t.id === 'maintenance-reports') ||
+      (id === 'maintenance-reports' && t.id === 'reports')
+  );
+}
+
+export function updateDropdownSubtab(
+  section: 'propco' | 'opco',
+  parentTabId: string,
+  subtabId: string,
+  updates: Partial<AppCmsSubTab>
+): boolean {
+  const current = getAppCmsConfig();
+  const portal = current[section];
+  if (!portal) return false;
+  const parentTab = findParentTab(portal, parentTabId);
+  if (!parentTab || !parentTab.subtabs) return false;
+  const sub = parentTab.subtabs.find((s) => s.id === subtabId);
+  if (!sub) return false;
+  Object.assign(sub, updates);
+  saveAppCmsConfig(current);
+  return true;
+}
+
+export function reorderDropdownSubtabs(
+  section: 'propco' | 'opco',
+  parentTabId: string,
+  fromIndex: number,
+  toIndex: number
+): boolean {
+  const current = getAppCmsConfig();
+  const portal = current[section];
+  if (!portal) return false;
+  const parentTab = findParentTab(portal, parentTabId);
+  if (!parentTab || !parentTab.subtabs) return false;
+  if (fromIndex < 0 || fromIndex >= parentTab.subtabs.length || toIndex < 0 || toIndex >= parentTab.subtabs.length) {
+    return false;
+  }
+  const [moved] = parentTab.subtabs.splice(fromIndex, 1);
+  parentTab.subtabs.splice(toIndex, 0, moved);
+  saveAppCmsConfig(current);
+  return true;
+}
+
 export function addDropdownSubtab(
   section: 'propco' | 'opco',
   parentTabId: string,
@@ -631,14 +704,14 @@ export function addDropdownSubtab(
   const current = getAppCmsConfig();
   const portal = current[section];
   if (!portal) return false;
-  const parentTab = portal.tabs.find((t) => t.id === parentTabId);
+  const parentTab = findParentTab(portal, parentTabId);
   if (!parentTab) return false;
   if (!parentTab.subtabs) {
     parentTab.subtabs = [];
   }
-  const id = `sub-${Date.now()}`;
+  const cleanId = `sub-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 5)}`;
   parentTab.subtabs.push({
-    id,
+    id: cleanId,
     label: subtab.label,
     path: subtab.path,
     iconName: subtab.iconName || 'Package',
@@ -655,7 +728,7 @@ export function deleteDropdownSubtab(
   const current = getAppCmsConfig();
   const portal = current[section];
   if (!portal) return false;
-  const parentTab = portal.tabs.find((t) => t.id === parentTabId);
+  const parentTab = findParentTab(portal, parentTabId);
   if (!parentTab || !parentTab.subtabs) return false;
   parentTab.subtabs = parentTab.subtabs.filter((s) => s.id !== subtabId);
   saveAppCmsConfig(current);

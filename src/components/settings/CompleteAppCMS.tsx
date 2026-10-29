@@ -43,6 +43,10 @@ import {
   updatePortalSection,
   addTabToPortal,
   updatePortalTab,
+  addDropdownSubtab,
+  updateDropdownSubtab,
+  deleteDropdownSubtab,
+  reorderDropdownSubtabs,
   deletePortalTab,
   reorderPortalTabs,
   copyTabAcrossPortals,
@@ -124,6 +128,12 @@ export default function CompleteAppCMS({ activeSection, onSelectSection }: Props
 
   // Tab editing state - all fields editable
   const [editingTabId, setEditingTabId] = useState<string | null>(null);
+  const [addingSubtabForTabId, setAddingSubtabForTabId] = useState<string | null>(null);
+  const [newSubLabel, setNewSubLabel] = useState<string>('');
+  const [newSubPath, setNewSubPath] = useState<string>('');
+  const [editingSubId, setEditingSubId] = useState<string | null>(null);
+  const [editSubLabel, setEditSubLabel] = useState<string>('');
+  const [editSubPath, setEditSubPath] = useState<string>('');
   const [tabEditForm, setTabEditForm] = useState<{
     name: string;
     description: string;
