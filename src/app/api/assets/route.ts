@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getCollectionData, createDocument } from '@/lib/serverData';
+import { isAssetFixed } from '@/lib/assetData';
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
@@ -44,9 +45,9 @@ export async function GET(req: NextRequest) {
   }
 
   if (type === 'fixed') {
-    assets = assets.filter((a: any) => a.isFixed === true);
+    assets = assets.filter((a: any) => isAssetFixed(a));
   } else if (type === 'non-fixed') {
-    assets = assets.filter((a: any) => a.isFixed === false);
+    assets = assets.filter((a: any) => !isAssetFixed(a));
   }
 
   return NextResponse.json({

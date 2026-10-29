@@ -152,19 +152,25 @@ export default function AssetsClient() {
         const cached = sessionStorage.getItem('samko_all_assets');
         if (cached) {
           const parsed = JSON.parse(cached);
-          if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+          if (Array.isArray(parsed) && parsed.length >= 40) return parsed;
         }
       } catch {}
     }
-    if (cmsAssets && cmsAssets.length > 0) return cmsAssets as Asset[];
     return ASSETS;
   });
 
   useEffect(() => {
-    if (cmsAssets && cmsAssets.length > 0) {
-      setAssets(cmsAssets as Asset[]);
+    if (cmsAssets && cmsAssets.length >= 30) {
+      if (isNonFixed) {
+        setAssets((prev) => {
+          const fixedPart = prev.filter((a) => isAssetFixed(a));
+          return [...fixedPart, ...(cmsAssets as Asset[])];
+        });
+      } else {
+        setAssets(cmsAssets as Asset[]);
+      }
     }
-  }, [cmsAssets]);
+  }, [cmsAssets, isNonFixed]);
 
   const [properties, setProperties] = useState<{ value: string; label: string }[]>(
     HOTELS.map((h) => ({ value: h.id, label: h.name }))
@@ -500,7 +506,7 @@ export default function AssetsClient() {
     isPageLoading,
     changePage,
     changePageSize,
-  } = useLoadingPagination(filtered, isNonFixed ? 7 : 4);
+  } = useLoadingPagination(filtered, 7);
 
   const hasFilters =
     Boolean(search) ||
@@ -518,18 +524,12 @@ export default function AssetsClient() {
   };
 
   const fixedCount = useMemo(() => {
-    if (!isNonFixed) {
-      return assets.filter((a) => isAssetFixed(a)).length;
-    }
-    return ASSETS.filter((a) => isAssetFixed(a)).length;
-  }, [assets, isNonFixed]);
+    return assets.filter((a) => isAssetFixed(a)).length;
+  }, [assets]);
 
   const nonFixedCount = useMemo(() => {
-    if (isNonFixed) {
-      return assets.filter((a) => !isAssetFixed(a)).length;
-    }
-    return 4;
-  }, [assets, isNonFixed]);
+    return assets.filter((a) => !isAssetFixed(a)).length;
+  }, [assets]);
 
   const tabs = useMemo(() => {
     if (isNonFixed) {

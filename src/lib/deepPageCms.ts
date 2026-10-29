@@ -10,7 +10,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { ASSETS, HOTELS, ASSET_CATEGORIES, MAINTENANCE_RECORDS } from '@/lib/assetData';
+import { ASSETS, HOTELS, ASSET_CATEGORIES, MAINTENANCE_RECORDS, isAssetFixed } from '@/lib/assetData';
 import { UTILITIES } from '@/data/utilitiesData';
 import db from '@/data/samko_db.json';
 import { getInitialTasks } from '@/data/tasksData';
@@ -277,7 +277,7 @@ export const DEFAULT_DEEP_CMS: DeepAppCMSStore = {
       { id: 'asset-risk', label: 'Risk Rating', options: ['All Risk Levels', 'Low Risk', 'Medium Risk', 'High Risk', 'Urgent Statutory'] },
     ],
     tabFilters: [
-      { id: 'fixed', label: 'Fixed Assets', count: 41 },
+      { id: 'fixed', label: 'Fixed Assets', count: ASSETS.filter((a) => isAssetFixed(a)).length },
     ],
     columns: [
       { id: 'assetId', label: 'Asset ID', originalLabel: 'Asset ID', visible: true, order: 1 },
@@ -640,7 +640,7 @@ export const DEFAULT_DEEP_CMS: DeepAppCMSStore = {
       { id: 'category', label: 'Asset Category', options: ['All Categories', ...ASSET_CATEGORIES.map((c) => c.name)] },
     ],
     kpis: [
-      { id: 'rep-kpi-1', label: 'Total Catalogued Assets', value: '98 Items', subtitle: 'Across all portfolio properties', color: '#60a5fa', enabled: true },
+      { id: 'rep-kpi-1', label: 'Total Catalogued Assets', value: '100 Items', subtitle: 'Across all portfolio properties', color: '#60a5fa', enabled: true },
       { id: 'rep-kpi-2', label: 'Fixed Capital Assets', value: '60 Fixed', subtitle: 'Plant, boilers & lifts', color: '#e8c97a', enabled: true },
       { id: 'rep-kpi-3', label: 'Overdue Maintenance', value: '1 Item', subtitle: 'Escalation required', color: '#f43f5e', enabled: true },
       { id: 'rep-kpi-4', label: 'Maintenance Complete', value: '94%', subtitle: 'Contractor SLA benchmark', color: '#3dd68c', enabled: true },
@@ -835,15 +835,15 @@ export const DEFAULT_DEEP_CMS: DeepAppCMSStore = {
     id: 'nonfixed',
     title: 'Non-Fixed Assets (FF&E Register)',
     subtitle: 'Movable furniture, fixtures, kitchen appliances, electronics & guest room equipment',
-    badgeText: '248 FF&E Items',
+    badgeText: '57 FF&E Items',
     badgeColor: '#60a5fa',
     searchPlaceholder: 'Search loose equipment, rooms, furniture, serial...',
     primaryActionLabel: 'Add FF&E Asset',
     secondaryActionLabel: 'Print QR Asset Labels',
     kpis: [
-      { id: 'nf-kpi-1', label: 'Total FF&E Items', value: '248 Items', subtitle: 'Across all guest rooms & public areas', color: '#60a5fa', enabled: true },
-      { id: 'nf-kpi-2', label: 'Good / Pristine Condition', value: '218 Items', subtitle: '88% condition health', color: '#3dd68c', enabled: true },
-      { id: 'nf-kpi-3', label: 'Needs Repair / Attention', value: '18 Items', subtitle: 'Work tickets logged', color: '#f59e0b', enabled: true },
+      { id: 'nf-kpi-1', label: 'Total FF&E Items', value: '57 Items', subtitle: 'Across all guest rooms & public areas', color: '#60a5fa', enabled: true },
+      { id: 'nf-kpi-2', label: 'Good / Pristine Condition', value: '52 Items', subtitle: '91% condition health', color: '#3dd68c', enabled: true },
+      { id: 'nf-kpi-3', label: 'Needs Repair / Attention', value: '5 Items', subtitle: 'Work tickets logged', color: '#f59e0b', enabled: true },
       { id: 'nf-kpi-4', label: 'Room Audit Completion', value: '94%', subtitle: 'Quarterly audit progress', color: '#a78bfa', enabled: true },
     ],
     dropdowns: [
@@ -852,7 +852,7 @@ export const DEFAULT_DEEP_CMS: DeepAppCMSStore = {
       { id: 'condition', label: 'Condition Score', options: ['All Conditions', 'Excellent', 'Good', 'Fair', 'Poor', 'Condemned'] },
     ],
     tabFilters: [
-      { id: 'non-fixed', label: 'Non-Fixed Assets', count: 4 },
+      { id: 'non-fixed', label: 'Non-Fixed Assets', count: ASSETS.filter((a) => !isAssetFixed(a)).length },
     ],
     columns: [
       { id: 'assetId', label: 'Asset ID', originalLabel: 'ID', visible: true, order: 1 },
@@ -866,12 +866,23 @@ export const DEFAULT_DEEP_CMS: DeepAppCMSStore = {
       { id: 'status', label: 'Status', originalLabel: 'Status', visible: true, order: 9 },
       { id: 'actions', label: 'Actions', originalLabel: 'Actions', visible: true, order: 10 },
     ],
-    items: [
-      { id: 'ffe-1', assetId: 'FFE-101', name: 'King Size Pocket Sprung Bed', property: 'Crowne Plaza Kingston-south', location: 'Suite 204', category: 'Furniture & Joinery', condition: 'Good', quantity: 1, status: 'active' },
-      { id: 'ffe-2', assetId: 'FFE-102', name: 'Smart 55" Hospitality 4K TV', property: 'Crowne Plaza Kingston-south', location: 'Executive Suite 301', category: 'Audio Visual & Tech', condition: 'Excellent', quantity: 1, status: 'active' },
-      { id: 'ffe-3', assetId: 'FFE-103', name: 'Nespresso Professional Coffee Machine', property: 'Stanhill Court', location: 'Lounge Bar', category: 'Guest Room Appliances', condition: 'Good', quantity: 2, status: 'active' },
-      { id: 'ffe-4', assetId: 'FFE-104', name: 'Ergonomic Desk & Executive Armchair', property: 'Hotel Hampton 1 & 2', location: 'Meeting Room Alpha', category: 'Furniture & Joinery', condition: 'Fair', quantity: 6, status: 'active' },
-    ],
+    items: ASSETS.filter((a) => !isAssetFixed(a)).map((a) => ({
+      id: a.id,
+      assetId: a.assetId || a.id,
+      name: a.name,
+      property: a.hotelName || 'Crowne Plaza Kingston-south',
+      hotelId: a.hotelId,
+      hotelName: a.hotelName,
+      location: a.location || 'Guest Rooms',
+      category: typeof a.category === 'object' && a.category !== null ? (a.category as any).name : a.category,
+      department: a.department || 'Housekeeping',
+      quantity: a.quantity || 1,
+      condition: a.condition || 'good',
+      status: a.status || 'active',
+      riskLevel: a.riskLevel || 'low',
+      nextInspectionDate: a.nextInspectionDate,
+      isFixed: false,
+    })),
   },
   assetdashboard: {
     id: 'assetdashboard',
@@ -884,8 +895,8 @@ export const DEFAULT_DEEP_CMS: DeepAppCMSStore = {
     secondaryActionLabel: 'Export Excel Report',
     kpis: [
       { id: 'dash-kpi-1', label: 'Total Catalogued Assets', value: '98 Items', subtitle: 'Across all portfolio properties', color: '#60a5fa', enabled: true },
-      { id: 'dash-kpi-2', label: 'Fixed Capital Assets', value: '60 Plant', subtitle: 'Heavy infrastructure & machinery', color: '#a78bfa', enabled: true },
-      { id: 'dash-kpi-3', label: 'Non-Fixed FF&E Assets', value: '38 FF&E', subtitle: 'Movable equipment & fixtures', color: '#e8c97a', enabled: true },
+      { id: 'dash-kpi-2', label: 'Fixed Capital Assets', value: '43 Plant', subtitle: 'Heavy infrastructure & machinery', color: '#a78bfa', enabled: true },
+      { id: 'dash-kpi-3', label: 'Non-Fixed FF&E Assets', value: '57 FF&E', subtitle: 'Movable equipment & fixtures', color: '#e8c97a', enabled: true },
       { id: 'dash-kpi-4', label: 'Critical Assets', value: '4 Items', subtitle: 'Priority maintenance attention', color: '#f43f5e', enabled: true },
       { id: 'dash-kpi-5', label: 'Overdue Maintenance', value: '1 Item', subtitle: 'Past scheduled date', color: '#f43f5e', enabled: true },
       { id: 'dash-kpi-6', label: 'Due Today', value: '0 Items', subtitle: 'Scheduled for today', color: '#f59e0b', enabled: true },
@@ -1060,8 +1071,16 @@ export function getDeepCMSStore(): DeepAppCMSStore {
         store[key] = def;
       } else {
         const hasLegacyMockItems = saved.items && saved.items.some((it: any) =>
-          it?.id === 'util-01' || it?.id === 'comp-01' || it?.id === 'pol-01' || it?.id === 'doc-01'
+          it?.id === 'util-01' || it?.id === 'comp-01' || it?.id === 'pol-01' || it?.id === 'doc-01' || it?.id === 'ffe-1' || it?.assetId === 'FFE-101'
         );
+        const shouldResetItems =
+          hasLegacyMockItems ||
+          (key === 'nonfixed' && (!saved.items || saved.items.length < 10)) ||
+          (key === 'assets' && (!saved.items || saved.items.length < 10));
+
+        const rawSavedColumns = Array.isArray(saved.columns)
+          ? saved.columns.filter((c: any) => c.id !== 'hey' && c.label !== 'hey' && c.label !== 'HEY')
+          : saved.columns;
         store[key] = {
           ...def,
           title: saved.title || def.title,
@@ -1098,9 +1117,9 @@ export function getDeepCMSStore(): DeepAppCMSStore {
           dropdowns: Array.isArray(saved.dropdowns)
             ? saved.dropdowns
             : (def.dropdowns ? [...def.dropdowns] : []),
-          columns: Array.isArray(saved.columns) && saved.columns.length > 0
+          columns: Array.isArray(rawSavedColumns) && rawSavedColumns.length > 0
             ? (() => {
-                const savedCols: ColumnDefinition[] = saved.columns.map((c: any, idx: number) => ({
+                const savedCols: ColumnDefinition[] = rawSavedColumns.map((c: any, idx: number) => ({
                   ...c,
                   order: typeof c.order === 'number' ? c.order : idx + 1,
                   visible: c.visible !== false,
@@ -1117,7 +1136,7 @@ export function getDeepCMSStore(): DeepAppCMSStore {
             : (def.columns ? def.columns.map((c, idx) => ({ ...c, order: idx + 1 })) : undefined),
           sections: undefined,
           customLabels: { ...def.customLabels, ...(saved.customLabels || {}) },
-          items: (!hasLegacyMockItems && Array.isArray(saved.items) && saved.items.length > 0) ? saved.items : def.items,
+          items: (!shouldResetItems && Array.isArray(saved.items) && saved.items.length > 0) ? saved.items : def.items,
           alerts: saved.alerts && saved.alerts.length > 0 ? saved.alerts : def.alerts,
           tasks: saved.tasks && saved.tasks.length > 0 ? saved.tasks : def.tasks,
           chartData: saved.chartData && saved.chartData.length > 0 ? saved.chartData : def.chartData,
