@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { ShieldCheck, AlertTriangle, Clock, CheckCircle2, TrendingUp, Plus, Search, Download, Eye, Edit2, FileText, Bell, ChevronDown, Loader2, Trash2, X, Check } from 'lucide-react';
 import { api } from '@/lib/api';
@@ -183,9 +183,38 @@ export default function ComplianceRegisterClient() {
     subtitle: cmsSubtitle,
     searchPlaceholder: cmsSearchPlaceholder,
     primaryActionLabel: cmsPrimaryActionLabel,
+    columns: cmsColumns,
+    items: cmsItems,
   } = useDeepPageCms('compliance');
 
-  const [items, setItems] = useState<ComplianceItem[]>(MOCK_COMPLIANCE);
+  const activeColumns = useMemo(() => {
+    if (cmsColumns && cmsColumns.length > 0) {
+      return [...cmsColumns].sort((a, b) => a.order - b.order).filter((c) => c.visible !== false);
+    }
+    return [
+      { id: 'id', label: 'ID', visible: true, order: 1 },
+      { id: 'name', label: 'Compliance Item', visible: true, order: 2 },
+      { id: 'category', label: 'Category', visible: true, order: 3 },
+      { id: 'property', label: 'Property', visible: true, order: 4 },
+      { id: 'department', label: 'Department', visible: true, order: 5 },
+      { id: 'expiryDate', label: 'Expiry Date', visible: true, order: 6 },
+      { id: 'responsiblePerson', label: 'Responsible', visible: true, order: 7 },
+      { id: 'riskRating', label: 'Risk', visible: true, order: 8 },
+      { id: 'status', label: 'Status', visible: true, order: 9 },
+      { id: 'actions', label: 'Actions', visible: true, order: 10 },
+    ];
+  }, [cmsColumns]);
+
+  const [items, setItems] = useState<ComplianceItem[]>(() => {
+    if (cmsItems && cmsItems.length > 0) return cmsItems as any;
+    return MOCK_COMPLIANCE;
+  });
+
+  useEffect(() => {
+    if (cmsItems && cmsItems.length > 0) {
+      setItems(cmsItems as any);
+    }
+  }, [cmsItems]);
   const [propertyList, setPropertyList] = useState<string[]>(DEFAULT_HOTELS);
   const [loading, setLoading] = useState(false);
 
@@ -463,7 +492,7 @@ export default function ComplianceRegisterClient() {
               className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-transform active:scale-95"
               style={{ background: 'var(--primary)', color: '#000' }}
             >
-              <Plus size={14} /> {cmsPrimaryActionLabel || 'Add Compliance Item'}
+              <Plus size={14} /> {(cmsPrimaryActionLabel || 'Add Compliance Item').replace(/^\+\s*/, '')}
             </button>
           )}
           {isViewer && (
@@ -551,8 +580,15 @@ export default function ComplianceRegisterClient() {
           <table className="w-full text-left border-collapse" style={{ minWidth: 900 }}>
             <thead>
               <tr style={{ background: 'var(--surface2)' }}>
-                {['ID', 'Compliance Item', 'Category', 'Property', 'Department', 'Expiry Date', 'Days Left', 'Responsible', 'Risk', 'Status', ''].map((h) => (
-                  <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide whitespace-nowrap">{h}</th>
+                {activeColumns.map((col: any) => (
+                  <th
+                    key={col.id}
+                    className={`text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide whitespace-nowrap ${
+                      col.id.toLowerCase() === 'actions' ? 'text-right' : ''
+                    }`}
+                  >
+                    {col.label}
+                  </th>
                 ))}
               </tr>
             </thead>
@@ -571,63 +607,136 @@ export default function ComplianceRegisterClient() {
                     onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
                     onClick={() => setSelectedItem(item)}
                   >
-                    <td className="px-4 py-3 text-xs font-mono text-muted-foreground whitespace-nowrap">{item.complianceId}</td>
-                    <td className="px-4 py-3">
-                      <div className="font-medium text-sm">{item.name}</div>
-                      <div className="text-xs text-muted-foreground">{item.type}</div>
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className="text-xs px-2 py-0.5 rounded" style={{ background: 'var(--surface3)', color: 'var(--text2)' }}>{item.category}</span>
-                    </td>
-                    <td className="px-4 py-3 text-sm text-muted-foreground whitespace-nowrap">{item.hotel}</td>
-                    <td className="px-4 py-3 text-sm text-muted-foreground">{item.department}</td>
-                    <td className="px-4 py-3 text-sm whitespace-nowrap">{new Date(item.expiryDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</td>
-                    <td className="px-4 py-3 text-sm font-semibold whitespace-nowrap" style={{ color: days < 0 ? '#f43f5e' : days <= 30 ? '#f59e0b' : days <= 90 ? '#f97316' : '#3dd68c' }}>
-                      {days < 0 ? `${Math.abs(days)}d overdue` : `${days}d`}
-                    </td>
-                    <td className="px-4 py-3 text-sm text-muted-foreground whitespace-nowrap">{item.responsiblePerson}</td>
-                    <td className="px-4 py-3">
-                      <span className="text-xs font-semibold px-2 py-0.5 rounded-full capitalize" style={{ background: riskCfg.bg, color: riskCfg.color }}>{item.riskRating}</span>
-                    </td>
-                    <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
-                      <StatusDropdown
-                        value={item.status}
-                        disabled={isViewer || !canEdit}
-                        options={[
-                          { value: 'compliant', label: 'Compliant', color: '#3dd68c', bg: 'rgba(61,214,140,0.12)' },
-                          { value: 'expiring-soon', label: 'Expiring Soon', color: '#f59e0b', bg: 'rgba(245,158,11,0.12)' },
-                          { value: 'overdue', label: 'Overdue', color: '#f43f5e', bg: 'rgba(244,63,94,0.12)' },
-                          { value: 'pending', label: 'Pending', color: '#60a5fa', bg: 'rgba(96,165,250,0.12)' },
-                        ]}
-                        onChange={(val) => handleStatusChange(item.id, val)}
-                      />
-                    </td>
-                    <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
-                      <div className="flex items-center gap-1.5 whitespace-nowrap">
-                        <button
-                          className="p-1.5 rounded-lg border border-border hover:bg-surface2 transition-colors"
-                          style={{ color: 'var(--text2)' }}
-                          title="View Details"
-                          onClick={() => setSelectedItem(item)}
-                        >
-                          <Eye size={13} />
-                        </button>
-                        <button
-                          className="p-1.5 rounded-lg border border-border hover:bg-surface2 transition-colors text-muted-foreground hover:text-primary"
-                          title="Edit Compliance Item"
-                          onClick={() => handleOpenEdit(item)}
-                        >
-                          <Edit2 size={13} />
-                        </button>
-                        <button
-                          className="p-1.5 rounded-lg border border-rose-500/20 hover:bg-rose-500/15 text-rose-400 transition-colors"
-                          title="Delete Compliance Item"
-                          onClick={() => setItemToDelete(item)}
-                        >
-                          <Trash2 size={13} />
-                        </button>
-                      </div>
-                    </td>
+                    {activeColumns.map((col: any) => {
+                      const colKey = col.id.toLowerCase();
+                      if (colKey === 'id' || colKey === 'complianceid') {
+                        return (
+                          <td key={col.id} className="px-4 py-3 text-xs font-mono text-muted-foreground whitespace-nowrap">
+                            {item.complianceId || item.id}
+                          </td>
+                        );
+                      }
+                      if (colKey === 'name' || colKey === 'complianceitem') {
+                        return (
+                          <td key={col.id} className="px-4 py-3">
+                            <div className="font-medium text-sm">{item.name}</div>
+                            <div className="text-xs text-muted-foreground">{item.type}</div>
+                          </td>
+                        );
+                      }
+                      if (colKey === 'category') {
+                        return (
+                          <td key={col.id} className="px-4 py-3">
+                            <span className="text-xs px-2 py-0.5 rounded" style={{ background: 'var(--surface3)', color: 'var(--text2)' }}>
+                              {item.category}
+                            </span>
+                          </td>
+                        );
+                      }
+                      if (colKey === 'property' || colKey === 'hotel') {
+                        return (
+                          <td key={col.id} className="px-4 py-3 text-sm text-muted-foreground whitespace-nowrap">
+                            {item.hotel || (item as any).property}
+                          </td>
+                        );
+                      }
+                      if (colKey === 'department') {
+                        return (
+                          <td key={col.id} className="px-4 py-3 text-sm text-muted-foreground">
+                            {item.department}
+                          </td>
+                        );
+                      }
+                      if (colKey === 'expirydate') {
+                        return (
+                          <td key={col.id} className="px-4 py-3 text-sm whitespace-nowrap">
+                            {item.expiryDate ? new Date(item.expiryDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'}
+                          </td>
+                        );
+                      }
+                      if (colKey === 'daysleft') {
+                        return (
+                          <td
+                            key={col.id}
+                            className="px-4 py-3 text-sm font-semibold whitespace-nowrap"
+                            style={{ color: days < 0 ? '#f43f5e' : days <= 30 ? '#f59e0b' : days <= 90 ? '#f97316' : '#3dd68c' }}
+                          >
+                            {days < 0 ? `${Math.abs(days)}d overdue` : `${days}d`}
+                          </td>
+                        );
+                      }
+                      if (colKey === 'responsible' || colKey === 'responsibleperson') {
+                        return (
+                          <td key={col.id} className="px-4 py-3 text-sm text-muted-foreground whitespace-nowrap">
+                            {item.responsiblePerson}
+                          </td>
+                        );
+                      }
+                      if (colKey === 'risk' || colKey === 'riskrating') {
+                        return (
+                          <td key={col.id} className="px-4 py-3">
+                            <span className="text-xs font-semibold px-2 py-0.5 rounded-full capitalize" style={{ background: riskCfg.bg, color: riskCfg.color }}>
+                              {item.riskRating}
+                            </span>
+                          </td>
+                        );
+                      }
+                      if (colKey === 'status') {
+                        return (
+                          <td key={col.id} className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
+                            <StatusDropdown
+                              value={item.status}
+                              disabled={isViewer || !canEdit}
+                              options={[
+                                { value: 'compliant', label: 'Compliant', color: '#3dd68c', bg: 'rgba(61,214,140,0.12)' },
+                                { value: 'expiring-soon', label: 'Expiring Soon', color: '#f59e0b', bg: 'rgba(245,158,11,0.12)' },
+                                { value: 'overdue', label: 'Overdue', color: '#f43f5e', bg: 'rgba(244,63,94,0.12)' },
+                                { value: 'pending', label: 'Pending', color: '#60a5fa', bg: 'rgba(96,165,250,0.12)' },
+                              ]}
+                              onChange={(val) => handleStatusChange(item.id, val)}
+                            />
+                          </td>
+                        );
+                      }
+                      if (colKey === 'actions') {
+                        return (
+                          <td key={col.id} className="px-4 py-3 text-right" onClick={(e) => e.stopPropagation()}>
+                            <div className="flex items-center justify-end gap-1.5 whitespace-nowrap">
+                              <button
+                                className="p-1.5 rounded-lg border border-border hover:bg-surface2 transition-colors cursor-pointer"
+                                style={{ color: 'var(--text2)' }}
+                                title="View Details"
+                                onClick={() => setSelectedItem(item)}
+                              >
+                                <Eye size={13} />
+                              </button>
+                              <button
+                                className="p-1.5 rounded-lg border border-border hover:bg-surface2 transition-colors text-muted-foreground hover:text-primary cursor-pointer"
+                                title="Edit Compliance Item"
+                                onClick={() => handleOpenEdit(item)}
+                              >
+                                <Edit2 size={13} />
+                              </button>
+                              <button
+                                className="p-1.5 rounded-lg border border-rose-500/20 hover:bg-rose-500/15 text-rose-400 transition-colors cursor-pointer"
+                                title="Delete Compliance Item"
+                                onClick={() => setItemToDelete(item)}
+                              >
+                                <Trash2 size={13} />
+                              </button>
+                            </div>
+                          </td>
+                        );
+                      }
+
+                      // Dynamic custom columns
+                      const val = (item as any)[col.id] ?? (item as any)[colKey];
+                      return (
+                        <td key={col.id} className="px-4 py-3 text-sm text-foreground whitespace-nowrap">
+                          {val !== undefined && val !== null && String(val).trim() !== '' ? String(val) : '—'}
+                        </td>
+                      );
+                    })}
                   </tr>
                 );
               })}

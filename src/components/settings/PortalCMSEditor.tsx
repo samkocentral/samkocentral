@@ -61,6 +61,14 @@ interface SubTabDef {
 // ── OPCO TABS (Operations) ──────────────────────────────────────────────────
 const OPCO_SECTION_TABS: SubTabDef[] = [
   {
+    id: 'opco-dashboard',
+    label: 'OpCo Dashboard',
+    icon: LayoutDashboard,
+    deepPage: 'overview',
+    livePath: '/?portal=opco',
+    description: 'Operations executive dashboard, real-time portfolio health, daily alerts, and operational tasks',
+  },
+  {
     id: 'non-fixed',
     label: 'Non-Fixed Assets',
     icon: Package,
@@ -139,6 +147,14 @@ const OPCO_SECTION_TABS: SubTabDef[] = [
 
 // ── PROPCO TABS (Asset Co) ──────────────────────────────────────────────────
 const PROPCO_SECTION_TABS: SubTabDef[] = [
+  {
+    id: 'propco-dashboard',
+    label: 'PropCo Dashboard',
+    icon: LayoutDashboard,
+    deepPage: 'overview',
+    livePath: '/?portal=propco',
+    description: 'PropCo capital asset portfolio overview, property values, risk exposure, and statutory compliance',
+  },
   {
     id: 'properties',
     label: 'Properties',

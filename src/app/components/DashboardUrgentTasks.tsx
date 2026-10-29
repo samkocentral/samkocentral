@@ -25,12 +25,16 @@ export default function DashboardUrgentTasks() {
     fetchLiveTasks();
     const handleDataChanged = () => fetchLiveTasks();
     window.addEventListener('samko:data-changed', handleDataChanged);
-    return () => window.removeEventListener('samko:data-changed', handleDataChanged);
+    window.addEventListener('storage', handleDataChanged);
+    return () => {
+      window.removeEventListener('samko:data-changed', handleDataChanged);
+      window.removeEventListener('storage', handleDataChanged);
+    };
   }, [fetchLiveTasks]);
 
   const urgentHighTasks = tasks.filter(
     (t: any) =>
-      (t.priority === 'urgent' || t.priority === 'high') &&
+      (t.priority === 'urgent' || t.priority === 'high' || t.status === 'open') &&
       t.status !== 'completed'
   );
 
@@ -42,7 +46,9 @@ export default function DashboardUrgentTasks() {
   };
 
   const title = cms.sections?.urgentTasks?.title || 'Urgent Tasks';
-  const displayTasks = (cms.tasks && cms.tasks.length > 0)
+  const displayTasks = urgentHighTasks.length > 0
+    ? urgentHighTasks
+    : (cms.tasks && cms.tasks.length > 0)
     ? cms.tasks.map((t) => ({
         id: t.id,
         title: t.title,
@@ -50,7 +56,7 @@ export default function DashboardUrgentTasks() {
         due: t.dueDate,
         priority: t.priority,
       }))
-    : urgentHighTasks;
+    : [];
 
   return (
     <div className="samko-card" style={{ padding: '18px 20px' }}>

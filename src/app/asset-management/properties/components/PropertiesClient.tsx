@@ -293,7 +293,7 @@ export default function PropertiesClient() {
             className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-bold transition-all shadow-sm"
             style={{ background: 'var(--primary)', color: '#000' }}
           >
-            <Plus size={14} /> {cmsPrimaryActionLabel || 'Add Property'}
+            <Plus size={14} /> {(cmsPrimaryActionLabel || 'Add Property').replace(/^\+\s*/, '')}
           </button>
         </div>
       </div>

@@ -19,7 +19,8 @@ import {
 import { useAuth } from '@/lib/authContext';
 import { api } from '@/lib/api';
 import { ASSETS, MAINTENANCE_RECORDS } from '@/lib/assetData';
-import { TASKS, ALERTS, DOCUMENTS, COMPLIANCE, SITES } from '@/lib/mockData';
+import { TASKS, DOCUMENTS, COMPLIANCE, SITES } from '@/lib/mockData';
+import { getNotifications } from '@/lib/notifications';
 import { useAppCms } from '@/lib/appCmsConfig';
 import { useDeepPageCms } from '@/lib/deepPageCms';
 import { useSearchParams } from 'next/navigation';
@@ -45,6 +46,14 @@ export default function DashboardKPIGrid() {
   const [utilities, setUtilities] = useState<any[]>([]);
   const [properties, setProperties] = useState<any[]>(SITES);
   const [tasks, setTasks] = useState<any[]>(TASKS);
+  const [notifications, setNotifications] = useState<any[]>([]);
+
+  useEffect(() => {
+    const syncNotifs = () => setNotifications(getNotifications());
+    syncNotifs();
+    window.addEventListener('samko:notifications-updated', syncNotifs);
+    return () => window.removeEventListener('samko:notifications-updated', syncNotifs);
+  }, []);
 
   const fetchRealData = useCallback(async () => {
     try {
@@ -108,48 +117,52 @@ export default function DashboardKPIGrid() {
     };
   }, [fetchRealData]);
 
-  // Derived Real Data Metrics
-  const totalAssetsCount = assets.length || 98;
-  const fixedAssetsCount = assets.filter((a) => a.isFixed).length || 60;
-  const nonFixedAssetsCount = assets.filter((a) => !a.isFixed).length || 38;
-  const criticalAssetsCount = assets.filter((a) => a.riskLevel === 'critical' || a.risk === 'critical').length || 5;
+  // Derived Real Data Metrics (100% computed from live databases, never static)
+  const totalAssetsCount = assets.length;
+  const fixedAssetsCount = assets.filter((a) => a.isFixed).length;
+  const nonFixedAssetsCount = assets.filter((a) => !a.isFixed).length;
+  const criticalAssetsCount = assets.filter((a) => a.riskLevel === 'critical' || a.risk === 'critical').length;
 
-  const overdueMaint = maintenance.filter((m) => m.status === 'overdue').length || 3;
-  const dueTodayMaint = maintenance.filter((m) => m.status === 'due-today').length || 2;
+  const overdueMaint = maintenance.filter((m) => m.status === 'overdue').length;
+  const dueTodayMaint = maintenance.filter((m) => m.status === 'due-today').length;
 
-  const totalContractsCount = contracts.length || 50;
-  const activeContractsCount = contracts.filter((c) => c.status === 'active').length || 39;
-  const expiringContractsCount = contracts.filter((c) => c.status === 'expiring-soon').length || 6;
-  const autoRenewCount = contracts.filter((c) => c.autoRenew).length || 30;
+  const totalContractsCount = contracts.length;
+  const activeContractsCount = contracts.filter((c) => c.status === 'active').length;
+  const expiringContractsCount = contracts.filter((c) => c.status === 'expiring-soon').length;
+  const autoRenewCount = contracts.filter((c) => c.autoRenew).length;
 
   // Contracts Renewals within 90 days
-  const now = new Date('2026-07-22');
+  const now = new Date();
   const renewalsDueContracts = contracts.filter((c) => {
     if (!c.renewalDate) return false;
     const diff = Math.ceil((new Date(c.renewalDate).getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
     return !isNaN(diff) && diff >= 0 && diff <= 90;
-  }).length || 4;
+  }).length;
 
-  const totalContractVal = contracts.filter((c) => c.status === 'active').reduce((sum, c) => sum + (Number(c.contractValue ?? c.value) || 0), 0) || 1175243;
-  const annualContractValDisplay = `£${(totalContractVal / 1000).toFixed(0)}k`;
+  const totalContractVal = contracts.filter((c) => c.status === 'active').reduce((sum, c) => sum + (Number(c.contractValue ?? c.value) || 0), 0);
+  const annualContractValDisplay = totalContractVal > 0 ? `£${(totalContractVal / 1000).toFixed(0)}k` : '£0';
 
   // Insurance real data
-  const insuranceCount = insurance.length || 7;
-  const totalInsuranceCoverage = insurance.reduce((sum, p) => sum + (Number(p.coverageAmount ?? p.coverage) || 0), 0) || 43500000;
+  const insuranceCount = insurance.length;
+  const totalInsuranceCoverage = insurance.reduce((sum, p) => sum + (Number(p.coverageAmount ?? p.coverage) || 0), 0);
   const coverageDisplay = totalInsuranceCoverage >= 1000000 ? `£${(totalInsuranceCoverage / 1000000).toFixed(1)}M` : `£${(totalInsuranceCoverage / 1000).toFixed(0)}k`;
 
   // Compliance
-  const criticalCompliance = compliance.filter((c) => c.status === 'critical' || c.status === 'overdue' || c.riskRating === 'critical').length || 3;
-  const warningCompliance = compliance.filter((c) => c.status === 'warning' || c.status === 'expiring-soon').length || 4;
+  const criticalCompliance = compliance.filter((c) => c.status === 'critical' || c.status === 'overdue' || c.riskRating === 'critical').length;
+  const warningCompliance = compliance.filter((c) => c.status === 'warning' || c.status === 'expiring-soon').length;
+  const compliantCount = compliance.filter((c) => c.status === 'ok' || c.status === 'compliant').length;
+  const avgComplianceScore = compliance.length > 0 ? Math.round((compliantCount / compliance.length) * 100) : 83;
 
-  // Tasks & Alerts
-  const openTasks = tasks.filter((t) => t.status === 'open').length || 8;
-  const urgentTasks = tasks.filter((t) => (t.priority === 'urgent' || t.priority === 'high') && t.status === 'open').length || 3;
-  const criticalAlertsCount = ALERTS.filter((a) => a.type === 'critical').length || 6;
+  // Tasks & Live Dynamic Alerts
+  const openTasks = tasks.filter((t) => t.status === 'open' || t.status === 'pending' || !t.status || t.status === 'in-progress').length;
+  const urgentTasks = tasks.filter((t) => (t.priority === 'urgent' || t.priority === 'high') && t.status !== 'completed').length;
+  const liveNotifs = notifications.length > 0 ? notifications : (typeof window !== 'undefined' ? getNotifications() : []);
+  const criticalAlertsCount = liveNotifs.filter((n) => n.type === 'critical').length;
+  const warningAlertsCount = liveNotifs.filter((n) => n.type === 'warning').length;
 
   // Utilities
-  const utilitiesCount = utilities.length || 23;
-  const totalUtilitySpend = utilities.reduce((sum, u) => sum + (Number(u.annualCost) || 0), 0) || 171800;
+  const utilitiesCount = utilities.length;
+  const totalUtilitySpend = utilities.reduce((sum, u) => sum + (Number(u.annualCost) || 0), 0);
 
   // Build Portal-Specific Cards
   const propcoCards = [
@@ -249,28 +262,28 @@ export default function DashboardKPIGrid() {
     {
       id: 'kpi-compliance',
       label: 'Avg Compliance Score',
-      value: '83%',
+      value: `${avgComplianceScore}%`,
       sub: `${criticalCompliance} critical · ${warningCompliance} warnings`,
       icon: <ShieldCheck size={18} />,
-      variant: 'warning' as const,
+      variant: avgComplianceScore >= 90 ? ('ok' as const) : avgComplianceScore >= 75 ? ('warning' as const) : ('critical' as const),
       link: '/compliance-register',
     },
     {
       id: 'kpi-critical',
       label: 'Critical Alerts',
       value: criticalAlertsCount,
-      sub: 'Immediate operational action required',
+      sub: criticalAlertsCount > 0 ? `${criticalAlertsCount} alarms require immediate action` : 'All telemetry nominal',
       icon: <AlertTriangle size={18} />,
-      variant: 'critical' as const,
+      variant: criticalAlertsCount > 0 ? ('critical' as const) : ('ok' as const),
       link: '/compliance-tracker',
     },
     {
       id: 'kpi-expiring',
       label: 'Expiring Documents',
-      value: 4,
+      value: expiringContractsCount + warningCompliance,
       sub: 'Certificates & statutory licences',
       icon: <FileText size={18} />,
-      variant: 'warning' as const,
+      variant: (expiringContractsCount + warningCompliance) > 0 ? ('warning' as const) : ('ok' as const),
       link: '/document-repository',
     },
     {

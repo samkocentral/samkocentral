@@ -85,21 +85,19 @@ export default function DashboardSiteTable() {
     };
   });
 
-  // Use CMS items if available so edits made in Deep CMS reflect directly live
-  const siteRows = cms.items && cms.items.length > 0
-    ? cms.items.map((item: any, idx: number) => ({
-        id: item.id || `prop-ov-${idx}`,
-        name: item.name || '',
-        city: item.city || '',
-        manager: item.manager || '',
-        status: (item.status || 'operational').toLowerCase(),
-        risk: (item.risk || 'low').toLowerCase(),
-        compliance: Number(item.compliance) || 90,
-        assetCount: Number(item.assetCount) || 0,
-        overdueCount: Number(item.overdueCount) || 0,
-        openIssues: Number(item.openIssues) || 0,
-      }))
-    : fallbackRows;
+  // Merge live database metrics with CMS overrides so live data and CMS edits sync seamlessly
+  const siteRows = fallbackRows.map((site) => {
+    const cmsItem = cms.items?.find((it: any) => it.id === site.id || it.name === site.name);
+    if (!cmsItem) return site;
+    return {
+      ...site,
+      name: cmsItem.name || site.name,
+      city: cmsItem.city || site.city,
+      manager: cmsItem.manager || site.manager,
+      status: (cmsItem.status || site.status).toLowerCase(),
+      risk: (cmsItem.risk || site.risk).toLowerCase(),
+    };
+  });
 
   const {
     currentPage,

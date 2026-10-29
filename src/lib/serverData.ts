@@ -166,14 +166,8 @@ async function withTimeout<T>(promise: Promise<T>, ms = 3000): Promise<T> {
 
 export async function getCollectionData(collectionName: string, forceRemote = false): Promise<any[]> {
   loadFromDisk();
-  const diskData = memoryStore[collectionName];
 
-  // If local disk already has populated data, return immediately for instant <2ms response
-  if (!forceRemote && diskData && diskData.length > 0) {
-    return diskData;
-  }
-
-  // Fallback to Firestore if disk was empty or forceRemote requested
+  // Primary: Fetch live from Firebase Firestore
   const adminDb = getAdminDb();
   if (adminDb) {
     try {
@@ -204,17 +198,11 @@ export async function getCollectionData(collectionName: string, forceRemote = fa
     }
   }
 
+  // Fallback: Return locally cached disk data if offline or remote empty
   return memoryStore[collectionName] || [];
 }
 
 export async function getDocumentById(collectionName: string, id: string): Promise<any | null> {
-  loadFromDisk();
-  const items = memoryStore[collectionName] || [];
-  const localMatch = items.find((item: any) => matchesId(item, id));
-  if (localMatch) {
-    return localMatch;
-  }
-
   const adminDb = getAdminDb();
   if (adminDb) {
     try {
@@ -237,6 +225,13 @@ export async function getDocumentById(collectionName: string, id: string): Promi
     } catch (e) {
       console.warn(`[serverData] Client Firestore doc read ${collectionName}/${id} failed:`, e);
     }
+  }
+
+  loadFromDisk();
+  const items = memoryStore[collectionName] || [];
+  const localMatch = items.find((item: any) => matchesId(item, id));
+  if (localMatch) {
+    return localMatch;
   }
 
   return null;

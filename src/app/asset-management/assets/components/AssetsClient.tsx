@@ -95,6 +95,31 @@ export default function AssetsClient() {
     dropdowns: cmsDropdowns,
   } = useDeepPageCms(pageKey);
 
+  const activeColumns = useMemo(() => {
+    if (cmsColumns && cmsColumns.length > 0) {
+      return [...cmsColumns].sort((a, b) => a.order - b.order).filter((c) => c.visible !== false);
+    }
+    return [
+      { id: 'assetId', label: 'Asset ID', visible: true, order: 1 },
+      { id: 'name', label: 'Asset Name', visible: true, order: 2 },
+      { id: 'category', label: 'Category', visible: true, order: 3 },
+      { id: 'property', label: 'Property', visible: true, order: 4 },
+      { id: 'department', label: 'Department', visible: true, order: 5 },
+      { id: 'location', label: 'Location', visible: true, order: 6 },
+      { id: 'qty', label: 'Qty', visible: true, order: 7 },
+      { id: 'condition', label: 'Condition', visible: true, order: 8 },
+      { id: 'risk', label: 'Risk', visible: true, order: 9 },
+      { id: 'nextInspection', label: 'Next Inspection', visible: true, order: 10 },
+      { id: 'status', label: 'Status', visible: true, order: 11 },
+      { id: 'actions', label: 'Actions', visible: true, order: 12 },
+    ];
+  }, [cmsColumns]);
+
+  const customColumns = useMemo(() => {
+    const standardKeys = new Set(['assetid', 'name', 'category', 'property', 'department', 'location', 'qty', 'condition', 'risk', 'nextinspection', 'status', 'actions']);
+    return (cmsColumns || []).filter((c) => !standardKeys.has(c.id.toLowerCase()));
+  }, [cmsColumns]);
+
   const colMap = useMemo(() => {
     const map: Record<string, { label: string; visible: boolean }> = {};
     (cmsColumns || []).forEach((c) => {
@@ -104,9 +129,8 @@ export default function AssetsClient() {
   }, [cmsColumns]);
 
   const visibleColCount = useMemo(() => {
-    if (!cmsColumns || cmsColumns.length === 0) return 12;
-    return cmsColumns.filter((c) => c.visible).length;
-  }, [cmsColumns]);
+    return activeColumns.length;
+  }, [activeColumns]);
 
   const [assets, setAssets] = useState<Asset[]>(() => {
     if (cmsAssets && cmsAssets.length > 0) return cmsAssets as Asset[];
@@ -185,6 +209,38 @@ export default function AssetsClient() {
   const [editingAsset, setEditingAsset] = useState<any>(null);
   const [assetToDelete, setAssetToDelete] = useState<Asset | null>(null);
   const [deletingAsset, setDeletingAsset] = useState(false);
+  const [inlineEditingCell, setInlineEditingCell] = useState<{ id: string; colId: string } | null>(null);
+  const [inlineVal, setInlineVal] = useState<string>('');
+
+  const handleSaveInlineCustom = (assetId: string, colId: string, value: string) => {
+    const colKey = colId.toLowerCase();
+    setAssets((prev) =>
+      prev.map((a) => {
+        if (a.id === assetId) {
+          return {
+            ...a,
+            [colId]: value,
+            [colKey]: value,
+          };
+        }
+        return a;
+      })
+    );
+    const target = assets.find((a) => a.id === assetId);
+    if (target) {
+      const updated = {
+        ...target,
+        [colId]: value,
+        [colKey]: value,
+      };
+      updatePageItem(pageKey, assetId, updated);
+    }
+    setInlineEditingCell(null);
+    toast.success('Updated', { description: `Saved "${value || '—'}" for ${colId}` });
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('samko:data-changed', { detail: { type: 'assets', id: assetId } }));
+    }
+  };
   const [newAssetForm, setNewAssetForm] = useState({
     name: '',
     category: ASSET_CATEGORIES[0]?.name || 'HVAC',
@@ -548,7 +604,7 @@ export default function AssetsClient() {
                 style={{ background: 'var(--primary)', color: '#000' }}
               >
                 <Plus size={14} />
-                {cmsPrimaryActionLabel || 'Add Asset'}
+                {(cmsPrimaryActionLabel || 'Add Asset').replace(/^\+\s*/, '')}
               </button>
             </>
           )}
@@ -663,66 +719,16 @@ export default function AssetsClient() {
             style={{ background: 'var(--surface)' }}
           >
             <tr>
-              {colMap['assetId']?.visible !== false && (
-                <th className="text-left text-xs font-bold uppercase tracking-wide text-muted-foreground px-3.5 py-3 border-b border-border whitespace-nowrap">
-                  {colMap['assetId']?.label || 'Asset ID'}
+              {activeColumns.map((col) => (
+                <th
+                  key={col.id}
+                  className={`text-left text-xs font-bold uppercase tracking-wide text-muted-foreground px-3.5 py-3 border-b border-border whitespace-nowrap ${
+                    col.id.toLowerCase() === 'actions' ? 'text-right' : ''
+                  }`}
+                >
+                  {col.label}
                 </th>
-              )}
-              {colMap['name']?.visible !== false && (
-                <th className="text-left text-xs font-bold uppercase tracking-wide text-muted-foreground px-3.5 py-3 border-b border-border whitespace-nowrap">
-                  {colMap['name']?.label || 'Asset Name'}
-                </th>
-              )}
-              {colMap['category']?.visible !== false && (
-                <th className="text-left text-xs font-bold uppercase tracking-wide text-muted-foreground px-3.5 py-3 border-b border-border whitespace-nowrap">
-                  {colMap['category']?.label || 'Category'}
-                </th>
-              )}
-              {colMap['property']?.visible !== false && (
-                <th className="text-left text-xs font-bold uppercase tracking-wide text-muted-foreground px-3.5 py-3 border-b border-border whitespace-nowrap">
-                  {colMap['property']?.label || 'Property'}
-                </th>
-              )}
-              {colMap['department']?.visible !== false && (
-                <th className="text-left text-xs font-bold uppercase tracking-wide text-muted-foreground px-3.5 py-3 border-b border-border whitespace-nowrap">
-                  {colMap['department']?.label || 'Department'}
-                </th>
-              )}
-              {colMap['location']?.visible !== false && (
-                <th className="text-left text-xs font-bold uppercase tracking-wide text-muted-foreground px-3.5 py-3 border-b border-border whitespace-nowrap">
-                  {colMap['location']?.label || 'Location'}
-                </th>
-              )}
-              {colMap['qty']?.visible !== false && (
-                <th className="text-left text-xs font-bold uppercase tracking-wide text-muted-foreground px-3.5 py-3 border-b border-border whitespace-nowrap">
-                  {colMap['qty']?.label || 'Qty'}
-                </th>
-              )}
-              {colMap['condition']?.visible !== false && (
-                <th className="text-left text-xs font-bold uppercase tracking-wide text-muted-foreground px-3.5 py-3 border-b border-border whitespace-nowrap">
-                  {colMap['condition']?.label || 'Condition'}
-                </th>
-              )}
-              {colMap['risk']?.visible !== false && (
-                <th className="text-left text-xs font-bold uppercase tracking-wide text-muted-foreground px-3.5 py-3 border-b border-border whitespace-nowrap">
-                  {colMap['risk']?.label || 'Risk'}
-                </th>
-              )}
-              {colMap['nextInspection']?.visible !== false && (
-                <th className="text-left text-xs font-bold uppercase tracking-wide text-muted-foreground px-3.5 py-3 border-b border-border whitespace-nowrap">
-                  {colMap['nextInspection']?.label || 'Next Inspection'}
-                </th>
-              )}
-              {colMap['status']?.visible !== false && (
-                <th className="text-left text-xs font-bold uppercase tracking-wide text-muted-foreground px-3.5 py-3 border-b border-border whitespace-nowrap">
-                  {colMap['status']?.label || 'Status'}
-                </th>
-              )}
-              {colMap['actions']?.visible !== false && (
-                <th className="text-left text-xs font-bold uppercase tracking-wide text-muted-foreground px-3.5 py-3 border-b border-border whitespace-nowrap">
-                  {colMap['actions']?.label || 'Actions'}
-                </th>
-              )}
+              ))}
             </tr>
           </thead>
           <tbody>
@@ -748,106 +754,191 @@ export default function AssetsClient() {
                     onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.background = 'var(--surface2)')}
                     onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.background = 'transparent')}
                   >
-                    {colMap['assetId']?.visible !== false && (
-                      <td className="px-3 py-2.5 font-mono text-xs font-semibold" style={{ color: 'var(--primary)' }}>
-                        {asset.assetId}
-                      </td>
-                    )}
-                    {colMap['name']?.visible !== false && (
-                      <td className="px-3 py-2.5">
-                        <span
-                          className="font-medium text-sm"
-                          style={{ color: 'var(--foreground)' }}
+                    {activeColumns.map((col) => {
+                      const colKey = col.id.toLowerCase();
+                      if (colKey === 'assetid') {
+                        return (
+                          <td key={col.id} className="px-3 py-2.5 font-mono text-xs font-semibold" style={{ color: 'var(--primary)' }}>
+                            {asset.assetId}
+                          </td>
+                        );
+                      }
+                      if (colKey === 'name') {
+                        return (
+                          <td key={col.id} className="px-3 py-2.5">
+                            <span className="font-medium text-sm" style={{ color: 'var(--foreground)' }}>
+                              {asset.name}
+                            </span>
+                          </td>
+                        );
+                      }
+                      if (colKey === 'category') {
+                        return (
+                          <td key={col.id} className="px-3 py-2.5">
+                            <span className="text-xs px-2 py-0.5 rounded-full font-medium" style={{ background: 'var(--surface3)', color: 'var(--text2)' }}>
+                              {asset.category}
+                            </span>
+                          </td>
+                        );
+                      }
+                      if (colKey === 'property') {
+                        return (
+                          <td key={col.id} className="px-3 py-2.5 text-xs text-muted-foreground" title={propDisplayName}>
+                            {propDisplayName.split(' ').slice(0, 2).join(' ')}
+                          </td>
+                        );
+                      }
+                      if (colKey === 'department') {
+                        return (
+                          <td key={col.id} className="px-3 py-2.5 text-xs text-muted-foreground">{asset.department}</td>
+                        );
+                      }
+                      if (colKey === 'location') {
+                        return (
+                          <td key={col.id} className="px-3 py-2.5 text-xs text-muted-foreground">{asset.location}</td>
+                        );
+                      }
+                      if (colKey === 'qty') {
+                        return (
+                          <td key={col.id} className="px-3 py-2.5 text-xs font-semibold">{asset.quantity}</td>
+                        );
+                      }
+                      if (colKey === 'condition') {
+                        return (
+                          <td key={col.id} className="px-3 py-2.5">
+                            <Badge label={asset.condition} style={CONDITION_STYLES[asset.condition] || CONDITION_STYLES.good} />
+                          </td>
+                        );
+                      }
+                      if (colKey === 'risk') {
+                        return (
+                          <td key={col.id} className="px-3 py-2.5">
+                            <Badge label={asset.riskLevel} style={RISK_STYLES[asset.riskLevel] || RISK_STYLES.low} />
+                          </td>
+                        );
+                      }
+                      if (colKey === 'nextinspection') {
+                        return (
+                          <td key={col.id} className="px-3 py-2.5 text-xs text-muted-foreground whitespace-nowrap">
+                            {asset.nextInspectionDate ? new Date(asset.nextInspectionDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: '2-digit' }) : '—'}
+                          </td>
+                        );
+                      }
+                      if (colKey === 'status') {
+                        return (
+                          <td key={col.id} className="px-3 py-2.5" onClick={(e) => e.stopPropagation()}>
+                            {!canEdit || isViewer ? (
+                              <Badge label={STATUS_CONFIG[asset.status || 'active']?.label || asset.status || 'Active'} style={s} />
+                            ) : (
+                              <StatusDropdown
+                                value={asset.status || 'active'}
+                                options={[
+                                  { value: 'active', label: 'Active', color: '#3dd68c', bg: 'rgba(61,214,140,0.12)' },
+                                  { value: 'under-maintenance', label: 'Under Maintenance', color: '#f59e0b', bg: 'rgba(245,158,11,0.12)' },
+                                  { value: 'inactive', label: 'Inactive', color: '#94a3b8', bg: 'rgba(148,163,184,0.12)' },
+                                  { value: 'disposed', label: 'Disposed', color: '#f43f5e', bg: 'rgba(244,63,94,0.12)' },
+                                  { value: 'lost', label: 'Lost', color: '#f43f5e', bg: 'rgba(244,63,94,0.12)' },
+                                ]}
+                                onChange={(val) => handleStatusChange(asset.id, val)}
+                              />
+                            )}
+                          </td>
+                        );
+                      }
+                      if (colKey === 'actions') {
+                        return (
+                          <td key={col.id} className="px-3 py-2.5" onClick={(e) => e.stopPropagation()}>
+                            <div className="flex items-center gap-1.5 whitespace-nowrap justify-end">
+                              <Link
+                                href={`/asset-management/assets/${asset.id}`}
+                                onClick={() => cacheAssetForDetail(asset)}
+                                className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-colors hover:bg-surface2"
+                                style={{ background: 'rgba(232,201,122,0.12)', color: 'var(--primary)', border: '1px solid rgba(232,201,122,0.25)' }}
+                                title="View Full Details"
+                              >
+                                <ExternalLink size={11} />
+                                View
+                              </Link>
+                              <button
+                                onClick={() => handleOpenEditAsset(asset)}
+                                className="p-1.5 rounded-lg border border-border hover:bg-surface2 text-muted-foreground hover:text-primary transition-colors cursor-pointer"
+                                title="Edit Asset"
+                              >
+                                <Edit2 size={12} />
+                              </button>
+                              <button
+                                onClick={() => setAssetToDelete(asset)}
+                                className="p-1.5 rounded-lg border border-rose-500/20 hover:bg-rose-500/15 text-rose-400 transition-colors cursor-pointer"
+                                title="Delete Asset"
+                              >
+                                <Trash2 size={12} />
+                              </button>
+                            </div>
+                          </td>
+                        );
+                      }
+
+                      // Dynamic custom column value with inline quick editing!
+                      const val = (asset as any)[col.id] ?? (asset as any)[colKey];
+                      const isEditing = inlineEditingCell?.id === asset.id && inlineEditingCell?.colId === col.id;
+
+                      if (isEditing) {
+                        return (
+                          <td key={col.id} className="px-2 py-1.5 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
+                            <div className="flex items-center gap-1">
+                              <input
+                                type="text"
+                                autoFocus
+                                value={inlineVal}
+                                onChange={(e) => setInlineVal(e.target.value)}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter') {
+                                    handleSaveInlineCustom(asset.id, col.id, inlineVal);
+                                  } else if (e.key === 'Escape') {
+                                    setInlineEditingCell(null);
+                                  }
+                                }}
+                                onBlur={() => handleSaveInlineCustom(asset.id, col.id, inlineVal)}
+                                placeholder={`Enter ${col.label}...`}
+                                className="px-2 py-1 text-xs rounded border border-primary outline-none text-foreground w-full min-w-[120px] shadow-sm"
+                                style={{ background: 'var(--surface2)' }}
+                              />
+                              <button
+                                type="button"
+                                onMouseDown={(e) => {
+                                  e.preventDefault();
+                                  handleSaveInlineCustom(asset.id, col.id, inlineVal);
+                                }}
+                                className="p-1 rounded bg-primary text-black hover:opacity-90 shrink-0"
+                                title="Save"
+                              >
+                                <Check size={11} strokeWidth={3} />
+                              </button>
+                            </div>
+                          </td>
+                        );
+                      }
+
+                      return (
+                        <td
+                          key={col.id}
+                          className="px-3 py-2.5 text-xs whitespace-nowrap cursor-pointer hover:bg-white/[0.04] transition-colors group"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setInlineEditingCell({ id: asset.id, colId: col.id });
+                            setInlineVal(String(val !== undefined && val !== null ? val : ''));
+                          }}
+                          title={`Click to edit ${col.label}`}
                         >
-                          {asset.name}
-                        </span>
-                      </td>
-                    )}
-                    {colMap['category']?.visible !== false && (
-                      <td className="px-3 py-2.5">
-                        <span className="text-xs px-2 py-0.5 rounded-full font-medium" style={{ background: 'var(--surface3)', color: 'var(--text2)' }}>
-                          {asset.category}
-                        </span>
-                      </td>
-                    )}
-                    {colMap['property']?.visible !== false && (
-                      <td className="px-3 py-2.5 text-xs text-muted-foreground" title={propDisplayName}>
-                        {propDisplayName.split(' ').slice(0, 2).join(' ')}
-                      </td>
-                    )}
-                    {colMap['department']?.visible !== false && (
-                      <td className="px-3 py-2.5 text-xs text-muted-foreground">{asset.department}</td>
-                    )}
-                    {colMap['location']?.visible !== false && (
-                      <td className="px-3 py-2.5 text-xs text-muted-foreground">{asset.location}</td>
-                    )}
-                    {colMap['qty']?.visible !== false && (
-                      <td className="px-3 py-2.5 text-xs font-semibold">{asset.quantity}</td>
-                    )}
-                    {colMap['condition']?.visible !== false && (
-                      <td className="px-3 py-2.5">
-                        <Badge label={asset.condition} style={CONDITION_STYLES[asset.condition] || CONDITION_STYLES.good} />
-                      </td>
-                    )}
-                    {colMap['risk']?.visible !== false && (
-                      <td className="px-3 py-2.5">
-                        <Badge label={asset.riskLevel} style={RISK_STYLES[asset.riskLevel] || RISK_STYLES.low} />
-                      </td>
-                    )}
-                    {colMap['nextInspection']?.visible !== false && (
-                      <td className="px-3 py-2.5 text-xs text-muted-foreground whitespace-nowrap">
-                        {asset.nextInspectionDate ? new Date(asset.nextInspectionDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: '2-digit' }) : '—'}
-                      </td>
-                    )}
-                    {colMap['status']?.visible !== false && (
-                      <td className="px-3 py-2.5" onClick={(e) => e.stopPropagation()}>
-                        {!canEdit || isViewer ? (
-                          <Badge label={STATUS_CONFIG[asset.status || 'active']?.label || asset.status || 'Active'} style={s} />
-                        ) : (
-                          <StatusDropdown
-                            value={asset.status || 'active'}
-                            options={[
-                              { value: 'active', label: 'Active', color: '#3dd68c', bg: 'rgba(61,214,140,0.12)' },
-                              { value: 'under-maintenance', label: 'Under Maintenance', color: '#f59e0b', bg: 'rgba(245,158,11,0.12)' },
-                              { value: 'inactive', label: 'Inactive', color: '#94a3b8', bg: 'rgba(148,163,184,0.12)' },
-                              { value: 'disposed', label: 'Disposed', color: '#f43f5e', bg: 'rgba(244,63,94,0.12)' },
-                              { value: 'lost', label: 'Lost', color: '#f43f5e', bg: 'rgba(244,63,94,0.12)' },
-                            ]}
-                            onChange={(val) => handleStatusChange(asset.id, val)}
-                          />
-                        )}
-                      </td>
-                    )}
-                    {colMap['actions']?.visible !== false && (
-                      <td className="px-3 py-2.5" onClick={(e) => e.stopPropagation()}>
-                      <div className="flex items-center gap-1.5 whitespace-nowrap">
-                        <Link
-                          href={`/asset-management/assets/${asset.id}`}
-                          onClick={() => cacheAssetForDetail(asset)}
-                          className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-colors hover:bg-surface2"
-                          style={{ background: 'rgba(232,201,122,0.12)', color: 'var(--primary)', border: '1px solid rgba(232,201,122,0.25)' }}
-                          title="View Full Details"
-                        >
-                          <ExternalLink size={11} />
-                          View
-                        </Link>
-                        <button
-                          onClick={() => handleOpenEditAsset(asset)}
-                          className="p-1.5 rounded-lg border border-border hover:bg-surface2 text-muted-foreground hover:text-primary transition-colors"
-                          title="Edit Asset"
-                        >
-                          <Edit2 size={12} />
-                        </button>
-                        <button
-                          onClick={() => setAssetToDelete(asset)}
-                          className="p-1.5 rounded-lg border border-rose-500/20 hover:bg-rose-500/15 text-rose-400 transition-colors"
-                          title="Delete Asset"
-                        >
-                          <Trash2 size={12} />
-                        </button>
-                      </div>
-                    </td>
-                    )}
+                          <div className="flex items-center gap-1.5">
+                            <span className={val !== undefined && val !== null && String(val).trim() !== '' ? 'text-foreground font-medium' : 'text-muted-foreground/60'}>
+                              {val !== undefined && val !== null && String(val).trim() !== '' ? String(val) : '—'}
+                            </span>
+                            <Edit2 size={10} className="opacity-0 group-hover:opacity-60 text-primary transition-opacity shrink-0" />
+                          </div>
+                        </td>
+                      );
+                    })}
                   </tr>
                 );
               })
@@ -1161,6 +1252,41 @@ export default function AssetsClient() {
                 </label>
               </div>
 
+              {/* Dynamic Custom Columns */}
+              {customColumns && customColumns.length > 0 && (
+                <div className="pt-3 border-t border-border space-y-3">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-bold uppercase tracking-wider text-primary">
+                      Custom Columns ({customColumns.length})
+                    </label>
+                    <span className="text-[11px] text-muted-foreground">Dynamically configured attributes</span>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {customColumns.map((col) => (
+                      <div key={col.id}>
+                        <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wide">
+                          {col.label}
+                        </label>
+                        <input
+                          type="text"
+                          value={(newAssetForm as any)[col.id] ?? (newAssetForm as any)[col.id.toLowerCase()] ?? ''}
+                          onChange={(e) =>
+                            setNewAssetForm({
+                              ...newAssetForm,
+                              [col.id]: e.target.value,
+                              [col.id.toLowerCase()]: e.target.value,
+                            })
+                          }
+                          placeholder={`Enter ${col.label}...`}
+                          className="w-full px-3 py-2 rounded-lg border border-border text-xs outline-none"
+                          style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               <div className="flex items-center justify-end gap-3 pt-3 border-t border-border">
                 <button
                   type="button"
@@ -1404,6 +1530,41 @@ export default function AssetsClient() {
                   Fixed Asset (affects balance sheet & fixed asset register)
                 </label>
               </div>
+
+              {/* Dynamic Custom Columns */}
+              {customColumns && customColumns.length > 0 && (
+                <div className="pt-3 border-t border-border space-y-3">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-bold uppercase tracking-wider text-primary">
+                      Custom Columns ({customColumns.length})
+                    </label>
+                    <span className="text-[11px] text-muted-foreground">Dynamically configured attributes</span>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {customColumns.map((col) => (
+                      <div key={col.id}>
+                        <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wide">
+                          {col.label}
+                        </label>
+                        <input
+                          type="text"
+                          value={editingAsset[col.id] ?? editingAsset[col.id.toLowerCase()] ?? ''}
+                          onChange={(e) =>
+                            setEditingAsset({
+                              ...editingAsset,
+                              [col.id]: e.target.value,
+                              [col.id.toLowerCase()]: e.target.value,
+                            })
+                          }
+                          placeholder={`Enter ${col.label}...`}
+                          className="w-full px-3 py-2 rounded-lg border border-border text-xs outline-none"
+                          style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               <div className="flex items-center justify-end gap-3 pt-3 border-t border-border">
                 <button

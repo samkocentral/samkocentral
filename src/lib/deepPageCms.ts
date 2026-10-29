@@ -23,6 +23,9 @@ export interface ColumnDefinition {
   originalLabel: string;
   visible: boolean;
   order: number;
+  type?: 'text' | 'number' | 'date' | 'badge' | 'status' | 'custom';
+  defaultValue?: any;
+  isCustom?: boolean;
 }
 
 export interface DeepPageKpi {
@@ -117,12 +120,12 @@ export interface DeepAppCMSStore {
   qr: DeepPageConfig;
 }
 
-const STORAGE_KEY = 'samko:deep_page_cms_v10';
+const STORAGE_KEY = 'samko:deep_page_cms_v11';
 const EVENT_KEY = 'samko:deep-page-cms-updated';
 
 // Automatically purge legacy cache keys once in browser
 if (typeof window !== 'undefined') {
-  for (let i = 1; i <= 9; i++) {
+  for (let i = 1; i <= 10; i++) {
     try {
       localStorage.removeItem(`samko:deep_page_cms_v${i}`);
     } catch {}
@@ -139,7 +142,7 @@ export const DEFAULT_DEEP_CMS: DeepAppCMSStore = {
     badgeText: '8 Properties Active',
     badgeColor: '#e8c97a',
     searchPlaceholder: 'Search properties by name, city, manager, phone...',
-    primaryActionLabel: '+ Add Property',
+    primaryActionLabel: 'Add Property',
     dropdowns: [
       { id: 'city', label: 'City / Region', options: ['All Cities', 'London', 'Surrey', 'West Sussex', 'Bedfordshire'] },
       { id: 'status', label: 'Property Status', options: ['All Statuses', 'active', 'inactive'] },
@@ -258,7 +261,7 @@ export const DEFAULT_DEEP_CMS: DeepAppCMSStore = {
     badgeText: 'Fixed Assets',
     badgeColor: '#60a5fa',
     searchPlaceholder: 'Search fixed assets, ID, location, serial number...',
-    primaryActionLabel: '+ Add Asset',
+    primaryActionLabel: 'Add Asset',
     secondaryActionLabel: 'Import Excel',
     kpis: [
       { id: 'asset-kpi-1', label: 'Total Fixed Assets', value: '62 Items', subtitle: 'Across 8 properties', color: '#60a5fa', enabled: true },
@@ -316,7 +319,7 @@ export const DEFAULT_DEEP_CMS: DeepAppCMSStore = {
     badgeText: '7 Categories Defined',
     badgeColor: '#e8c97a',
     searchPlaceholder: 'Search categories...',
-    primaryActionLabel: '+ Add Category',
+    primaryActionLabel: 'Add Category',
     dropdowns: [
       { id: 'categoryType', label: 'Category Group', options: ['All Groups', 'Fixed Capital', 'FF&E Movable', 'Life Safety', 'Kitchen & Food Ops'] },
     ],
@@ -334,7 +337,7 @@ export const DEFAULT_DEEP_CMS: DeepAppCMSStore = {
     badgeText: 'PPM Operations',
     badgeColor: '#60a5fa',
     searchPlaceholder: 'Search asset, type, property…',
-    primaryActionLabel: '+ Schedule Maintenance',
+    primaryActionLabel: 'Schedule Maintenance',
     kpis: [
       { id: 'maint-kpi-1', label: 'Scheduled', value: `${MAINTENANCE_RECORDS.filter((m) => m.status === 'scheduled').length} Tasks`, subtitle: 'Upcoming preventive work', color: '#60a5fa', enabled: true },
       { id: 'maint-kpi-2', label: 'Due Today', value: `${MAINTENANCE_RECORDS.filter((m) => m.status === 'due-today').length} Due`, subtitle: 'Critical deadline today', color: '#f59e0b', enabled: true },
@@ -357,9 +360,14 @@ export const DEFAULT_DEEP_CMS: DeepAppCMSStore = {
     items: MAINTENANCE_RECORDS.map((m) => ({
       id: m.id,
       asset: m.assetName,
+      assetName: m.assetName,
+      assetId: m.assetId,
       property: m.hotelName,
+      hotelName: m.hotelName,
+      hotelId: m.hotelId,
       type: m.type,
       frequency: m.frequency,
+      scheduledDate: m.scheduledDate,
       nextDueDate: m.nextDueDate,
       assignedTo: m.assignedTo,
       status: m.status,
@@ -372,7 +380,7 @@ export const DEFAULT_DEEP_CMS: DeepAppCMSStore = {
     badgeText: 'Statutory Register',
     badgeColor: '#3dd68c',
     searchPlaceholder: 'Search compliance, property, authority...',
-    primaryActionLabel: '+ Add Compliance Item',
+    primaryActionLabel: 'Add Compliance Item',
     secondaryActionLabel: 'Export Register',
     kpis: [
       { id: 'comp-kpi-1', label: 'Total Items', value: `${(db.compliance || []).length} Items`, subtitle: 'All statutory items', color: '#60a5fa', enabled: true },
@@ -418,7 +426,7 @@ export const DEFAULT_DEEP_CMS: DeepAppCMSStore = {
     badgeText: '39 Contracts Active',
     badgeColor: '#3dd68c',
     searchPlaceholder: 'Search contracts, suppliers, categories, hotels...',
-    primaryActionLabel: '+ Add Contract',
+    primaryActionLabel: 'Add Contract',
     secondaryActionLabel: 'Export Register',
     kpis: [
       { id: 'cont-kpi-1', label: 'Active Contracts', value: '39 Active', subtitle: 'Live supplier agreements', color: '#3dd68c', enabled: true },
@@ -466,7 +474,7 @@ export const DEFAULT_DEEP_CMS: DeepAppCMSStore = {
     badgeText: '£43.5M Cover Active',
     badgeColor: '#60a5fa',
     searchPlaceholder: 'Search policies, company, property...',
-    primaryActionLabel: '+ Add Policy',
+    primaryActionLabel: 'Add Policy',
     secondaryActionLabel: 'Policy Claims',
     kpis: [
       { id: 'ins-kpi-1', label: 'Total Coverage', value: '£43.5M', subtitle: 'Across all portfolio properties', color: '#60a5fa', enabled: true },
@@ -508,7 +516,7 @@ export const DEFAULT_DEEP_CMS: DeepAppCMSStore = {
     badgeText: '23 Accounts Active',
     badgeColor: '#3dd68c',
     searchPlaceholder: 'Search accounts, suppliers, meter refs...',
-    primaryActionLabel: '+ Add Utility Account',
+    primaryActionLabel: 'Add Utility Account',
     secondaryActionLabel: 'Export Register',
     kpis: [
       { id: 'util-kpi-1', label: 'Active Accounts', value: '7 Accounts', subtitle: 'Live utility supplies', color: '#3dd68c', enabled: true },
@@ -550,7 +558,7 @@ export const DEFAULT_DEEP_CMS: DeepAppCMSStore = {
     badgeText: '10 Tasks Managed',
     badgeColor: '#f59e0b',
     searchPlaceholder: 'Search tasks by title, room, assignee...',
-    primaryActionLabel: '+ Add Item',
+    primaryActionLabel: 'Add Item',
     secondaryActionLabel: 'Upload Doc',
     kpis: [
       { id: 'task-kpi-1', label: 'Open Tasks', value: '7 Tasks', subtitle: 'Across all portfolio properties', color: '#60a5fa', enabled: true },
@@ -662,7 +670,7 @@ export const DEFAULT_DEEP_CMS: DeepAppCMSStore = {
     badgeText: 'Audits Active',
     badgeColor: '#60a5fa',
     searchPlaceholder: 'Search inspections...',
-    primaryActionLabel: '+ Start New Audit',
+    primaryActionLabel: 'Start New Audit',
     secondaryActionLabel: 'Schedule Audit',
     kpis: [
       { id: 'insp-kpi-1', label: 'Total Audits Conducted', value: '42 Audits', subtitle: 'Across all portfolio sites', color: '#60a5fa', enabled: true },
@@ -695,7 +703,7 @@ export const DEFAULT_DEEP_CMS: DeepAppCMSStore = {
     badgeText: '8 Sites Connected',
     badgeColor: '#38bdf8',
     searchPlaceholder: 'Filter sites by property name, manager, city, phone...',
-    primaryActionLabel: '+ Add Site',
+    primaryActionLabel: 'Add Site',
     secondaryActionLabel: 'View Map',
     dropdowns: [
       { id: 'region', label: 'Portfolio Region', options: ['All Regions', 'London & Greater London', 'Surrey & South East', 'Home Counties'] },
@@ -766,7 +774,7 @@ export const DEFAULT_DEEP_CMS: DeepAppCMSStore = {
     badgeText: 'L1 Super Admin',
     badgeColor: '#f43f5e',
     searchPlaceholder: 'Search users by name, email, portal, hotel, role...',
-    primaryActionLabel: '+ Add User Account',
+    primaryActionLabel: 'Add User Account',
     secondaryActionLabel: 'Audit Permissions',
     kpis: [
       { id: 'usr-kpi-1', label: 'L1 Super Admin', value: `${(db.users || []).filter((u: any) => u.roleLevel === 'L1').length} Accounts`, subtitle: 'Full system authority', color: '#f43f5e', enabled: true },
@@ -830,7 +838,7 @@ export const DEFAULT_DEEP_CMS: DeepAppCMSStore = {
     badgeText: '248 FF&E Items',
     badgeColor: '#60a5fa',
     searchPlaceholder: 'Search loose equipment, rooms, furniture, serial...',
-    primaryActionLabel: '+ Add FF&E Asset',
+    primaryActionLabel: 'Add FF&E Asset',
     secondaryActionLabel: 'Print QR Asset Labels',
     kpis: [
       { id: 'nf-kpi-1', label: 'Total FF&E Items', value: '248 Items', subtitle: 'Across all guest rooms & public areas', color: '#60a5fa', enabled: true },
@@ -897,7 +905,7 @@ export const DEFAULT_DEEP_CMS: DeepAppCMSStore = {
     badgeText: 'Statutory Radar',
     badgeColor: '#f43f5e',
     searchPlaceholder: 'Search compliance obligations, certificates, assignees...',
-    primaryActionLabel: '+ Log Compliance / Issue',
+    primaryActionLabel: 'Log Compliance / Issue',
     secondaryActionLabel: 'Export Schedule CSV',
     kpis: [
       { id: 'ct-kpi-1', label: 'Overdue / Expired', value: '4 Overdue', subtitle: 'Immediate regulatory risk', color: '#f43f5e', enabled: true },
@@ -935,7 +943,7 @@ export const DEFAULT_DEEP_CMS: DeepAppCMSStore = {
     badgeText: '5 Hotels Monitored',
     badgeColor: '#e8c97a',
     searchPlaceholder: 'Search portfolio properties, managers, cities, alerts...',
-    primaryActionLabel: '+ Add Item',
+    primaryActionLabel: 'Add Item',
     secondaryActionLabel: 'Upload Doc',
     topKpis: [
       { id: 'top-kpi-1', label: 'Non-Fixed Assets', value: '38', subtitle: 'Operational FF&E, kitchen & IT assets', color: '#60a5fa', enabled: true },
@@ -1058,7 +1066,7 @@ export function getDeepCMSStore(): DeepAppCMSStore {
           badgeText: saved.badgeText ?? def.badgeText,
           badgeColor: saved.badgeColor ?? def.badgeColor,
           searchPlaceholder: saved.searchPlaceholder || def.searchPlaceholder,
-          primaryActionLabel: saved.primaryActionLabel || def.primaryActionLabel,
+          primaryActionLabel: (saved.primaryActionLabel || def.primaryActionLabel)?.replace(/^\+\s*/, ''),
           secondaryActionLabel: saved.secondaryActionLabel || def.secondaryActionLabel,
           topKpis: def.topKpis
             ? def.topKpis.map((defKpi) => {
@@ -1087,15 +1095,26 @@ export function getDeepCMSStore(): DeepAppCMSStore {
           dropdowns: Array.isArray(saved.dropdowns)
             ? saved.dropdowns
             : (def.dropdowns ? [...def.dropdowns] : []),
-          columns: def.columns
-            ? def.columns.map((defCol) => {
-                const existing = saved.columns?.find((c) => c.id === defCol.id);
-                return existing ? { ...defCol, ...existing } : defCol;
-              })
-            : undefined,
+          columns: Array.isArray(saved.columns) && saved.columns.length > 0
+            ? (() => {
+                const savedCols: ColumnDefinition[] = saved.columns.map((c: any, idx: number) => ({
+                  ...c,
+                  order: typeof c.order === 'number' ? c.order : idx + 1,
+                  visible: c.visible !== false,
+                }));
+                savedCols.sort((a, b) => a.order - b.order);
+                const missingDefCols = (def.columns || []).filter(
+                  (defCol) => !savedCols.some((sc) => sc.id.toLowerCase() === defCol.id.toLowerCase())
+                );
+                return [...savedCols, ...missingDefCols].map((c, idx) => ({
+                  ...c,
+                  order: idx + 1,
+                }));
+              })()
+            : (def.columns ? def.columns.map((c, idx) => ({ ...c, order: idx + 1 })) : undefined),
           sections: undefined,
           customLabels: { ...def.customLabels, ...(saved.customLabels || {}) },
-          items: (!hasLegacyMockItems && saved.items && saved.items.length > 0) ? saved.items : def.items,
+          items: (!hasLegacyMockItems && Array.isArray(saved.items) && saved.items.length > 0) ? saved.items : def.items,
           alerts: saved.alerts && saved.alerts.length > 0 ? saved.alerts : def.alerts,
           tasks: saved.tasks && saved.tasks.length > 0 ? saved.tasks : def.tasks,
           chartData: saved.chartData && saved.chartData.length > 0 ? saved.chartData : def.chartData,
@@ -1114,14 +1133,43 @@ export function saveDeepCMSStore(store: DeepAppCMSStore): void {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(store));
     window.dispatchEvent(new CustomEvent(EVENT_KEY, { detail: store }));
+    fetch('/api/cms', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(store),
+    }).catch((err) => console.warn('[CMS] Remote sync error:', err));
   } catch (err) {
     console.error('Error saving Deep CMS:', err);
   }
 }
 
+// Background sync from Firebase Firestore
+if (typeof window !== 'undefined') {
+  setTimeout(() => {
+    fetch('/api/cms')
+      .then((r) => r.json())
+      .then((res) => {
+        if (res.success && res.data && typeof res.data === 'object' && res.source !== 'default') {
+          const current = getDeepCMSStore();
+          const merged = { ...current, ...res.data };
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(merged));
+          window.dispatchEvent(new CustomEvent(EVENT_KEY, { detail: merged }));
+        }
+      })
+      .catch((err) => console.warn('[CMS] Remote load fallback:', err));
+  }, 200);
+}
+
 export function getPageConfig(pageId: keyof DeepAppCMSStore): DeepPageConfig {
   const store = getDeepCMSStore();
-  return store[pageId] || DEFAULT_DEEP_CMS[pageId];
+  const page = store[pageId] || DEFAULT_DEEP_CMS[pageId];
+  if (page && page.primaryActionLabel) {
+    return {
+      ...page,
+      primaryActionLabel: page.primaryActionLabel.replace(/^\+\s*/, ''),
+    };
+  }
+  return page;
 }
 
 export function updatePageConfig(
@@ -1129,9 +1177,13 @@ export function updatePageConfig(
   updates: Partial<DeepPageConfig>
 ): DeepPageConfig {
   const store = getDeepCMSStore();
+  const sanitizedUpdates = { ...updates };
+  if (sanitizedUpdates.primaryActionLabel) {
+    sanitizedUpdates.primaryActionLabel = sanitizedUpdates.primaryActionLabel.replace(/^\+\s*/, '');
+  }
   store[pageId] = {
     ...store[pageId],
-    ...updates,
+    ...sanitizedUpdates,
   };
   saveDeepCMSStore(store);
   return store[pageId];
@@ -1166,6 +1218,150 @@ export function toggleColumnVisibility(
   if (colIndex === -1) return false;
 
   page.columns[colIndex].visible = !page.columns[colIndex].visible;
+  saveDeepCMSStore(store);
+  return true;
+}
+
+export function reorderColumns(
+  pageId: keyof DeepAppCMSStore,
+  newColumns: ColumnDefinition[]
+): boolean {
+  const store = getDeepCMSStore();
+  const page = store[pageId];
+  if (!page) return false;
+
+  page.columns = newColumns.map((col, idx) => ({
+    ...col,
+    order: idx + 1,
+  }));
+  saveDeepCMSStore(store);
+  return true;
+}
+
+export function moveColumn(
+  pageId: keyof DeepAppCMSStore,
+  columnId: string,
+  direction: 'left' | 'right'
+): boolean {
+  const store = getDeepCMSStore();
+  const page = store[pageId];
+  if (!page || !page.columns) return false;
+
+  const cols = [...page.columns].sort((a, b) => a.order - b.order);
+  const idx = cols.findIndex((c) => c.id.toLowerCase() === columnId.toLowerCase());
+  if (idx === -1) return false;
+
+  const targetIdx = direction === 'left' ? idx - 1 : idx + 1;
+  if (targetIdx < 0 || targetIdx >= cols.length) return false;
+
+  const [removed] = cols.splice(idx, 1);
+  cols.splice(targetIdx, 0, removed);
+
+  page.columns = cols.map((col, i) => ({
+    ...col,
+    order: i + 1,
+  }));
+  saveDeepCMSStore(store);
+  return true;
+}
+
+export function addColumn(
+  pageId: keyof DeepAppCMSStore,
+  column: {
+    id: string;
+    label: string;
+    originalLabel?: string;
+    visible?: boolean;
+    type?: string;
+    defaultValue?: any;
+    isCustom?: boolean;
+  }
+): boolean {
+  const store = getDeepCMSStore();
+  const page = store[pageId];
+  if (!page) return false;
+
+  if (!page.columns) page.columns = [];
+
+  const rawId = (column.id || column.label).trim();
+  const safeId = rawId.toLowerCase().replace(/[^a-z0-9_]/g, '_');
+  if (!safeId) return false;
+
+  if (page.columns.some((c) => c.id.toLowerCase() === safeId.toLowerCase())) return false;
+
+  const newCol: ColumnDefinition = {
+    id: safeId,
+    label: column.label.trim() || safeId,
+    originalLabel: column.originalLabel || column.label.trim() || safeId,
+    visible: column.visible !== false,
+    order: page.columns.length + 1,
+    type: (column.type as any) || 'text',
+    defaultValue: column.defaultValue ?? '',
+    isCustom: true,
+  };
+
+  page.columns.push(newCol);
+
+  // Initialize field across all items for this page
+  if (Array.isArray(page.items)) {
+    page.items = page.items.map((item) => ({
+      ...item,
+      [safeId]: item[safeId] !== undefined ? item[safeId] : (column.defaultValue ?? ''),
+    }));
+  }
+
+  saveDeepCMSStore(store);
+  return true;
+}
+
+export function deleteColumn(
+  pageId: keyof DeepAppCMSStore,
+  columnId: string
+): boolean {
+  const store = getDeepCMSStore();
+  const page = store[pageId];
+  if (!page || !page.columns) return false;
+
+  page.columns = page.columns
+    .filter((c) => c.id.toLowerCase() !== columnId.toLowerCase())
+    .map((c, i) => ({ ...c, order: i + 1 }));
+
+  saveDeepCMSStore(store);
+  return true;
+}
+
+export function addCustomSection(
+  pageId: keyof DeepAppCMSStore,
+  sectionKey: string,
+  section: DeepPageSection,
+  initialItems?: Array<Record<string, any>>
+): boolean {
+  const store = getDeepCMSStore();
+  const page = store[pageId];
+  if (!page) return false;
+
+  if (!page.sections) page.sections = {};
+  const safeKey = sectionKey.toLowerCase().replace(/[^a-z0-9]/g, '_');
+  page.sections[safeKey] = section;
+
+  if (initialItems && initialItems.length > 0) {
+    if (!page.items) page.items = [];
+    page.items.push(...initialItems);
+  }
+
+  saveDeepCMSStore(store);
+  return true;
+}
+
+export function deletePageSection(
+  pageId: keyof DeepAppCMSStore,
+  sectionKey: string
+): boolean {
+  const store = getDeepCMSStore();
+  const page = store[pageId];
+  if (!page || !page.sections) return false;
+
+  delete page.sections[sectionKey];
   saveDeepCMSStore(store);
   return true;
 }
@@ -1580,9 +1776,12 @@ export function useDeepPageCms(pageId: keyof DeepAppCMSStore) {
     title: pageConfig.title,
     subtitle: pageConfig.subtitle,
     searchPlaceholder: pageConfig.searchPlaceholder,
-    primaryActionLabel: pageConfig.primaryActionLabel,
+    primaryActionLabel: pageConfig.primaryActionLabel?.replace(/^\+\s*/, '') || '',
     secondaryActionLabel: pageConfig.secondaryActionLabel,
     columns: pageConfig.columns || [],
+    sortedVisibleColumns: (pageConfig.columns || [])
+      .filter((c) => c.visible !== false)
+      .sort((a, b) => a.order - b.order),
     items: pageConfig.items || [],
     customLabels: pageConfig.customLabels || {},
     topKpis: pageConfig.topKpis || [],

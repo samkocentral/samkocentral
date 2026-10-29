@@ -14,6 +14,7 @@ import StatusDropdown from '@/components/ui/StatusDropdown';
 import LoadingPagination from '@/components/ui/LoadingPagination';
 import { useLoadingPagination } from '@/hooks/useLoadingPagination';
 import { toast } from 'sonner';
+import { useDeepPageCms } from '@/lib/deepPageCms';
 
 const PRIORITY_FILTERS = ['All', 'urgent', 'high', 'medium', 'low'] as const;
 const STATUS_FILTERS_TASK = ['All', 'open', 'in-progress', 'completed'] as const;
@@ -43,6 +44,24 @@ const STATUS_VARIANT: Record<TaskStatus, 'ok' | 'warning' | 'info' | 'critical'>
 
 export default function TaskManagerClient() {
   const { isViewer, canEdit } = useAuth();
+  const { columns: cmsColumns } = useDeepPageCms('tasks');
+
+  const activeColumns = useMemo(() => {
+    if (cmsColumns && cmsColumns.length > 0) {
+      return [...cmsColumns].sort((a, b) => a.order - b.order).filter((c) => c.visible !== false);
+    }
+    return [
+      { id: 'priority', label: 'Priority', visible: true, order: 1 },
+      { id: 'title', label: 'Task', visible: true, order: 2 },
+      { id: 'property', label: 'Site', visible: true, order: 3 },
+      { id: 'category', label: 'Category', visible: true, order: 4 },
+      { id: 'assignee', label: 'Assignee', visible: true, order: 5 },
+      { id: 'status', label: 'Status', visible: true, order: 6 },
+      { id: 'dueDate', label: 'Due Date', visible: true, order: 7 },
+      { id: 'daysLeft', label: 'Days Left', visible: true, order: 8 },
+    ];
+  }, [cmsColumns]);
+
   const [tasks, setTasks] = useState<Task[]>(TASKS);
   const [propertyList, setPropertyList] = useState<string[]>([
     'Crowne Plaza Kingston-south',
@@ -328,8 +347,8 @@ export default function TaskManagerClient() {
             <table style={{ width: '100%', minWidth: 860, borderCollapse: 'collapse' }}>
               <thead>
                 <tr>
-                  {['Priority', 'Task', 'Site', 'Category', 'Assignee', 'Status', 'Due Date', 'Days Left'].map((h) => (
-                    <th key={`task-th-${h}`} className="table-header-cell">{h}</th>
+                  {activeColumns.map((col) => (
+                    <th key={`task-th-${col.id}`} className="table-header-cell">{col.label}</th>
                   ))}
                 </tr>
               </thead>
@@ -341,111 +360,154 @@ export default function TaskManagerClient() {
 
                   return (
                     <tr key={task.id} className="table-row-hover">
-                      <td className="table-cell">
-                        <div className="flex items-center gap-2">
-                          <span
-                            className="rounded-full flex-shrink-0"
-                            style={{
-                              width: 8,
-                              height: 8,
-                              background: PRIORITY_COLOR[task.priority],
-                              display: 'block',
-                            }}
-                          />
-                          <span
-                            style={{
-                              fontSize: 11,
-                              fontWeight: 600,
-                              color: PRIORITY_COLOR[task.priority],
-                              textTransform: 'capitalize',
-                            }}
-                          >
-                            {task.priority}
-                          </span>
-                        </div>
-                      </td>
-                      <td className="table-cell" style={{ maxWidth: 280 }}>
-                        <div className="text-foreground font-medium" style={{ fontSize: 13, lineHeight: 1.3 }}>
-                          {task.title}
-                        </div>
-                        <div className="text-muted-foreground" style={{ fontSize: 11, marginTop: 2, lineHeight: 1.4 }}>
-                          {task.description.length > 60 ? task.description.slice(0, 60) + '…' : task.description}
-                        </div>
-                      </td>
-                      <td className="table-cell text-muted2" style={{ fontSize: 12, whiteSpace: 'nowrap' }}>
-                        {task.site}
-                      </td>
-                      <td className="table-cell">
-                        <span
-                          className="rounded"
-                          style={{
-                            background: 'var(--surface3)',
-                            color: 'var(--text2)',
-                            fontSize: 10,
-                            fontWeight: 600,
-                            padding: '2px 8px',
-                            display: 'inline-block',
-                            whiteSpace: 'nowrap',
-                          }}
-                        >
-                          {task.category}
-                        </span>
-                      </td>
-                      <td className="table-cell">
-                        <div className="flex items-center gap-2">
-                          <div
-                            className="rounded-full flex items-center justify-center flex-shrink-0"
-                            style={{
-                              width: 22,
-                              height: 22,
-                              background: 'var(--surface3)',
-                              color: 'var(--text2)',
-                              fontSize: 8,
-                              fontWeight: 700,
-                            }}
-                          >
-                            {task.assignee.split(' ').map((n) => n[0]).join('').slice(0, 2)}
-                          </div>
-                          <span className="text-muted2 whitespace-nowrap" style={{ fontSize: 12 }}>
-                            {task.assignee}
-                          </span>
-                        </div>
-                      </td>
-                      <td className="table-cell">
-                        <StatusDropdown
-                          value={currentStatus}
-                          disabled={isViewer}
-                          title={isViewer ? 'Read-only access (L4 Viewer)' : 'Change task status'}
-                          options={[
-                            { value: 'open', label: 'Open', color: '#f59e0b', bg: 'var(--warning-bg)' },
-                            { value: 'in-progress', label: 'In Progress', color: '#60a5fa', bg: 'var(--info-bg)' },
-                            { value: 'completed', label: 'Completed', color: '#3dd68c', bg: 'var(--ok-bg)' },
-                          ]}
-                          onChange={(val) => handleStatusChange(task.id, val as TaskStatus)}
-                        />
-                      </td>
-                      <td className="table-cell text-muted2" style={{ fontSize: 12, whiteSpace: 'nowrap' }}>
-                        {formatDateGB(task.due).split(' ').slice(0, 2).join(' ')}
-                      </td>
-                      <td className="table-cell">
-                        <span
-                          className="font-head tabular-nums"
-                          style={{
-                            fontSize: 13,
-                            fontWeight: 700,
-                            color:
-                              days < 0
-                                ? 'var(--critical)'
-                                : days <= 7
-                                ? 'var(--critical)'
-                                : days <= 30
-                                ? 'var(--warning)'
-                                : 'var(--text2)',
-                          }}
-                        >
-                          {days < 0 ? `${Math.abs(days)}d overdue` : `${days}d`}
-                        </span>
-                      </td>
+                      {activeColumns.map((col) => {
+                        const colKey = col.id.toLowerCase();
+                        if (colKey === 'priority') {
+                          return (
+                            <td key={col.id} className="table-cell">
+                              <div className="flex items-center gap-2">
+                                <span
+                                  className="rounded-full flex-shrink-0"
+                                  style={{
+                                    width: 8,
+                                    height: 8,
+                                    background: PRIORITY_COLOR[task.priority],
+                                    display: 'block',
+                                  }}
+                                />
+                                <span
+                                  style={{
+                                    fontSize: 11,
+                                    fontWeight: 600,
+                                    color: PRIORITY_COLOR[task.priority],
+                                    textTransform: 'capitalize',
+                                  }}
+                                >
+                                  {task.priority}
+                                </span>
+                              </div>
+                            </td>
+                          );
+                        }
+                        if (colKey === 'title' || colKey === 'task') {
+                          return (
+                            <td key={col.id} className="table-cell" style={{ maxWidth: 280 }}>
+                              <div className="text-foreground font-medium" style={{ fontSize: 13, lineHeight: 1.3 }}>
+                                {task.title}
+                              </div>
+                              <div className="text-muted-foreground" style={{ fontSize: 11, marginTop: 2, lineHeight: 1.4 }}>
+                                {task.description.length > 60 ? task.description.slice(0, 60) + '…' : task.description}
+                              </div>
+                            </td>
+                          );
+                        }
+                        if (colKey === 'property' || colKey === 'site') {
+                          return (
+                            <td key={col.id} className="table-cell text-muted2" style={{ fontSize: 12, whiteSpace: 'nowrap' }}>
+                              {task.site}
+                            </td>
+                          );
+                        }
+                        if (colKey === 'category') {
+                          return (
+                            <td key={col.id} className="table-cell">
+                              <span
+                                className="rounded"
+                                style={{
+                                  background: 'var(--surface3)',
+                                  color: 'var(--text2)',
+                                  fontSize: 10,
+                                  fontWeight: 600,
+                                  padding: '2px 8px',
+                                  display: 'inline-block',
+                                  whiteSpace: 'nowrap',
+                                }}
+                              >
+                                {task.category}
+                              </span>
+                            </td>
+                          );
+                        }
+                        if (colKey === 'assignee') {
+                          return (
+                            <td key={col.id} className="table-cell">
+                              <div className="flex items-center gap-2">
+                                <div
+                                  className="rounded-full flex items-center justify-center flex-shrink-0"
+                                  style={{
+                                    width: 22,
+                                    height: 22,
+                                    background: 'var(--surface3)',
+                                    color: 'var(--text2)',
+                                    fontSize: 8,
+                                    fontWeight: 700,
+                                  }}
+                                >
+                                  {task.assignee.split(' ').map((n) => n[0]).join('').slice(0, 2)}
+                                </div>
+                                <span className="text-muted2 whitespace-nowrap" style={{ fontSize: 12 }}>
+                                  {task.assignee}
+                                </span>
+                              </div>
+                            </td>
+                          );
+                        }
+                        if (colKey === 'status') {
+                          return (
+                            <td key={col.id} className="table-cell">
+                              <StatusDropdown
+                                value={currentStatus}
+                                disabled={isViewer}
+                                title={isViewer ? 'Read-only access (L4 Viewer)' : 'Change task status'}
+                                options={[
+                                  { value: 'open', label: 'Open', color: '#f59e0b', bg: 'var(--warning-bg)' },
+                                  { value: 'in-progress', label: 'In Progress', color: '#60a5fa', bg: 'var(--info-bg)' },
+                                  { value: 'completed', label: 'Completed', color: '#3dd68c', bg: 'var(--ok-bg)' },
+                                ]}
+                                onChange={(val) => handleStatusChange(task.id, val as TaskStatus)}
+                              />
+                            </td>
+                          );
+                        }
+                        if (colKey === 'duedate' || colKey === 'due') {
+                          return (
+                            <td key={col.id} className="table-cell text-muted2" style={{ fontSize: 12, whiteSpace: 'nowrap' }}>
+                              {formatDateGB(task.due).split(' ').slice(0, 2).join(' ')}
+                            </td>
+                          );
+                        }
+                        if (colKey === 'daysleft') {
+                          return (
+                            <td key={col.id} className="table-cell">
+                              <span
+                                className="font-head tabular-nums"
+                                style={{
+                                  fontSize: 13,
+                                  fontWeight: 700,
+                                  color:
+                                    days < 0
+                                      ? 'var(--critical)'
+                                      : days <= 7
+                                      ? 'var(--critical)'
+                                      : days <= 30
+                                      ? 'var(--warning)'
+                                      : 'var(--text2)',
+                                }}
+                              >
+                                {days < 0 ? `${Math.abs(days)}d overdue` : `${days}d`}
+                              </span>
+                            </td>
+                          );
+                        }
+
+                        // Dynamic custom columns
+                        const val = (task as any)[col.id] ?? (task as any)[colKey];
+                        return (
+                          <td key={col.id} className="table-cell text-muted2" style={{ fontSize: 12, whiteSpace: 'nowrap' }}>
+                            {val !== undefined && val !== null && String(val).trim() !== '' ? String(val) : '—'}
+                          </td>
+                        );
+                      })}
                     </tr>
                   );
                 })}

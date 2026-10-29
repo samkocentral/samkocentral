@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { ScrollText, Clock, CheckCircle2, Plus, Search, Download, Eye, Edit2, FileText, Bell, RefreshCw, Handshake, DollarSign, ChevronDown, Loader2, Trash2, AlertTriangle, X, Upload, ExternalLink, Calendar } from 'lucide-react';
 import Icon from '@/components/ui/AppIcon';
@@ -557,7 +557,29 @@ export default function ContractsRegisterClient() {
     subtitle: cmsSubtitle,
     searchPlaceholder: cmsSearchPlaceholder,
     primaryActionLabel: cmsPrimaryActionLabel,
+    columns: cmsColumns,
+    items: cmsItems,
   } = useDeepPageCms('contracts');
+
+  const activeColumns = useMemo(() => {
+    if (cmsColumns && cmsColumns.length > 0) {
+      return [...cmsColumns].sort((a, b) => a.order - b.order).filter((c) => c.visible !== false);
+    }
+    return [
+      { id: 'contractId', label: 'ID', visible: true, order: 1 },
+      { id: 'contractName', label: 'Contract', visible: true, order: 2 },
+      { id: 'supplierName', label: 'Supplier', visible: true, order: 3 },
+      { id: 'category', label: 'Category', visible: true, order: 4 },
+      { id: 'hotel', label: 'Property', visible: true, order: 5 },
+      { id: 'contractValue', label: 'Value', visible: true, order: 6 },
+      { id: 'endDate', label: 'End Date', visible: true, order: 7 },
+      { id: 'daysLeft', label: 'Days Left', visible: true, order: 8 },
+      { id: 'autoRenew', label: 'Auto Renew', visible: true, order: 9 },
+      { id: 'contractOwner', label: 'Owner', visible: true, order: 10 },
+      { id: 'status', label: 'Status', visible: true, order: 11 },
+      { id: 'actions', label: 'Actions', visible: true, order: 12 },
+    ];
+  }, [cmsColumns]);
 
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -566,7 +588,16 @@ export default function ContractsRegisterClient() {
   const initialTab: 'register' | 'suppliers' | 'renewals' | 'slas' =
     tabParam === 'suppliers' || tabParam === 'renewals' || tabParam === 'slas' ? tabParam : 'register';
 
-  const [contracts, setContracts] = useState<Contract[]>(MOCK_CONTRACTS.map(normalizeContract));
+  const [contracts, setContracts] = useState<Contract[]>(() => {
+    if (cmsItems && cmsItems.length > 0) return (cmsItems as any).map(normalizeContract);
+    return MOCK_CONTRACTS.map(normalizeContract);
+  });
+
+  useEffect(() => {
+    if (cmsItems && cmsItems.length > 0) {
+      setContracts((cmsItems as any).map(normalizeContract));
+    }
+  }, [cmsItems]);
   const [properties, setProperties] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<'register' | 'suppliers' | 'renewals' | 'slas'>(initialTab);
@@ -939,7 +970,7 @@ export default function ContractsRegisterClient() {
             <Download size={13} /> Export
           </button>
           <button onClick={() => setShowAddModal(true)} className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-transform active:scale-95 cursor-pointer" style={{ background: 'var(--primary)', color: '#000' }}>
-            <Plus size={14} /> {cmsPrimaryActionLabel || 'Add Contract'}
+            <Plus size={14} /> {(cmsPrimaryActionLabel || 'Add Contract').replace(/^\+\s*/, '')}
           </button>
         </div>
       </div>
@@ -1000,8 +1031,15 @@ export default function ContractsRegisterClient() {
               <table className="w-full text-left border-collapse" style={{ minWidth: 960 }}>
                 <thead>
                   <tr style={{ background: 'var(--surface2)' }}>
-                    {['ID', 'Contract', 'Supplier', 'Category', 'Property', 'Value', 'End Date', 'Days Left', 'Auto Renew', 'Owner', 'Status', ''].map((h) => (
-                      <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide whitespace-nowrap">{h}</th>
+                    {activeColumns.map((col: any) => (
+                      <th
+                        key={col.id}
+                        className={`text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide whitespace-nowrap ${
+                          col.id.toLowerCase() === 'actions' ? 'text-right' : ''
+                        }`}
+                      >
+                        {col.label}
+                      </th>
                     ))}
                   </tr>
                 </thead>
@@ -1014,66 +1052,155 @@ export default function ContractsRegisterClient() {
                         onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--surface2)')}
                         onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
                         onClick={() => setSelectedContract(contract)}>
-                        <td className="px-4 py-3 text-xs font-mono text-muted-foreground whitespace-nowrap">{contract.contractId}</td>
-                        <td className="px-4 py-3"><div className="font-medium text-sm max-w-48 truncate">{contract.contractName}</div></td>
-                        <td className="px-4 py-3 text-sm text-muted-foreground whitespace-nowrap">{contract.supplierName}</td>
-                        <td className="px-4 py-3">
-                          <span className="text-xs px-2 py-0.5 rounded" style={{ background: 'var(--surface3)', color: 'var(--text2)' }}>{contract.category}</span>
-                        </td>
-                        <td className="px-4 py-3 text-sm text-muted-foreground whitespace-nowrap max-w-32 truncate">{contract.hotel}</td>
-                        <td className="px-4 py-3 text-sm font-medium whitespace-nowrap">{contract.contractValue > 0 ? fmt(contract.contractValue) + '/yr' : 'Variable'}</td>
-                        <td className="px-4 py-3 text-sm whitespace-nowrap">{new Date(contract.endDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</td>
-                        <td className="px-4 py-3 text-sm font-semibold whitespace-nowrap" style={{ color: days < 0 ? '#f43f5e' : days <= 30 ? '#f59e0b' : days <= 90 ? '#f97316' : '#3dd68c' }}>
-                          {days < 0 ? `${Math.abs(days)}d ago` : days > 3000 ? '∞' : `${days}d`}
-                        </td>
-                        <td className="px-4 py-3 text-center">
-                          <span className="text-xs font-semibold px-2 py-0.5 rounded-full" style={{ background: contract.autoRenew ? 'rgba(61,214,140,0.12)' : 'rgba(148,163,184,0.12)', color: contract.autoRenew ? '#3dd68c' : '#94a3b8' }}>
-                            {contract.autoRenew ? 'Yes' : 'No'}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3 text-sm text-muted-foreground whitespace-nowrap">{contract.contractOwner}</td>
-                        <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
-                          <div className="relative inline-block">
-                            <select
-                              value={contract.status}
-                              onChange={(e) => handleStatusChange(contract.id, e.target.value as ContractStatus)}
-                              className="appearance-none cursor-pointer pl-4 pr-6 py-1 rounded-full text-xs font-semibold outline-none transition-all capitalize"
-                              style={{
-                                background: sc.bg,
-                                color: sc.color,
-                                border: `1px solid ${sc.color}33`,
-                              }}
-                            >
-                              <option value="active" style={{ background: '#18181b', color: '#3dd68c' }}>Active</option>
-                              <option value="expiring-soon" style={{ background: '#18181b', color: '#f59e0b' }}>Expiring Soon</option>
-                              <option value="expired" style={{ background: '#18181b', color: '#f43f5e' }}>Expired</option>
-                              <option value="pending" style={{ background: '#18181b', color: '#60a5fa' }}>Pending</option>
-                              <option value="terminated" style={{ background: '#18181b', color: '#94a3b8' }}>Terminated</option>
-                            </select>
-                            <span
-                              className="w-1.5 h-1.5 rounded-full absolute left-2 top-1/2 -translate-y-1/2 pointer-events-none"
-                              style={{ background: sc.color }}
-                            />
-                            <ChevronDown
-                              size={11}
-                              className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none opacity-80"
-                              style={{ color: sc.color }}
-                            />
-                          </div>
-                        </td>
-                        <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
-                          <div className="flex items-center gap-1">
-                            <button className="p-1.5 rounded-lg hover:bg-surface2 transition-colors" style={{ color: 'var(--text2)' }} title="View Contract Details" onClick={() => setSelectedContract(contract)}>
-                              <Eye size={14} />
-                            </button>
-                            <button className="p-1.5 rounded-lg hover:bg-surface2 transition-colors" style={{ color: 'var(--primary)' }} title="Edit Contract" onClick={() => handleOpenEdit(contract)}>
-                              <Edit2 size={14} />
-                            </button>
-                            <button className="p-1.5 rounded-lg hover:bg-rose-500/20 text-rose-400 transition-colors" title="Delete Contract" onClick={() => setContractToDelete(contract)}>
-                              <Trash2 size={14} />
-                            </button>
-                          </div>
-                        </td>
+                        {activeColumns.map((col: any) => {
+                          const colKey = col.id.toLowerCase();
+                          if (colKey === 'contractid' || colKey === 'id') {
+                            return (
+                              <td key={col.id} className="px-4 py-3 text-xs font-mono text-muted-foreground whitespace-nowrap">
+                                {contract.contractId}
+                              </td>
+                            );
+                          }
+                          if (colKey === 'contractname' || colKey === 'contract' || colKey === 'name') {
+                            return (
+                              <td key={col.id} className="px-4 py-3">
+                                <div className="font-medium text-sm max-w-48 truncate">{contract.contractName}</div>
+                              </td>
+                            );
+                          }
+                          if (colKey === 'suppliername' || colKey === 'supplier') {
+                            return (
+                              <td key={col.id} className="px-4 py-3 text-sm text-muted-foreground whitespace-nowrap">
+                                {contract.supplierName}
+                              </td>
+                            );
+                          }
+                          if (colKey === 'category') {
+                            return (
+                              <td key={col.id} className="px-4 py-3">
+                                <span className="text-xs px-2 py-0.5 rounded" style={{ background: 'var(--surface3)', color: 'var(--text2)' }}>
+                                  {contract.category}
+                                </span>
+                              </td>
+                            );
+                          }
+                          if (colKey === 'hotel' || colKey === 'property') {
+                            return (
+                              <td key={col.id} className="px-4 py-3 text-sm text-muted-foreground whitespace-nowrap max-w-32 truncate">
+                                {contract.hotel}
+                              </td>
+                            );
+                          }
+                          if (colKey === 'contractvalue' || colKey === 'value') {
+                            return (
+                              <td key={col.id} className="px-4 py-3 text-sm font-medium whitespace-nowrap">
+                                {contract.contractValue > 0 ? fmt(contract.contractValue) + '/yr' : 'Variable'}
+                              </td>
+                            );
+                          }
+                          if (colKey === 'monthlycost' || colKey === 'monthly') {
+                            return (
+                              <td key={col.id} className="px-4 py-3 text-sm whitespace-nowrap">
+                                {contract.monthlyCost > 0 ? fmt(contract.monthlyCost) : '—'}
+                              </td>
+                            );
+                          }
+                          if (colKey === 'enddate') {
+                            return (
+                              <td key={col.id} className="px-4 py-3 text-sm whitespace-nowrap">
+                                {new Date(contract.endDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+                              </td>
+                            );
+                          }
+                          if (colKey === 'noticeperiod' || colKey === 'notice') {
+                            return (
+                              <td key={col.id} className="px-4 py-3 text-xs text-muted-foreground whitespace-nowrap">
+                                {contract.noticePeriod ? `${contract.noticePeriod} days` : '—'}
+                              </td>
+                            );
+                          }
+                          if (colKey === 'daysleft') {
+                            return (
+                              <td key={col.id} className="px-4 py-3 text-sm font-semibold whitespace-nowrap" style={{ color: days < 0 ? '#f43f5e' : days <= 30 ? '#f59e0b' : days <= 90 ? '#f97316' : '#3dd68c' }}>
+                                {days < 0 ? `${Math.abs(days)}d ago` : days > 3000 ? '∞' : `${days}d`}
+                              </td>
+                            );
+                          }
+                          if (colKey === 'autorenew') {
+                            return (
+                              <td key={col.id} className="px-4 py-3 text-center">
+                                <span className="text-xs font-semibold px-2 py-0.5 rounded-full" style={{ background: contract.autoRenew ? 'rgba(61,214,140,0.12)' : 'rgba(148,163,184,0.12)', color: contract.autoRenew ? '#3dd68c' : '#94a3b8' }}>
+                                  {contract.autoRenew ? 'Yes' : 'No'}
+                                </span>
+                              </td>
+                            );
+                          }
+                          if (colKey === 'contractowner' || colKey === 'owner') {
+                            return (
+                              <td key={col.id} className="px-4 py-3 text-sm text-muted-foreground whitespace-nowrap">
+                                {contract.contractOwner}
+                              </td>
+                            );
+                          }
+                          if (colKey === 'status') {
+                            return (
+                              <td key={col.id} className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
+                                <div className="relative inline-block">
+                                  <select
+                                    value={contract.status}
+                                    onChange={(e) => handleStatusChange(contract.id, e.target.value as ContractStatus)}
+                                    className="appearance-none cursor-pointer pl-4 pr-6 py-1 rounded-full text-xs font-semibold outline-none transition-all capitalize"
+                                    style={{
+                                      background: sc.bg,
+                                      color: sc.color,
+                                      border: `1px solid ${sc.color}33`,
+                                    }}
+                                  >
+                                    <option value="active" style={{ background: '#18181b', color: '#3dd68c' }}>Active</option>
+                                    <option value="expiring-soon" style={{ background: '#18181b', color: '#f59e0b' }}>Expiring Soon</option>
+                                    <option value="expired" style={{ background: '#18181b', color: '#f43f5e' }}>Expired</option>
+                                    <option value="pending" style={{ background: '#18181b', color: '#60a5fa' }}>Pending</option>
+                                    <option value="terminated" style={{ background: '#18181b', color: '#94a3b8' }}>Terminated</option>
+                                  </select>
+                                  <span
+                                    className="w-1.5 h-1.5 rounded-full absolute left-2 top-1/2 -translate-y-1/2 pointer-events-none"
+                                    style={{ background: sc.color }}
+                                  />
+                                  <ChevronDown
+                                    size={11}
+                                    className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none opacity-80"
+                                    style={{ color: sc.color }}
+                                  />
+                                </div>
+                              </td>
+                            );
+                          }
+                          if (colKey === 'actions') {
+                            return (
+                              <td key={col.id} className="px-4 py-3 text-right" onClick={(e) => e.stopPropagation()}>
+                                <div className="flex items-center justify-end gap-1">
+                                  <button className="p-1.5 rounded-lg hover:bg-surface2 transition-colors" style={{ color: 'var(--text2)' }} title="View Contract Details" onClick={() => setSelectedContract(contract)}>
+                                    <Eye size={14} />
+                                  </button>
+                                  <button className="p-1.5 rounded-lg hover:bg-surface2 transition-colors" style={{ color: 'var(--primary)' }} title="Edit Contract" onClick={() => handleOpenEdit(contract)}>
+                                    <Edit2 size={14} />
+                                  </button>
+                                  <button className="p-1.5 rounded-lg hover:bg-rose-500/20 text-rose-400 transition-colors" title="Delete Contract" onClick={() => setContractToDelete(contract)}>
+                                    <Trash2 size={14} />
+                                  </button>
+                                </div>
+                              </td>
+                            );
+                          }
+
+                          // Dynamic custom columns
+                          const val = (contract as any)[col.id] ?? (contract as any)[colKey];
+                          return (
+                            <td key={col.id} className="px-4 py-3 text-sm text-foreground whitespace-nowrap">
+                              {val !== undefined && val !== null && String(val).trim() !== '' ? String(val) : '—'}
+                            </td>
+                          );
+                        })}
                       </tr>
                     );
                   })}

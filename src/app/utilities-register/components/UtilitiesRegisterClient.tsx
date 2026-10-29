@@ -322,9 +322,39 @@ export default function UtilitiesRegisterClient() {
     subtitle: cmsSubtitle,
     searchPlaceholder: cmsSearchPlaceholder,
     primaryActionLabel: cmsPrimaryActionLabel,
+    columns: cmsColumns,
+    items: cmsItems,
   } = useDeepPageCms('utilities');
 
-  const [accounts, setAccounts] = useState<UtilityAccount[]>(UTILITIES);
+  const activeColumns = useMemo(() => {
+    if (cmsColumns && cmsColumns.length > 0) {
+      return [...cmsColumns].sort((a, b) => a.order - b.order).filter((c) => c.visible !== false);
+    }
+    return [
+      { id: 'property', label: 'Property', visible: true, order: 1 },
+      { id: 'utilityType', label: 'Type', visible: true, order: 2 },
+      { id: 'supplier', label: 'Supplier', visible: true, order: 3 },
+      { id: 'accountNumber', label: 'Account No.', visible: true, order: 4 },
+      { id: 'meterReference', label: 'Meter Reference', visible: true, order: 5 },
+      { id: 'contractEnd', label: 'Contract End', visible: true, order: 6 },
+      { id: 'annualCost', label: 'Annual Cost', visible: true, order: 7 },
+      { id: 'monthlyCost', label: 'Monthly Cost', visible: true, order: 8 },
+      { id: 'tariffRate', label: 'Tariff', visible: true, order: 9 },
+      { id: 'status', label: 'Status', visible: true, order: 10 },
+      { id: 'actions', label: 'Actions', visible: true, order: 11 },
+    ];
+  }, [cmsColumns]);
+
+  const [accounts, setAccounts] = useState<UtilityAccount[]>(() => {
+    if (cmsItems && cmsItems.length > 0) return cmsItems as any;
+    return UTILITIES;
+  });
+
+  useEffect(() => {
+    if (cmsItems && cmsItems.length > 0) {
+      setAccounts(cmsItems as any);
+    }
+  }, [cmsItems]);
   const [properties, setProperties] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -621,7 +651,7 @@ export default function UtilitiesRegisterClient() {
             <Download size={13} /> Export
           </button>
           <button onClick={() => setShowAddModal(true)} className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-transform active:scale-95 cursor-pointer" style={{ background: 'var(--primary)', color: '#000' }}>
-            <Plus size={14} /> {cmsPrimaryActionLabel || 'Add Account'}
+            <Plus size={14} /> {(cmsPrimaryActionLabel || 'Add Account').replace(/^\+\s*/, '')}
           </button>
         </div>
       </div>
@@ -698,99 +728,165 @@ export default function UtilitiesRegisterClient() {
           <table className="w-full text-left border-collapse" style={{ minWidth: 920 }}>
             <thead>
               <tr style={{ background: 'var(--surface2)' }}>
-                {['Property', 'Type', 'Supplier', 'Account No.', 'Meter Reference', 'Contract End', 'Annual Cost', 'Monthly Cost', 'Tariff', 'Status', 'Flags', ''].map((h) => (
-                  <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide whitespace-nowrap">{h}</th>
+                {activeColumns.map((col) => (
+                  <th
+                    key={col.id}
+                    className={`text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide whitespace-nowrap ${
+                      col.id.toLowerCase() === 'actions' ? 'text-right' : ''
+                    }`}
+                  >
+                    {col.label}
+                  </th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {paginatedAccounts.map((account) => {
-                const TypeIcon = UTILITY_ICONS[account.utilityType];
-                const color = UTILITY_COLORS[account.utilityType];
+                const TypeIcon = UTILITY_ICONS[account.utilityType] || Zap;
+                const color = UTILITY_COLORS[account.utilityType] || '#e8c97a';
                 const sc = STATUS_CONFIG[account.status] || STATUS_CONFIG.active;
                 return (
                   <tr key={account.id} className="border-t border-border cursor-pointer transition-colors"
                     onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--surface2)')}
                     onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
                     onClick={() => setSelectedAccount(account)}>
-                    <td className="px-4 py-3 font-medium text-sm whitespace-nowrap">{account.property}</td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-1.5">
-                        <TypeIcon size={13} style={{ color }} />
-                        <span className="text-sm font-medium" style={{ color }}>{account.utilityType}</span>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 text-sm text-muted-foreground whitespace-nowrap">{account.supplier}</td>
-                    <td className="px-4 py-3 text-xs font-mono text-muted-foreground whitespace-nowrap">{account.accountNumber}</td>
-                    <td className="px-4 py-3 text-xs text-muted-foreground max-w-48 truncate">{account.meterReference}</td>
-                    <td className="px-4 py-3 text-sm whitespace-nowrap">
-                      {fmtDate(account.contractEnd)}
-                    </td>
-                    <td className="px-4 py-3 text-sm font-medium whitespace-nowrap">{fmt(account.annualCost)}</td>
-                    <td className="px-4 py-3 text-sm whitespace-nowrap">{fmt(account.monthlyCost)}</td>
-                    <td className="px-4 py-3 text-xs text-muted-foreground max-w-40 truncate">{account.tariffRate}</td>
-                    <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
-                      <div className="relative inline-block">
-                        <select
-                          value={account.status}
-                          onChange={(e) => handleStatusChange(account.id, e.target.value as UtilityStatus)}
-                          className="appearance-none cursor-pointer pl-4 pr-6 py-1 rounded-full text-xs font-semibold outline-none transition-all capitalize"
-                          style={{
-                            background: sc.bg,
-                            color: sc.color,
-                            border: `1px solid ${sc.color}33`,
-                          }}
-                        >
-                          <option value="active" style={{ background: '#18181b', color: '#3dd68c' }}>Active</option>
-                          <option value="expiring-soon" style={{ background: '#18181b', color: '#f59e0b' }}>Expiring Soon</option>
-                          <option value="expired" style={{ background: '#18181b', color: '#f43f5e' }}>Expired</option>
-                          <option value="incomplete" style={{ background: '#18181b', color: '#94a3b8' }}>Incomplete</option>
-                        </select>
-                        <span
-                          className="w-1.5 h-1.5 rounded-full absolute left-2 top-1/2 -translate-y-1/2 pointer-events-none"
-                          style={{ background: sc.color }}
-                        />
-                        <ChevronDown
-                          size={11}
-                          className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none opacity-80"
-                          style={{ color: sc.color }}
-                        />
-                      </div>
-                    </td>
-                    <td className="px-4 py-3">
-                      {account.flags && account.flags.length > 0 && (
-                        <div className="flex items-center gap-1">
-                          <AlertTriangle size={12} className="text-amber-400 flex-shrink-0" />
-                          <span className="text-xs text-amber-400">{account.flags.length} flag{account.flags.length > 1 ? 's' : ''}</span>
-                        </div>
-                      )}
-                    </td>
-                    <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
-                      <div className="flex items-center gap-1.5 whitespace-nowrap">
-                        <button
-                          className="p-1.5 rounded-lg border border-border hover:bg-surface2 transition-colors"
-                          style={{ color: 'var(--text2)' }}
-                          title="View Details"
-                          onClick={() => setSelectedAccount(account)}
-                        >
-                          <Eye size={13} />
-                        </button>
-                        <button
-                          className="p-1.5 rounded-lg border border-border hover:bg-surface2 transition-colors text-muted-foreground hover:text-primary"
-                          title="Edit Utility Account"
-                          onClick={() => handleOpenEdit(account)}
-                        >
-                          <Edit2 size={13} />
-                        </button>
-                        <button
-                          className="p-1.5 rounded-lg border border-rose-500/20 hover:bg-rose-500/15 text-rose-400 transition-colors"
-                          title="Delete Utility Account"
-                          onClick={() => setAccountToDelete(account)}
-                        >
-                          <Trash2 size={13} />
-                        </button>
-                      </div>
-                    </td>
+                    {activeColumns.map((col) => {
+                      const colKey = col.id.toLowerCase();
+                      if (colKey === 'property') {
+                        return (
+                          <td key={col.id} className="px-4 py-3 font-medium text-sm whitespace-nowrap">{account.property}</td>
+                        );
+                      }
+                      if (colKey === 'utilitytype' || colKey === 'type') {
+                        return (
+                          <td key={col.id} className="px-4 py-3">
+                            <div className="flex items-center gap-1.5">
+                              <TypeIcon size={13} style={{ color }} />
+                              <span className="text-sm font-medium" style={{ color }}>{account.utilityType}</span>
+                            </div>
+                          </td>
+                        );
+                      }
+                      if (colKey === 'supplier') {
+                        return (
+                          <td key={col.id} className="px-4 py-3 text-sm text-muted-foreground whitespace-nowrap">{account.supplier}</td>
+                        );
+                      }
+                      if (colKey === 'accountnumber' || colKey === 'accountno') {
+                        return (
+                          <td key={col.id} className="px-4 py-3 text-xs font-mono text-muted-foreground whitespace-nowrap">{account.accountNumber}</td>
+                        );
+                      }
+                      if (colKey === 'meterreference' || colKey === 'meter') {
+                        return (
+                          <td key={col.id} className="px-4 py-3 text-xs text-muted-foreground max-w-48 truncate">{account.meterReference}</td>
+                        );
+                      }
+                      if (colKey === 'contractend') {
+                        return (
+                          <td key={col.id} className="px-4 py-3 text-sm whitespace-nowrap">
+                            {fmtDate(account.contractEnd)}
+                          </td>
+                        );
+                      }
+                      if (colKey === 'annualcost') {
+                        return (
+                          <td key={col.id} className="px-4 py-3 text-sm font-medium whitespace-nowrap">{fmt(account.annualCost)}</td>
+                        );
+                      }
+                      if (colKey === 'monthlycost') {
+                        return (
+                          <td key={col.id} className="px-4 py-3 text-sm whitespace-nowrap">{fmt(account.monthlyCost)}</td>
+                        );
+                      }
+                      if (colKey === 'tariffrate' || colKey === 'tariff') {
+                        return (
+                          <td key={col.id} className="px-4 py-3 text-xs text-muted-foreground max-w-40 truncate">{account.tariffRate}</td>
+                        );
+                      }
+                      if (colKey === 'status') {
+                        return (
+                          <td key={col.id} className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
+                            <div className="relative inline-block">
+                              <select
+                                value={account.status}
+                                onChange={(e) => handleStatusChange(account.id, e.target.value as UtilityStatus)}
+                                className="appearance-none cursor-pointer pl-4 pr-6 py-1 rounded-full text-xs font-semibold outline-none transition-all capitalize"
+                                style={{
+                                  background: sc.bg,
+                                  color: sc.color,
+                                  border: `1px solid ${sc.color}33`,
+                                }}
+                              >
+                                <option value="active" style={{ background: '#18181b', color: '#3dd68c' }}>Active</option>
+                                <option value="expiring-soon" style={{ background: '#18181b', color: '#f59e0b' }}>Expiring Soon</option>
+                                <option value="expired" style={{ background: '#18181b', color: '#f43f5e' }}>Expired</option>
+                                <option value="incomplete" style={{ background: '#18181b', color: '#94a3b8' }}>Incomplete</option>
+                              </select>
+                              <span
+                                className="w-1.5 h-1.5 rounded-full absolute left-2 top-1/2 -translate-y-1/2 pointer-events-none"
+                                style={{ background: sc.color }}
+                              />
+                              <ChevronDown
+                                size={11}
+                                className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none opacity-80"
+                                style={{ color: sc.color }}
+                              />
+                            </div>
+                          </td>
+                        );
+                      }
+                      if (colKey === 'flags') {
+                        return (
+                          <td key={col.id} className="px-4 py-3">
+                            {account.flags && account.flags.length > 0 && (
+                              <div className="flex items-center gap-1">
+                                <AlertTriangle size={12} className="text-amber-400 flex-shrink-0" />
+                                <span className="text-xs text-amber-400">{account.flags.length} flag{account.flags.length > 1 ? 's' : ''}</span>
+                              </div>
+                            )}
+                          </td>
+                        );
+                      }
+                      if (colKey === 'actions') {
+                        return (
+                          <td key={col.id} className="px-4 py-3 text-right" onClick={(e) => e.stopPropagation()}>
+                            <div className="flex items-center justify-end gap-1.5 whitespace-nowrap">
+                              <button
+                                className="p-1.5 rounded-lg border border-border hover:bg-surface2 transition-colors cursor-pointer"
+                                style={{ color: 'var(--text2)' }}
+                                title="View Details"
+                                onClick={() => setSelectedAccount(account)}
+                              >
+                                <Eye size={13} />
+                              </button>
+                              <button
+                                className="p-1.5 rounded-lg border border-border hover:bg-surface2 transition-colors text-muted-foreground hover:text-primary cursor-pointer"
+                                title="Edit Utility Account"
+                                onClick={() => handleOpenEdit(account)}
+                              >
+                                <Edit2 size={13} />
+                              </button>
+                              <button
+                                className="p-1.5 rounded-lg border border-rose-500/20 hover:bg-rose-500/15 text-rose-400 transition-colors cursor-pointer"
+                                title="Delete Utility Account"
+                                onClick={() => setAccountToDelete(account)}
+                              >
+                                <Trash2 size={13} />
+                              </button>
+                            </div>
+                          </td>
+                        );
+                      }
+
+                      // Dynamic custom columns
+                      const val = (account as any)[col.id] ?? (account as any)[colKey];
+                      return (
+                        <td key={col.id} className="px-4 py-3 text-sm text-foreground whitespace-nowrap">
+                          {val !== undefined && val !== null && String(val).trim() !== '' ? String(val) : '—'}
+                        </td>
+                      );
+                    })}
                   </tr>
                 );
               })}

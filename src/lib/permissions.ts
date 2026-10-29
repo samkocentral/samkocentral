@@ -1,4 +1,4 @@
-export type TabAccessMode = 'read' | 'write';
+'use client';
 
 export interface TabConfig {
   id: string;
@@ -6,292 +6,314 @@ export interface TabConfig {
   group: 'Core & Portfolio' | 'Asset Management' | 'Maintenance' | 'Compliance' | 'Governance & Legal' | 'Analytics & Tools' | 'Administration';
   path: string;
   description: string;
+  badge?: string;
+  isSystem?: boolean;
 }
 
 export const ALL_SYSTEM_TABS: TabConfig[] = [
-  // Core & Portfolio
+  // ── CORE & PORTFOLIO ──
   {
     id: 'dashboard',
     name: 'Dashboard Overview',
     group: 'Core & Portfolio',
     path: '/',
-    description: 'High-level operational KPIs, alerts, property status & live counters',
+    description: 'High-level operational KPIs, alerts, site compliance and quick actions',
+    isSystem: true,
   },
   {
     id: 'propco-dashboard',
     name: 'PropCo Dashboard',
     group: 'Asset Management',
     path: '/?portal=propco',
-    description: 'PropCo asset owner KPIs, property valuation, fixed plant assets & contracts',
+    description: 'Real estate asset company dashboard for properties, insurance and contracts',
   },
   {
     id: 'opco-dashboard',
     name: 'OpCo Dashboard',
     group: 'Maintenance',
     path: '/?portal=opco',
-    description: 'OpCo operational KPIs, maintenance PPM, statutory compliance & energy utilities',
+    description: 'Hotel operational portal for loose equipment, PPM maintenance and compliance',
   },
   {
     id: 'properties',
     name: 'Properties & Hotel Sites',
     group: 'Core & Portfolio',
     path: '/asset-management/properties',
-    description: 'Hotel profiles, site locations, building specifications & management contacts',
+    description: 'Master list of 5 UK properties, hotel managers, locations and room counts',
   },
   {
     id: 'tasks',
     name: 'Tasks & Action List',
     group: 'Core & Portfolio',
-    path: '/tasks',
-    description: 'Operational action items, assignees, priorities, due dates & tickets',
+    path: '/task-manager',
+    description: 'Central task tracker, maintenance tickets, compliance obligations and workflows',
   },
   {
     id: 'recent-logs',
     name: 'Recent Logs & Audit Trail',
     group: 'Core & Portfolio',
     path: '/recent-logs',
-    description: 'Immutable system audit logs, user activity timestamps & compliance history',
+    description: 'Real-time ledger of actions taken by users, sign-offs, and critical system events',
+    isSystem: true,
   },
 
-  // Asset Management
+  // ── ASSET MANAGEMENT ──
   {
     id: 'fixed-assets',
     name: 'Fixed Assets (Plant & Machinery)',
     group: 'Asset Management',
-    path: '/asset-management/assets',
-    description: 'HVAC, Lifts, Boilers, Generators, Fire Alarms & Heavy Plant Infrastructure',
+    path: '/asset-management/assets?type=fixed',
+    description: 'Heavy equipment, HVAC, lifts, chillers, boilers, and building infrastructure',
   },
   {
     id: 'non-fixed-assets',
     name: 'Non-Fixed Assets (FF&E / Loose Items)',
     group: 'Asset Management',
     path: '/asset-management/assets?type=non-fixed',
-    description: 'Furniture, Beds, Kitchenware, Appliances, TVs & Guest Room Fixtures',
+    description: 'Movable furniture, fixtures, kitchen appliances, electronics & room equipment',
   },
   {
     id: 'categories',
     name: 'Asset Categories',
     group: 'Asset Management',
     path: '/asset-management/categories',
-    description: 'Category taxonomy, depreciation schedules & equipment classifications',
+    description: 'Hierarchical taxonomy for asset classification and tagging across properties',
   },
 
-  // Maintenance
+  // ── MAINTENANCE ──
   {
     id: 'maintenance',
     name: 'Maintenance & PPM Schedules',
     group: 'Maintenance',
     path: '/asset-management/maintenance',
-    description: 'Planned preventative maintenance, contractor work orders & servicing',
+    description: 'Planned preventive maintenance calendars, engineer work orders and contractor logs',
   },
 
-  // Compliance
+  // ── COMPLIANCE ──
   {
     id: 'compliance',
     name: 'Compliance Register',
     group: 'Compliance',
     path: '/compliance-register',
-    description: 'Fire safety, Legionella, EICR electrical, LOLER lifts & gas CP12 certificates',
+    description: 'Statutory compliance tracking (Legionella, Gas CP12, EICR, Fire Safety, LOLER)',
   },
   {
     id: 'compliance-tracker',
     name: 'Compliance Expiry Tracker',
     group: 'Compliance',
     path: '/compliance-tracker',
-    description: 'Calendar view of upcoming statutory inspection deadlines & expiry alerts',
+    description: 'Timeline and countdown of certificates approaching statutory expiration',
   },
 
-  // Governance & Legal
+  // ── GOVERNANCE & LEGAL ──
   {
     id: 'insurance',
     name: 'Insurance Register',
     group: 'Governance & Legal',
     path: '/insurance-register',
-    description: 'Property damage, public liability, employers liability & renewal policies',
+    description: 'Active insurance policies, coverage limits, policy renewals and broker documents',
   },
   {
     id: 'contracts',
     name: 'Contracts & Supplier Agreements',
     group: 'Governance & Legal',
     path: '/contracts-register',
-    description: 'Vendor maintenance contracts, SLAs, notice periods & renewal dates',
+    description: 'Vendor SLA agreements, utility contracts, lift servicing, FM provider contracts',
   },
   {
     id: 'utilities',
     name: 'Utilities & Energy Accounts',
     group: 'Governance & Legal',
     path: '/utilities-register',
-    description: 'Half-hourly electricity, commercial gas, water meters & supplier tariffs',
+    description: 'Electricity, gas, water meters, billing records, consumption analytics and tariffs',
   },
   {
     id: 'documents',
     name: 'Document Vault & Repository',
     group: 'Governance & Legal',
     path: '/document-repository',
-    description: 'O&M manuals, warranty certificates, architectural plans & compliance files',
+    description: 'Secure digital repository for statutory certificates, manuals, floor plans and audits',
   },
 
-  // Analytics & Tools
+  // ── ANALYTICS & TOOLS ──
   {
     id: 'reports',
     name: 'Reports & Analytics',
     group: 'Analytics & Tools',
     path: '/asset-management/reports',
-    description: 'Executive asset registers, PDF summaries & operational analytics',
+    description: 'Asset valuation reports, maintenance spend summaries, compliance audit exports',
   },
   {
     id: 'import',
     name: 'Universal Import & Export Hub',
     group: 'Analytics & Tools',
     path: '/asset-management/import',
-    description: 'Multi-sheet Excel upload, column mapping & database bulk exports',
+    description: 'Excel/CSV bulk data import for properties, assets, contracts and compliance logs',
   },
   {
     id: 'inspections',
     name: 'Asset Inspections & Audits',
     group: 'Maintenance',
     path: '/asset-management/inspections',
-    description: 'Site asset condition surveys, audit checklists & pass/fail inspection records',
+    description: 'Routine site walkthrough checklists, room inspections and condition assessments',
   },
   {
     id: 'qr-codes',
     name: 'QR Codes & Barcode Scanner',
     group: 'Asset Management',
     path: '/asset-management/qr-scanner',
-    description: 'Scan asset physical QR tags, mobile lookup & label generator',
+    description: 'Scan physical equipment QR labels or print badge sheets for site engineering',
   },
   {
     id: 'multi-site',
     name: 'Multi-Site Operations',
     group: 'Core & Portfolio',
     path: '/multi-site-operations',
-    description: 'Portfolio-wide site health, compliance ratings, manager contacts & estate map',
+    description: 'Group-wide multi-property benchmark KPIs and regional facility summaries',
   },
 
-  // Administration
+  // ── ADMINISTRATION ──
   {
     id: 'users',
     name: 'Users & Permissions Management',
     group: 'Administration',
     path: '/users',
-    description: 'User directory, role tiers, tab permissions matrix & security controls',
+    description: 'Multi-role user management (L1 Super Admin, L2 Admin, L3 Uploader, L4 Viewer)',
+    isSystem: true,
   },
   {
     id: 'settings',
     name: 'System Settings',
     group: 'Administration',
     path: '/settings',
-    description: 'Global system configuration, cloud sync parameters & API integration keys',
+    description: 'Global organization preferences, email alerts, CMS customization, and audit retention',
+    isSystem: true,
   },
 ];
 
-export type UserTabPermissions = Record<string, { enabled: boolean; accessLevel: TabAccessMode }>;
+export type TabAccessMode = 'read' | 'write';
 
-/**
- * Returns default tab permissions configured according to standard role level.
- */
-export function getDefaultTabPermissionsForRole(roleLevel: string): UserTabPermissions {
-  const result: UserTabPermissions = {};
-
-  ALL_SYSTEM_TABS.forEach((tab) => {
-    switch (roleLevel) {
-      case 'L1': // Super Admin: Everything Enabled, Edit & Write
-        result[tab.id] = { enabled: true, accessLevel: 'write' };
-        break;
-
-      case 'L2': // Admin: Everything except Settings, Edit & Write
-        result[tab.id] = {
-          enabled: tab.id !== 'settings',
-          accessLevel: 'write',
-        };
-        break;
-
-      case 'L3': // Uploader: Operational & Asset tabs enabled with Edit & Write, Admin tabs disabled
-        const isL3Allowed = !['users', 'settings'].includes(tab.id);
-        result[tab.id] = {
-          enabled: isL3Allowed,
-          accessLevel: isL3Allowed ? 'write' : 'read',
-        };
-        break;
-
-      case 'L4': // Viewer: Enabled across portfolio, but strictly Read Only
-      default:
-        const isL4Allowed = !['users', 'settings'].includes(tab.id);
-        result[tab.id] = {
-          enabled: isL4Allowed,
-          accessLevel: 'read',
-        };
-        break;
-    }
-  });
-
-  return result;
+export interface TabPermission {
+  enabled: boolean;
+  accessLevel: TabAccessMode;
 }
 
-const STORAGE_ROLE_TEMPLATES_KEY = 'samko:role_tab_templates';
+export type UserTabPermissions = Record<string, TabPermission>;
 
-/**
- * Gets all saved role tab templates from storage, or initializes with defaults.
- */
+export const DEFAULT_L1_SUPER_ADMIN_PERMISSIONS: UserTabPermissions = ALL_SYSTEM_TABS.reduce(
+  (acc, tab) => {
+    acc[tab.id] = { enabled: true, accessLevel: 'write' };
+    return acc;
+  },
+  {} as UserTabPermissions
+);
+
+export const DEFAULT_L2_ADMIN_PERMISSIONS: UserTabPermissions = ALL_SYSTEM_TABS.reduce(
+  (acc, tab) => {
+    if (tab.id === 'settings') {
+      acc[tab.id] = { enabled: true, accessLevel: 'read' };
+    } else {
+      acc[tab.id] = { enabled: true, accessLevel: 'write' };
+    }
+    return acc;
+  },
+  {} as UserTabPermissions
+);
+
+export const DEFAULT_L3_UPLOADER_PERMISSIONS: UserTabPermissions = ALL_SYSTEM_TABS.reduce(
+  (acc, tab) => {
+    if (tab.id === 'users' || tab.id === 'settings') {
+      acc[tab.id] = { enabled: false, accessLevel: 'read' };
+    } else if (tab.group === 'Core & Portfolio' || tab.group === 'Asset Management' || tab.group === 'Maintenance') {
+      acc[tab.id] = { enabled: true, accessLevel: 'write' };
+    } else {
+      acc[tab.id] = { enabled: true, accessLevel: 'read' };
+    }
+    return acc;
+  },
+  {} as UserTabPermissions
+);
+
+export const DEFAULT_L4_VIEWER_PERMISSIONS: UserTabPermissions = ALL_SYSTEM_TABS.reduce(
+  (acc, tab) => {
+    if (tab.id === 'users' || tab.id === 'settings') {
+      acc[tab.id] = { enabled: false, accessLevel: 'read' };
+    } else {
+      acc[tab.id] = { enabled: true, accessLevel: 'read' };
+    }
+    return acc;
+  },
+  {} as UserTabPermissions
+);
+
+const STORAGE_ROLE_TEMPLATES_KEY = 'samko:role_tab_templates_v2';
+
 export function getAllRoleTabTemplates(): Record<string, UserTabPermissions> {
   if (typeof window === 'undefined') {
     return {
-      L1: getDefaultTabPermissionsForRole('L1'),
-      L2: getDefaultTabPermissionsForRole('L2'),
-      L3: getDefaultTabPermissionsForRole('L3'),
-      L4: getDefaultTabPermissionsForRole('L4'),
+      L1: { ...DEFAULT_L1_SUPER_ADMIN_PERMISSIONS },
+      L2: { ...DEFAULT_L2_ADMIN_PERMISSIONS },
+      L3: { ...DEFAULT_L3_UPLOADER_PERMISSIONS },
+      L4: { ...DEFAULT_L4_VIEWER_PERMISSIONS },
     };
   }
-
   try {
     const raw = localStorage.getItem(STORAGE_ROLE_TEMPLATES_KEY);
     if (raw) {
       const parsed = JSON.parse(raw);
       return {
-        L1: parsed.L1 || getDefaultTabPermissionsForRole('L1'),
-        L2: parsed.L2 || getDefaultTabPermissionsForRole('L2'),
-        L3: parsed.L3 || getDefaultTabPermissionsForRole('L3'),
-        L4: parsed.L4 || getDefaultTabPermissionsForRole('L4'),
+        L1: { ...DEFAULT_L1_SUPER_ADMIN_PERMISSIONS, ...(parsed.L1 || {}) },
+        L2: { ...DEFAULT_L2_ADMIN_PERMISSIONS, ...(parsed.L2 || {}) },
+        L3: { ...DEFAULT_L3_UPLOADER_PERMISSIONS, ...(parsed.L3 || {}) },
+        L4: { ...DEFAULT_L4_VIEWER_PERMISSIONS, ...(parsed.L4 || {}) },
       };
     }
   } catch (err) {
     console.warn('Failed to load role tab templates from localStorage:', err);
   }
-
   return {
-    L1: getDefaultTabPermissionsForRole('L1'),
-    L2: getDefaultTabPermissionsForRole('L2'),
-    L3: getDefaultTabPermissionsForRole('L3'),
-    L4: getDefaultTabPermissionsForRole('L4'),
+    L1: { ...DEFAULT_L1_SUPER_ADMIN_PERMISSIONS },
+    L2: { ...DEFAULT_L2_ADMIN_PERMISSIONS },
+    L3: { ...DEFAULT_L3_UPLOADER_PERMISSIONS },
+    L4: { ...DEFAULT_L4_VIEWER_PERMISSIONS },
   };
 }
 
-/**
- * Returns the tab permissions template for a specific role.
- */
-export function getRoleTabPermissions(roleLevel: string): UserTabPermissions {
-  const templates = getAllRoleTabTemplates();
-  return templates[roleLevel] || getDefaultTabPermissionsForRole(roleLevel);
-}
-
-/**
- * Saves updated tab permissions for a role level template.
- */
-export function saveRoleTabPermissions(roleLevel: string, perms: UserTabPermissions): void {
+export function saveRoleTabPermissions(role: string, permissions: UserTabPermissions): void {
   if (typeof window === 'undefined') return;
   try {
-    const templates = getAllRoleTabTemplates();
-    templates[roleLevel] = perms;
-    localStorage.setItem(STORAGE_ROLE_TEMPLATES_KEY, JSON.stringify(templates));
-    window.dispatchEvent(new CustomEvent('samko:role-templates-changed', { detail: { roleLevel, perms } }));
+    const current = getAllRoleTabTemplates();
+    current[role] = { ...permissions };
+    localStorage.setItem(STORAGE_ROLE_TEMPLATES_KEY, JSON.stringify(current));
+    window.dispatchEvent(
+      new CustomEvent('samko:role-templates-changed', {
+        detail: { role, permissions },
+      })
+    );
   } catch (err) {
-    console.error('Failed to save role tab permissions:', err);
+    console.error('Failed to save role tab template:', err);
   }
 }
 
-/**
- * Copies or moves a single tab between two roles.
- */
+export function getRoleTabPermissions(role: string): UserTabPermissions {
+  const all = getAllRoleTabTemplates();
+  return all[role] || getDefaultTabPermissionsForRole(role);
+}
+
+export function getDefaultTabPermissionsForRole(role: string): UserTabPermissions {
+  switch (role) {
+    case 'L1':
+      return { ...DEFAULT_L1_SUPER_ADMIN_PERMISSIONS };
+    case 'L2':
+      return { ...DEFAULT_L2_ADMIN_PERMISSIONS };
+    case 'L3':
+      return { ...DEFAULT_L3_UPLOADER_PERMISSIONS };
+    case 'L4':
+    default:
+      return { ...DEFAULT_L4_VIEWER_PERMISSIONS };
+  }
+}
+
 export function transferTabBetweenRoles({
   tabId,
   fromRole,
@@ -307,7 +329,6 @@ export function transferTabBetweenRoles({
 }): Record<string, UserTabPermissions> {
   const templates = getAllRoleTabTemplates();
 
-  // If toRole is 'ALL', apply to L1, L2, L3, L4
   const targetRoles = toRole === 'ALL' ? ['L1', 'L2', 'L3', 'L4'] : [toRole];
 
   targetRoles.forEach((role) => {
@@ -318,7 +339,6 @@ export function transferTabBetweenRoles({
     };
   });
 
-  // If moving, disable in source role (unless source was target)
   if (mode === 'move' && toRole !== fromRole && toRole !== 'ALL') {
     if (templates[fromRole]) {
       templates[fromRole] = {
@@ -336,9 +356,6 @@ export function transferTabBetweenRoles({
   return templates;
 }
 
-/**
- * Copies or moves all enabled tabs from one role to another role.
- */
 export function transferAllTabsBetweenRoles({
   fromRole,
   toRole,
@@ -359,12 +376,11 @@ export function transferAllTabsBetweenRoles({
     if (!templates[r]) templates[r] = getDefaultTabPermissionsForRole(r);
     const updatedTarget: UserTabPermissions = { ...templates[r] };
 
-    ALL_SYSTEM_TABS.forEach((tab) => {
-      const src = sourcePerms[tab.id];
-      if (src?.enabled) {
-        updatedTarget[tab.id] = {
+    Object.entries(sourcePerms).forEach(([tabId, perm]) => {
+      if (perm.enabled) {
+        updatedTarget[tabId] = {
           enabled: true,
-          accessLevel: forceAccessLevel || src.accessLevel,
+          accessLevel: forceAccessLevel || perm.accessLevel,
         };
       }
     });
@@ -373,13 +389,13 @@ export function transferAllTabsBetweenRoles({
   });
 
   if (mode === 'move' && toRole !== fromRole && toRole !== 'ALL') {
-    const disabledSource: UserTabPermissions = { ...templates[fromRole] };
-    ALL_SYSTEM_TABS.forEach((tab) => {
-      if (disabledSource[tab.id]?.enabled) {
-        disabledSource[tab.id] = { ...disabledSource[tab.id], enabled: false };
-      }
-    });
-    templates[fromRole] = disabledSource;
+    if (templates[fromRole]) {
+      const stripped: UserTabPermissions = { ...templates[fromRole] };
+      Object.keys(stripped).forEach((k) => {
+        stripped[k] = { ...stripped[k], enabled: false };
+      });
+      templates[fromRole] = stripped;
+    }
   }
 
   if (typeof window !== 'undefined') {
@@ -394,13 +410,17 @@ export type TabSectionLocation = 'propco' | 'opco' | 'both' | 'bottom';
 
 export const DEFAULT_TAB_SECTIONS: Record<string, TabSectionLocation> = {
   // PropCo
+  dashboard: 'propco',
   'propco-dashboard': 'propco',
   properties: 'propco',
   'fixed-assets': 'propco',
   'all-assets': 'propco',
+  categories: 'propco',
   insurance: 'propco',
   contracts: 'propco',
   'contract-reports': 'propco',
+  documents: 'propco',
+  'multi-site': 'propco',
   reports: 'both',
 
   // OpCo
@@ -414,6 +434,8 @@ export const DEFAULT_TAB_SECTIONS: Record<string, TabSectionLocation> = {
   'maintenance-reports': 'opco',
   'task-module': 'opco',
   utilities: 'opco',
+  inspections: 'opco',
+  'qr-codes': 'opco',
 
   // Bottom / Common
   'recent-logs': 'bottom',
@@ -432,13 +454,9 @@ export function getTabSectionMapping(): Record<string, TabSectionLocation> {
     const raw = localStorage.getItem(STORAGE_TAB_SECTIONS_KEY);
     if (raw) {
       const parsed = JSON.parse(raw);
-      delete parsed['dashboard'];
-      delete parsed['qr-codes'];
-      delete parsed['inspections'];
-      delete parsed['documents'];
-      delete parsed['multi-site'];
-      delete parsed['categories'];
-      return { ...DEFAULT_TAB_SECTIONS, ...parsed };
+      if (parsed && typeof parsed === 'object') {
+        return { ...DEFAULT_TAB_SECTIONS, ...parsed };
+      }
     }
   } catch (err) {
     console.warn('Failed to load tab section mapping:', err);
@@ -451,10 +469,28 @@ export function saveTabSectionMapping(mapping: Record<string, TabSectionLocation
   try {
     localStorage.setItem(STORAGE_TAB_SECTIONS_KEY, JSON.stringify(mapping));
     window.dispatchEvent(new CustomEvent('samko:sections-changed', { detail: { mapping } }));
+    window.dispatchEvent(new CustomEvent('samko:app-cms-updated', { detail: { mapping } }));
   } catch (err) {
     console.error('Failed to save tab section mapping:', err);
   }
 }
+
+export const TAB_ALIASES: Record<string, string[]> = {
+  dashboard: ['propco-dashboard', 'opco-dashboard'],
+  'propco-dashboard': ['dashboard'],
+  'opco-dashboard': ['dashboard'],
+  'fixed-assets': ['all-assets'],
+  'all-assets': ['fixed-assets'],
+  'non-fixed-assets': ['non-fixed'],
+  'non-fixed': ['non-fixed-assets'],
+  reports: ['contract-reports', 'maintenance-reports'],
+  'contract-reports': ['reports', 'maintenance-reports'],
+  'maintenance-reports': ['reports', 'contract-reports'],
+  tasks: ['task-module'],
+  'task-module': ['tasks'],
+  compliance: ['compliance-tracker'],
+  'compliance-tracker': ['compliance'],
+};
 
 /**
  * Copies a tab to a section (PropCo or OpCo).
@@ -468,15 +504,18 @@ export function copyTabToSection(
   const mapping = getTabSectionMapping();
   const current = mapping[tabId] || DEFAULT_TAB_SECTIONS[tabId] || 'propco';
 
-  if (targetSection === 'both') {
-    mapping[tabId] = 'both';
-  } else if (current === 'both') {
-    mapping[tabId] = 'both'; // already in both
-  } else if (current !== targetSection) {
-    // Current is propco and target is opco (or vice-versa) -> becomes both!
-    mapping[tabId] = 'both';
+  let finalVal: TabSectionLocation = targetSection;
+  if (targetSection === 'both' || current === 'both' || current !== targetSection) {
+    finalVal = 'both';
   } else {
-    mapping[tabId] = targetSection;
+    finalVal = targetSection;
+  }
+
+  mapping[tabId] = finalVal;
+  if (TAB_ALIASES[tabId]) {
+    TAB_ALIASES[tabId].forEach((alias) => {
+      mapping[alias] = finalVal;
+    });
   }
 
   saveTabSectionMapping(mapping);
@@ -492,6 +531,11 @@ export function moveTabToSection(
 ): Record<string, TabSectionLocation> {
   const mapping = getTabSectionMapping();
   mapping[tabId] = targetSection;
+  if (TAB_ALIASES[tabId]) {
+    TAB_ALIASES[tabId].forEach((alias) => {
+      mapping[alias] = targetSection;
+    });
+  }
   saveTabSectionMapping(mapping);
   return mapping;
 }

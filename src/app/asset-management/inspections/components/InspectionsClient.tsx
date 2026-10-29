@@ -60,7 +60,25 @@ export default function InspectionsClient() {
     subtitle: cmsSubtitle,
     searchPlaceholder: cmsSearchPlaceholder,
     primaryActionLabel: cmsPrimaryActionLabel,
+    columns: cmsColumns,
   } = useDeepPageCms('inspections');
+
+  const activeColumns = useMemo(() => {
+    if (cmsColumns && cmsColumns.length > 0) {
+      return [...cmsColumns].sort((a, b) => a.order - b.order).filter((c) => c.visible !== false);
+    }
+    return [
+      { id: 'asset', label: 'Asset', visible: true, order: 1 },
+      { id: 'property', label: 'Property', visible: true, order: 2 },
+      { id: 'type', label: 'Type', visible: true, order: 3 },
+      { id: 'category', label: 'Category', visible: true, order: 4 },
+      { id: 'risk', label: 'Risk', visible: true, order: 5 },
+      { id: 'assignedTo', label: 'Assigned To', visible: true, order: 6 },
+      { id: 'scheduled', label: 'Scheduled', visible: true, order: 7 },
+      { id: 'result', label: 'Result', visible: true, order: 8 },
+      { id: 'actions', label: '', visible: true, order: 9 },
+    ];
+  }, [cmsColumns]);
 
   const [activeTab, setActiveTab] = useState<TabId>('pending');
   const [search, setSearch] = useState('');
@@ -294,7 +312,7 @@ export default function InspectionsClient() {
             className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-transform active:scale-95"
             style={{ background: 'var(--primary)', color: '#000' }}
           >
-            <ClipboardCheck size={15} /> {cmsPrimaryActionLabel || 'New Inspection'}
+            <ClipboardCheck size={15} /> {(cmsPrimaryActionLabel || 'New Inspection').replace(/^\+\s*/, '')}
           </button>
         </div>
       </div>
@@ -387,12 +405,14 @@ export default function InspectionsClient() {
             <table className="w-full min-w-[780px]">
               <thead className="sticky top-0 z-10" style={{ background: 'var(--surface)' }}>
                 <tr>
-                  {['Asset', 'Property', 'Type', 'Category', 'Risk', 'Assigned To', 'Scheduled', 'Result', ''].map((h) => (
+                  {activeColumns.map((col) => (
                     <th
-                      key={h}
-                      className="text-left text-xs font-bold uppercase tracking-wide text-muted-foreground px-3.5 py-3 border-b border-border whitespace-nowrap"
+                      key={col.id}
+                      className={`text-left text-xs font-bold uppercase tracking-wide text-muted-foreground px-3.5 py-3 border-b border-border whitespace-nowrap ${
+                        col.id.toLowerCase() === 'actions' ? 'text-right' : ''
+                      }`}
                     >
-                      {h}
+                      {col.label}
                     </th>
                   ))}
                 </tr>
@@ -415,80 +435,127 @@ export default function InspectionsClient() {
                         (e.currentTarget as HTMLElement).style.background = 'transparent';
                     }}
                   >
-                    <td className="px-3.5 py-2.5">
-                      <div className="font-medium text-sm">{insp.assetName}</div>
-                      <div className="text-xs text-muted-foreground">{insp.assetId}</div>
-                    </td>
-                    <td className="px-3.5 py-2.5 text-xs text-muted-foreground whitespace-nowrap">
-                      {insp.hotelName.split(' ').slice(0, 2).join(' ')}
-                    </td>
-                    <td className="px-3.5 py-2.5 text-xs" style={{ maxWidth: 180 }}>
-                      <span className="truncate block">{insp.type}</span>
-                    </td>
-                    <td className="px-3.5 py-2.5">
-                      <span
-                        className="text-xs px-2 py-0.5 rounded-full font-medium"
-                        style={{ background: 'var(--surface3)', color: 'var(--text2)' }}
-                      >
-                        {insp.category}
-                      </span>
-                    </td>
-                    <td className="px-3.5 py-2.5">
-                      <span
-                        className="text-xs font-semibold capitalize"
-                        style={{ color: RISK_COLORS[insp.riskLevel] }}
-                      >
-                        {insp.riskLevel}
-                      </span>
-                    </td>
-                    <td className="px-3.5 py-2.5">
-                      <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                        <User size={11} />
-                        {insp.assignedTo}
-                      </div>
-                    </td>
-                    <td className="px-3.5 py-2.5">
-                      <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                        <Calendar size={11} />
-                        {new Date(insp.scheduledDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: '2-digit' })}
-                      </div>
-                    </td>
-                    <td className="px-3.5 py-2.5" onClick={(e) => e.stopPropagation()}>
-                      <div className="relative inline-block">
-                        <select
-                          value={insp.result || 'pending'}
-                          onChange={(e) => handleResultChange(insp.id, e.target.value as 'pass' | 'fail' | 'pending')}
-                          className="appearance-none cursor-pointer pl-4 pr-6 py-1 rounded-full text-xs font-semibold outline-none transition-all capitalize"
-                          style={{
-                            background: RESULT_CONFIG[insp.result || 'pending'].bg,
-                            color: RESULT_CONFIG[insp.result || 'pending'].color,
-                            border: `1px solid ${RESULT_CONFIG[insp.result || 'pending'].color}33`,
-                          }}
-                        >
-                          <option value="pass" style={{ background: '#18181b', color: '#3dd68c' }}>Pass</option>
-                          <option value="fail" style={{ background: '#18181b', color: '#f43f5e' }}>Fail</option>
-                          <option value="pending" style={{ background: '#18181b', color: '#94a3b8' }}>Pending</option>
-                        </select>
-                        <span
-                          className="w-1.5 h-1.5 rounded-full absolute left-2 top-1/2 -translate-y-1/2 pointer-events-none"
-                          style={{ background: RESULT_CONFIG[insp.result || 'pending'].color }}
-                        />
-                        <ChevronDown
-                          size={11}
-                          className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none opacity-80"
-                          style={{ color: RESULT_CONFIG[insp.result || 'pending'].color }}
-                        />
-                      </div>
-                    </td>
-                    <td className="px-3.5 py-2.5">
-                      <button
-                        className="text-xs font-medium px-2.5 py-1 rounded-lg border border-border"
-                        style={{ background: 'var(--surface2)', color: 'var(--text2)' }}
-                        onClick={(e) => { e.stopPropagation(); setSelectedId(insp.id); }}
-                      >
-                        View
-                      </button>
-                    </td>
+                    {activeColumns.map((col) => {
+                      const colKey = col.id.toLowerCase();
+                      if (colKey === 'asset') {
+                        return (
+                          <td key={col.id} className="px-3.5 py-2.5">
+                            <div className="font-medium text-sm">{insp.assetName}</div>
+                            <div className="text-xs text-muted-foreground">{insp.assetId}</div>
+                          </td>
+                        );
+                      }
+                      if (colKey === 'property') {
+                        return (
+                          <td key={col.id} className="px-3.5 py-2.5 text-xs text-muted-foreground whitespace-nowrap">
+                            {insp.hotelName ? insp.hotelName.split(' ').slice(0, 2).join(' ') : '—'}
+                          </td>
+                        );
+                      }
+                      if (colKey === 'type') {
+                        return (
+                          <td key={col.id} className="px-3.5 py-2.5 text-xs" style={{ maxWidth: 180 }}>
+                            <span className="truncate block">{insp.type}</span>
+                          </td>
+                        );
+                      }
+                      if (colKey === 'category') {
+                        return (
+                          <td key={col.id} className="px-3.5 py-2.5">
+                            <span
+                              className="text-xs px-2 py-0.5 rounded-full font-medium"
+                              style={{ background: 'var(--surface3)', color: 'var(--text2)' }}
+                            >
+                              {insp.category}
+                            </span>
+                          </td>
+                        );
+                      }
+                      if (colKey === 'risk') {
+                        return (
+                          <td key={col.id} className="px-3.5 py-2.5">
+                            <span
+                              className="text-xs font-semibold capitalize"
+                              style={{ color: RISK_COLORS[insp.riskLevel] }}
+                            >
+                              {insp.riskLevel}
+                            </span>
+                          </td>
+                        );
+                      }
+                      if (colKey === 'assignedto') {
+                        return (
+                          <td key={col.id} className="px-3.5 py-2.5">
+                            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                              <User size={11} />
+                              {insp.assignedTo}
+                            </div>
+                          </td>
+                        );
+                      }
+                      if (colKey === 'scheduled') {
+                        return (
+                          <td key={col.id} className="px-3.5 py-2.5">
+                            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                              <Calendar size={11} />
+                              {insp.scheduledDate ? new Date(insp.scheduledDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: '2-digit' }) : '—'}
+                            </div>
+                          </td>
+                        );
+                      }
+                      if (colKey === 'result') {
+                        return (
+                          <td key={col.id} className="px-3.5 py-2.5" onClick={(e) => e.stopPropagation()}>
+                            <div className="relative inline-block">
+                              <select
+                                value={insp.result || 'pending'}
+                                onChange={(e) => handleResultChange(insp.id, e.target.value as 'pass' | 'fail' | 'pending')}
+                                className="appearance-none cursor-pointer pl-4 pr-6 py-1 rounded-full text-xs font-semibold outline-none transition-all capitalize"
+                                style={{
+                                  background: RESULT_CONFIG[insp.result || 'pending'].bg,
+                                  color: RESULT_CONFIG[insp.result || 'pending'].color,
+                                  border: `1px solid ${RESULT_CONFIG[insp.result || 'pending'].color}33`,
+                                }}
+                              >
+                                <option value="pass" style={{ background: '#18181b', color: '#3dd68c' }}>Pass</option>
+                                <option value="fail" style={{ background: '#18181b', color: '#f43f5e' }}>Fail</option>
+                                <option value="pending" style={{ background: '#18181b', color: '#94a3b8' }}>Pending</option>
+                              </select>
+                              <span
+                                className="w-1.5 h-1.5 rounded-full absolute left-2 top-1/2 -translate-y-1/2 pointer-events-none"
+                                style={{ background: RESULT_CONFIG[insp.result || 'pending'].color }}
+                              />
+                              <ChevronDown
+                                size={11}
+                                className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none opacity-80"
+                                style={{ color: RESULT_CONFIG[insp.result || 'pending'].color }}
+                              />
+                            </div>
+                          </td>
+                        );
+                      }
+                      if (colKey === 'actions') {
+                        return (
+                          <td key={col.id} className="px-3.5 py-2.5 text-right">
+                            <button
+                              className="text-xs font-medium px-2.5 py-1 rounded-lg border border-border cursor-pointer hover:bg-surface2"
+                              style={{ background: 'var(--surface2)', color: 'var(--text2)' }}
+                              onClick={(e) => { e.stopPropagation(); setSelectedId(insp.id); }}
+                            >
+                              View
+                            </button>
+                          </td>
+                        );
+                      }
+
+                      // Dynamic custom columns
+                      const val = (insp as any)[col.id] ?? (insp as any)[colKey];
+                      return (
+                        <td key={col.id} className="px-3.5 py-2.5 text-xs text-foreground whitespace-nowrap">
+                          {val !== undefined && val !== null && String(val).trim() !== '' ? String(val) : '—'}
+                        </td>
+                      );
+                    })}
                   </tr>
                 ))}
               </tbody>

@@ -51,6 +51,22 @@ function toDateInputValue(d: Date): string {
 export default function RecentLogsClient() {
   const deepCms = useDeepPageCms('recentlogs');
   const { recentLogs: cmsRecentLogs } = useAppCms();
+
+  const activeColumns = useMemo(() => {
+    if (deepCms.columns && deepCms.columns.length > 0) {
+      return [...deepCms.columns].sort((a, b) => a.order - b.order).filter((c) => c.visible !== false);
+    }
+    return [
+      { id: 'timestamp', label: 'Timestamp', visible: true, order: 1 },
+      { id: 'actor', label: 'User (Actor)', visible: true, order: 2 },
+      { id: 'action', label: 'Action & Module', visible: true, order: 3 },
+      { id: 'resource', label: 'Affected Property & Target', visible: true, order: 4 },
+      { id: 'ipAddress', label: 'Log Details', visible: true, order: 5 },
+      { id: 'status', label: 'Status', visible: true, order: 6 },
+      { id: 'inspect', label: 'Inspect', visible: true, order: 7 },
+    ];
+  }, [deepCms.columns]);
+
   const [logs] = useState<AuditLogEntry[]>(() => getRecentLogs());
   
   // Requirement 2: Default view defaults to showing "Today's Logs"
@@ -691,19 +707,22 @@ export default function RecentLogsClient() {
                   color: 'var(--text2)',
                 }}
               >
-                <th className="py-3 px-4 font-semibold uppercase tracking-wider text-[11px]">{deepCms.getColLabel('timestamp', 'Timestamp')}</th>
-                <th className="py-3 px-4 font-semibold uppercase tracking-wider text-[11px]">{deepCms.getColLabel('actor', 'User (Actor)')}</th>
-                <th className="py-3 px-4 font-semibold uppercase tracking-wider text-[11px]">{deepCms.getColLabel('action', 'Action & Module')}</th>
-                <th className="py-3 px-4 font-semibold uppercase tracking-wider text-[11px]">{deepCms.getColLabel('resource', 'Affected Property & Target')}</th>
-                <th className="py-3 px-4 font-semibold uppercase tracking-wider text-[11px]">{deepCms.getColLabel('ipAddress', 'Log Details')}</th>
-                <th className="py-3 px-4 font-semibold uppercase tracking-wider text-[11px]">{deepCms.getColLabel('status', 'Status')}</th>
-                <th className="py-3 px-4 font-semibold uppercase tracking-wider text-[11px] text-right">Inspect</th>
+                {activeColumns.map((col) => (
+                  <th
+                    key={col.id}
+                    className={`py-3 px-4 font-semibold uppercase tracking-wider text-[11px] ${
+                      col.id.toLowerCase() === 'inspect' ? 'text-right' : ''
+                    }`}
+                  >
+                    {col.label}
+                  </th>
+                ))}
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
               {filteredLogs.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="py-12 text-center text-muted-foreground">
+                  <td colSpan={activeColumns.length} className="py-12 text-center text-muted-foreground">
                     <div className="flex flex-col items-center justify-center space-y-2">
                       <div className="w-12 h-12 rounded-full bg-surface2 flex items-center justify-center text-muted-foreground mb-1">
                         <History size={24} />
@@ -743,140 +762,165 @@ export default function RecentLogsClient() {
                       key={log.id}
                       className="transition-colors hover:bg-surface2/60 group"
                     >
-                      {/* 1. Timestamp */}
-                      <td className="py-3.5 px-4 whitespace-nowrap align-top">
-                        <div className="font-medium text-foreground text-xs flex items-center gap-1.5">
-                          <Clock size={12} className="text-muted-foreground" />
-                          <span>{log.relativeTime}</span>
-                        </div>
-                        <div className="text-[10px] text-muted-foreground mt-0.5 font-mono">
-                          {log.timestamp}
-                        </div>
-                      </td>
+                      {activeColumns.map((col) => {
+                        const colKey = col.id.toLowerCase();
+                        if (colKey === 'timestamp') {
+                          return (
+                            <td key={col.id} className="py-3.5 px-4 whitespace-nowrap align-top">
+                              <div className="font-medium text-foreground text-xs flex items-center gap-1.5">
+                                <Clock size={12} className="text-muted-foreground" />
+                                <span>{log.relativeTime}</span>
+                              </div>
+                              <div className="text-[10px] text-muted-foreground mt-0.5 font-mono">
+                                {log.timestamp}
+                              </div>
+                            </td>
+                          );
+                        }
+                        if (colKey === 'actor' || colKey === 'user') {
+                          return (
+                            <td key={col.id} className="py-3.5 px-4 align-top">
+                              <div className="flex items-start gap-2.5">
+                                <div
+                                  className="w-7 h-7 rounded-full flex-shrink-0 flex items-center justify-center font-bold text-[11px] shadow-sm"
+                                  style={{
+                                    background: `${avatarColor}22`,
+                                    color: avatarColor,
+                                    border: `1.5px solid ${avatarColor}55`,
+                                  }}
+                                >
+                                  {log.actorInitials}
+                                </div>
 
-                      {/* 2. User ("Who made that" - prominent & clear) */}
-                      <td className="py-3.5 px-4 align-top">
-                        <div className="flex items-start gap-2.5">
-                          {/* Circle Avatar */}
-                          <div
-                            className="w-7 h-7 rounded-full flex-shrink-0 flex items-center justify-center font-bold text-[11px] shadow-sm"
-                            style={{
-                              background: `${avatarColor}22`,
-                              color: avatarColor,
-                              border: `1.5px solid ${avatarColor}55`,
-                            }}
-                          >
-                            {log.actorInitials}
-                          </div>
-
-                          <div className="min-w-0">
-                            <div className="flex items-center gap-1.5">
-                              <button
-                                type="button"
-                                onClick={() => handleQuickUserFilter(log.actorEmail, log.actorName)}
-                                className="font-semibold text-foreground hover:text-primary transition-colors text-xs truncate text-left"
-                                title={`Click to filter logs by ${log.actorName}`}
-                              >
-                                {log.actorName}
-                              </button>
+                                <div className="min-w-0">
+                                  <div className="flex items-center gap-1.5">
+                                    <button
+                                      type="button"
+                                      onClick={() => handleQuickUserFilter(log.actorEmail, log.actorName)}
+                                      className="font-semibold text-foreground hover:text-primary transition-colors text-xs truncate text-left"
+                                      title={`Click to filter logs by ${log.actorName}`}
+                                    >
+                                      {log.actorName}
+                                    </button>
+                                    <span
+                                      className="text-[9px] font-bold px-1.5 py-0.2 rounded uppercase"
+                                      style={{
+                                        background: `${avatarColor}18`,
+                                        color: avatarColor,
+                                        border: `1px solid ${avatarColor}40`,
+                                      }}
+                                    >
+                                      {log.roleLevel}
+                                    </span>
+                                  </div>
+                                  <div className="text-[11px] text-muted-foreground truncate font-mono">
+                                    {log.actorEmail}
+                                  </div>
+                                </div>
+                              </div>
+                            </td>
+                          );
+                        }
+                        if (colKey === 'action') {
+                          return (
+                            <td key={col.id} className="py-3.5 px-4 whitespace-nowrap align-top">
+                              <div className="space-y-1">
+                                <span
+                                  className="inline-block px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider"
+                                  style={{
+                                    background: actionStyle.bg,
+                                    color: actionStyle.color,
+                                    border: `1px solid ${actionStyle.border}`,
+                                  }}
+                                >
+                                  {log.actionLabel || log.action}
+                                </span>
+                                <div className="text-[11px] text-muted-foreground font-medium">
+                                  {log.categoryLabel}
+                                </div>
+                              </div>
+                            </td>
+                          );
+                        }
+                        if (colKey === 'resource' || colKey === 'property') {
+                          return (
+                            <td key={col.id} className="py-3.5 px-4 align-top">
+                              <div className="space-y-1">
+                                {log.property && (
+                                  <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium bg-surface3 text-amber-300 border border-border">
+                                    <Building2 size={11} className="text-amber-400 flex-shrink-0" />
+                                    <span className="truncate max-w-[190px]">{log.property}</span>
+                                  </div>
+                                )}
+                                <div className="text-xs font-semibold text-foreground truncate max-w-[260px]" title={log.resource}>
+                                  {log.resource}
+                                </div>
+                              </div>
+                            </td>
+                          );
+                        }
+                        if (colKey === 'ipaddress' || colKey === 'details') {
+                          return (
+                            <td key={col.id} className="py-3.5 px-4 align-top">
+                              <div className="text-xs text-foreground/90 line-clamp-2 max-w-[320px]">
+                                {log.details}
+                              </div>
+                              {log.diff && log.diff.length > 0 && (
+                                <button
+                                  type="button"
+                                  onClick={() => setSelectedLog(log)}
+                                  className="mt-1 inline-flex items-center gap-1 text-[10px] text-primary hover:underline font-medium"
+                                >
+                                  <span>+{log.diff.length} field modifications</span>
+                                  <ArrowRight size={10} />
+                                </button>
+                              )}
+                            </td>
+                          );
+                        }
+                        if (colKey === 'status') {
+                          return (
+                            <td key={col.id} className="py-3.5 px-4 whitespace-nowrap align-top">
                               <span
-                                className="text-[9px] font-bold px-1.5 py-0.2 rounded uppercase"
+                                className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium"
                                 style={{
-                                  background: `${avatarColor}18`,
-                                  color: avatarColor,
-                                  border: `1px solid ${avatarColor}40`,
+                                  background: statusStyle.bg,
+                                  color: statusStyle.color,
+                                  border: `1px solid ${statusStyle.color}40`,
                                 }}
                               >
-                                {log.roleLevel}
+                                <span
+                                  className="w-1.5 h-1.5 rounded-full"
+                                  style={{ background: statusStyle.dotColor }}
+                                />
+                                {statusStyle.label}
                               </span>
-                            </div>
-                            <div className="text-[11px] text-muted-foreground truncate font-mono">
-                              {log.actorEmail}
-                            </div>
-                          </div>
-                        </div>
-                      </td>
+                            </td>
+                          );
+                        }
+                        if (colKey === 'inspect') {
+                          return (
+                            <td key={col.id} className="py-3.5 px-4 whitespace-nowrap text-right align-top">
+                              <button
+                                type="button"
+                                onClick={() => setSelectedLog(log)}
+                                className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-surface3 transition-all border border-transparent hover:border-border cursor-pointer"
+                                title="Inspect complete audit event and diff"
+                              >
+                                <Eye size={15} />
+                              </button>
+                            </td>
+                          );
+                        }
 
-                      {/* 3. Action & Module */}
-                      <td className="py-3.5 px-4 whitespace-nowrap align-top">
-                        <div className="space-y-1">
-                          <span
-                            className="inline-block px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider"
-                            style={{
-                              background: actionStyle.bg,
-                              color: actionStyle.color,
-                              border: `1px solid ${actionStyle.border}`,
-                            }}
-                          >
-                            {log.actionLabel || log.action}
-                          </span>
-                          <div className="text-[11px] text-muted-foreground font-medium">
-                            {log.categoryLabel}
-                          </div>
-                        </div>
-                      </td>
-
-                      {/* 4. Affected Property & Target Resource */}
-                      <td className="py-3.5 px-4 align-top">
-                        <div className="space-y-1">
-                          {log.property && (
-                            <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium bg-surface3 text-amber-300 border border-border">
-                              <Building2 size={11} className="text-amber-400 flex-shrink-0" />
-                              <span className="truncate max-w-[190px]">{log.property}</span>
-                            </div>
-                          )}
-                          <div className="text-xs font-semibold text-foreground truncate max-w-[260px]" title={log.resource}>
-                            {log.resource}
-                          </div>
-                        </div>
-                      </td>
-
-                      {/* 5. Log Details & Payload changes */}
-                      <td className="py-3.5 px-4 align-top">
-                        <div className="text-xs text-foreground/90 line-clamp-2 max-w-[320px]">
-                          {log.details}
-                        </div>
-                        {log.diff && log.diff.length > 0 && (
-                          <button
-                            type="button"
-                            onClick={() => setSelectedLog(log)}
-                            className="mt-1 inline-flex items-center gap-1 text-[10px] text-primary hover:underline font-medium"
-                          >
-                            <span>+{log.diff.length} field modifications</span>
-                            <ArrowRight size={10} />
-                          </button>
-                        )}
-                      </td>
-
-                      {/* 6. Status Badge */}
-                      <td className="py-3.5 px-4 whitespace-nowrap align-top">
-                        <span
-                          className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium"
-                          style={{
-                            background: statusStyle.bg,
-                            color: statusStyle.color,
-                            border: `1px solid ${statusStyle.color}40`,
-                          }}
-                        >
-                          <span
-                            className="w-1.5 h-1.5 rounded-full"
-                            style={{ background: statusStyle.dotColor }}
-                          />
-                          {statusStyle.label}
-                        </span>
-                      </td>
-
-                      {/* 7. Action / Inspect button */}
-                      <td className="py-3.5 px-4 whitespace-nowrap text-right align-top">
-                        <button
-                          type="button"
-                          onClick={() => setSelectedLog(log)}
-                          className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-surface3 transition-all border border-transparent hover:border-border"
-                          title="Inspect complete audit event and diff"
-                        >
-                          <Eye size={15} />
-                        </button>
-                      </td>
+                        // Dynamic custom columns
+                        const val = (log as any)[col.id] ?? (log as any)[colKey];
+                        return (
+                          <td key={col.id} className="py-3.5 px-4 text-xs text-foreground whitespace-nowrap align-top">
+                            {val !== undefined && val !== null && String(val).trim() !== '' ? String(val) : '—'}
+                          </td>
+                        );
+                      })}
                     </tr>
                   );
                 })

@@ -6,7 +6,8 @@ import { Package, Wrench, ShieldCheck, Umbrella, FileSignature, Building2, Zap, 
 import { useAuth } from '@/lib/authContext';
 import { api } from '@/lib/api';
 import { ASSETS, MAINTENANCE_RECORDS } from '@/lib/assetData';
-import { COMPLIANCE, TASKS, ALERTS, SITES } from '@/lib/mockData';
+import { COMPLIANCE, TASKS, SITES } from '@/lib/mockData';
+import { getNotifications } from '@/lib/notifications';
 import { useDeepPageCms } from '@/lib/deepPageCms';
 
 export default function DashboardModulesSummary() {
@@ -21,6 +22,14 @@ export default function DashboardModulesSummary() {
   const [utilities, setUtilities] = useState<any[]>([]);
   const [properties, setProperties] = useState<any[]>(SITES);
   const [tasks, setTasks] = useState<any[]>(TASKS);
+  const [notifications, setNotifications] = useState<any[]>([]);
+
+  useEffect(() => {
+    const syncNotifs = () => setNotifications(getNotifications());
+    syncNotifs();
+    window.addEventListener('samko:notifications-updated', syncNotifs);
+    return () => window.removeEventListener('samko:notifications-updated', syncNotifs);
+  }, []);
 
   const fetchRealData = useCallback(async () => {
     try {
@@ -84,41 +93,43 @@ export default function DashboardModulesSummary() {
     };
   }, [fetchRealData]);
 
-  // Asset counts
-  const totalAssets = assets.length || 98;
-  const fixedAssets = assets.filter((a) => a.isFixed).length || 60;
-  const nonFixedAssets = assets.filter((a) => !a.isFixed).length || 38;
+  // Dynamic Asset counts
+  const totalAssets = assets.length;
+  const fixedAssets = assets.filter((a) => a.isFixed).length;
+  const nonFixedAssets = assets.filter((a) => !a.isFixed).length;
 
-  // Maintenance
-  const scheduledMaint = maintenance.filter((m) => m.status === 'scheduled').length || 9;
-  const overdueMaint = maintenance.filter((m) => m.status === 'overdue').length || 3;
-  const completedMaint = maintenance.filter((m) => m.status === 'completed').length || 2;
-  const totalMaint = maintenance.length || 14;
-  const maintCompletion = Math.round((completedMaint / totalMaint) * 100);
+  // Dynamic Maintenance
+  const scheduledMaint = maintenance.filter((m) => m.status === 'scheduled').length;
+  const overdueMaint = maintenance.filter((m) => m.status === 'overdue').length;
+  const completedMaint = maintenance.filter((m) => m.status === 'completed').length;
+  const totalMaint = maintenance.length;
+  const maintCompletion = totalMaint > 0 ? Math.round((completedMaint / totalMaint) * 100) : 100;
 
-  // Compliance
-  const okCompliance = compliance.filter((c) => c.status === 'ok' || c.status === 'compliant').length || 5;
-  const criticalCompliance = compliance.filter((c) => c.status === 'critical' || c.status === 'overdue' || c.riskRating === 'critical').length || 3;
-  const warningCompliance = compliance.filter((c) => c.status === 'warning' || c.status === 'expiring-soon').length || 4;
+  // Dynamic Compliance
+  const okCompliance = compliance.filter((c) => c.status === 'ok' || c.status === 'compliant').length;
+  const criticalCompliance = compliance.filter((c) => c.status === 'critical' || c.status === 'overdue' || c.riskRating === 'critical').length;
+  const warningCompliance = compliance.filter((c) => c.status === 'warning' || c.status === 'expiring-soon').length;
 
-  // Insurance
-  const totalPolicies = insurance.length || 7;
-  const activeInsurance = insurance.filter((i) => i.status === 'active').length || 6;
-  const expiringInsurance = insurance.filter((i) => i.status === 'expiring-soon' || i.status === 'expired').length || 1;
+  // Dynamic Insurance
+  const totalPolicies = insurance.length;
+  const activeInsurance = insurance.filter((i) => i.status === 'active').length;
+  const expiringInsurance = insurance.filter((i) => i.status === 'expiring-soon' || i.status === 'expired').length;
 
-  // Contracts
-  const totalContracts = contracts.length || 50;
-  const activeContracts = contracts.filter((c) => c.status === 'active').length || 39;
-  const expiringContracts = contracts.filter((c) => c.status === 'expiring-soon').length || 6;
-  const criticalContracts = contracts.filter((c) => c.status === 'expired').length || 1;
+  // Dynamic Contracts
+  const totalContracts = contracts.length;
+  const activeContracts = contracts.filter((c) => c.status === 'active').length;
+  const expiringContracts = contracts.filter((c) => c.status === 'expiring-soon').length;
+  const criticalContracts = contracts.filter((c) => c.status === 'expired').length;
 
-  // Utilities
-  const totalUtilities = utilities.length || 23;
-  const totalSpendK = Math.round((utilities.reduce((sum, u) => sum + (Number(u.annualCost) || 0), 0) || 171800) / 1000);
+  // Dynamic Utilities
+  const totalUtilities = utilities.length;
+  const totalSpendK = Math.round(utilities.reduce((sum, u) => sum + (Number(u.annualCost) || 0), 0) / 1000);
 
-  // Tasks
-  const openTasks = tasks.filter((t) => t.status === 'open').length || 8;
-  const urgentTasks = tasks.filter((t) => (t.priority === 'urgent' || t.priority === 'high') && t.status === 'open').length || 3;
+  // Dynamic Tasks & Dynamic Alarms
+  const openTasks = tasks.filter((t) => t.status === 'open' || t.status === 'pending' || !t.status || t.status === 'in-progress').length;
+  const urgentTasks = tasks.filter((t) => (t.priority === 'urgent' || t.priority === 'high') && t.status !== 'completed').length;
+  const liveNotifs = notifications.length > 0 ? notifications : (typeof window !== 'undefined' ? getNotifications() : []);
+  const totalAlerts = liveNotifs.length;
 
   const propcoKpiMap = new Map((cms.propcoKpis || []).map((k) => [k.id, k]));
 
@@ -260,7 +271,7 @@ export default function DashboardModulesSummary() {
       stats: [
         { label: 'Open Tasks', value: openTasks },
         { label: 'Urgent', value: urgentTasks },
-        { label: 'Alerts', value: ALERTS.length || 6 },
+        { label: 'Alerts', value: totalAlerts },
       ],
       badge: urgentTasks > 0 ? { label: `${urgentTasks} Urgent`, variant: 'warning' } : null,
       enabled: kpiMap.get('ov-kpi-4')?.enabled !== false,

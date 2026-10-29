@@ -82,7 +82,31 @@ export default function MaintenanceClient() {
     subtitle: cmsSubtitle,
     searchPlaceholder: cmsSearchPlaceholder,
     primaryActionLabel: cmsPrimaryActionLabel,
+    columns: cmsColumns,
+    items: cmsItems,
   } = useDeepPageCms('maintenance');
+
+  const activeColumns = useMemo(() => {
+    if (cmsColumns && cmsColumns.length > 0) {
+      return [...cmsColumns].sort((a, b) => a.order - b.order).filter((c) => c.visible !== false);
+    }
+    return [
+      { id: 'asset', label: 'Asset Name', visible: true, order: 1 },
+      { id: 'property', label: 'Property Site', visible: true, order: 2 },
+      { id: 'type', label: 'Service Type', visible: true, order: 3 },
+      { id: 'frequency', label: 'Frequency', visible: true, order: 4 },
+      { id: 'scheduledDate', label: 'Scheduled Date', visible: true, order: 5 },
+      { id: 'assignedTo', label: 'Assigned To', visible: true, order: 6 },
+      { id: 'status', label: 'Status', visible: true, order: 7 },
+      { id: 'nextDueDate', label: 'Next Due Date', visible: true, order: 8 },
+      { id: 'actions', label: 'Actions', visible: true, order: 9 },
+    ];
+  }, [cmsColumns]);
+
+  const customColumns = useMemo(() => {
+    const standardKeys = new Set(['asset', 'property', 'type', 'frequency', 'scheduleddate', 'assignedto', 'status', 'nextduedate', 'actions']);
+    return (cmsColumns || []).filter((c) => !standardKeys.has(c.id.toLowerCase()));
+  }, [cmsColumns]);
 
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -92,7 +116,16 @@ export default function MaintenanceClient() {
     ? filterParam
     : (searchParams?.has('filter') ? 'all' : 'all');
 
-  const [records, setRecords] = useState<MaintenanceRecord[]>(MAINTENANCE_RECORDS);
+  const [records, setRecords] = useState<MaintenanceRecord[]>(() => {
+    if (cmsItems && cmsItems.length > 0) return cmsItems as any;
+    return MAINTENANCE_RECORDS;
+  });
+
+  useEffect(() => {
+    if (cmsItems && cmsItems.length > 0) {
+      setRecords(cmsItems as any);
+    }
+  }, [cmsItems]);
   const [properties, setProperties] = useState<Hotel[]>(HOTELS);
   const [liveAssets, setLiveAssets] = useState<any[]>(ASSETS);
   const [activeTab, setActiveTab] = useState<TabId>(initialTab);
@@ -379,7 +412,7 @@ export default function MaintenanceClient() {
               className="flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-semibold transition-transform active:scale-95"
               style={{ background: 'var(--primary)', color: '#000' }}
             >
-              <Plus size={14} /> {cmsPrimaryActionLabel || 'Schedule Maintenance'}
+              <Plus size={14} /> {(cmsPrimaryActionLabel || 'Schedule Maintenance').replace(/^\+\s*/, '')}
             </button>
           )}
           {isViewer && (
@@ -477,9 +510,14 @@ export default function MaintenanceClient() {
         <table className="w-full min-w-[880px]">
           <thead className="sticky top-0 z-10" style={{ background: 'var(--surface)' }}>
             <tr>
-              {['Asset', 'Property', 'Type', 'Frequency', 'Scheduled Date', 'Assigned To', 'Status', 'Next Due', ''].map((h, i) => (
-                <th key={i} className="text-left text-xs font-bold uppercase tracking-wide text-muted-foreground px-3.5 py-3 border-b border-border whitespace-nowrap">
-                  {h}
+              {activeColumns.map((col) => (
+                <th
+                  key={col.id}
+                  className={`text-left text-xs font-bold uppercase tracking-wide text-muted-foreground px-3.5 py-3 border-b border-border whitespace-nowrap ${
+                    col.id.toLowerCase() === 'actions' ? 'text-right' : ''
+                  }`}
+                >
+                  {col.label}
                 </th>
               ))}
             </tr>
@@ -487,14 +525,14 @@ export default function MaintenanceClient() {
           <tbody>
             {filtered.length === 0 ? (
               <tr>
-                <td colSpan={9} className="text-center py-16 text-muted-foreground text-sm">
+                <td colSpan={activeColumns.length || 9} className="text-center py-16 text-muted-foreground text-sm">
                   No maintenance records found.
                 </td>
               </tr>
             ) : (
               paginatedRecords.map((m) => {
                 const s = STATUS_STYLES[m.status] || STATUS_STYLES.scheduled;
-                const propDisplayName = m.hotelName || (m as any).propertyName || 'Property';
+                const propDisplayName = m.hotelName || (m as any).property || (m as any).propertyName || 'Property';
                 const isItemUpdating = updatingId === m.id;
 
                 return (
@@ -504,61 +542,110 @@ export default function MaintenanceClient() {
                     onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = 'var(--surface2)'; }}
                     onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
                   >
-                    <td className="px-3.5 py-2.5">
-                      <div className="text-sm font-medium">{m.assetName}</div>
-                      <div className="text-xs text-muted-foreground font-mono">{m.assetId}</div>
-                    </td>
-                    <td className="px-3.5 py-2.5 text-xs text-muted-foreground max-w-36">
-                      <div className="truncate" title={propDisplayName}>{propDisplayName}</div>
-                    </td>
-                    <td className="px-3.5 py-2.5 text-sm">{m.type}</td>
-                    <td className="px-3.5 py-2.5">
-                      <span
-                        className="inline-block px-2 py-0.5 rounded text-xs font-semibold capitalize"
-                        style={{ background: `${FREQ_STYLES[m.frequency] || '#6b7280'}18`, color: FREQ_STYLES[m.frequency] || '#6b7280' }}
-                      >
-                        {m.frequency}
-                      </span>
-                    </td>
-                    <td className="px-3.5 py-2.5 text-xs text-muted-foreground whitespace-nowrap">
-                      {new Date(m.scheduledDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
-                    </td>
-                    <td className="px-3.5 py-2.5 text-sm">{m.assignedTo}</td>
-                    <td className="px-3.5 py-2.5" onClick={(e) => e.stopPropagation()}>
-                      <StatusDropdown
-                        value={m.status}
-                        disabled={isItemUpdating || isViewer || !canEdit}
-                        options={[
-                          { value: 'scheduled', label: 'Scheduled', color: '#60a5fa', bg: 'rgba(96,165,250,0.12)' },
-                          { value: 'due-today', label: 'Due Today', color: '#f59e0b', bg: 'rgba(245,158,11,0.12)' },
-                          { value: 'overdue', label: 'Overdue', color: '#f43f5e', bg: 'rgba(244,63,94,0.12)' },
-                          { value: 'in-progress', label: 'In Progress', color: '#a78bfa', bg: 'rgba(167,139,250,0.12)' },
-                          { value: 'completed', label: 'Completed', color: '#3dd68c', bg: 'rgba(61,214,140,0.12)' },
-                        ]}
-                        onChange={(val) => handleStatusChange(m.id, val)}
-                      />
-                    </td>
-                    <td className="px-3.5 py-2.5 text-xs text-muted-foreground whitespace-nowrap">
-                      {new Date(m.nextDueDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
-                    </td>
-                    <td className="px-3.5 py-2.5" onClick={(e) => e.stopPropagation()}>
-                      <div className="flex items-center gap-1.5 whitespace-nowrap">
-                        <button
-                          onClick={() => handleOpenEdit(m)}
-                          className="p-1.5 rounded-lg border border-border hover:bg-surface2 text-muted-foreground hover:text-primary transition-colors"
-                          title="Edit Maintenance Record"
-                        >
-                          <Edit2 size={12} />
-                        </button>
-                        <button
-                          onClick={() => setRecordToDelete(m)}
-                          className="p-1.5 rounded-lg border border-rose-500/20 hover:bg-rose-500/15 text-rose-400 transition-colors"
-                          title="Delete Maintenance Record"
-                        >
-                          <Trash2 size={12} />
-                        </button>
-                      </div>
-                    </td>
+                    {activeColumns.map((col) => {
+                      const colKey = col.id.toLowerCase();
+                      if (colKey === 'asset') {
+                        return (
+                          <td key={col.id} className="px-3.5 py-2.5">
+                            <div className="text-sm font-medium">{m.assetName || (m as any).asset || '—'}</div>
+                            <div className="text-xs text-muted-foreground font-mono">{m.assetId || m.id}</div>
+                          </td>
+                        );
+                      }
+                      if (colKey === 'property') {
+                        return (
+                          <td key={col.id} className="px-3.5 py-2.5 text-xs text-muted-foreground max-w-36">
+                            <div className="truncate" title={propDisplayName}>{propDisplayName}</div>
+                          </td>
+                        );
+                      }
+                      if (colKey === 'type') {
+                        return (
+                          <td key={col.id} className="px-3.5 py-2.5 text-sm">
+                            {m.type || '—'}
+                          </td>
+                        );
+                      }
+                      if (colKey === 'frequency') {
+                        return (
+                          <td key={col.id} className="px-3.5 py-2.5">
+                            <span
+                              className="inline-block px-2 py-0.5 rounded text-xs font-semibold capitalize"
+                              style={{ background: `${FREQ_STYLES[m.frequency] || '#6b7280'}18`, color: FREQ_STYLES[m.frequency] || '#6b7280' }}
+                            >
+                              {m.frequency}
+                            </span>
+                          </td>
+                        );
+                      }
+                      if (colKey === 'scheduleddate') {
+                        return (
+                          <td key={col.id} className="px-3.5 py-2.5 text-xs text-muted-foreground whitespace-nowrap">
+                            {m.scheduledDate ? new Date(m.scheduledDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'}
+                          </td>
+                        );
+                      }
+                      if (colKey === 'assignedto') {
+                        return (
+                          <td key={col.id} className="px-3.5 py-2.5 text-sm">{m.assignedTo || 'Unassigned'}</td>
+                        );
+                      }
+                      if (colKey === 'status') {
+                        return (
+                          <td key={col.id} className="px-3.5 py-2.5" onClick={(e) => e.stopPropagation()}>
+                            <StatusDropdown
+                              value={m.status}
+                              disabled={isItemUpdating || isViewer || !canEdit}
+                              options={[
+                                { value: 'scheduled', label: 'Scheduled', color: '#60a5fa', bg: 'rgba(96,165,250,0.12)' },
+                                { value: 'due-today', label: 'Due Today', color: '#f59e0b', bg: 'rgba(245,158,11,0.12)' },
+                                { value: 'overdue', label: 'Overdue', color: '#f43f5e', bg: 'rgba(244,63,94,0.12)' },
+                                { value: 'in-progress', label: 'In Progress', color: '#a78bfa', bg: 'rgba(167,139,250,0.12)' },
+                                { value: 'completed', label: 'Completed', color: '#3dd68c', bg: 'rgba(61,214,140,0.12)' },
+                              ]}
+                              onChange={(val) => handleStatusChange(m.id, val)}
+                            />
+                          </td>
+                        );
+                      }
+                      if (colKey === 'nextduedate') {
+                        return (
+                          <td key={col.id} className="px-3.5 py-2.5 text-xs text-muted-foreground whitespace-nowrap">
+                            {m.nextDueDate ? new Date(m.nextDueDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'}
+                          </td>
+                        );
+                      }
+                      if (colKey === 'actions') {
+                        return (
+                          <td key={col.id} className="px-3.5 py-2.5 text-right" onClick={(e) => e.stopPropagation()}>
+                            <div className="flex items-center justify-end gap-1.5 whitespace-nowrap">
+                              <button
+                                onClick={() => handleOpenEdit(m)}
+                                className="p-1.5 rounded-lg border border-border hover:bg-surface2 text-muted-foreground hover:text-primary transition-colors cursor-pointer"
+                                title="Edit Maintenance Record"
+                              >
+                                <Edit2 size={12} />
+                              </button>
+                              <button
+                                onClick={() => setRecordToDelete(m)}
+                                className="p-1.5 rounded-lg border border-rose-500/20 hover:bg-rose-500/15 text-rose-400 transition-colors cursor-pointer"
+                                title="Delete Maintenance Record"
+                              >
+                                <Trash2 size={12} />
+                              </button>
+                            </div>
+                          </td>
+                        );
+                      }
+
+                      // Dynamic custom columns
+                      const val = (m as any)[col.id] ?? (m as any)[colKey];
+                      return (
+                        <td key={col.id} className="px-3.5 py-2.5 text-xs text-foreground whitespace-nowrap">
+                          {val !== undefined && val !== null && String(val).trim() !== '' ? String(val) : '—'}
+                        </td>
+                      );
+                    })}
                   </tr>
                 );
               })
@@ -742,6 +829,23 @@ export default function MaintenanceClient() {
                 />
               </div>
 
+              {/* Dynamic Custom Columns */}
+              {customColumns.map((col) => (
+                <div key={col.id}>
+                  <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wide">
+                    {col.label}
+                  </label>
+                  <input
+                    type="text"
+                    value={(addForm as any)[col.id] || ''}
+                    onChange={(e) => setAddForm({ ...addForm, [col.id]: e.target.value })}
+                    placeholder={`Enter ${col.label}...`}
+                    className="w-full px-3 py-2 rounded-lg border border-border text-xs outline-none"
+                    style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
+                  />
+                </div>
+              ))}
+
               <div>
                 <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wide">
                   Work Notes / Scope of Service
@@ -903,6 +1007,23 @@ export default function MaintenanceClient() {
                   />
                 </div>
               </div>
+
+              {/* Dynamic Custom Columns */}
+              {customColumns.map((col) => (
+                <div key={col.id}>
+                  <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wide">
+                    {col.label}
+                  </label>
+                  <input
+                    type="text"
+                    value={(addForm as any)[col.id] || ''}
+                    onChange={(e) => setAddForm({ ...addForm, [col.id]: e.target.value })}
+                    placeholder={`Enter ${col.label}...`}
+                    className="w-full px-3 py-2 rounded-lg border border-border text-xs outline-none"
+                    style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
+                  />
+                </div>
+              ))}
 
               <div>
                 <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wide">

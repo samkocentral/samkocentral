@@ -265,7 +265,7 @@ export default function TabPermissionsEditor({
     setSingleProcessing(true);
 
     try {
-      // 1. Process Section Placement (PropCo / OpCo / Both)
+      // 1. Process Section Placement (PropCo / OpCo / Both / Bottom)
       if (singleSectionChanged && singleSectionTarget) {
         let updatedSecs: Record<string, TabSectionLocation>;
         if (singleSectionMode === 'copy') {
@@ -274,9 +274,13 @@ export default function TabPermissionsEditor({
           updatedSecs = moveTabToSection(singleTabModalTab.id, singleSectionTarget);
         }
         setSectionMapping(updatedSecs);
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('samko:sections-changed', { detail: { mapping: updatedSecs } }));
+          window.dispatchEvent(new CustomEvent('samko:app-cms-updated', { detail: { mapping: updatedSecs } }));
+        }
       }
 
-      // 2. Process Role Transfer
+      // 2. Process Role & User Permission Transfer
       if (singleActionType === 'everyone') {
         const updatedTemplates = transferTabBetweenRoles({
           tabId: singleTabModalTab.id,
@@ -311,11 +315,18 @@ export default function TabPermissionsEditor({
         });
         setRoleTemplates(updatedTemplates);
 
-        if (singleActionType === 'move' && singleTargetRole !== roleLevel && onChange) {
-          onChange({
-            ...fullPermissions,
-            [singleTabModalTab.id]: { ...fullPermissions[singleTabModalTab.id], enabled: false },
-          });
+        if (onChange) {
+          if (singleActionType === 'move' && singleTargetRole !== roleLevel) {
+            onChange({
+              ...fullPermissions,
+              [singleTabModalTab.id]: { enabled: false, accessLevel: singleAccessLevel },
+            });
+          } else if (singleTargetRole === roleLevel || singleActionType === 'copy') {
+            onChange({
+              ...fullPermissions,
+              [singleTabModalTab.id]: { enabled: true, accessLevel: singleAccessLevel },
+            });
+          }
         }
 
         if (singleSyncUsers && onSyncUsersInRole && singleTargetRole !== 'ALL') {
@@ -324,7 +335,7 @@ export default function TabPermissionsEditor({
 
         const actionText = singleActionType === 'copy' ? 'Copied' : 'Moved';
         const targetLabel = singleTargetRole === 'ALL' ? 'All Roles' : ROLE_METADATA[singleTargetRole]?.title || singleTargetRole;
-        toast.success(`Successfully ${actionText} "${singleTabModalTab.name}" to ${targetLabel}!`, {
+        toast.success(`Successfully ${actionText.toLowerCase()} "${singleTabModalTab.name}" to ${targetLabel}!`, {
           description: `Access set to ${singleAccessLevel === 'write' ? 'Edit & Write' : 'Read Only'}${
             singleSectionChanged ? ` · Section: ${SECTION_METADATA[singleSectionTarget]?.label}` : ''
           }.`,
@@ -353,14 +364,20 @@ export default function TabPermissionsEditor({
       });
       setRoleTemplates(updatedTemplates);
 
-      if (bulkTargetRole === roleLevel && onChange) {
+      if ((bulkTargetRole === 'ALL' || bulkTargetRole === roleLevel) && onChange) {
         onChange(updatedTemplates[roleLevel]);
       } else if (bulkMode === 'move' && bulkSourceRole === roleLevel && onChange) {
         onChange(updatedTemplates[roleLevel]);
       }
 
-      if (bulkSyncUsers && onSyncUsersInRole && bulkTargetRole !== 'ALL') {
-        await onSyncUsersInRole(bulkTargetRole, updatedTemplates[bulkTargetRole]);
+      if (bulkSyncUsers && onSyncUsersInRole) {
+        if (bulkTargetRole === 'ALL') {
+          for (const r of ['L1', 'L2', 'L3', 'L4'] as RoleLevel[]) {
+            await onSyncUsersInRole(r, updatedTemplates[r]);
+          }
+        } else {
+          await onSyncUsersInRole(bulkTargetRole, updatedTemplates[bulkTargetRole]);
+        }
       }
 
       const modeWord = bulkMode === 'copy' ? 'copied' : 'moved';
@@ -780,7 +797,11 @@ export default function TabPermissionsEditor({
           open={!!singleTabModalTab}
           onClose={() => setSingleTabModalTab(null)}
           title={`Copy / Move Tab · ${singleTabModalTab.name}`}
-          subtitle="Assign, copy, or transfer this tab across roles or to PROPCO / OPCO sections."
+          subtitle={
+            userName
+              ? `Manage "${singleTabModalTab.name}" for ${userName} (${roleLevel}), or transfer across roles & sidebar sections.`
+              : `Assign, copy, or move "${singleTabModalTab.name}" across roles or to PROPCO / OPCO sections.`
+          }
           width={600}
         >
           <div className="space-y-4 text-xs">

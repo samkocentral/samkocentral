@@ -841,7 +841,7 @@ export default function UsersClient() {
               className="flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold cursor-pointer shadow-md transition-transform active:scale-95"
               style={{ background: 'var(--primary)', color: '#000' }}
             >
-              <Plus size={14} /> {cms.primaryActionLabel || 'Add User Account'}
+              <Plus size={14} /> {(cms.primaryActionLabel || 'Add User Account').replace(/^\+\s*/, '')}
             </button>
           )}
         </div>

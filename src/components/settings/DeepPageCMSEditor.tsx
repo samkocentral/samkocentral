@@ -29,6 +29,10 @@ import {
   Layers,
   ChevronLeft,
   ChevronRight,
+  ArrowLeft,
+  ArrowRight,
+  List,
+  LayoutGrid,
   Filter,
   Users,
   History,
@@ -46,6 +50,11 @@ import {
   updatePageConfig,
   updateColumnTitle,
   toggleColumnVisibility,
+  moveColumn,
+  addColumn,
+  deleteColumn,
+  addCustomSection,
+  deletePageSection,
   updatePageItem,
   addPageItem,
   deletePageItem,
@@ -83,7 +92,7 @@ import { HOTELS, ASSET_CATEGORIES } from '@/lib/assetData';
 import { toast } from 'sonner';
 
 const TAB_PAGES: Array<{ id: keyof DeepAppCMSStore; label: string; icon: React.ElementType; group: string; livePath: string }> = [
-  { id: 'overview', label: 'Dashboard', icon: LayoutDashboard, group: 'System', livePath: '/' },
+  { id: 'overview', label: 'OpCo & PropCo Dashboard', icon: LayoutDashboard, group: 'PropCo & OpCo', livePath: '/' },
   { id: 'properties', label: 'Properties', icon: Building2, group: 'PropCo (Asset Co)', livePath: '/asset-management/properties' },
   { id: 'assets', label: 'Fixed Assets', icon: Package, group: 'PropCo (Asset Co)', livePath: '/asset-management/assets' },
   { id: 'insurance', label: 'Insurance', icon: FileCheck, group: 'PropCo (Asset Co)', livePath: '/insurance-register' },
@@ -196,7 +205,28 @@ export default function DeepPageCMSEditor({
   const [newDropdownOptionsList, setNewDropdownOptionsList] = useState<string[]>([]);
   const [dropdownToDelete, setDropdownToDelete] = useState<DeepPageDropdown | null>(null);
 
+  // Column CMS states (Add, Move, Delete with Confirmation)
+  const [showAddColModal, setShowAddColModal] = useState(false);
+  const [newColLabel, setNewColLabel] = useState('');
+  const [newColKey, setNewColKey] = useState('');
+  const [newColDefault, setNewColDefault] = useState('');
+  const [colToDelete, setColToDelete] = useState<{ id: string; label: string } | null>(null);
+  const [colViewMode, setColViewMode] = useState<'list' | 'grid'>('list');
+
   const currentPage = store[selectedPage];
+
+  const sortedColumns = useMemo(() => {
+    return [...(currentPage?.columns || [])].sort((a, b) => a.order - b.order);
+  }, [currentPage?.columns]);
+
+  const visibleColumns = useMemo(() => {
+    return sortedColumns.filter((c) => c.visible !== false);
+  }, [sortedColumns]);
+
+  const cmsCustomColumns = useMemo(() => {
+    const standardKeys = new Set(['assetid', 'name', 'category', 'property', 'department', 'location', 'qty', 'condition', 'risk', 'nextinspection', 'status', 'actions']);
+    return (currentPage?.columns || []).filter((c) => !standardKeys.has(c.id.toLowerCase()));
+  }, [currentPage?.columns]);
 
   const hasKpis = Boolean(currentPage?.topKpis || (currentPage?.kpis && currentPage.kpis.length > 0 && selectedPage !== 'properties' && selectedPage !== 'assets' && selectedPage !== 'nonfixed' && selectedPage !== 'categories' && selectedPage !== 'import' && selectedPage !== 'qr'));
   const hasDropdowns = selectedPage !== 'overview';
@@ -224,6 +254,49 @@ export default function DeepPageCMSEditor({
 
   const handleToggleCol = (colId: string) => {
     toggleColumnVisibility(selectedPage, colId);
+    refresh();
+  };
+
+  const handleMoveCol = (colId: string, direction: 'left' | 'right') => {
+    const success = moveColumn(selectedPage, colId, direction);
+    if (success) {
+      toast.success(`Column moved ${direction}`);
+      refresh();
+    }
+  };
+
+  const handleAddCol = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newColLabel.trim()) {
+      toast.error('Column header label is required');
+      return;
+    }
+    const safeKey = (newColKey || newColLabel).trim().toLowerCase().replace(/[^a-z0-9_]/g, '_');
+    if (!safeKey) {
+      toast.error('Invalid column identifier');
+      return;
+    }
+    const success = addColumn(selectedPage, {
+      id: safeKey,
+      label: newColLabel.trim(),
+      defaultValue: newColDefault.trim(),
+    });
+    if (!success) {
+      toast.error('A column with this key already exists');
+      return;
+    }
+    toast.success(`Column "${newColLabel}" added successfully`);
+    setShowAddColModal(false);
+    setNewColLabel('');
+    setNewColKey('');
+    setNewColDefault('');
+    refresh();
+  };
+
+  const handleDeleteCol = (colId: string, colLabel: string) => {
+    deleteColumn(selectedPage, colId);
+    toast.success(`Column "${colLabel}" deleted`);
+    setColToDelete(null);
     refresh();
   };
 
@@ -409,7 +482,8 @@ export default function DeepPageCMSEditor({
       return;
     }
     const cleanId = newAssetForm.assetId.trim() || `FA-${Date.now().toString().slice(-4)}`;
-    addPageItem('assets', {
+    const targetPage = selectedPage === 'nonfixed' ? 'nonfixed' : 'assets';
+    addPageItem(targetPage, {
       ...newAssetForm,
       id: `a-${Date.now()}`,
       assetId: cleanId,
@@ -438,7 +512,8 @@ export default function DeepPageCMSEditor({
   const handleSaveAssetEdit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingAsset) return;
-    updatePageItem('assets', editingAsset.id, {
+    const targetPage = selectedPage === 'nonfixed' ? 'nonfixed' : 'assets';
+    updatePageItem(targetPage, editingAsset.id, {
       ...editingAsset,
       quantity: Number(editingAsset.quantity) || 1,
     });
@@ -478,23 +553,23 @@ export default function DeepPageCMSEditor({
     }
   };
 
-  // Filtered Assets logic
+  // Filtered Assets logic (Fixed & Non-Fixed Assets)
   const filteredAssets = useMemo(() => {
-    if (selectedPage !== 'assets' || !currentPage.items) return [];
+    if ((selectedPage !== 'assets' && selectedPage !== 'nonfixed') || !currentPage.items) return [];
     return currentPage.items.filter((item: any) => {
       const matchSearch =
         !assetSearch ||
         (item.name || '').toLowerCase().includes(assetSearch.toLowerCase()) ||
         (item.assetId || '').toLowerCase().includes(assetSearch.toLowerCase()) ||
         (item.location || '').toLowerCase().includes(assetSearch.toLowerCase()) ||
-        (item.hotelName || '').toLowerCase().includes(assetSearch.toLowerCase());
+        (item.hotelName || item.property || '').toLowerCase().includes(assetSearch.toLowerCase());
 
       const matchCat =
         assetCategoryFilter === 'All' || item.category === assetCategoryFilter;
 
       const matchHotel =
         assetHotelFilter === 'All' ||
-        (item.hotelName || '').toLowerCase().includes(assetHotelFilter.toLowerCase());
+        (item.hotelName || item.property || '').toLowerCase().includes(assetHotelFilter.toLowerCase());
 
       return matchSearch && matchCat && matchHotel;
     });
@@ -1192,7 +1267,7 @@ export default function DeepPageCMSEditor({
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold border border-primary/40 bg-primary/10 text-primary hover:bg-primary/20 cursor-pointer self-start sm:self-auto"
             >
               <Plus size={13} strokeWidth={2.5} />
-              + Add Alert
+              Add Alert
             </button>
           </div>
 
@@ -1301,7 +1376,7 @@ export default function DeepPageCMSEditor({
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold border border-primary/40 bg-primary/10 text-primary hover:bg-primary/20 cursor-pointer self-start sm:self-auto"
             >
               <Plus size={13} strokeWidth={2.5} />
-              + Add Task
+              Add Task
             </button>
           </div>
 
@@ -1586,47 +1661,290 @@ export default function DeepPageCMSEditor({
           className="rounded-xl border p-5 flex flex-col gap-4 shadow-sm"
           style={{ background: 'var(--surface)', borderColor: 'var(--border)' }}
         >
-          <div className="flex items-center justify-between pb-3 border-b border-border">
+          {/* Header row with Title, Dynamic Reorder Badge, View Switcher & + Add Column */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-border gap-3">
             <div>
-              <span className="font-head font-bold text-sm text-foreground">
-                {columnSectionNum}. Table Columns Configuration & Visibility ({currentPage.columns.length} Columns)
-              </span>
+              <div className="flex items-center gap-2">
+                <span className="font-head font-bold text-sm text-foreground">
+                  {columnSectionNum}. Table Columns Configuration & Visibility ({sortedColumns.length} Columns)
+                </span>
+                <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-primary/10 text-primary border border-primary/20">
+                  Dynamic & Reorderable
+                </span>
+              </div>
               <p className="text-[11px] text-muted-foreground mt-0.5">
-                Rename column headers or toggle column visibility on the live page
+                Rearrange column sequence, rename headers, toggle visibility on live pages, or create new custom columns.
               </p>
+            </div>
+
+            <div className="flex items-center gap-2.5 self-start sm:self-auto">
+              {/* View Switcher: List vs Cards */}
+              <div className="flex items-center rounded-lg border border-border p-0.5" style={{ background: 'var(--surface2)' }}>
+                <button
+                  type="button"
+                  onClick={() => setColViewMode('list')}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold transition-all cursor-pointer ${
+                    colViewMode === 'list'
+                      ? 'bg-primary text-black font-bold shadow-xs'
+                      : 'text-muted-foreground hover:text-foreground'
+                  }`}
+                  title="List View (Clean table with sequence & controls)"
+                >
+                  <List size={13} />
+                  <span>List View</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setColViewMode('grid')}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold transition-all cursor-pointer ${
+                    colViewMode === 'grid'
+                      ? 'bg-primary text-black font-bold shadow-xs'
+                      : 'text-muted-foreground hover:text-foreground'
+                  }`}
+                  title="Cards View (Spacious cards)"
+                >
+                  <LayoutGrid size={13} />
+                  <span>Cards</span>
+                </button>
+              </div>
+
+              {/* Add Column Button */}
+              <button
+                type="button"
+                onClick={() => {
+                  setNewColLabel('');
+                  setNewColKey('');
+                  setNewColDefault('');
+                  setShowAddColModal(true);
+                }}
+                className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all hover:brightness-110 active:scale-95 shadow-sm cursor-pointer whitespace-nowrap"
+                style={{ background: 'var(--primary)', color: '#121316' }}
+              >
+                <Plus size={14} strokeWidth={2.5} />
+                Add Column
+              </button>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2.5">
-            {currentPage.columns.map((col) => (
-              <div
-                key={col.id}
-                className="p-3 rounded-lg border border-border flex items-center justify-between gap-2"
-                style={{ background: 'var(--surface2)' }}
-              >
-                <div className="flex flex-col flex-1 min-w-0">
-                  <span className="text-[10px] text-muted-foreground uppercase font-bold">
-                    Key: {col.id}
-                  </span>
-                  <input
-                    type="text"
-                    value={col.label}
-                    onChange={(e) => handleUpdateColLabel(col.id, e.target.value)}
-                    className="border-b border-border bg-transparent outline-none text-xs font-bold text-foreground py-0.5"
-                  />
-                </div>
+          {/* ─── LIST VIEW (CLEAN, TABLE SEQUENCER) ─── */}
+          {colViewMode === 'list' ? (
+            <div className="border border-border rounded-xl overflow-x-auto shadow-xs" style={{ background: 'var(--surface2)' }}>
+              <table className="w-full text-left border-collapse text-xs">
+                <thead>
+                  <tr className="border-b border-border bg-black/30 text-muted-foreground text-[11px] font-bold uppercase tracking-wider">
+                    <th className="py-3 px-3 text-center w-14"># Pos</th>
+                    <th className="py-3 px-4 w-44 text-center">Reorder (Move)</th>
+                    <th className="py-3 px-4 min-w-[220px]">Header Label (Live Page Title)</th>
+                    <th className="py-3 px-3 min-w-[130px]">Database Key</th>
+                    <th className="py-3 px-3 w-28 text-center">Type</th>
+                    <th className="py-3 px-3 w-32 text-center">Live Visibility</th>
+                    <th className="py-3 px-3 w-20 text-right">Delete</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border/60">
+                  {sortedColumns.map((col, idx) => (
+                    <tr
+                      key={col.id}
+                      className="hover:bg-white/[0.02] transition-colors"
+                    >
+                      {/* # Position Badge */}
+                      <td className="py-3 px-3 text-center">
+                        <span className="inline-block px-2 py-0.5 rounded-md text-xs font-mono font-bold bg-primary/15 text-primary border border-primary/30">
+                          #{idx + 1}
+                        </span>
+                      </td>
 
-                <button
-                  onClick={() => handleToggleCol(col.id)}
-                  className={`p-1.5 rounded text-xs transition-colors cursor-pointer ${
-                    col.visible ? 'text-primary' : 'text-muted-foreground opacity-40'
-                  }`}
-                  title={col.visible ? 'Visible' : 'Hidden'}
+                      {/* Reorder Buttons */}
+                      <td className="py-3 px-4 text-center whitespace-nowrap">
+                        <div className="flex items-center justify-center gap-1.5">
+                          <button
+                            type="button"
+                            disabled={idx === 0}
+                            onClick={() => handleMoveCol(col.id, 'left')}
+                            className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md text-[11px] font-semibold border border-border bg-surface hover:border-primary text-foreground disabled:opacity-20 disabled:cursor-not-allowed cursor-pointer transition-all shadow-xs"
+                            title="Move Earlier / Left in Table (◀)"
+                          >
+                            <ArrowLeft size={12} strokeWidth={2.5} className="text-primary" />
+                            <span>Left</span>
+                          </button>
+                          <button
+                            type="button"
+                            disabled={idx === sortedColumns.length - 1}
+                            onClick={() => handleMoveCol(col.id, 'right')}
+                            className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md text-[11px] font-semibold border border-border bg-surface hover:border-primary text-foreground disabled:opacity-20 disabled:cursor-not-allowed cursor-pointer transition-all shadow-xs"
+                            title="Move Later / Right in Table (▶)"
+                          >
+                            <span>Right</span>
+                            <ArrowRight size={12} strokeWidth={2.5} className="text-primary" />
+                          </button>
+                        </div>
+                      </td>
+
+                      {/* Header Label Input */}
+                      <td className="py-3 px-4">
+                        <input
+                          type="text"
+                          value={col.label}
+                          onChange={(e) => handleUpdateColLabel(col.id, e.target.value)}
+                          placeholder="Column Label..."
+                          className="w-full px-3 py-1.5 rounded-lg border border-border/80 focus:border-primary text-xs font-semibold text-foreground outline-none transition-colors"
+                          style={{ background: 'var(--surface)' }}
+                        />
+                      </td>
+
+                      {/* Database Key */}
+                      <td className="py-3 px-3">
+                        <code className="px-2 py-1 rounded text-[11px] font-mono font-semibold text-muted-foreground bg-black/30 border border-border/60">
+                          {col.id}
+                        </code>
+                      </td>
+
+                      {/* Type Badge */}
+                      <td className="py-3 px-3 text-center whitespace-nowrap">
+                        {col.isCustom ? (
+                          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+                            Custom
+                          </span>
+                        ) : (
+                          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-medium text-muted-foreground bg-white/5 border border-white/10">
+                            System
+                          </span>
+                        )}
+                      </td>
+
+                      {/* Visibility Toggle */}
+                      <td className="py-3 px-3 text-center whitespace-nowrap">
+                        <button
+                          type="button"
+                          onClick={() => handleToggleCol(col.id)}
+                          className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold border transition-all cursor-pointer ${
+                            col.visible
+                              ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-400'
+                              : 'border-border bg-black/20 text-muted-foreground opacity-50 hover:opacity-90'
+                          }`}
+                          title={col.visible ? 'Visible on Live Page (Click to Hide)' : 'Hidden on Live Page (Click to Show)'}
+                        >
+                          {col.visible ? <Eye size={13} /> : <EyeOff size={13} />}
+                          <span>{col.visible ? 'Visible' : 'Hidden'}</span>
+                        </button>
+                      </td>
+
+                      {/* Delete Action (Available for all columns) */}
+                      <td className="py-3 px-3 text-right whitespace-nowrap">
+                        <button
+                          type="button"
+                          onClick={() => setColToDelete({ id: col.id, label: col.label })}
+                          className="p-1.5 rounded-lg border border-rose-500/30 text-rose-400 hover:bg-rose-500/20 cursor-pointer transition-colors"
+                          title={`Delete column "${col.label}"`}
+                        >
+                          <Trash2 size={13} />
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            /* ─── CARDS VIEW (WIDE, SPACIOUS 3-COLUMN GRID) ─── */
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3.5">
+              {sortedColumns.map((col, idx) => (
+                <div
+                  key={col.id}
+                  className="p-4 rounded-xl border border-border flex flex-col gap-3 transition-all shadow-sm hover:border-primary/40"
+                  style={{ background: 'var(--surface2)' }}
                 >
-                  {col.visible ? <Eye size={14} /> : <EyeOff size={14} />}
-                </button>
-              </div>
-            ))}
+                  {/* Top Bar: Order & Key + Visibility & Delete */}
+                  <div className="flex items-center justify-between gap-2 border-b border-border/50 pb-2.5">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span className="px-2 py-0.5 rounded text-xs font-mono font-bold bg-primary/15 text-primary border border-primary/30 shrink-0">
+                        #{idx + 1}
+                      </span>
+                      <code className="text-[11px] font-mono text-muted-foreground uppercase font-bold truncate max-w-[120px]" title={`Key: ${col.id}`}>
+                        {col.id}
+                      </code>
+                      {col.isCustom && (
+                        <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 shrink-0">
+                          Custom
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => handleToggleCol(col.id)}
+                        className={`p-1.5 rounded-lg border text-xs transition-colors cursor-pointer hover:bg-surface ${
+                          col.visible
+                            ? 'border-primary/40 text-primary bg-primary/10'
+                            : 'border-border text-muted-foreground opacity-40 hover:opacity-100'
+                        }`}
+                        title={col.visible ? 'Column Visible (Click to Hide)' : 'Column Hidden (Click to Show)'}
+                      >
+                        {col.visible ? <Eye size={13} /> : <EyeOff size={13} />}
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setColToDelete({ id: col.id, label: col.label })}
+                        className="p-1.5 rounded-lg border border-rose-500/30 text-rose-400 hover:bg-rose-500/20 cursor-pointer transition-colors"
+                        title={`Delete column "${col.label}"`}
+                      >
+                        <Trash2 size={13} />
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Header Title Input */}
+                  <div className="flex flex-col gap-1.5">
+                    <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
+                      Header Title
+                    </span>
+                    <input
+                      type="text"
+                      value={col.label}
+                      onChange={(e) => handleUpdateColLabel(col.id, e.target.value)}
+                      placeholder="Column Label..."
+                      className="border border-border/80 focus:border-primary rounded-lg px-3 py-1.5 text-xs font-bold text-foreground outline-none transition-colors"
+                      style={{ background: 'var(--surface)' }}
+                    />
+                  </div>
+
+                  {/* Bottom Bar: Order Position & Compact Arrow Buttons */}
+                  <div className="flex items-center justify-between pt-2.5 border-t border-border/40">
+                    <span className="text-xs text-muted-foreground font-mono whitespace-nowrap">
+                      Position <strong className="text-primary font-bold">#{idx + 1}</strong> of {sortedColumns.length}
+                    </span>
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        type="button"
+                        disabled={idx === 0}
+                        onClick={() => handleMoveCol(col.id, 'left')}
+                        className="p-2 rounded-lg border border-border bg-surface hover:border-primary text-primary disabled:opacity-20 disabled:text-muted-foreground disabled:cursor-not-allowed cursor-pointer transition-all shadow-xs"
+                        title="Move Column Earlier / Left (◀)"
+                      >
+                        <ArrowLeft size={13} strokeWidth={2.5} />
+                      </button>
+                      <button
+                        type="button"
+                        disabled={idx === sortedColumns.length - 1}
+                        onClick={() => handleMoveCol(col.id, 'right')}
+                        className="p-2 rounded-lg border border-border bg-surface hover:border-primary text-primary disabled:opacity-20 disabled:text-muted-foreground disabled:cursor-not-allowed cursor-pointer transition-all shadow-xs"
+                        title="Move Column Later / Right (▶)"
+                      >
+                        <ArrowRight size={13} strokeWidth={2.5} />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <div className="p-3 rounded-lg border border-border/70 bg-surface2/40 text-[11px] text-muted-foreground flex items-center justify-between gap-3">
+            <span>
+              💡 Use the <strong className="text-foreground">◀ Left and Right ▶</strong> buttons to rearrange any column (including newly added columns). The order (#1 to #{sortedColumns.length}) and visibility reflect directly across tables throughout the entire application.
+            </span>
           </div>
         </div>
       )}
@@ -1723,85 +2041,248 @@ export default function DeepPageCMSEditor({
             <table className="w-full text-left border-collapse text-xs">
               <thead>
                 <tr className="border-b border-border bg-black/20 text-muted-foreground text-[11px] font-bold uppercase tracking-wider">
-                  <th className="py-2.5 px-3">Asset ID</th>
-                  <th className="py-2.5 px-3">Asset Name</th>
-                  <th className="py-2.5 px-3">Category</th>
-                  <th className="py-2.5 px-3">Property / Site</th>
-                  <th className="py-2.5 px-3">Department</th>
-                  <th className="py-2.5 px-3">Location</th>
-                  <th className="py-2.5 px-3">Qty</th>
-                  <th className="py-2.5 px-3">Condition</th>
-                  <th className="py-2.5 px-3">Risk</th>
-                  <th className="py-2.5 px-3">Status</th>
-                  <th className="py-2.5 px-3 text-right">Actions</th>
+                  {visibleColumns && visibleColumns.length > 0 ? (
+                    <>
+                      {visibleColumns.map((col) => (
+                        <th
+                          key={col.id}
+                          className={`py-2.5 px-3 ${col.id.toLowerCase() === 'actions' ? 'text-right' : ''}`}
+                        >
+                          {col.label}
+                        </th>
+                      ))}
+                      {!visibleColumns.some((c) => c.id.toLowerCase() === 'actions') && (
+                        <th className="py-2.5 px-3 text-right">Actions</th>
+                      )}
+                    </>
+                  ) : (
+                    <>
+                      <th className="py-2.5 px-3">Asset ID</th>
+                      <th className="py-2.5 px-3">Asset Name</th>
+                      <th className="py-2.5 px-3">Category</th>
+                      <th className="py-2.5 px-3">Property / Site</th>
+                      <th className="py-2.5 px-3">Department</th>
+                      <th className="py-2.5 px-3">Location</th>
+                      <th className="py-2.5 px-3">Qty</th>
+                      <th className="py-2.5 px-3">Condition</th>
+                      <th className="py-2.5 px-3">Risk</th>
+                      <th className="py-2.5 px-3">Status</th>
+                      <th className="py-2.5 px-3 text-right">Actions</th>
+                    </>
+                  )}
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
                 {paginatedAssets.length === 0 ? (
                   <tr>
-                    <td colSpan={11} className="py-8 text-center text-muted-foreground">
+                    <td colSpan={(visibleColumns?.length || 10) + 1} className="py-8 text-center text-muted-foreground">
                       No assets found matching filters.
                     </td>
                   </tr>
                 ) : (
                   paginatedAssets.map((asset: any) => (
                     <tr key={asset.id} className="hover:bg-white/[0.02] transition-colors">
-                      <td className="py-2.5 px-3 font-mono font-bold text-amber-300">
-                        {asset.assetId || asset.id}
-                      </td>
-                      <td className="py-2.5 px-3 font-bold text-foreground">
-                        {asset.name}
-                      </td>
-                      <td className="py-2.5 px-3">
-                        <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-white/5 border border-white/10 text-muted-foreground">
-                          {asset.category}
-                        </span>
-                      </td>
-                      <td className="py-2.5 px-3 text-muted-foreground truncate max-w-[150px]">
-                        {asset.hotelName || 'Crowne Plaza'}
-                      </td>
-                      <td className="py-2.5 px-3 text-muted-foreground">
-                        {asset.department || 'General'}
-                      </td>
-                      <td className="py-2.5 px-3 text-muted-foreground">
-                        {asset.location || '—'}
-                      </td>
-                      <td className="py-2.5 px-3 font-bold text-foreground">
-                        {asset.quantity || 1}
-                      </td>
-                      <td className="py-2.5 px-3">
-                        <span className="capitalize text-emerald-400 font-medium">
-                          ● {asset.condition || 'Good'}
-                        </span>
-                      </td>
-                      <td className="py-2.5 px-3">
-                        <span className="capitalize text-blue-400 font-medium">
-                          ● {asset.riskLevel || 'Low'}
-                        </span>
-                      </td>
-                      <td className="py-2.5 px-3">
-                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
-                          {asset.status || 'Active'}
-                        </span>
-                      </td>
-                      <td className="py-2.5 px-3 text-right">
-                        <div className="flex items-center justify-end gap-1.5">
-                          <button
-                            onClick={() => setEditingAsset({ ...asset })}
-                            className="p-1.5 rounded-lg border border-border text-muted-foreground hover:text-primary transition-colors cursor-pointer"
-                            title="Edit Asset Details"
-                          >
-                            <Edit2 size={13} />
-                          </button>
-                          <button
-                            onClick={() => handleDeleteItem(asset.id, asset.name)}
-                            className="p-1.5 rounded-lg border border-border text-muted-foreground hover:text-rose-400 hover:bg-rose-500/10 transition-colors cursor-pointer"
-                            title="Delete Asset"
-                          >
-                            <Trash2 size={13} />
-                          </button>
-                        </div>
-                      </td>
+                      {visibleColumns && visibleColumns.length > 0 ? (
+                        <>
+                          {visibleColumns.map((col) => {
+                            const colKey = col.id.toLowerCase();
+                            if (colKey === 'assetid') {
+                              return (
+                                <td key={col.id} className="py-2.5 px-3 font-mono font-bold text-amber-300">
+                                  {asset.assetId || asset.id}
+                                </td>
+                              );
+                            }
+                            if (colKey === 'name') {
+                              return (
+                                <td key={col.id} className="py-2.5 px-3 font-bold text-foreground">
+                                  {asset.name}
+                                </td>
+                              );
+                            }
+                            if (colKey === 'category') {
+                              return (
+                                <td key={col.id} className="py-2.5 px-3">
+                                  <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-white/5 border border-white/10 text-muted-foreground">
+                                    {asset.category}
+                                  </span>
+                                </td>
+                              );
+                            }
+                            if (colKey === 'property') {
+                              return (
+                                <td key={col.id} className="py-2.5 px-3 text-muted-foreground truncate max-w-[150px]">
+                                  {asset.hotelName || asset.property || 'Crowne Plaza'}
+                                </td>
+                              );
+                            }
+                            if (colKey === 'department') {
+                              return (
+                                <td key={col.id} className="py-2.5 px-3 text-muted-foreground">
+                                  {asset.department || (selectedPage === 'nonfixed' ? 'Housekeeping' : 'General')}
+                                </td>
+                              );
+                            }
+                            if (colKey === 'location') {
+                              return (
+                                <td key={col.id} className="py-2.5 px-3 text-muted-foreground">
+                                  {asset.location || '—'}
+                                </td>
+                              );
+                            }
+                            if (colKey === 'qty') {
+                              return (
+                                <td key={col.id} className="py-2.5 px-3 font-bold text-foreground">
+                                  {asset.quantity || 1}
+                                </td>
+                              );
+                            }
+                            if (colKey === 'condition') {
+                              return (
+                                <td key={col.id} className="py-2.5 px-3">
+                                  <span className="capitalize text-emerald-400 font-medium">
+                                    ● {asset.condition || 'Good'}
+                                  </span>
+                                </td>
+                              );
+                            }
+                            if (colKey === 'risk') {
+                              return (
+                                <td key={col.id} className="py-2.5 px-3">
+                                  <span className="capitalize text-blue-400 font-medium">
+                                    ● {asset.riskLevel || 'Low'}
+                                  </span>
+                                </td>
+                              );
+                            }
+                            if (colKey === 'nextinspection') {
+                              return (
+                                <td key={col.id} className="py-2.5 px-3 text-muted-foreground">
+                                  {asset.nextInspectionDate || '—'}
+                                </td>
+                              );
+                            }
+                            if (colKey === 'status') {
+                              return (
+                                <td key={col.id} className="py-2.5 px-3">
+                                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+                                    {asset.status || 'Active'}
+                                  </span>
+                                </td>
+                              );
+                            }
+                            if (colKey === 'actions') {
+                              return (
+                                <td key={col.id} className="py-2.5 px-3 text-right">
+                                  <div className="flex items-center justify-end gap-1.5">
+                                    <button
+                                      onClick={() => setEditingAsset({ ...asset })}
+                                      className="p-1.5 rounded-lg border border-border text-muted-foreground hover:text-primary transition-colors cursor-pointer"
+                                      title="Edit Asset Details"
+                                    >
+                                      <Edit2 size={13} />
+                                    </button>
+                                    <button
+                                      onClick={() => handleDeleteItem(asset.id, asset.name)}
+                                      className="p-1.5 rounded-lg border border-border text-muted-foreground hover:text-rose-400 hover:bg-rose-500/10 transition-colors cursor-pointer"
+                                      title="Delete Asset"
+                                    >
+                                      <Trash2 size={13} />
+                                    </button>
+                                  </div>
+                                </td>
+                              );
+                            }
+
+                            // Dynamic custom column!
+                            const val = asset[col.id] ?? asset[colKey];
+                            return (
+                              <td key={col.id} className="py-2.5 px-3 text-foreground whitespace-nowrap">
+                                {val !== undefined && val !== null && String(val).trim() !== '' ? String(val) : '—'}
+                              </td>
+                            );
+                          })}
+                          {!visibleColumns.some((c) => c.id.toLowerCase() === 'actions') && (
+                            <td className="py-2.5 px-3 text-right">
+                              <div className="flex items-center justify-end gap-1.5">
+                                <button
+                                  onClick={() => setEditingAsset({ ...asset })}
+                                  className="p-1.5 rounded-lg border border-border text-muted-foreground hover:text-primary transition-colors cursor-pointer"
+                                  title="Edit Asset Details"
+                                >
+                                  <Edit2 size={13} />
+                                </button>
+                                <button
+                                  onClick={() => handleDeleteItem(asset.id, asset.name)}
+                                  className="p-1.5 rounded-lg border border-border text-muted-foreground hover:text-rose-400 hover:bg-rose-500/10 transition-colors cursor-pointer"
+                                  title="Delete Asset"
+                                >
+                                  <Trash2 size={13} />
+                                </button>
+                              </div>
+                            </td>
+                          )}
+                        </>
+                      ) : (
+                        <>
+                          <td className="py-2.5 px-3 font-mono font-bold text-amber-300">
+                            {asset.assetId || asset.id}
+                          </td>
+                          <td className="py-2.5 px-3 font-bold text-foreground">
+                            {asset.name}
+                          </td>
+                          <td className="py-2.5 px-3">
+                            <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-white/5 border border-white/10 text-muted-foreground">
+                              {asset.category}
+                            </span>
+                          </td>
+                          <td className="py-2.5 px-3 text-muted-foreground truncate max-w-[150px]">
+                            {asset.hotelName || asset.property || 'Crowne Plaza'}
+                          </td>
+                          <td className="py-2.5 px-3 text-muted-foreground">
+                            {asset.department || (selectedPage === 'nonfixed' ? 'Housekeeping' : 'General')}
+                          </td>
+                          <td className="py-2.5 px-3 text-muted-foreground">
+                            {asset.location || '—'}
+                          </td>
+                          <td className="py-2.5 px-3 font-bold text-foreground">
+                            {asset.quantity || 1}
+                          </td>
+                          <td className="py-2.5 px-3">
+                            <span className="capitalize text-emerald-400 font-medium">
+                              ● {asset.condition || 'Good'}
+                            </span>
+                          </td>
+                          <td className="py-2.5 px-3">
+                            <span className="capitalize text-blue-400 font-medium">
+                              ● {asset.riskLevel || 'Low'}
+                            </span>
+                          </td>
+                          <td className="py-2.5 px-3">
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+                              {asset.status || 'Active'}
+                            </span>
+                          </td>
+                          <td className="py-2.5 px-3 text-right">
+                            <div className="flex items-center justify-end gap-1.5">
+                              <button
+                                onClick={() => setEditingAsset({ ...asset })}
+                                className="p-1.5 rounded-lg border border-border text-muted-foreground hover:text-primary transition-colors cursor-pointer"
+                                title="Edit Asset Details"
+                              >
+                                <Edit2 size={13} />
+                              </button>
+                              <button
+                                onClick={() => handleDeleteItem(asset.id, asset.name)}
+                                className="p-1.5 rounded-lg border border-border text-muted-foreground hover:text-rose-400 hover:bg-rose-500/10 transition-colors cursor-pointer"
+                                title="Delete Asset"
+                              >
+                                <Trash2 size={13} />
+                              </button>
+                            </div>
+                          </td>
+                        </>
+                      )}
                     </tr>
                   ))
                 )}
@@ -2054,11 +2535,19 @@ export default function DeepPageCMSEditor({
 
             <button
               onClick={() => {
-                const sample = currentPage.items?.[0] || {};
                 const emptyForm: Record<string, any> = {};
-                Object.keys(sample).forEach((k) => {
-                  if (k !== 'id') emptyForm[k] = '';
-                });
+                if (visibleColumns && visibleColumns.length > 0) {
+                  visibleColumns
+                    .filter((c) => c.id !== 'actions' && c.id !== 'id')
+                    .forEach((col) => {
+                      emptyForm[col.id] = col.defaultValue || '';
+                    });
+                } else {
+                  const sample = currentPage.items?.[0] || {};
+                  Object.keys(sample).forEach((k) => {
+                    if (k !== 'id') emptyForm[k] = '';
+                  });
+                }
                 setNewGenericForm(emptyForm);
                 setShowAddGenericModal(true);
               }}
@@ -2074,41 +2563,47 @@ export default function DeepPageCMSEditor({
             <table className="w-full text-left border-collapse text-xs">
               <thead>
                 <tr className="border-b border-border bg-black/20 text-muted-foreground text-[11px] font-bold uppercase tracking-wider">
-                  {Object.keys(currentPage.items[0] || {})
-                    .filter((k) => k !== 'id')
-                    .map((header) => {
-                      const matchedCol = currentPage.columns?.find(
-                        (c) => c.id.toLowerCase() === header.toLowerCase()
-                      );
-                      return (
-                        <th key={header} className="py-2.5 px-3">
-                          {matchedCol ? matchedCol.label : header.replace(/([A-Z])/g, ' $1')}
-                        </th>
-                      );
-                    })}
+                  {visibleColumns
+                    .filter((c) => c.id !== 'actions')
+                    .map((col) => (
+                      <th key={col.id} className="py-2.5 px-3 whitespace-nowrap">
+                        {col.label}
+                      </th>
+                    ))}
                   <th className="py-2.5 px-3 text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
                 {currentPage.items.map((row: any, idx: number) => (
                   <tr key={row.id || idx} className="hover:bg-white/[0.02] transition-colors">
-                    {Object.entries(row)
-                      .filter(([k]) => k !== 'id')
-                      .map(([key, val]) => (
-                        <td key={key} className="py-2.5 px-3 text-foreground">
-                          {key.toLowerCase().includes('status') ? (
-                            <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
-                              {String(val)}
-                            </span>
-                          ) : (
-                            String(val)
-                          )}
-                        </td>
-                      ))}
+                    {visibleColumns
+                      .filter((c) => c.id !== 'actions')
+                      .map((col) => {
+                        const val = row[col.id] ?? row[col.id.toLowerCase()] ?? '';
+                        return (
+                          <td key={col.id} className="py-2.5 px-3 text-foreground whitespace-nowrap">
+                            {col.id.toLowerCase().includes('status') ? (
+                              <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+                                {String(val || 'Active')}
+                              </span>
+                            ) : (
+                              String(val !== undefined && val !== null && val !== '' ? val : '—')
+                            )}
+                          </td>
+                        );
+                      })}
                     <td className="py-2.5 px-3 text-right">
                       <div className="flex items-center justify-end gap-1.5">
                         <button
-                          onClick={() => setEditingGenericItem({ ...row })}
+                          onClick={() => {
+                            const fullItem = { ...row };
+                            (currentPage.columns || []).forEach((c) => {
+                              if (c.id !== 'actions' && fullItem[c.id] === undefined) {
+                                fullItem[c.id] = fullItem[c.id.toLowerCase()] || '';
+                              }
+                            });
+                            setEditingGenericItem(fullItem);
+                          }}
                           className="p-1.5 rounded-lg border border-border text-muted-foreground hover:text-primary transition-colors cursor-pointer"
                           title="Edit Record"
                         >
@@ -2287,6 +2782,39 @@ export default function DeepPageCMSEditor({
                 </div>
               </div>
 
+              {/* Dynamic Custom Columns */}
+              {cmsCustomColumns && cmsCustomColumns.length > 0 && (
+                <div className="pt-3 border-t border-border space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold uppercase tracking-wider text-primary">
+                      Custom Columns ({cmsCustomColumns.length})
+                    </span>
+                    <span className="text-[11px] text-muted-foreground">Dynamically configured attributes</span>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {cmsCustomColumns.map((col) => (
+                      <div key={col.id} className="flex flex-col gap-1.5">
+                        <label className="text-xs font-semibold text-foreground">{col.label}</label>
+                        <input
+                          type="text"
+                          value={editingAsset[col.id] ?? editingAsset[col.id.toLowerCase()] ?? ''}
+                          onChange={(e) =>
+                            setEditingAsset({
+                              ...editingAsset,
+                              [col.id]: e.target.value,
+                              [col.id.toLowerCase()]: e.target.value,
+                            })
+                          }
+                          placeholder={`Enter ${col.label}...`}
+                          className="rounded-lg border border-border px-3 py-2 text-xs outline-none"
+                          style={{ background: 'var(--surface2)' }}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               <div className="flex items-center justify-end gap-2 pt-4 border-t border-border mt-2">
                 <button
                   type="button"
@@ -2438,6 +2966,39 @@ export default function DeepPageCMSEditor({
                   </select>
                 </div>
               </div>
+
+              {/* Dynamic Custom Columns */}
+              {cmsCustomColumns && cmsCustomColumns.length > 0 && (
+                <div className="pt-3 border-t border-border space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold uppercase tracking-wider text-primary">
+                      Custom Columns ({cmsCustomColumns.length})
+                    </span>
+                    <span className="text-[11px] text-muted-foreground">Dynamically configured attributes</span>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {cmsCustomColumns.map((col) => (
+                      <div key={col.id} className="flex flex-col gap-1.5">
+                        <label className="text-xs font-semibold text-foreground">{col.label}</label>
+                        <input
+                          type="text"
+                          value={(newAssetForm as any)[col.id] ?? (newAssetForm as any)[col.id.toLowerCase()] ?? ''}
+                          onChange={(e) =>
+                            setNewAssetForm({
+                              ...newAssetForm,
+                              [col.id]: e.target.value,
+                              [col.id.toLowerCase()]: e.target.value,
+                            })
+                          }
+                          placeholder={`Enter ${col.label}...`}
+                          className="rounded-lg border border-border px-3 py-2 text-xs outline-none"
+                          style={{ background: 'var(--surface2)' }}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               <div className="flex items-center justify-end gap-2 pt-4 border-t border-border mt-2">
                 <button
@@ -2945,6 +3506,168 @@ export default function DeepPageCMSEditor({
               >
                 <Plus size={14} />
                 Create Dropdown
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── ADD NEW COLUMN MODAL ─── */}
+      {showAddColModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-in fade-in duration-150"
+          onClick={() => setShowAddColModal(false)}
+        >
+          <div
+            className="w-full max-w-lg rounded-2xl border border-border p-6 shadow-2xl flex flex-col gap-4 animate-in zoom-in-95 duration-150"
+            style={{ background: 'var(--surface)' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between pb-3 border-b border-border">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-lg bg-primary/15 border border-primary/30 flex items-center justify-center text-primary">
+                  <Plus size={18} />
+                </div>
+                <div>
+                  <h3 className="font-head font-bold text-base text-foreground">Add New Dynamic Column</h3>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Add a new column to {TAB_PAGES.find((t) => t.id === selectedPage)?.label || currentPage?.title || selectedPage}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowAddColModal(false)}
+                className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-surface2 transition-colors cursor-pointer"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            <form onSubmit={handleAddCol} className="flex flex-col gap-3.5">
+              {/* Column Label */}
+              <div className="flex flex-col gap-1">
+                <label className="text-xs font-semibold text-foreground">
+                  Column Header Label <span className="text-rose-400">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={newColLabel}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setNewColLabel(val);
+                    if (!newColKey || newColKey === newColLabel.toLowerCase().replace(/[^a-z0-9_]/g, '_')) {
+                      setNewColKey(val.toLowerCase().replace(/[^a-z0-9_]/g, '_'));
+                    }
+                  }}
+                  placeholder="e.g. Estimated Cost, Warranty Expiry, Vendor Contact..."
+                  className="rounded-lg border border-border px-3 py-2 text-xs outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 transition-all font-medium"
+                  style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
+                  autoFocus
+                />
+              </div>
+
+              {/* Column ID / Key */}
+              <div className="flex flex-col gap-1">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-semibold text-foreground">
+                    Column Key / Identifier <span className="text-rose-400">*</span>
+                  </label>
+                  <span className="text-[11px] text-muted-foreground font-mono">system slug</span>
+                </div>
+                <input
+                  type="text"
+                  value={newColKey}
+                  onChange={(e) => setNewColKey(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, '_'))}
+                  placeholder="e.g. estimated_cost, warranty_expiry..."
+                  className="rounded-lg border border-border px-3 py-2 text-xs outline-none focus:border-primary font-mono transition-all"
+                  style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
+                />
+              </div>
+
+              {/* Default Value */}
+              <div className="flex flex-col gap-1">
+                <label className="text-xs font-semibold text-foreground">
+                  Default Value for Existing Records (Optional)
+                </label>
+                <input
+                  type="text"
+                  value={newColDefault}
+                  onChange={(e) => setNewColDefault(e.target.value)}
+                  placeholder="e.g. Standard, N/A, £0.00..."
+                  className="rounded-lg border border-border px-3 py-2 text-xs outline-none focus:border-primary transition-all"
+                  style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
+                />
+                <span className="text-[11px] text-muted-foreground">
+                  Existing rows will automatically be populated with this default value.
+                </span>
+              </div>
+
+              <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-border mt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowAddColModal(false)}
+                  className="px-4 py-2 rounded-lg text-xs font-semibold border border-border hover:bg-surface2 transition-colors cursor-pointer text-foreground"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={!newColLabel.trim()}
+                  className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-bold transition-all shadow-sm active:scale-95 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                  style={{ background: 'var(--primary)', color: '#000' }}
+                >
+                  <Plus size={14} />
+                  Add Column
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ─── CONFIRM DELETE COLUMN MODAL ─── */}
+      {colToDelete && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-in fade-in duration-150"
+          onClick={() => setColToDelete(null)}
+        >
+          <div
+            className="w-full max-w-md rounded-2xl border border-rose-500/30 p-6 shadow-2xl flex flex-col gap-4 animate-in zoom-in-95 duration-150"
+            style={{ background: 'var(--surface)' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-rose-500/15 border border-rose-500/30 flex items-center justify-center text-rose-400 shrink-0">
+                <AlertTriangle size={20} />
+              </div>
+              <div>
+                <h3 className="font-head font-bold text-base text-foreground">Delete Column</h3>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Are you sure you want to delete column &ldquo;{colToDelete.label}&rdquo;?
+                </p>
+              </div>
+            </div>
+
+            <p className="text-xs text-muted-foreground">
+              This will remove the column header from this table across the application.
+            </p>
+
+            <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-border">
+              <button
+                type="button"
+                onClick={() => setColToDelete(null)}
+                className="px-4 py-2 rounded-lg text-xs font-semibold border border-border hover:bg-surface2 transition-colors cursor-pointer text-foreground"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => handleDeleteCol(colToDelete.id, colToDelete.label)}
+                className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-bold bg-rose-500 text-white hover:bg-rose-600 transition-all shadow-sm active:scale-95 cursor-pointer"
+              >
+                <Trash2 size={14} />
+                Delete Column
               </button>
             </div>
           </div>
