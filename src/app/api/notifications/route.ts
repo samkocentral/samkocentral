@@ -9,9 +9,18 @@ export async function GET() {
   if (adminDb) {
     try {
       const snap = await adminDb.collection('notifications').orderBy('timestamp', 'desc').limit(50).get();
-      if (!snap.empty) {
+      if (!snap.empty && snap.docs.length >= 6) {
         const notifs = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
         return NextResponse.json({ success: true, data: notifs });
+      } else {
+        const batch = adminDb.batch();
+        INITIAL_NOTIFICATIONS.forEach((n) => {
+          const ref = adminDb.collection('notifications').doc(n.id);
+          batch.set(ref, n, { merge: true });
+        });
+        await batch.commit();
+        const refreshed = await adminDb.collection('notifications').orderBy('timestamp', 'desc').limit(50).get();
+        return NextResponse.json({ success: true, data: refreshed.docs.map((d) => ({ id: d.id, ...d.data() })) });
       }
     } catch (e) {
       console.warn('[api/notifications] Admin GET failed:', e);
@@ -23,18 +32,20 @@ export async function GET() {
     try {
       const q = query(collection(clientDb, 'notifications'), orderBy('timestamp', 'desc'), limit(50));
       const snap = await getDocs(q);
-      if (!snap.empty) {
+      if (!snap.empty && snap.docs.length >= 6) {
         const notifs = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
         return NextResponse.json({ success: true, data: notifs });
       } else {
-        // Seed initial notifications to Firestore
+        // Ensure all default alarms (3 critical, 3 warnings, 1 info) exist in Firestore
         const batch = writeBatch(clientDb);
         INITIAL_NOTIFICATIONS.forEach((n) => {
           const ref = doc(clientDb, 'notifications', n.id);
-          batch.set(ref, n);
+          batch.set(ref, n, { merge: true });
         });
         await batch.commit();
-        return NextResponse.json({ success: true, data: INITIAL_NOTIFICATIONS });
+        const refreshedSnap = await getDocs(q);
+        const notifs = refreshedSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
+        return NextResponse.json({ success: true, data: notifs });
       }
     } catch (e) {
       console.warn('[api/notifications] Client GET failed:', e);
@@ -147,4 +158,3 @@ export async function DELETE(req: Request) {
     return NextResponse.json({ success: false, error: err?.message || String(err) }, { status: 500 });
   }
 }
-

@@ -17,7 +17,7 @@ export interface AppNotification {
   actionLabel?: string;
 }
 
-const STORAGE_KEY = 'samko:live_notifications_v3';
+const STORAGE_KEY = 'samko:live_notifications_v4';
 
 export const INITIAL_NOTIFICATIONS: AppNotification[] = [
   {
@@ -25,7 +25,7 @@ export const INITIAL_NOTIFICATIONS: AppNotification[] = [
     type: 'critical',
     title: 'Gas Safety CP12 EXPIRED',
     message: 'Commercial kitchen gas safety certificate expired yesterday.',
-    site: 'Ravents Ait Island',
+    site: 'Ravens Ait Island',
     source: 'compliance',
     timestamp: new Date(Date.now() - 15 * 60000).toISOString(),
     read: false,
@@ -76,9 +76,21 @@ export const INITIAL_NOTIFICATIONS: AppNotification[] = [
     site: 'Hampton 1 & 2',
     source: 'electrical',
     timestamp: new Date(Date.now() - 24 * 3600000).toISOString(),
-    read: true,
+    read: false,
     actionUrl: '/compliance-register',
     actionLabel: 'Renew Now',
+  },
+  {
+    id: 'notif-7',
+    type: 'warning',
+    title: 'Water Temp Sensor Drift (Calorifier B)',
+    message: 'Water temp recorded at 48°C (below statutory 50°C Legionella control threshold).',
+    site: 'Crowne Plaza Kingston-south',
+    source: 'water',
+    timestamp: new Date(Date.now() - 360 * 60000).toISOString(),
+    read: false,
+    actionUrl: '/compliance-register',
+    actionLabel: 'Check Calorifier',
   },
   {
     id: 'notif-6',

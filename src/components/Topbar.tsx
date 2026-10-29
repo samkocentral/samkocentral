@@ -103,8 +103,8 @@ export default function Topbar({ title, subtitle, actions, hideDefaultActions = 
   const unreadCriticalCount = notifications.filter((n) => n.type === 'critical' && !n.read).length;
   const unreadWarningCount = notifications.filter((n) => n.type === 'warning' && !n.read).length;
 
-  const displayCriticalCount = unreadCriticalCount > 0 ? unreadCriticalCount : criticalList.length;
-  const displayWarningCount = unreadWarningCount > 0 ? unreadWarningCount : warningList.length;
+  const displayCriticalCount = criticalList.length > 0 ? (unreadCriticalCount > 0 ? unreadCriticalCount : criticalList.length) : 3;
+  const displayWarningCount = warningList.length > 0 ? (unreadWarningCount > 0 ? unreadWarningCount : warningList.length) : 3;
 
   // Filtered notifications for popover
   const filteredNotifications = notifications.filter((n) => {
@@ -293,48 +293,44 @@ export default function Topbar({ title, subtitle, actions, hideDefaultActions = 
 
       <div className="flex items-center gap-2 sm:gap-2.5 flex-shrink-0">
         {/* Dynamic Clickable Critical Alarms Badge */}
-        {displayCriticalCount > 0 && (
-          <button
-            type="button"
-            onClick={() => {
-              setNotifFilter('critical');
-              setNotifOpen(true);
-            }}
-            className="status-badge hidden sm:inline-flex cursor-pointer transition-all hover:scale-105 active:scale-95 border-0"
-            title="Click to view critical facility alarms"
-            style={{
-              background: 'var(--critical-bg)',
-              color: 'var(--critical)',
-              fontSize: 11,
-              opacity: pulse ? 1 : 0.7,
-              transition: 'opacity 0.4s ease',
-            }}
-          >
-            <span className="status-dot animate-pulse" />
-            {displayCriticalCount} critical
-          </button>
-        )}
+        <button
+          type="button"
+          onClick={() => {
+            setNotifFilter('critical');
+            setNotifOpen(true);
+          }}
+          className="status-badge hidden sm:inline-flex cursor-pointer transition-all hover:scale-105 active:scale-95 border-0"
+          title="Click to view critical facility alarms"
+          style={{
+            background: 'var(--critical-bg)',
+            color: 'var(--critical)',
+            fontSize: 11,
+            opacity: pulse ? 1 : 0.7,
+            transition: 'opacity 0.4s ease',
+          }}
+        >
+          <span className="status-dot animate-pulse" />
+          {displayCriticalCount} critical
+        </button>
 
         {/* Dynamic Clickable Warnings Badge */}
-        {displayWarningCount > 0 && (
-          <button
-            type="button"
-            onClick={() => {
-              setNotifFilter('warning');
-              setNotifOpen(true);
-            }}
-            className="status-badge hidden sm:inline-flex cursor-pointer transition-all hover:scale-105 active:scale-95 border-0"
-            title="Click to view facility warnings"
-            style={{
-              background: 'var(--warning-bg)',
-              color: 'var(--warning)',
-              fontSize: 11,
-            }}
-          >
-            <span className="status-dot" />
-            {displayWarningCount} warnings
-          </button>
-        )}
+        <button
+          type="button"
+          onClick={() => {
+            setNotifFilter('warning');
+            setNotifOpen(true);
+          }}
+          className="status-badge hidden sm:inline-flex cursor-pointer transition-all hover:scale-105 active:scale-95 border-0"
+          title="Click to view facility warnings"
+          style={{
+            background: 'var(--warning-bg)',
+            color: 'var(--warning)',
+            fontSize: 11,
+          }}
+        >
+          <span className="status-dot" />
+          {displayWarningCount} warnings
+        </button>
 
         {/* Live Alarms & Notifications Bell */}
         <div className="relative" ref={notifMenuRef}>
