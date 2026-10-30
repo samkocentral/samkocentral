@@ -225,7 +225,7 @@ export default function RecentLogsClient() {
     isPageLoading,
     changePage,
     changePageSize,
-  } = useLoadingPagination(filteredLogs, 4);
+  } = useLoadingPagination(filteredLogs, 10);
 
   // Export to CSV
   const handleExportCSV = () => {
@@ -934,7 +934,7 @@ export default function RecentLogsClient() {
           currentPage={currentPage}
           totalRecords={totalRecords}
           pageSize={pageSize}
-          pageSizeOptions={[5, 7, 10, 20]}
+          pageSizeOptions={[5, 10, 15, 20, 50]}
           onPageChange={changePage}
           onPageSizeChange={changePageSize}
           isLoading={isPageLoading}

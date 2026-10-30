@@ -177,7 +177,7 @@ function KPICard({ label, value, sub, color, icon: IconComponent }: { label: str
 }
 
 export default function ComplianceRegisterClient() {
-  const { isViewer, canEdit } = useAuth();
+  const { isViewer, canEdit, canDelete } = useAuth();
   const {
     title: cmsTitle,
     subtitle: cmsSubtitle,
@@ -448,7 +448,7 @@ export default function ComplianceRegisterClient() {
     isPageLoading,
     changePage,
     changePageSize,
-  } = useLoadingPagination(displayItems, 4);
+  } = useLoadingPagination(displayItems, 10);
 
   const handleExport = () => {
     const headers = ['Compliance ID', 'Name', 'Category', 'Type', 'Property', 'Authority', 'Certificate Number', 'Expiry Date', 'Status', 'Risk Rating'];
@@ -722,20 +722,24 @@ export default function ComplianceRegisterClient() {
                               >
                                 <Eye size={13} />
                               </button>
-                              <button
-                                className="p-1.5 rounded-lg border border-border hover:bg-surface2 transition-colors text-muted-foreground hover:text-primary cursor-pointer"
-                                title="Edit Compliance Item"
-                                onClick={() => handleOpenEdit(item)}
-                              >
-                                <Edit2 size={13} />
-                              </button>
-                              <button
-                                className="p-1.5 rounded-lg border border-rose-500/20 hover:bg-rose-500/15 text-rose-400 transition-colors cursor-pointer"
-                                title="Delete Compliance Item"
-                                onClick={() => setItemToDelete(item)}
-                              >
-                                <Trash2 size={13} />
-                              </button>
+                              {!isViewer && canEdit && (
+                                <button
+                                  className="p-1.5 rounded-lg border border-border hover:bg-surface2 transition-colors text-muted-foreground hover:text-primary cursor-pointer"
+                                  title="Edit Compliance Item"
+                                  onClick={() => handleOpenEdit(item)}
+                                >
+                                  <Edit2 size={13} />
+                                </button>
+                              )}
+                              {!isViewer && (canDelete ?? canEdit) && (
+                                <button
+                                  className="p-1.5 rounded-lg border border-rose-500/20 hover:bg-rose-500/15 text-rose-400 transition-colors cursor-pointer"
+                                  title="Delete Compliance Item"
+                                  onClick={() => setItemToDelete(item)}
+                                >
+                                  <Trash2 size={13} />
+                                </button>
+                              )}
                             </div>
                           </td>
                         );
@@ -764,7 +768,7 @@ export default function ComplianceRegisterClient() {
             currentPage={currentPage}
             totalRecords={totalRecords}
             pageSize={pageSize}
-            pageSizeOptions={[5, 7, 10, 20]}
+            pageSizeOptions={[5, 10, 15, 20, 50]}
             onPageChange={changePage}
             onPageSizeChange={changePageSize}
             isLoading={loading || isPageLoading}
@@ -812,21 +816,25 @@ export default function ComplianceRegisterClient() {
             )}
             <div className="flex items-center justify-between p-6 pt-0 border-t border-border mt-4">
               <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => handleOpenEdit(selectedItem)}
-                  className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-semibold border border-border hover:bg-surface2 text-foreground transition-colors"
-                  style={{ background: 'var(--surface2)' }}
-                >
-                  <Edit2 size={13} /> Edit Item
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setItemToDelete(selectedItem)}
-                  className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-semibold border border-rose-500/30 hover:bg-rose-500/15 text-rose-400 transition-colors"
-                >
-                  <Trash2 size={13} /> Delete Item
-                </button>
+                {!isViewer && canEdit && (
+                  <button
+                    type="button"
+                    onClick={() => handleOpenEdit(selectedItem)}
+                    className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-semibold border border-border hover:bg-surface2 text-foreground transition-colors"
+                    style={{ background: 'var(--surface2)' }}
+                  >
+                    <Edit2 size={13} /> Edit Item
+                  </button>
+                )}
+                {!isViewer && (canDelete ?? canEdit) && (
+                  <button
+                    type="button"
+                    onClick={() => setItemToDelete(selectedItem)}
+                    className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-semibold border border-rose-500/30 hover:bg-rose-500/15 text-rose-400 transition-colors"
+                  >
+                    <Trash2 size={13} /> Delete Item
+                  </button>
+                )}
               </div>
               <button onClick={() => setSelectedItem(null)} className="px-5 py-2 rounded-lg text-xs font-semibold" style={{ background: 'var(--primary)', color: '#000' }}>
                 Close

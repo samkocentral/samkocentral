@@ -118,18 +118,158 @@ export interface DeepAppCMSStore {
   users: DeepPageConfig;
   import: DeepPageConfig;
   qr: DeepPageConfig;
+  // Sub-Tab Complete Dynamic Pages
+  claims: DeepPageConfig;
+  insurancerenewals: DeepPageConfig;
+  suppliers: DeepPageConfig;
+  contractrenewals: DeepPageConfig;
+  slas: DeepPageConfig;
+  certifications: DeepPageConfig;
+  statutory: DeepPageConfig;
+  energyaccounts: DeepPageConfig;
+  maintenancescheduled: DeepPageConfig;
+  maintenanceduetoday: DeepPageConfig;
+  maintenanceoverdue: DeepPageConfig;
+  maintenancecompleted: DeepPageConfig;
 }
 
-const STORAGE_KEY = 'samko:deep_page_cms_v12';
+const STORAGE_KEY = 'samko:deep_page_cms_v13';
 const EVENT_KEY = 'samko:deep-page-cms-updated';
 
 // Automatically purge legacy cache keys once in browser
 if (typeof window !== 'undefined') {
-  for (let i = 1; i <= 11; i++) {
+  for (let i = 1; i <= 12; i++) {
     try {
       localStorage.removeItem(`samko:deep_page_cms_v${i}`);
     } catch {}
   }
+}
+
+
+// ─── DYNAMIC SUB-TAB DATA GENERATORS ──────────────────────────────────────────
+
+export function getDynamicSuppliersList(): Array<Record<string, any>> {
+  const map = new Map<string, any>();
+  const contracts = (db as any).contracts || [];
+  contracts.forEach((c: any, index: number) => {
+    const name = c.supplierName || 'Unknown Vendor';
+    if (!map.has(name)) {
+      map.set(name, {
+        id: 'sup-' + (index + 1),
+        name,
+        category: c.category || 'General Services',
+        contact: c.supplierContact || 'Operations Support',
+        email: c.email || 'procurement@vendor.co.uk',
+        phone: c.phone || '+44 20 8000 0000',
+        contractCount: 0,
+        totalAnnualValue: 0,
+        status: 'active',
+      });
+    }
+    const sup = map.get(name);
+    sup.contractCount += 1;
+    sup.totalAnnualValue += Number(c.contractValue || c.value || 0);
+  });
+  return Array.from(map.values()).map((s) => ({
+    ...s,
+    totalAnnualValue: '£' + s.totalAnnualValue.toLocaleString(),
+  }));
+}
+
+export function getDynamicContractRenewalsList(): Array<Record<string, any>> {
+  const contracts = (db as any).contracts || [];
+  return contracts.map((c: any) => ({
+    id: 'ren-' + (c.id || c.contractId),
+    contractId: c.contractId || ('CON-' + c.id),
+    contractName: c.contractName || c.name || 'Service Agreement',
+    supplierName: c.supplierName || 'Vendor',
+    property: c.property || c.hotel || 'Crowne Plaza Kingston-south',
+    renewalDate: c.renewalDate || c.endDate || '2026-11-30',
+    noticePeriod: c.noticePeriod || '30 days',
+    annualValue: typeof c.contractValue === 'number' ? ('£' + c.contractValue.toLocaleString()) : (c.contractValue ? ('£' + c.contractValue) : '£1,200'),
+    autoRenew: c.autoRenew ? 'Yes' : 'No',
+    status: c.status || 'active',
+  }));
+}
+
+export function getDynamicContractSlasList(): Array<Record<string, any>> {
+  const contracts = (db as any).contracts || [];
+  return contracts.map((c: any) => {
+    const isEmergency = c.category === 'Fire Safety' || c.category === 'Lifts' || c.category === 'HVAC';
+    return {
+      id: 'sla-' + (c.id || c.contractId),
+      contractId: c.contractId || ('CON-' + c.id),
+      contractName: c.contractName || 'Service Agreement',
+      supplierName: c.supplierName || 'Contractor',
+      property: c.property || c.hotel || 'Crowne Plaza Kingston-south',
+      slaTerms: c.sla || (isEmergency ? '24/7 emergency dispatch within 4 hours' : 'Next business day response (9am–5pm)'),
+      category: c.category || 'Operations',
+      responseTime: isEmergency ? '4 Hours Emergency' : '24-48 Hours Standard',
+      status: c.status === 'active' ? 'Compliant' : 'Under Review',
+    };
+  });
+}
+
+export function getDynamicInsuranceRenewalsList(): Array<Record<string, any>> {
+  const policies = (db as any).insurance || [];
+  return policies.map((p: any) => ({
+    id: 'ir-' + (p.id || p.policyNumber),
+    policyNumber: p.policyNumber || 'POL-2025-001',
+    company: p.company || p.insuranceCompany || 'Aviva Commercial',
+    insuranceType: p.insuranceType || 'Building Insurance',
+    property: p.property || p.hotel || 'Crowne Plaza Kingston-south',
+    coverage: p.coverage || (p.coverageAmount ? ('£' + Number(p.coverageAmount).toLocaleString()) : '£45,000,000'),
+    annualPremium: typeof p.annualPremium === 'number' ? ('£' + p.annualPremium.toLocaleString()) : (p.annualPremium || '£42,000'),
+    renewalDate: p.renewalDate || '2025-12-15',
+    expiryDate: p.expiryDate || '2026-01-01',
+    status: p.status || 'active',
+  }));
+}
+
+export function getDynamicComplianceCertificationsList(): Array<Record<string, any>> {
+  const comp = (db as any).compliance || [];
+  return comp.map((c: any) => ({
+    id: 'cert-' + (c.id || c.complianceId),
+    certificateNumber: c.certificateNumber || ('CERT-' + c.id),
+    name: c.name || 'Statutory Certificate',
+    property: c.property || c.hotel || 'Crowne Plaza Kingston-south',
+    regulatoryAuthority: c.regulatoryAuthority || 'Health & Safety Executive',
+    contractor: c.contractor || 'Certified Inspector',
+    issueDate: c.issueDate || '2024-06-01',
+    expiryDate: c.expiryDate || '2025-06-01',
+    riskRating: c.riskRating || 'medium',
+    status: c.status || 'compliant',
+  }));
+}
+
+export function getDynamicStatutoryInspectionsList(): Array<Record<string, any>> {
+  const comp = (db as any).compliance || [];
+  return comp.map((c: any) => ({
+    id: 'stat-' + (c.id || c.complianceId),
+    name: c.name || 'Statutory Inspection',
+    property: c.property || c.hotel || 'Crowne Plaza Kingston-south',
+    inspectionFrequency: c.inspectionFrequency || 'Yearly',
+    contractor: c.contractor || 'Certified Engineering Inspector',
+    regulatoryAuthority: c.regulatoryAuthority || 'Fire & Rescue Service',
+    expiryDate: c.expiryDate || '2025-06-01',
+    riskRating: c.riskRating || 'medium',
+    status: c.status || 'compliant',
+  }));
+}
+
+export function getDynamicEnergyAccountsList(): Array<Record<string, any>> {
+  const utils = (db as any).utilities || [];
+  return utils.map((u: any) => ({
+    id: u.id || ('ea-' + u.accountNumber),
+    accountNumber: u.accountNumber || 'ACC-001',
+    utilityType: u.utilityType || 'Electricity',
+    supplier: u.supplier || 'EDF Energy',
+    property: u.property || 'Crowne Plaza Kingston-south',
+    meterReference: u.meterReference || 'MPAN: 1900092859450',
+    tariffRate: u.tariffRate || '20.08p/kWh',
+    monthlyCost: typeof u.monthlyCost === 'number' ? ('£' + u.monthlyCost.toLocaleString()) : (u.monthlyCost || '£213'),
+    status: u.status || 'active',
+  }));
 }
 
 // ─── SYSTEM DEFAULT DEEP PAGE CONFIGURATIONS ──────────────────────────────────
@@ -558,7 +698,7 @@ export const DEFAULT_DEEP_CMS: DeepAppCMSStore = {
     badgeText: '10 Tasks Managed',
     badgeColor: '#f59e0b',
     searchPlaceholder: 'Search tasks by title, room, assignee...',
-    primaryActionLabel: 'Add Item',
+    primaryActionLabel: 'Add Task',
     secondaryActionLabel: 'Upload Doc',
     kpis: [
       { id: 'task-kpi-1', label: 'Open Tasks', value: '7 Tasks', subtitle: 'Across all portfolio properties', color: '#60a5fa', enabled: true },
@@ -957,7 +1097,7 @@ export const DEFAULT_DEEP_CMS: DeepAppCMSStore = {
     badgeText: '5 Hotels Monitored',
     badgeColor: '#e8c97a',
     searchPlaceholder: 'Search portfolio properties, managers, cities, alerts...',
-    primaryActionLabel: 'Add Item',
+    primaryActionLabel: '',
     secondaryActionLabel: 'Upload Doc',
     topKpis: [
       { id: 'top-kpi-1', label: 'Non-Fixed Assets', value: '38', subtitle: 'Operational FF&E, kitchen & IT assets', color: '#60a5fa', enabled: true },
@@ -1048,6 +1188,381 @@ export const DEFAULT_DEEP_CMS: DeepAppCMSStore = {
       { id: 'prop-ov-7', name: 'Gatwick Manor (Stanhill Court)', city: 'Surrey', manager: 'Sarah Chen', status: 'Operational', risk: 'Low', assetCount: 15, overdueCount: 0, openIssues: 1, compliance: 94 },
       { id: 'prop-ov-8', name: 'Sharnbrook', city: 'Bedfordshire', manager: 'Group Admin', status: 'Operational', risk: 'Low', assetCount: 0, overdueCount: 0, openIssues: 1, compliance: 94 },
     ],
+  },
+
+  claims: {
+    id: 'claims',
+    title: 'Insurance Claims',
+    subtitle: 'All reported property, plant, water, and structural damage insurance claims across portfolio',
+    badgeText: '3 Active Claims',
+    badgeColor: '#f43f5e',
+    searchPlaceholder: 'Search claims by ID, property, policy, description...',
+    primaryActionLabel: 'Log New Claim',
+    topKpis: [
+      { id: 'cl-kpi-1', label: 'Total Claims', value: '3', subtitle: 'Recorded incidents across estate', color: '#f43f5e', enabled: true },
+      { id: 'cl-kpi-2', label: 'Settled Claims', value: '£12,500', subtitle: 'Underwriter payouts received', color: '#3dd68c', enabled: true },
+      { id: 'cl-kpi-3', label: 'Under Review', value: '1', subtitle: 'Awaiting loss adjuster assessment', color: '#f59e0b', enabled: true },
+      { id: 'cl-kpi-4', label: 'Pending Settlement', value: '£24,000', subtitle: 'High impact incident reserve', color: '#60a5fa', enabled: true },
+    ],
+    dropdowns: [
+      { id: 'status', label: 'Claim Status', options: ['All Statuses', 'settled', 'under-review', 'pending', 'rejected'] },
+      { id: 'property', label: 'Property / Hotel', options: ['All Properties', 'Crowne Plaza Kingston-south', 'Stanhill Court', 'Ravens Ait Island'] },
+    ],
+    columns: [
+      { id: 'id', label: 'Claim ID', originalLabel: 'Claim ID', visible: true, order: 1 },
+      { id: 'policyNumber', label: 'Policy #', originalLabel: 'Policy #', visible: true, order: 2 },
+      { id: 'property', label: 'Property', originalLabel: 'Property', visible: true, order: 3 },
+      { id: 'description', label: 'Incident Description', originalLabel: 'Incident Description', visible: true, order: 4 },
+      { id: 'amount', label: 'Claim Amount', originalLabel: 'Claim Amount', visible: true, order: 5 },
+      { id: 'claimDate', label: 'Claim Date', originalLabel: 'Claim Date', visible: true, order: 6 },
+      { id: 'status', label: 'Status', originalLabel: 'Status', visible: true, order: 7 },
+    ],
+    items: [
+      { id: 'c1', policyNumber: 'POL-2025-001', property: 'Crowne Plaza Kingston-south', description: 'Water damage to ground floor lobby ceiling', amount: '£12,500', claimDate: '2025-03-15', status: 'settled' },
+      { id: 'c2', policyNumber: 'POL-2025-003', property: 'Stanhill Court', description: 'Storm damage to roof tiles and external guttering', amount: '£8,750', claimDate: '2025-07-22', status: 'under-review' },
+      { id: 'c3', policyNumber: 'POL-2025-002', property: 'Ravens Ait Island', description: 'Flooding in basement plant room pump station', amount: '£24,000', claimDate: '2025-11-04', status: 'pending' },
+    ],
+  },
+
+  insurancerenewals: {
+    id: 'insurancerenewals',
+    title: 'Insurance Renewals',
+    subtitle: 'Upcoming insurance policy renewals, notice dates, and premium adjustments across estate',
+    badgeText: '7 Policies Active',
+    badgeColor: '#60a5fa',
+    searchPlaceholder: 'Search policy renewals by insurer, property, policy #...',
+    primaryActionLabel: 'Add Policy Renewal',
+    topKpis: [
+      { id: 'ir-kpi-1', label: 'Active Policies', value: '7', subtitle: 'All properties fully insured', color: '#60a5fa', enabled: true },
+      { id: 'ir-kpi-2', label: 'Annual Premiums', value: '£106,000', subtitle: 'Total portfolio premium commitment', color: '#e8c97a', enabled: true },
+      { id: 'ir-kpi-3', label: 'Renewals Due (90d)', value: '4', subtitle: 'Requires underwriter review', color: '#f59e0b', enabled: true },
+      { id: 'ir-kpi-4', label: 'Total Portfolio Cover', value: '£43.5M', subtitle: 'Comprehensive reinstatement value', color: '#3dd68c', enabled: true },
+    ],
+    dropdowns: [
+      { id: 'company', label: 'Insurance Provider', options: ['All Providers', 'Aviva Commercial', 'AXA Insurance', 'Zurich Commercial', 'Allianz UK'] },
+      { id: 'status', label: 'Status', options: ['All Statuses', 'active', 'pending-renewal', 'under-review'] },
+    ],
+    columns: [
+      { id: 'policyNumber', label: 'Policy #', originalLabel: 'Policy #', visible: true, order: 1 },
+      { id: 'company', label: 'Insurer', originalLabel: 'Insurer', visible: true, order: 2 },
+      { id: 'insuranceType', label: 'Policy Type', originalLabel: 'Policy Type', visible: true, order: 3 },
+      { id: 'property', label: 'Property', originalLabel: 'Property', visible: true, order: 4 },
+      { id: 'coverage', label: 'Coverage', originalLabel: 'Coverage', visible: true, order: 5 },
+      { id: 'annualPremium', label: 'Annual Premium', originalLabel: 'Annual Premium', visible: true, order: 6 },
+      { id: 'renewalDate', label: 'Renewal Date', originalLabel: 'Renewal Date', visible: true, order: 7 },
+      { id: 'expiryDate', label: 'Expiry Date', originalLabel: 'Expiry Date', visible: true, order: 8 },
+      { id: 'status', label: 'Status', originalLabel: 'Status', visible: true, order: 9 },
+    ],
+    items: getDynamicInsuranceRenewalsList(),
+  },
+
+  suppliers: {
+    id: 'suppliers',
+    title: 'Suppliers & Vendors',
+    subtitle: 'Authorized portfolio contractors, suppliers, service providers, and procurement contacts',
+    badgeText: '38 Approved Suppliers',
+    badgeColor: '#3dd68c',
+    searchPlaceholder: 'Search suppliers by name, category, contact, email...',
+    primaryActionLabel: 'Add New Supplier',
+    topKpis: [
+      { id: 'sup-kpi-1', label: 'Approved Suppliers', value: '38', subtitle: 'Active across 8 portfolio properties', color: '#3dd68c', enabled: true },
+      { id: 'sup-kpi-2', label: 'Active Contracts', value: '50', subtitle: 'Legally binding agreements', color: '#60a5fa', enabled: true },
+      { id: 'sup-kpi-3', label: 'Annual Portfolio Spend', value: '£1.18M', subtitle: 'Total contracted annual commitment', color: '#e8c97a', enabled: true },
+      { id: 'sup-kpi-4', label: 'Tier 1 Critical Vendors', value: '12', subtitle: 'Lifts, fire safety & MEP contractors', color: '#f59e0b', enabled: true },
+    ],
+    dropdowns: [
+      { id: 'category', label: 'Category', options: ['All Categories', 'Fire Safety', 'Lifts', 'HVAC', 'Professional Services', 'Utilities', 'Maintenance', 'Waste Management'] },
+      { id: 'status', label: 'Supplier Status', options: ['All Statuses', 'active', 'preferred', 'under-review'] },
+    ],
+    columns: [
+      { id: 'name', label: 'Supplier Name', originalLabel: 'Supplier Name', visible: true, order: 1 },
+      { id: 'category', label: 'Category', originalLabel: 'Category', visible: true, order: 2 },
+      { id: 'contact', label: 'Primary Contact', originalLabel: 'Primary Contact', visible: true, order: 3 },
+      { id: 'email', label: 'Email', originalLabel: 'Email', visible: true, order: 4 },
+      { id: 'phone', label: 'Phone', originalLabel: 'Phone', visible: true, order: 5 },
+      { id: 'contractCount', label: 'Active Contracts', originalLabel: 'Active Contracts', visible: true, order: 6 },
+      { id: 'totalAnnualValue', label: 'Annual Spend (£)', originalLabel: 'Annual Spend (£)', visible: true, order: 7 },
+      { id: 'status', label: 'Status', originalLabel: 'Status', visible: true, order: 8 },
+    ],
+    items: getDynamicSuppliersList(),
+  },
+
+  contractrenewals: {
+    id: 'contractrenewals',
+    title: 'Contract Renewals',
+    subtitle: 'Upcoming vendor agreement expirations, termination notice periods, and auto-renewals',
+    badgeText: '6 Expiring Within 60 Days',
+    badgeColor: '#f59e0b',
+    searchPlaceholder: 'Search renewals by contract name, supplier, property, ID...',
+    primaryActionLabel: 'Add Contract Renewal',
+    topKpis: [
+      { id: 'cr-kpi-1', label: 'Total Contracts', value: '50', subtitle: 'All active portfolio contracts', color: '#60a5fa', enabled: true },
+      { id: 'cr-kpi-2', label: 'Expiring in 60 Days', value: '6', subtitle: 'Action required before lock-in', color: '#f43f5e', enabled: true },
+      { id: 'cr-kpi-3', label: 'Auto-Renewing', value: '30', subtitle: 'Rolling auto-renewal clauses', color: '#3dd68c', enabled: true },
+      { id: 'cr-kpi-4', label: 'Renewals Due (90d)', value: '4', subtitle: 'Review renegotiation terms', color: '#f59e0b', enabled: true },
+    ],
+    dropdowns: [
+      { id: 'autoRenew', label: 'Auto Renew', options: ['All', 'Yes', 'No'] },
+      { id: 'status', label: 'Status', options: ['All Statuses', 'active', 'expiring-soon', 'under-review'] },
+    ],
+    columns: [
+      { id: 'contractId', label: 'Contract ID', originalLabel: 'Contract ID', visible: true, order: 1 },
+      { id: 'contractName', label: 'Contract Name', originalLabel: 'Contract Name', visible: true, order: 2 },
+      { id: 'supplierName', label: 'Supplier', originalLabel: 'Supplier', visible: true, order: 3 },
+      { id: 'property', label: 'Property', originalLabel: 'Property', visible: true, order: 4 },
+      { id: 'renewalDate', label: 'Renewal Date', originalLabel: 'Renewal Date', visible: true, order: 5 },
+      { id: 'noticePeriod', label: 'Notice Period', originalLabel: 'Notice Period', visible: true, order: 6 },
+      { id: 'annualValue', label: 'Annual Value', originalLabel: 'Annual Value', visible: true, order: 7 },
+      { id: 'autoRenew', label: 'Auto-Renew', originalLabel: 'Auto-Renew', visible: true, order: 8 },
+      { id: 'status', label: 'Status', originalLabel: 'Status', visible: true, order: 9 },
+    ],
+    items: getDynamicContractRenewalsList(),
+  },
+
+  slas: {
+    id: 'slas',
+    title: 'Service Level Agreements (SLAs)',
+    subtitle: 'Supplier SLA terms, emergency response benchmarks, KPI targets, and contractor compliance',
+    badgeText: '50 Monitored SLAs',
+    badgeColor: '#a78bfa',
+    searchPlaceholder: 'Search SLAs by contract, vendor, response target...',
+    primaryActionLabel: 'Add SLA Benchmark',
+    topKpis: [
+      { id: 'sla-kpi-1', label: 'Monitored SLAs', value: '50', subtitle: 'All active supplier agreements', color: '#a78bfa', enabled: true },
+      { id: 'sla-kpi-2', label: 'Emergency 4hr Response', value: '14', subtitle: 'Lifts, fire systems & emergency plant', color: '#f43f5e', enabled: true },
+      { id: 'sla-kpi-3', label: 'Standard 24-48hr', value: '28', subtitle: 'HVAC, plumbing, electrical & waste', color: '#60a5fa', enabled: true },
+      { id: 'sla-kpi-4', label: 'SLA Compliance Rate', value: '96%', subtitle: 'Contractors meeting on-time targets', color: '#3dd68c', enabled: true },
+    ],
+    dropdowns: [
+      { id: 'category', label: 'Category', options: ['All Categories', 'Fire Safety', 'Lifts', 'HVAC', 'Professional Services', 'Maintenance'] },
+      { id: 'status', label: 'SLA Status', options: ['All Statuses', 'Compliant', 'Under Review', 'Escalated'] },
+    ],
+    columns: [
+      { id: 'contractId', label: 'Contract ID', originalLabel: 'Contract ID', visible: true, order: 1 },
+      { id: 'contractName', label: 'Service Agreement', originalLabel: 'Service Agreement', visible: true, order: 2 },
+      { id: 'supplierName', label: 'Supplier / Contractor', originalLabel: 'Supplier / Contractor', visible: true, order: 3 },
+      { id: 'property', label: 'Property', originalLabel: 'Property', visible: true, order: 4 },
+      { id: 'slaTerms', label: 'SLA Specifications', originalLabel: 'SLA Specifications', visible: true, order: 5 },
+      { id: 'category', label: 'Category', originalLabel: 'Category', visible: true, order: 6 },
+      { id: 'responseTime', label: 'Response Benchmark', originalLabel: 'Response Benchmark', visible: true, order: 7 },
+      { id: 'status', label: 'Status', originalLabel: 'Status', visible: true, order: 8 },
+    ],
+    items: getDynamicContractSlasList(),
+  },
+
+  certifications: {
+    id: 'certifications',
+    title: 'Compliance Certifications',
+    subtitle: 'Fire safety, gas, electrical, water hygiene, and building statutory certificates',
+    badgeText: '11 Certifications Active',
+    badgeColor: '#3dd68c',
+    searchPlaceholder: 'Search certifications by number, name, authority, property...',
+    primaryActionLabel: 'Upload Certificate',
+    topKpis: [
+      { id: 'cert-kpi-1', label: 'Total Certifications', value: '11', subtitle: 'Statutory compliance certificates', color: '#60a5fa', enabled: true },
+      { id: 'cert-kpi-2', label: 'Compliant & Valid', value: '6', subtitle: 'Up-to-date and fully valid', color: '#3dd68c', enabled: true },
+      { id: 'cert-kpi-3', label: 'Expiring in 30 Days', value: '1', subtitle: 'Requires immediate contractor booking', color: '#f59e0b', enabled: true },
+      { id: 'cert-kpi-4', label: 'Overdue Certificate', value: '1', subtitle: 'Urgent compliance action needed', color: '#f43f5e', enabled: true },
+    ],
+    dropdowns: [
+      { id: 'status', label: 'Status', options: ['All Statuses', 'compliant', 'overdue', 'expiring-soon'] },
+      { id: 'riskRating', label: 'Risk Rating', options: ['All Risk Levels', 'low', 'medium', 'high', 'critical'] },
+    ],
+    columns: [
+      { id: 'certificateNumber', label: 'Certificate #', originalLabel: 'Certificate #', visible: true, order: 1 },
+      { id: 'name', label: 'Certification Name', originalLabel: 'Certification Name', visible: true, order: 2 },
+      { id: 'property', label: 'Property / Hotel', originalLabel: 'Property / Hotel', visible: true, order: 3 },
+      { id: 'regulatoryAuthority', label: 'Authority', originalLabel: 'Authority', visible: true, order: 4 },
+      { id: 'contractor', label: 'Contractor', originalLabel: 'Contractor', visible: true, order: 5 },
+      { id: 'issueDate', label: 'Issue Date', originalLabel: 'Issue Date', visible: true, order: 6 },
+      { id: 'expiryDate', label: 'Expiry Date', originalLabel: 'Expiry Date', visible: true, order: 7 },
+      { id: 'riskRating', label: 'Risk', originalLabel: 'Risk', visible: true, order: 8 },
+      { id: 'status', label: 'Status', originalLabel: 'Status', visible: true, order: 9 },
+    ],
+    items: getDynamicComplianceCertificationsList(),
+  },
+
+  statutory: {
+    id: 'statutory',
+    title: 'Statutory Inspections',
+    subtitle: 'Mandatory periodic building safety inspections, audits, and engineering surveys',
+    badgeText: '11 Statutory Audits',
+    badgeColor: '#f59e0b',
+    searchPlaceholder: 'Search inspections by name, property, contractor...',
+    primaryActionLabel: 'Schedule Inspection',
+    topKpis: [
+      { id: 'stat-kpi-1', label: 'Total Statutory Audits', value: '11', subtitle: 'Mandatory UK safety surveys', color: '#f59e0b', enabled: true },
+      { id: 'stat-kpi-2', label: 'Compliant & Current', value: '8', subtitle: 'Satisfactory engineer signoffs', color: '#3dd68c', enabled: true },
+      { id: 'stat-kpi-3', label: 'Critical Risk Audits', value: '2', subtitle: 'Fire risk & high-pressure steam boilers', color: '#f43f5e', enabled: true },
+      { id: 'stat-kpi-4', label: 'Annual Recurring Audits', value: '9', subtitle: 'Yearly statutory cycle', color: '#60a5fa', enabled: true },
+    ],
+    dropdowns: [
+      { id: 'inspectionFrequency', label: 'Frequency', options: ['All Frequencies', 'Yearly', '6-Monthly', 'Quarterly', 'Monthly'] },
+      { id: 'status', label: 'Status', options: ['All Statuses', 'compliant', 'overdue', 'expiring-soon'] },
+    ],
+    columns: [
+      { id: 'name', label: 'Inspection Type', originalLabel: 'Inspection Type', visible: true, order: 1 },
+      { id: 'property', label: 'Property / Hotel', originalLabel: 'Property / Hotel', visible: true, order: 2 },
+      { id: 'inspectionFrequency', label: 'Frequency', originalLabel: 'Frequency', visible: true, order: 3 },
+      { id: 'contractor', label: 'Appointed Inspector', originalLabel: 'Appointed Inspector', visible: true, order: 4 },
+      { id: 'regulatoryAuthority', label: 'Authority', originalLabel: 'Authority', visible: true, order: 5 },
+      { id: 'expiryDate', label: 'Due Date', originalLabel: 'Due Date', visible: true, order: 6 },
+      { id: 'riskRating', label: 'Risk', originalLabel: 'Risk', visible: true, order: 7 },
+      { id: 'status', label: 'Status', originalLabel: 'Status', visible: true, order: 8 },
+    ],
+    items: getDynamicStatutoryInspectionsList(),
+  },
+
+  energyaccounts: {
+    id: 'energyaccounts',
+    title: 'Energy & Water Accounts',
+    subtitle: 'Utility supply meters, MPAN/MPRN references, half-hourly tariffs, and supplier accounts',
+    badgeText: '29 Utility Accounts',
+    badgeColor: '#e8c97a',
+    searchPlaceholder: 'Search accounts by meter MPAN, supplier, property, account #...',
+    primaryActionLabel: 'Add Utility Account',
+    topKpis: [
+      { id: 'en-kpi-1', label: 'Total Utility Accounts', value: '29', subtitle: 'Electricity, gas & water supplies', color: '#e8c97a', enabled: true },
+      { id: 'en-kpi-2', label: 'Electricity Accounts', value: '15', subtitle: 'Half-hourly & non-half-hourly meters', color: '#60a5fa', enabled: true },
+      { id: 'en-kpi-3', label: 'Gas Supply Points', value: '9', subtitle: 'Commercial gas meters & plant rooms', color: '#f59e0b', enabled: true },
+      { id: 'en-kpi-4', label: 'Water Accounts', value: '5', subtitle: 'Mains & borehole water connections', color: '#2dd4bf', enabled: true },
+    ],
+    dropdowns: [
+      { id: 'utilityType', label: 'Utility Type', options: ['All Utilities', 'Electricity', 'Gas', 'Water'] },
+      { id: 'supplier', label: 'Supplier', options: ['All Suppliers', 'EDF Energy', 'British Gas', 'TotalEnergies', 'Castle Water', 'SSE Energy'] },
+    ],
+    columns: [
+      { id: 'accountNumber', label: 'Account #', originalLabel: 'Account #', visible: true, order: 1 },
+      { id: 'utilityType', label: 'Type', originalLabel: 'Type', visible: true, order: 2 },
+      { id: 'supplier', label: 'Supplier', originalLabel: 'Supplier', visible: true, order: 3 },
+      { id: 'property', label: 'Property / Hotel', originalLabel: 'Property / Hotel', visible: true, order: 4 },
+      { id: 'meterReference', label: 'Meter Ref / MPAN', originalLabel: 'Meter Ref / MPAN', visible: true, order: 5 },
+      { id: 'tariffRate', label: 'Tariff Rate', originalLabel: 'Tariff Rate', visible: true, order: 6 },
+      { id: 'monthlyCost', label: 'Monthly Cost', originalLabel: 'Monthly Cost', visible: true, order: 7 },
+      { id: 'status', label: 'Status', originalLabel: 'Status', visible: true, order: 8 },
+    ],
+    items: getDynamicEnergyAccountsList(),
+  },
+
+  maintenancescheduled: {
+    id: 'maintenancescheduled',
+    title: 'Scheduled Maintenance (PPM)',
+    subtitle: 'Planned preventive maintenance schedules, vendor service contracts, and equipment compliance',
+    badgeText: 'Scheduled PPM',
+    badgeColor: '#3dd68c',
+    searchPlaceholder: 'Search scheduled maintenance tasks, assets, contractors...',
+    primaryActionLabel: 'Schedule Service',
+    topKpis: [
+      { id: 'ms-kpi-1', label: 'Scheduled Tasks', value: '8', subtitle: 'Active upcoming servicing jobs', color: '#3dd68c', enabled: true },
+      { id: 'ms-kpi-2', label: 'Next 7 Days', value: '4', subtitle: 'Contractors confirmed on site', color: '#60a5fa', enabled: true },
+      { id: 'ms-kpi-3', label: 'PPM Compliance', value: '98%', subtitle: 'On-schedule asset maintenance', color: '#e8c97a', enabled: true },
+      { id: 'ms-kpi-4', label: 'Scheduled Budget', value: '£6,400', subtitle: 'Committed PPM spend', color: '#a78bfa', enabled: true },
+    ],
+    dropdowns: [
+      { id: 'priority', label: 'Priority', options: ['All Priorities', 'Low', 'Medium', 'High', 'Critical'] },
+      { id: 'type', label: 'Service Type', options: ['All Types', 'PPM', 'Service', 'Inspection', 'Calibration'] },
+    ],
+    columns: [
+      { id: 'assetName', label: 'Asset Name', originalLabel: 'Asset Name', visible: true, order: 1 },
+      { id: 'hotelName', label: 'Hotel / Site', originalLabel: 'Hotel / Site', visible: true, order: 2 },
+      { id: 'type', label: 'Type', originalLabel: 'Type', visible: true, order: 3 },
+      { id: 'dueDate', label: 'Due Date', originalLabel: 'Due Date', visible: true, order: 4 },
+      { id: 'contractor', label: 'Contractor', originalLabel: 'Contractor', visible: true, order: 5 },
+      { id: 'cost', label: 'Cost', originalLabel: 'Cost', visible: true, order: 6 },
+      { id: 'priority', label: 'Priority', originalLabel: 'Priority', visible: true, order: 7 },
+      { id: 'status', label: 'Status', originalLabel: 'Status', visible: true, order: 8 },
+    ],
+    items: (MAINTENANCE_RECORDS || []).filter((m: any) => m.status === 'scheduled'),
+  },
+
+  maintenanceduetoday: {
+    id: 'maintenanceduetoday',
+    title: 'Maintenance Due Today',
+    subtitle: 'Maintenance jobs, statutory testing, and contractor visits requiring sign-off today',
+    badgeText: 'Due Today',
+    badgeColor: '#f59e0b',
+    searchPlaceholder: 'Search tasks due today...',
+    primaryActionLabel: 'Log Service Completion',
+    topKpis: [
+      { id: 'md-kpi-1', label: 'Tasks Due Today', value: '2', subtitle: 'Engineer visits due today', color: '#f59e0b', enabled: true },
+      { id: 'md-kpi-2', label: 'Critical Assets', value: '1', subtitle: 'HVAC chiller unit', color: '#f43f5e', enabled: true },
+      { id: 'md-kpi-3', label: 'Assigned Technicians', value: '2', subtitle: 'Contractors on-site', color: '#60a5fa', enabled: true },
+      { id: 'md-kpi-4', label: 'Estimated Hours', value: '4.5 hrs', subtitle: 'Target completion time', color: '#3dd68c', enabled: true },
+    ],
+    dropdowns: [
+      { id: 'priority', label: 'Priority', options: ['All Priorities', 'Low', 'Medium', 'High', 'Critical'] },
+    ],
+    columns: [
+      { id: 'assetName', label: 'Asset Name', originalLabel: 'Asset Name', visible: true, order: 1 },
+      { id: 'hotelName', label: 'Hotel / Site', originalLabel: 'Hotel / Site', visible: true, order: 2 },
+      { id: 'type', label: 'Type', originalLabel: 'Type', visible: true, order: 3 },
+      { id: 'dueDate', label: 'Due Date', originalLabel: 'Due Date', visible: true, order: 4 },
+      { id: 'contractor', label: 'Contractor', originalLabel: 'Contractor', visible: true, order: 5 },
+      { id: 'cost', label: 'Cost', originalLabel: 'Cost', visible: true, order: 6 },
+      { id: 'priority', label: 'Priority', originalLabel: 'Priority', visible: true, order: 7 },
+      { id: 'status', label: 'Status', originalLabel: 'Status', visible: true, order: 8 },
+    ],
+    items: (MAINTENANCE_RECORDS || []).filter((m: any) => m.status === 'due-today'),
+  },
+
+  maintenanceoverdue: {
+    id: 'maintenanceoverdue',
+    title: 'Overdue Maintenance',
+    subtitle: 'Past-due maintenance tasks and service orders requiring immediate operational intervention',
+    badgeText: 'Overdue Attention',
+    badgeColor: '#f43f5e',
+    searchPlaceholder: 'Search overdue tasks...',
+    primaryActionLabel: 'Escalate Work Order',
+    topKpis: [
+      { id: 'mo-kpi-1', label: 'Overdue Work Orders', value: '3', subtitle: 'Missed scheduled service target', color: '#f43f5e', enabled: true },
+      { id: 'mo-kpi-2', label: 'High / Critical Risk', value: '2', subtitle: 'Requires priority dispatch', color: '#f43f5e', enabled: true },
+      { id: 'mo-kpi-3', label: 'Avg Days Overdue', value: '14 days', subtitle: 'Delay duration', color: '#f59e0b', enabled: true },
+      { id: 'mo-kpi-4', label: 'Estimated Repair Cost', value: '£4,200', subtitle: 'Pending invoice value', color: '#60a5fa', enabled: true },
+    ],
+    dropdowns: [
+      { id: 'priority', label: 'Priority', options: ['All Priorities', 'Low', 'Medium', 'High', 'Critical'] },
+    ],
+    columns: [
+      { id: 'assetName', label: 'Asset Name', originalLabel: 'Asset Name', visible: true, order: 1 },
+      { id: 'hotelName', label: 'Hotel / Site', originalLabel: 'Hotel / Site', visible: true, order: 2 },
+      { id: 'type', label: 'Type', originalLabel: 'Type', visible: true, order: 3 },
+      { id: 'dueDate', label: 'Due Date', originalLabel: 'Due Date', visible: true, order: 4 },
+      { id: 'contractor', label: 'Contractor', originalLabel: 'Contractor', visible: true, order: 5 },
+      { id: 'cost', label: 'Cost', originalLabel: 'Cost', visible: true, order: 6 },
+      { id: 'priority', label: 'Priority', originalLabel: 'Priority', visible: true, order: 7 },
+      { id: 'status', label: 'Status', originalLabel: 'Status', visible: true, order: 8 },
+    ],
+    items: (MAINTENANCE_RECORDS || []).filter((m: any) => m.status === 'overdue'),
+  },
+
+  maintenancecompleted: {
+    id: 'maintenancecompleted',
+    title: 'Completed Maintenance',
+    subtitle: 'Historical service records, contractor sign-offs, and completed maintenance work orders',
+    badgeText: 'Completed Log',
+    badgeColor: '#3dd68c',
+    searchPlaceholder: 'Search completed maintenance logs...',
+    primaryActionLabel: 'Export Service Archive',
+    topKpis: [
+      { id: 'mc-kpi-1', label: 'Completed Tasks', value: '18', subtitle: 'Signed-off by property engineers', color: '#3dd68c', enabled: true },
+      { id: 'mc-kpi-2', label: 'Completed On-Time', value: '94%', subtitle: 'Met vendor SLA benchmark', color: '#60a5fa', enabled: true },
+      { id: 'mc-kpi-3', label: 'Total Invoiced Spend', value: '£38,500', subtitle: 'Settled maintenance invoices', color: '#e8c97a', enabled: true },
+      { id: 'mc-kpi-4', label: 'Audited & Verified', value: '100%', subtitle: 'Fully compliant documentation', color: '#3dd68c', enabled: true },
+    ],
+    dropdowns: [
+      { id: 'priority', label: 'Priority', options: ['All Priorities', 'Low', 'Medium', 'High', 'Critical'] },
+    ],
+    columns: [
+      { id: 'assetName', label: 'Asset Name', originalLabel: 'Asset Name', visible: true, order: 1 },
+      { id: 'hotelName', label: 'Hotel / Site', originalLabel: 'Hotel / Site', visible: true, order: 2 },
+      { id: 'type', label: 'Type', originalLabel: 'Type', visible: true, order: 3 },
+      { id: 'dueDate', label: 'Completed Date', originalLabel: 'Completed Date', visible: true, order: 4 },
+      { id: 'contractor', label: 'Contractor', originalLabel: 'Contractor', visible: true, order: 5 },
+      { id: 'cost', label: 'Cost', originalLabel: 'Cost', visible: true, order: 6 },
+      { id: 'priority', label: 'Priority', originalLabel: 'Priority', visible: true, order: 7 },
+      { id: 'status', label: 'Status', originalLabel: 'Status', visible: true, order: 8 },
+    ],
+    items: (MAINTENANCE_RECORDS || []).filter((m: any) => m.status === 'completed'),
   },
 };
 
@@ -1185,10 +1700,14 @@ if (typeof window !== 'undefined') {
 export function getPageConfig(pageId: keyof DeepAppCMSStore): DeepPageConfig {
   const store = getDeepCMSStore();
   const page = store[pageId] || DEFAULT_DEEP_CMS[pageId];
-  if (page && page.primaryActionLabel) {
+  if (page) {
+    let clean = page.primaryActionLabel ? page.primaryActionLabel.replace(/^[\+\s]+/, '').trim() : '';
+    if (clean.toLowerCase() === 'add item') {
+      clean = pageId === 'overview' ? '' : (pageId === 'tasks' ? 'Add Task' : '');
+    }
     return {
       ...page,
-      primaryActionLabel: page.primaryActionLabel.replace(/^[\+\s]+/, '').trim(),
+      primaryActionLabel: clean,
     };
   }
   return page;

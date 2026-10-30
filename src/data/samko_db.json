@@ -171,7 +171,7 @@
       "quantity": 100,
       "notes": "Bulk imported Fixed Asset",
       "purchaseCost": 0,
-      "status": "active",
+      "status": "under-maintenance",
       "assetId": "AST-2000",
       "location": "Plant Room 2",
       "serialNumber": "",
@@ -179,7 +179,7 @@
       "isFixed": true,
       "name": "ewiuri",
       "riskLevel": "medium",
-      "updatedAt": "2026-10-24T01:37:23.365Z",
+      "updatedAt": "2026-10-30T09:37:32.581Z",
       "nextInspection": "DK-99281-A",
       "category": 902834,
       "purchaseDate": "2026-10-24",
@@ -5633,11 +5633,11 @@
       "name": "Digital Bot",
       "initials": "DB",
       "roleLevel": "L1",
-      "lastLogin": "2026-10-28",
-      "password": "SuperAdmin2026!",
+      "lastLogin": "2026-10-30",
+      "password": "DigitalBot@2026",
       "roleTitle": "Super Admin",
       "email": "digitalbot@samkocentral.com",
-      "description": "Digital Bot automated agent with unrestricted Super Admin access across all systems",
+      "description": "Complete unrestricted platform governance, CMS control & security",
       "role": "super-admin",
       "portal": "both",
       "assignedProperties": [
@@ -5645,13 +5645,107 @@
       ],
       "hotel": "All Properties (Propco & Opco)",
       "status": "active",
-      "updatedAt": "2026-10-28T18:05:06.286Z"
+      "updatedAt": "2026-10-30T13:34:46.623Z",
+      "tabPermissions": {
+        "dashboard": {
+          "enabled": true,
+          "accessLevel": "write"
+        },
+        "propco-dashboard": {
+          "enabled": true,
+          "accessLevel": "write"
+        },
+        "opco-dashboard": {
+          "enabled": true,
+          "accessLevel": "write"
+        },
+        "properties": {
+          "enabled": true,
+          "accessLevel": "write"
+        },
+        "tasks": {
+          "enabled": true,
+          "accessLevel": "write"
+        },
+        "recent-logs": {
+          "enabled": true,
+          "accessLevel": "write"
+        },
+        "fixed-assets": {
+          "enabled": true,
+          "accessLevel": "write"
+        },
+        "non-fixed-assets": {
+          "enabled": true,
+          "accessLevel": "write"
+        },
+        "categories": {
+          "enabled": true,
+          "accessLevel": "write"
+        },
+        "maintenance": {
+          "enabled": true,
+          "accessLevel": "write"
+        },
+        "compliance": {
+          "enabled": true,
+          "accessLevel": "write"
+        },
+        "compliance-tracker": {
+          "enabled": true,
+          "accessLevel": "write"
+        },
+        "insurance": {
+          "enabled": true,
+          "accessLevel": "write"
+        },
+        "contracts": {
+          "enabled": true,
+          "accessLevel": "write"
+        },
+        "utilities": {
+          "enabled": true,
+          "accessLevel": "write"
+        },
+        "documents": {
+          "enabled": true,
+          "accessLevel": "write"
+        },
+        "reports": {
+          "enabled": true,
+          "accessLevel": "write"
+        },
+        "import": {
+          "enabled": true,
+          "accessLevel": "write"
+        },
+        "inspections": {
+          "enabled": true,
+          "accessLevel": "write"
+        },
+        "qr-codes": {
+          "enabled": true,
+          "accessLevel": "write"
+        },
+        "multi-site": {
+          "enabled": true,
+          "accessLevel": "write"
+        },
+        "users": {
+          "enabled": true,
+          "accessLevel": "write"
+        },
+        "settings": {
+          "enabled": true,
+          "accessLevel": "write"
+        }
+      }
     },
     {
       "id": "usr-l1-001",
       "role": "super-admin",
       "portal": "both",
-      "lastLogin": "2026-10-29",
+      "lastLogin": "2026-10-30",
       "initials": "AV",
       "tabPermissions": {
         "fixed-assets": {
@@ -5745,7 +5839,7 @@
       "description": "Full access across both the Propco and Opco portals, including system settings and managing all users",
       "roleLevel": "L1",
       "hotel": "All Properties (Propco & Opco)",
-      "updatedAt": "2026-10-29T05:29:18.954Z",
+      "updatedAt": "2026-10-30T11:47:55.697Z",
       "name": "Alexander Vance",
       "email": "superadmin@samkocentral.com",
       "assignedProperties": [

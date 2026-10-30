@@ -270,6 +270,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const switchUser = useCallback((newUser: AppUser) => {
+    const isCurrentBot = Boolean(
+      user?.id === 'usr-bot-001' ||
+      user?.email?.toLowerCase() === 'digitalbot@samkocentral.com' ||
+      user?.name?.toLowerCase().includes('digital bot')
+    );
+    const isTargetBot = Boolean(
+      newUser?.id === 'usr-bot-001' ||
+      newUser?.email?.toLowerCase() === 'digitalbot@samkocentral.com' ||
+      newUser?.name?.toLowerCase().includes('digital bot')
+    );
+
+    // Super Admin cannot access the Digital Bot account
+    if (isTargetBot && !isCurrentBot) {
+      toast.error('Access Denied', {
+        description: 'Super Admin cannot access the Digital Bot account. Access is restricted.',
+      });
+      return;
+    }
+
     // If currently a Super Admin and switching to a lower role, remember original admin
     if (user.roleLevel === 'L1' && newUser.roleLevel !== 'L1') {
       setOriginalAdmin(user);

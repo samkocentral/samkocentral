@@ -11,6 +11,7 @@ import { useDeepPageCms, updatePageItem, deletePageItem } from '@/lib/deepPageCm
 import PageCMSEditButton from '@/components/cms/PageCMSEditButton';
 import CustomDropdown from '@/components/ui/CustomDropdown';
 import LoadingPagination from '@/components/ui/LoadingPagination';
+import ConfirmDeleteModal from '@/components/modals/ConfirmDeleteModal';
 import { useLoadingPagination } from '@/hooks/useLoadingPagination';
 
 export default function PropertiesClient() {
@@ -45,6 +46,8 @@ export default function PropertiesClient() {
   // Edit property modal state
   const [showEditModal, setShowEditModal] = useState(false);
   const [editingProperty, setEditingProperty] = useState<any>(null);
+  const [propertyToDelete, setPropertyToDelete] = useState<{ id: string; name: string } | null>(null);
+  const [isDeletingProperty, setIsDeletingProperty] = useState(false);
   const [editForm, setEditForm] = useState({
     name: '',
     city: '',
@@ -103,8 +106,14 @@ export default function PropertiesClient() {
     setShowEditModal(false);
   };
 
-  const handleDeleteProperty = async (propertyId: string, propertyName: string) => {
-    if (!confirm(`Are you sure you want to delete property "${propertyName}"?`)) return;
+  const handleDeleteProperty = (propertyId: string, propertyName: string) => {
+    setPropertyToDelete({ id: propertyId, name: propertyName });
+  };
+
+  const confirmDeleteProperty = async () => {
+    if (!propertyToDelete) return;
+    const { id: propertyId, name: propertyName } = propertyToDelete;
+    setIsDeletingProperty(true);
 
     deletePageItem('properties', propertyId);
     setProperties((prev) => prev.filter((p) => p.id !== propertyId));
@@ -256,10 +265,10 @@ export default function PropertiesClient() {
     isPageLoading,
     changePage,
     changePageSize,
-  } = useLoadingPagination(filtered || [], 4);
+  } = useLoadingPagination(filtered || [], 10);
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex-1 min-h-0 flex flex-col h-full overflow-hidden">
       {/* Topbar */}
       <div
         className="flex items-center justify-between px-6 py-4 border-b border-border flex-shrink-0"
@@ -397,7 +406,7 @@ export default function PropertiesClient() {
                       </div>
                     )}
 
-                    {canEdit && (
+                    {!isViewer && canEdit && (
                       <button
                         onClick={() => handleOpenEditProperty(hotel)}
                         className="p-1.5 rounded-lg border border-border text-muted-foreground hover:text-amber-400 hover:bg-amber-400/10 transition-colors"
@@ -482,11 +491,12 @@ export default function PropertiesClient() {
         currentPage={currentPage}
         totalRecords={totalRecords}
         pageSize={pageSize}
-        pageSizeOptions={[6, 9, 12, 18]}
+        pageSizeOptions={[5, 10, 15, 20, 50]}
         onPageChange={changePage}
         onPageSizeChange={changePageSize}
         isLoading={loading || isPageLoading}
         recordName="properties"
+        className="sticky bottom-0 z-20 flex-shrink-0"
       />
 
       {/* Add Property Modal */}
@@ -766,6 +776,18 @@ export default function PropertiesClient() {
           </div>
         </div>
       )}
+
+      {/* Universal Delete Confirmation Modal */}
+      <ConfirmDeleteModal
+        isOpen={Boolean(propertyToDelete)}
+        onClose={() => setPropertyToDelete(null)}
+        onConfirm={confirmDeleteProperty}
+        title="Confirm Deletion"
+        itemIdentifier={propertyToDelete?.id}
+        itemName={propertyToDelete?.name || 'Property'}
+        registerName="properties portfolio"
+        isDeleting={isDeletingProperty}
+      />
     </div>
   );
 }

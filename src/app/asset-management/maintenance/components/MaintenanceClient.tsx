@@ -2,7 +2,7 @@
 
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { Wrench, AlertTriangle, Clock, CheckCircle2, Calendar, Search, ChevronDown, Loader2, Plus, X, Building2, Edit2, Trash2 } from 'lucide-react';
+import { Wrench, AlertTriangle, Clock, CheckCircle2, Calendar, Search, ChevronDown, Loader2, Plus, X, Building2, Edit2, Trash2, Eye } from 'lucide-react';
 import { MAINTENANCE_RECORDS, HOTELS, ASSETS, type MaintenanceRecord, type Hotel } from '@/lib/assetData';
 import { api } from '@/lib/api';
 import { useAuth } from '@/lib/authContext';
@@ -76,7 +76,7 @@ function StatCard({
 }
 
 export default function MaintenanceClient() {
-  const { isViewer, canEdit } = useAuth();
+  const { isViewer, canEdit, canDelete } = useAuth();
   const {
     title: cmsTitle,
     subtitle: cmsSubtitle,
@@ -163,6 +163,7 @@ export default function MaintenanceClient() {
   const [savingNew, setSavingNew] = useState(false);
 
   const [showEditModal, setShowEditModal] = useState(false);
+  const [viewingRecord, setViewingRecord] = useState<any | null>(null);
   const [editingRecord, setEditingRecord] = useState<MaintenanceRecord | null>(null);
   const [savingEdit, setSavingEdit] = useState(false);
   const [recordToDelete, setRecordToDelete] = useState<MaintenanceRecord | null>(null);
@@ -252,7 +253,7 @@ export default function MaintenanceClient() {
     isPageLoading,
     changePage,
     changePageSize,
-  } = useLoadingPagination(filtered, 4);
+  } = useLoadingPagination(filtered, 10);
 
   const handleStatusChange = async (id: string, newStatus: string) => {
     setUpdatingId(id);
@@ -398,7 +399,7 @@ export default function MaintenanceClient() {
   ];
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex-1 min-h-0 flex flex-col h-full overflow-hidden">
       {/* Topbar */}
       <div className="flex items-center justify-between px-6 py-4 border-b border-border flex-shrink-0" style={{ background: 'var(--surface)' }}>
         <div>
@@ -632,19 +633,31 @@ export default function MaintenanceClient() {
                           <td key={col.id} className="px-3.5 py-2.5 text-right" onClick={(e) => e.stopPropagation()}>
                             <div className="flex items-center justify-end gap-1.5 whitespace-nowrap">
                               <button
-                                onClick={() => handleOpenEdit(m)}
-                                className="p-1.5 rounded-lg border border-border hover:bg-surface2 text-muted-foreground hover:text-primary transition-colors cursor-pointer"
-                                title="Edit Maintenance Record"
+                                onClick={() => setViewingRecord(m)}
+                                className="p-1.5 rounded-lg border border-border hover:bg-surface2 transition-colors cursor-pointer"
+                                style={{ color: 'var(--text2)' }}
+                                title="View Maintenance Details"
                               >
-                                <Edit2 size={12} />
+                                <Eye size={12} />
                               </button>
-                              <button
-                                onClick={() => setRecordToDelete(m)}
-                                className="p-1.5 rounded-lg border border-rose-500/20 hover:bg-rose-500/15 text-rose-400 transition-colors cursor-pointer"
-                                title="Delete Maintenance Record"
-                              >
-                                <Trash2 size={12} />
-                              </button>
+                              {!isViewer && canEdit && (
+                                <button
+                                  onClick={() => handleOpenEdit(m)}
+                                  className="p-1.5 rounded-lg border border-border hover:bg-surface2 text-muted-foreground hover:text-primary transition-colors cursor-pointer"
+                                  title="Edit Maintenance Record"
+                                >
+                                  <Edit2 size={12} />
+                                </button>
+                              )}
+                              {!isViewer && (canDelete ?? canEdit) && (
+                                <button
+                                  onClick={() => setRecordToDelete(m)}
+                                  className="p-1.5 rounded-lg border border-rose-500/20 hover:bg-rose-500/15 text-rose-400 transition-colors cursor-pointer"
+                                  title="Delete Maintenance Record"
+                                >
+                                  <Trash2 size={12} />
+                                </button>
+                              )}
                             </div>
                           </td>
                         );
@@ -671,11 +684,12 @@ export default function MaintenanceClient() {
         currentPage={currentPage}
         totalRecords={totalRecords}
         pageSize={pageSize}
-        pageSizeOptions={[5, 7, 10, 20]}
+        pageSizeOptions={[5, 10, 15, 20, 50]}
         onPageChange={changePage}
         onPageSizeChange={changePageSize}
         isLoading={loading || isPageLoading}
         recordName="maintenance tasks"
+        className="sticky bottom-0 z-20 flex-shrink-0"
       />
 
       {/* Schedule Maintenance Modal */}
@@ -899,6 +913,94 @@ export default function MaintenanceClient() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* View Maintenance Details Modal (Available to all roles including Viewers) */}
+      {viewingRecord && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.7)' }} onClick={() => setViewingRecord(null)}>
+          <div className="rounded-2xl border border-border w-full max-w-xl max-h-[85vh] overflow-auto" style={{ background: 'var(--surface)' }} onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between p-6 border-b border-border">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2 rounded-xl bg-amber-400/10 text-amber-400">
+                  <Wrench size={18} />
+                </div>
+                <div>
+                  <h2 className="font-head font-bold text-lg">{viewingRecord.title || viewingRecord.task}</h2>
+                  <p className="text-xs text-muted-foreground">{viewingRecord.hotel || viewingRecord.site || 'Site'} · {viewingRecord.asset || 'General'}</p>
+                </div>
+              </div>
+              <button onClick={() => setViewingRecord(null)} className="text-muted-foreground hover:text-foreground text-xl font-bold px-2">×</button>
+            </div>
+            <div className="p-6 space-y-4">
+              <div className="grid grid-cols-2 gap-4 text-xs">
+                <div>
+                  <span className="text-muted-foreground block mb-1">Status</span>
+                  <span className="font-bold uppercase tracking-wider">{viewingRecord.status}</span>
+                </div>
+                <div>
+                  <span className="text-muted-foreground block mb-1">Frequency</span>
+                  <span className="font-semibold">{viewingRecord.frequency || 'Monthly'}</span>
+                </div>
+                <div>
+                  <span className="text-muted-foreground block mb-1">Last Completed</span>
+                  <span className="font-semibold">{viewingRecord.lastDate || viewingRecord.lastCompleted || '—'}</span>
+                </div>
+                <div>
+                  <span className="text-muted-foreground block mb-1">Next Due Date</span>
+                  <span className="font-semibold">{viewingRecord.nextDueDate || '—'}</span>
+                </div>
+                <div>
+                  <span className="text-muted-foreground block mb-1">Vendor / Contractor</span>
+                  <span className="font-semibold">{viewingRecord.vendor || 'Internal Engineering'}</span>
+                </div>
+                <div>
+                  <span className="text-muted-foreground block mb-1">Estimated Cost</span>
+                  <span className="font-semibold">£{viewingRecord.cost?.toLocaleString?.() || '0'}</span>
+                </div>
+              </div>
+              {viewingRecord.notes && (
+                <div className="pt-2 border-t border-border">
+                  <span className="text-xs text-muted-foreground block mb-1">Notes & Details</span>
+                  <p className="text-xs p-3 rounded-lg" style={{ background: 'var(--surface2)' }}>{viewingRecord.notes}</p>
+                </div>
+              )}
+            </div>
+            <div className="flex items-center justify-between p-6 pt-0 border-t border-border mt-4">
+              <div className="flex items-center gap-2">
+                {!isViewer && canEdit && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const rec = viewingRecord;
+                      setViewingRecord(null);
+                      handleOpenEdit(rec);
+                    }}
+                    className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-semibold border border-border hover:bg-surface2 text-foreground transition-colors"
+                    style={{ background: 'var(--surface2)' }}
+                  >
+                    <Edit2 size={13} /> Edit Record
+                  </button>
+                )}
+                {!isViewer && (canDelete ?? canEdit) && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const rec = viewingRecord;
+                      setViewingRecord(null);
+                      setRecordToDelete(rec);
+                    }}
+                    className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-semibold border border-rose-500/30 hover:bg-rose-500/15 text-rose-400 transition-colors"
+                  >
+                    <Trash2 size={13} /> Delete Record
+                  </button>
+                )}
+              </div>
+              <button onClick={() => setViewingRecord(null)} className="px-5 py-2 rounded-lg text-xs font-semibold" style={{ background: 'var(--primary)', color: '#000' }}>
+                Close
+              </button>
+            </div>
           </div>
         </div>
       )}

@@ -72,7 +72,10 @@ export default function AppLayout({ children, currentPath }: AppLayoutProps) {
             </button>
           </div>
         )}
-        {children}
+        {/* Main Content Area: dynamically fills remaining viewport space */}
+        <div className="flex-1 min-h-0 flex flex-col overflow-hidden relative">
+          {children}
+        </div>
       </div>
     </div>
   );

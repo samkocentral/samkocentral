@@ -44,6 +44,7 @@ import TabPermissionsEditor from '@/components/users/TabPermissionsEditor';
 import { useDeepPageCms } from '@/lib/deepPageCms';
 import PageCMSEditButton from '@/components/cms/PageCMSEditButton';
 import LoadingPagination from '@/components/ui/LoadingPagination';
+import ConfirmDeleteModal from '@/components/modals/ConfirmDeleteModal';
 import { useLoadingPagination } from '@/hooks/useLoadingPagination';
 import {
   ALL_SYSTEM_TABS,
@@ -184,12 +185,26 @@ const PERMISSION_MATRIX: Record<
 
 export default function UsersClient() {
   const cms = useDeepPageCms('users');
-  const { user: currentAuthUser, isSuperAdmin, isAdmin, canManageUsers, updateUserTabPermissions } = useAuth();
+  const { user: currentAuthUser, isSuperAdmin, isAdmin, canManageUsers, updateUserTabPermissions, isDigitalBot, isViewer } = useAuth();
+
+  const isBotAccount = useCallback(
+    (u: any) =>
+      Boolean(
+        u && (
+          u.id === 'usr-bot-001' ||
+          u.email?.toLowerCase() === 'digitalbot@samkocentral.com' ||
+          u.name?.toLowerCase().includes('digital bot')
+        )
+      ),
+    []
+  );
 
   const [users, setUsers] = useState<UserRecord[]>([]);
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<'users' | 'permissions' | 'roles' | 'audit'>('users');
   const [search, setSearch] = useState('');
+  const [userToDelete, setUserToDelete] = useState<UserRecord | null>(null);
+  const [isDeletingUser, setIsDeletingUser] = useState(false);
   const [selectedRoleLevel, setSelectedRoleLevel] = useState<RoleLevel>('L1');
   const [showAddModal, setShowAddModal] = useState(false);
   const [savingUser, setSavingUser] = useState(false);
@@ -353,9 +368,12 @@ export default function UsersClient() {
             tabPermissions: u.tabPermissions || getDefaultTabPermissionsForRole(roleLevel),
           };
         });
-        setUsers(normalized);
-        if (!matrixSelectedUserId && normalized.length > 0) {
-          setMatrixSelectedUserId(normalized[0].id);
+        const visible = isDigitalBot ? normalized : normalized.filter((u) => !isBotAccount(u));
+        setUsers(visible);
+        if (!matrixSelectedUserId && visible.length > 0) {
+          setMatrixSelectedUserId(visible[0].id);
+        } else if (!isDigitalBot && isBotAccount({ id: matrixSelectedUserId })) {
+          setMatrixSelectedUserId(visible[0]?.id || '');
         }
       }
     } catch (e) {
@@ -363,7 +381,7 @@ export default function UsersClient() {
     } finally {
       setLoading(false);
     }
-  }, [matrixSelectedUserId]);
+  }, [matrixSelectedUserId, isDigitalBot, isBotAccount]);
 
   useEffect(() => {
     fetchUsers();
@@ -373,6 +391,10 @@ export default function UsersClient() {
   }, [fetchUsers]);
 
   const handleToggleStatus = async (targetUser: UserRecord) => {
+    if (isBotAccount(targetUser) && !isDigitalBot) {
+      toast.error('Permission denied', { description: 'Super Admin cannot modify the Digital Bot account' });
+      return;
+    }
     // Permission check: L2 Admin cannot modify L1 Super Admin
     if (targetUser.roleLevel === 'L1' && !isSuperAdmin) {
       toast.error('Permission denied', { description: 'Only Super Admins can modify L1 users' });
@@ -396,6 +418,10 @@ export default function UsersClient() {
   };
 
   const handleDeleteUser = async (targetUser: UserRecord) => {
+    if (isBotAccount(targetUser)) {
+      toast.error('Permission denied', { description: 'The Digital Bot account is protected and cannot be deleted' });
+      return;
+    }
     // Permission check
     if (targetUser.roleLevel === 'L1') {
       toast.error('Cannot delete Super Admin account');
@@ -441,6 +467,10 @@ export default function UsersClient() {
   };
 
   const handleStartEdit = (user: UserRecord) => {
+    if (isBotAccount(user) && !isDigitalBot) {
+      toast.error('Permission denied', { description: 'Super Admin cannot edit the Digital Bot account' });
+      return;
+    }
     // Permission guard: L2 cannot edit L1
     if (user.roleLevel === 'L1' && !isSuperAdmin) {
       toast.error('Permission denied', { description: 'Only Super Admins can edit L1 accounts' });
@@ -620,6 +650,13 @@ export default function UsersClient() {
       toast.error('Please enter name and email');
       return;
     }
+    if (
+      newUser.email.trim().toLowerCase() === 'digitalbot@samkocentral.com' ||
+      newUser.name.trim().toLowerCase().includes('digital bot')
+    ) {
+      toast.error('Reserved identifier', { description: 'Cannot create an account with Digital Bot credentials' });
+      return;
+    }
 
     // Permission guard
     if (newUser.roleLevel === 'L1' && !isSuperAdmin) {
@@ -707,6 +744,7 @@ export default function UsersClient() {
 
   const filtered = useMemo(() => {
     return users.filter((u) => {
+      if (!isDigitalBot && isBotAccount(u)) return false;
       const q = search.toLowerCase();
       const matchSearch =
         !search ||
@@ -724,7 +762,7 @@ export default function UsersClient() {
 
       return matchSearch;
     });
-  }, [users, search, isAdmin, currentAuthUser.portal]);
+  }, [users, search, isAdmin, currentAuthUser.portal, isDigitalBot, isBotAccount]);
 
   const {
     currentPage,
@@ -734,16 +772,17 @@ export default function UsersClient() {
     isPageLoading,
     changePage,
     changePageSize,
-  } = useLoadingPagination(filtered, 4);
+  } = useLoadingPagination(filtered, 10);
 
   const countsByLevel = useMemo(() => {
+    const pool = isDigitalBot ? users : users.filter((u) => !isBotAccount(u));
     return {
-      L1: users.filter((u) => u.roleLevel === 'L1').length,
+      L1: pool.filter((u) => u.roleLevel === 'L1').length,
       L2: users.filter((u) => u.roleLevel === 'L2').length,
       L3: users.filter((u) => u.roleLevel === 'L3').length,
       L4: users.filter((u) => u.roleLevel === 'L4').length,
     };
-  }, [users]);
+  }, [users, isDigitalBot, isBotAccount]);
 
   // Filtered Audit Logs
   const filteredAuditLogs = useMemo(() => {
@@ -1091,31 +1130,41 @@ export default function UsersClient() {
                             </button>
                             <button
                               type="button"
-                              onClick={() => setViewingUser(user)}
+                              onClick={() => {
+                                if (isBotAccount(user) && !isDigitalBot) {
+                                  toast.error('Access Denied', { description: 'Super Admin cannot view the Digital Bot account' });
+                                  return;
+                                }
+                                setViewingUser(user);
+                              }}
                               className="p-1 rounded-lg text-muted-foreground hover:text-foreground hover:bg-surface3 transition-colors"
                               title="View User Details"
                             >
                               <Eye size={13} />
                             </button>
-                            <button
-                              type="button"
-                              onClick={() => handleStartEdit(user)}
-                              className="p-1 rounded-lg text-muted-foreground hover:text-foreground hover:bg-surface3 transition-colors"
-                              title="Edit User"
-                            >
-                              <Edit2 size={13} />
-                            </button>
-                            {user.roleLevel !== 'L1' ? (
-                              <button
-                                type="button"
-                                onClick={() => handleDeleteUser(user)}
-                                className="p-1 rounded-lg text-rose-400 hover:bg-rose-500/10 transition-colors"
-                                title="Delete User"
-                              >
-                                <Trash2 size={13} />
-                              </button>
-                            ) : (
-                              <div className="w-[21px]" />
+                            {!isViewer && canManageUsers && (
+                              <>
+                                <button
+                                  type="button"
+                                  onClick={() => handleStartEdit(user)}
+                                  className="p-1 rounded-lg text-muted-foreground hover:text-foreground hover:bg-surface3 transition-colors"
+                                  title="Edit User"
+                                >
+                                  <Edit2 size={13} />
+                                </button>
+                                {user.roleLevel !== 'L1' ? (
+                                  <button
+                                    type="button"
+                                    onClick={() => setUserToDelete(user)}
+                                    className="p-1 rounded-lg text-rose-400 hover:bg-rose-500/10 transition-colors"
+                                    title="Delete User"
+                                  >
+                                    <Trash2 size={13} />
+                                  </button>
+                                ) : (
+                                  <div className="w-[21px]" />
+                                )}
+                              </>
                             )}
                           </div>
                         </td>
@@ -1128,7 +1177,7 @@ export default function UsersClient() {
                 currentPage={currentPage}
                 totalRecords={totalRecords}
                 pageSize={pageSize}
-                pageSizeOptions={[5, 7, 10, 20]}
+                pageSizeOptions={[5, 10, 15, 20, 50]}
                 onPageChange={changePage}
                 onPageSizeChange={changePageSize}
                 isLoading={isPageLoading}
@@ -1172,7 +1221,7 @@ export default function UsersClient() {
                   className="px-3 py-1.5 rounded-lg border border-border text-xs font-semibold outline-none cursor-pointer"
                   style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
                 >
-                  {users.map((u) => (
+                  {users.filter((u) => !isBotAccount(u) || isDigitalBot).map((u) => (
                     <option key={u.id} value={u.id}>
                       {u.name} ({u.roleLevel} · {u.roleTitle}) — {u.email}
                     </option>
@@ -2678,6 +2727,27 @@ export default function UsersClient() {
           </div>
         )}
       </Modal>
+    
+      {/* Universal Delete Confirmation Modal */}
+      <ConfirmDeleteModal
+        isOpen={Boolean(userToDelete)}
+        onClose={() => setUserToDelete(null)}
+        onConfirm={async () => {
+          if (!userToDelete) return;
+          setIsDeletingUser(true);
+          try {
+            await handleDeleteUser(userToDelete);
+          } finally {
+            setIsDeletingUser(false);
+            setUserToDelete(null);
+          }
+        }}
+        title="Confirm Deletion"
+        itemIdentifier={userToDelete?.id}
+        itemName={userToDelete?.name || 'User Account'}
+        registerName="user directory"
+        isDeleting={isDeletingUser}
+      />
     </div>
   );
 }

@@ -221,7 +221,7 @@ export default function ComplianceTrackerClient() {
     isPageLoading,
     changePage,
     changePageSize,
-  } = useLoadingPagination(filtered, 4);
+  } = useLoadingPagination(filtered, 10);
 
   const trafficLight = (status: string) => {
     if (status === 'critical') return { emoji: '🔴', label: 'Overdue', color: 'var(--critical)' };
@@ -595,7 +595,7 @@ export default function ComplianceTrackerClient() {
               currentPage={currentPage}
               totalRecords={totalRecords}
               pageSize={pageSize}
-              pageSizeOptions={[5, 7, 10, 20]}
+              pageSizeOptions={[5, 10, 15, 20, 50]}
               onPageChange={changePage}
               onPageSizeChange={changePageSize}
               isLoading={loading || isPageLoading}

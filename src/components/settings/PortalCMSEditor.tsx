@@ -71,7 +71,7 @@ interface SubTabDef {
   cmsSection?: AppCmsSectionKey;
   livePath: string;
   description: string;
-  subtabs?: Array<{ id: string; label: string; livePath: string }>;
+  subtabs?: Array<{ id: string; label: string; livePath: string; deepPage?: keyof DeepAppCMSStore }>;
 }
 
 // ── OPCO TABS (Operations) ──────────────────────────────────────────────────
@@ -275,6 +275,8 @@ export default function PortalCMSEditor({ portal, initialTabId }: PortalCMSEdito
 
   const defaultSubTab = initialTabId || sectionTabs[0].id;
   const [activeSubTab, setActiveSubTab] = useState<string>(defaultSubTab);
+  const [selectedSubTabId, setSelectedSubTabId] = useState<string>('');
+  const [showSettingsDrawer, setShowSettingsDrawer] = useState<boolean>(false);
   const rightContentRef = React.useRef<HTMLDivElement>(null);
 
   // Synchronize if portal or initialTabId prop changes
@@ -304,6 +306,24 @@ export default function PortalCMSEditor({ portal, initialTabId }: PortalCMSEdito
     if (foundInBottom) return foundInBottom;
     return sectionTabs[0];
   }, [activeSubTab, sectionTabs]);
+
+  // Calculate effective deepPage for the active tab or subtab
+  const effectiveDeepPage = useMemo<keyof DeepAppCMSStore | undefined>(() => {
+    if (currentTab.subtabs && currentTab.subtabs.length > 0) {
+      const matched = currentTab.subtabs.find((s) => s.id === selectedSubTabId);
+      if (matched?.deepPage) return matched.deepPage;
+      return currentTab.subtabs[0]?.deepPage || currentTab.deepPage;
+    }
+    return currentTab.deepPage;
+  }, [currentTab, selectedSubTabId]);
+
+  React.useEffect(() => {
+    if (currentTab.subtabs && currentTab.subtabs.length > 0) {
+      setSelectedSubTabId(currentTab.subtabs[0].id);
+    } else {
+      setSelectedSubTabId('');
+    }
+  }, [currentTab]);
 
   // Find corresponding portal tab in AppCMS config if present
   const matchedCmsTab = useMemo(() => {
@@ -712,131 +732,76 @@ export default function PortalCMSEditor({ portal, initialTabId }: PortalCMSEdito
           </div>
         </div>
 
-        {/* Active Tab Top Summary & Controls Bar */}
+        {/* Active Tab Top Header & Quick Mode Switcher */}
         <div
-          className="rounded-xl border p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-sm flex-shrink-0"
-          style={{ background: 'var(--surface)', borderColor: 'var(--border)' }}
+          className="rounded-xl border p-3.5 sm:p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-sm flex-shrink-0"
+          style={{ background: "var(--surface)", borderColor: "var(--border)" }}
         >
           <div className="flex items-center gap-3 min-w-0">
             <div
-              className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0"
+              className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
               style={{
                 background: `${themeColor}22`,
                 color: themeColor,
                 border: `1px solid ${themeColor}40`,
               }}
             >
-              <currentTab.icon size={18} />
+              <currentTab.icon size={20} />
             </div>
 
             <div className="min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
-                {/* Tab Label: editable */}
-                {!editingTabLabel ? (
-                  <div className="flex items-center gap-1.5">
-                    <span className="font-head font-bold text-sm text-foreground">
-                      {matchedCmsTab?.name || currentTab.label}
-                    </span>
-                    {matchedCmsTab && (
-                      <button
-                        onClick={handleStartLabelEdit}
-                        className="p-1 text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
-                        title="Rename Tab Label in Sidebar"
-                      >
-                        <Edit2 size={12} />
-                      </button>
-                    )}
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-1.5">
-                    <input
-                      type="text"
-                      value={tabLabelInput}
-                      onChange={(e) => setTabLabelInput(e.target.value)}
-                      className="rounded px-2 py-0.5 text-xs border border-primary bg-surface2 text-foreground font-bold outline-none"
-                      autoFocus
-                    />
-                    <button
-                      onClick={handleSaveTabLabel}
-                      className="p-1 rounded bg-primary text-black font-bold text-xs cursor-pointer"
-                    >
-                      <Check size={12} strokeWidth={3} />
-                    </button>
-                    <button
-                      onClick={() => setEditingTabLabel(false)}
-                      className="text-[11px] text-muted-foreground hover:text-foreground cursor-pointer"
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                )}
-
-                {/* Route URL / Path: editable */}
-                {!editingTabPath ? (
-                  <div className="flex items-center gap-1">
-                    <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-white/5 border border-white/10 text-muted-foreground font-mono">
-                      {matchedCmsTab?.path || currentTab.livePath}
-                    </span>
-                    {matchedCmsTab && (
-                      <button
-                        onClick={handleStartPathEdit}
-                        className="p-0.5 text-muted-foreground hover:text-primary transition-colors cursor-pointer"
-                        title="Edit Route URL"
-                      >
-                        <Edit2 size={10} />
-                      </button>
-                    )}
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-1.5">
-                    <input
-                      type="text"
-                      value={tabPathInput}
-                      onChange={(e) => setTabPathInput(e.target.value)}
-                      className="rounded px-2 py-0.5 text-xs font-mono border border-primary bg-surface2 text-foreground outline-none"
-                      autoFocus
-                    />
-                    <button
-                      onClick={handleSaveTabPath}
-                      className="p-1 rounded bg-primary text-black font-bold text-xs cursor-pointer"
-                    >
-                      <Check size={12} strokeWidth={3} />
-                    </button>
-                    <button
-                      onClick={() => setEditingTabPath(false)}
-                      className="text-[11px] text-muted-foreground hover:text-foreground cursor-pointer"
-                    >
-                      Cancel
-                    </button>
-                  </div>
+                <span className="font-head font-bold text-sm sm:text-base text-foreground truncate">
+                  {matchedCmsTab?.name || currentTab.label}
+                </span>
+                <span
+                  className="text-[10px] font-bold px-2 py-0.5 rounded-full border uppercase tracking-wider"
+                  style={{
+                    background: `${themeColor}18`,
+                    borderColor: `${themeColor}40`,
+                    color: themeColor,
+                  }}
+                >
+                  {isOpco ? "OpCo Operations" : "PropCo Asset Co"}
+                </span>
+                {matchedCmsTab && (
+                  <span
+                    className={`text-[10px] font-bold px-2 py-0.5 rounded-full border flex items-center gap-1 ${
+                      matchedCmsTab.enabled
+                        ? "border-emerald-500/30 text-emerald-400 bg-emerald-500/10"
+                        : "border-border text-muted-foreground bg-white/5"
+                    }`}
+                  >
+                    {matchedCmsTab.enabled ? <Eye size={10} /> : <EyeOff size={10} />}
+                    <span>{matchedCmsTab.enabled ? "Sidebar Visible" : "Hidden"}</span>
+                  </span>
                 )}
               </div>
-              <p className="text-[11px] text-muted-foreground mt-0.5 truncate">
+              <p className="text-xs text-muted-foreground mt-0.5 truncate">
                 {matchedCmsTab?.description || currentTab.description}
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2 flex-shrink-0">
-            {matchedCmsTab && (
-              <button
-                onClick={handleToggleTabVisibility}
-                className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium border transition-colors cursor-pointer ${
-                  matchedCmsTab.enabled
-                    ? 'border-emerald-500/30 text-emerald-400 bg-emerald-500/10'
-                    : 'border-border text-muted-foreground hover:text-foreground'
-                }`}
-                title={matchedCmsTab.enabled ? 'Click to hide from sidebar' : 'Click to enable in sidebar'}
-              >
-                {matchedCmsTab.enabled ? <Eye size={12} /> : <EyeOff size={12} />}
-                <span>{matchedCmsTab.enabled ? 'Sidebar Visible' : 'Sidebar Hidden'}</span>
-              </button>
-            )}
+          <div className="flex items-center gap-2 flex-shrink-0 ml-auto flex-wrap">
+            <button
+              type="button"
+              onClick={() => setShowSettingsDrawer((prev) => !prev)}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all cursor-pointer ${
+                showSettingsDrawer
+                  ? "border-primary bg-primary/10 text-primary"
+                  : "border-border hover:border-border-strong text-muted-foreground hover:text-foreground hover:bg-surface2"
+              }`}
+              title="Configure sidebar menu links, route URL, and dropdown order"
+            >
+              <SlidersHorizontal size={13} />
+              <span>{showSettingsDrawer ? "Hide Route Settings" : "Sidebar Route Settings"}</span>
+            </button>
 
             <Link
               href={matchedCmsTab?.path || currentTab.livePath}
               target="_blank"
-              className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold border border-primary/40 bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border border-primary/40 bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
             >
               <span>View Live</span>
               <ExternalLink size={12} />
@@ -844,251 +809,435 @@ export default function PortalCMSEditor({ portal, initialTabId }: PortalCMSEdito
           </div>
         </div>
 
-        {/* ─── DEDICATED SIDEBAR DROPDOWN & SUB-TABS MANAGER ─── */}
-        <div
-          className="rounded-xl border p-4 flex flex-col gap-3 shadow-sm flex-shrink-0"
-          style={{ background: 'var(--surface)', borderColor: 'var(--border)' }}
-        >
-          <div className="flex items-center justify-between pb-2 border-b border-border flex-wrap gap-2">
-            <div className="flex items-center gap-2">
-              <Layers size={15} style={{ color: themeColor }} />
-              <div>
-                <span className="font-head font-bold text-xs uppercase tracking-wider text-foreground">
-                  Sidebar Dropdown Sub-Items ({activeSubtabs.length})
-                </span>
-                <p className="text-[11px] text-muted-foreground">
-                  These items appear directly inside the {currentTab.label} dropdown in the application sidebar.
+        {/* Optional Collapsible Sidebar Route & Dropdown Settings Drawer */}
+        {showSettingsDrawer && (
+          <div className="flex flex-col gap-3 animate-in fade-in duration-200">
+          {/* Active Tab Top Summary & Controls Bar */}
+          <div
+            className="rounded-xl border p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-sm flex-shrink-0"
+            style={{ background: 'var(--surface)', borderColor: 'var(--border)' }}
+          >
+            <div className="flex items-center gap-3 min-w-0">
+              <div
+                className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0"
+                style={{
+                  background: `${themeColor}22`,
+                  color: themeColor,
+                  border: `1px solid ${themeColor}40`,
+                }}
+              >
+                <currentTab.icon size={18} />
+              </div>
+  
+              <div className="min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  {/* Tab Label: editable */}
+                  {!editingTabLabel ? (
+                    <div className="flex items-center gap-1.5">
+                      <span className="font-head font-bold text-sm text-foreground">
+                        {matchedCmsTab?.name || currentTab.label}
+                      </span>
+                      {matchedCmsTab && (
+                        <button
+                          onClick={handleStartLabelEdit}
+                          className="p-1 text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                          title="Rename Tab Label in Sidebar"
+                        >
+                          <Edit2 size={12} />
+                        </button>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-1.5">
+                      <input
+                        type="text"
+                        value={tabLabelInput}
+                        onChange={(e) => setTabLabelInput(e.target.value)}
+                        className="rounded px-2 py-0.5 text-xs border border-primary bg-surface2 text-foreground font-bold outline-none"
+                        autoFocus
+                      />
+                      <button
+                        onClick={handleSaveTabLabel}
+                        className="p-1 rounded bg-primary text-black font-bold text-xs cursor-pointer"
+                      >
+                        <Check size={12} strokeWidth={3} />
+                      </button>
+                      <button
+                        onClick={() => setEditingTabLabel(false)}
+                        className="text-[11px] text-muted-foreground hover:text-foreground cursor-pointer"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  )}
+  
+                  {/* Route URL / Path: editable */}
+                  {!editingTabPath ? (
+                    <div className="flex items-center gap-1">
+                      <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-white/5 border border-white/10 text-muted-foreground font-mono">
+                        {matchedCmsTab?.path || currentTab.livePath}
+                      </span>
+                      {matchedCmsTab && (
+                        <button
+                          onClick={handleStartPathEdit}
+                          className="p-0.5 text-muted-foreground hover:text-primary transition-colors cursor-pointer"
+                          title="Edit Route URL"
+                        >
+                          <Edit2 size={10} />
+                        </button>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-1.5">
+                      <input
+                        type="text"
+                        value={tabPathInput}
+                        onChange={(e) => setTabPathInput(e.target.value)}
+                        className="rounded px-2 py-0.5 text-xs font-mono border border-primary bg-surface2 text-foreground outline-none"
+                        autoFocus
+                      />
+                      <button
+                        onClick={handleSaveTabPath}
+                        className="p-1 rounded bg-primary text-black font-bold text-xs cursor-pointer"
+                      >
+                        <Check size={12} strokeWidth={3} />
+                      </button>
+                      <button
+                        onClick={() => setEditingTabPath(false)}
+                        className="text-[11px] text-muted-foreground hover:text-foreground cursor-pointer"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  )}
+                </div>
+                <p className="text-[11px] text-muted-foreground mt-0.5 truncate">
+                  {matchedCmsTab?.description || currentTab.description}
                 </p>
               </div>
             </div>
-
-            <button
-              onClick={() => {
-                setShowAddSubtabForm(!showAddSubtabForm);
-                setNewSubtabPath(`${currentTab.livePath}?tab=new-filter`);
-              }}
-              className="flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold transition-all shadow-sm active:scale-95 cursor-pointer"
-              style={{ background: 'var(--primary)', color: '#121316' }}
-            >
-              <Plus size={13} strokeWidth={2.5} />
-              <span>Add Dropdown Item</span>
-            </button>
+  
+            <div className="flex items-center gap-2 flex-shrink-0">
+              {matchedCmsTab && (
+                <button
+                  onClick={handleToggleTabVisibility}
+                  className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium border transition-colors cursor-pointer ${
+                    matchedCmsTab.enabled
+                      ? 'border-emerald-500/30 text-emerald-400 bg-emerald-500/10'
+                      : 'border-border text-muted-foreground hover:text-foreground'
+                  }`}
+                  title={matchedCmsTab.enabled ? 'Click to hide from sidebar' : 'Click to enable in sidebar'}
+                >
+                  {matchedCmsTab.enabled ? <Eye size={12} /> : <EyeOff size={12} />}
+                  <span>{matchedCmsTab.enabled ? 'Sidebar Visible' : 'Sidebar Hidden'}</span>
+                </button>
+              )}
+  
+              <Link
+                href={matchedCmsTab?.path || currentTab.livePath}
+                target="_blank"
+                className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold border border-primary/40 bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
+              >
+                <span>View Live</span>
+                <ExternalLink size={12} />
+              </Link>
+            </div>
           </div>
-
-          {/* Inline Form to Add a New Subtab */}
-          {showAddSubtabForm && (
-            <form
-              onSubmit={handleAddSubtab}
-              className="p-3 rounded-lg border border-primary/40 bg-black/25 flex flex-col gap-3"
-            >
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-primary flex items-center gap-1.5">
-                  <Plus size={12} /> New Dropdown Sub-Item for {currentTab.label}
+  
+          {/* ─── DEDICATED SIDEBAR DROPDOWN & SUB-TABS MANAGER ─── */}
+          <div
+            className="rounded-xl border p-4 flex flex-col gap-3 shadow-sm flex-shrink-0"
+            style={{ background: 'var(--surface)', borderColor: 'var(--border)' }}
+          >
+            <div className="flex items-center justify-between pb-2 border-b border-border flex-wrap gap-2">
+              <div className="flex items-center gap-2">
+                <Layers size={15} style={{ color: themeColor }} />
+                <div>
+                  <span className="font-head font-bold text-xs uppercase tracking-wider text-foreground">
+                    Sidebar Dropdown Sub-Items ({activeSubtabs.length})
+                  </span>
+                  <p className="text-[11px] text-muted-foreground">
+                    These items appear directly inside the {currentTab.label} dropdown in the application sidebar.
+                  </p>
+                </div>
+              </div>
+  
+              <button
+                onClick={() => {
+                  setShowAddSubtabForm(!showAddSubtabForm);
+                  setNewSubtabPath(`${currentTab.livePath}?tab=new-filter`);
+                }}
+                className="flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold transition-all shadow-sm active:scale-95 cursor-pointer"
+                style={{ background: 'var(--primary)', color: '#121316' }}
+              >
+                <Plus size={13} strokeWidth={2.5} />
+                <span>Add Dropdown Item</span>
+              </button>
+            </div>
+  
+            {/* Inline Form to Add a New Subtab */}
+            {showAddSubtabForm && (
+              <form
+                onSubmit={handleAddSubtab}
+                className="p-3 rounded-lg border border-primary/40 bg-black/25 flex flex-col gap-3"
+              >
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-primary flex items-center gap-1.5">
+                    <Plus size={12} /> New Dropdown Sub-Item for {currentTab.label}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setShowAddSubtabForm(false)}
+                    className="text-muted-foreground hover:text-foreground text-xs"
+                  >
+                    <X size={13} />
+                  </button>
+                </div>
+  
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[11px] font-semibold text-muted-foreground">
+                      Display Title * (e.g., &quot;Statutory Inspections&quot;, &quot;Annual Renewals&quot;)
+                    </label>
+                    <input
+                      type="text"
+                      value={newSubtabLabel}
+                      onChange={(e) => {
+                        setNewSubtabLabel(e.target.value);
+                        if (!newSubtabPath || newSubtabPath.includes('?tab=')) {
+                          const slug = e.target.value.toLowerCase().replace(/[^a-z0-9]/g, '-');
+                          setNewSubtabPath(`${currentTab.livePath}?tab=${slug}`);
+                        }
+                      }}
+                      placeholder="Enter item title..."
+                      className="px-3 py-1.5 rounded-lg border border-border text-xs outline-none focus:border-primary text-foreground"
+                      style={{ background: 'var(--surface2)' }}
+                      autoFocus
+                    />
+                  </div>
+  
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[11px] font-semibold text-muted-foreground">
+                      Route URL / Filter Query * (e.g., &quot;{currentTab.livePath}?tab=certifications&quot;)
+                    </label>
+                    <input
+                      type="text"
+                      value={newSubtabPath}
+                      onChange={(e) => setNewSubtabPath(e.target.value)}
+                      placeholder={`${currentTab.livePath}?filter=...`}
+                      className="px-3 py-1.5 rounded-lg border border-border text-xs font-mono outline-none focus:border-primary text-foreground"
+                      style={{ background: 'var(--surface2)' }}
+                    />
+                  </div>
+                </div>
+  
+                <div className="flex items-center justify-end gap-2 pt-1">
+                  <button
+                    type="button"
+                    onClick={() => setShowAddSubtabForm(false)}
+                    className="px-3 py-1 rounded-lg text-xs font-medium border border-border text-muted-foreground hover:text-foreground cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold transition-transform active:scale-95 cursor-pointer"
+                    style={{ background: 'var(--primary)', color: '#121316' }}
+                  >
+                    <Check size={12} strokeWidth={3} />
+                    <span>Save to Dropdown</span>
+                  </button>
+                </div>
+              </form>
+            )}
+  
+            {/* List of Sub-Items */}
+            {activeSubtabs.length > 0 ? (
+              <div className="flex flex-col gap-1.5">
+                {activeSubtabs.map((sub, idx) => {
+                  const isEditingThis = editingSubtabId === sub.id;
+  
+                  return (
+                    <div
+                      key={sub.id}
+                      className="flex flex-col sm:flex-row sm:items-center justify-between p-2.5 rounded-lg border border-border/70 hover:border-border transition-all gap-2"
+                      style={{ background: 'var(--surface2)' }}
+                    >
+                      {!isEditingThis ? (
+                        <>
+                          <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                            <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-white/5 border border-white/10 text-muted-foreground flex-shrink-0">
+                              #{idx + 1}
+                            </span>
+                            <span className="font-semibold text-xs text-foreground truncate">
+                              {sub.label}
+                            </span>
+                            <span className="text-[10px] font-mono text-primary/80 truncate">
+                              {sub.path}
+                            </span>
+                          </div>
+  
+                          <div className="flex items-center gap-1.5 flex-shrink-0">
+                            {/* Reorder Up / Down */}
+                            <button
+                              disabled={idx === 0}
+                              onClick={() => handleMoveSubtab(idx, 'up')}
+                              className="p-1 rounded border border-border text-muted-foreground hover:text-foreground disabled:opacity-20 cursor-pointer"
+                              title="Move Up"
+                            >
+                              <ArrowUp size={11} />
+                            </button>
+                            <button
+                              disabled={idx === activeSubtabs.length - 1}
+                              onClick={() => handleMoveSubtab(idx, 'down')}
+                              className="p-1 rounded border border-border text-muted-foreground hover:text-foreground disabled:opacity-20 cursor-pointer"
+                              title="Move Down"
+                            >
+                              <ArrowDown size={11} />
+                            </button>
+  
+                            {/* Edit */}
+                            <button
+                              onClick={() => handleStartSubtabEdit(sub)}
+                              className="p-1 rounded border border-border text-muted-foreground hover:text-primary transition-colors cursor-pointer"
+                              title="Edit Title & URL"
+                            >
+                              <Edit2 size={11} />
+                            </button>
+  
+                            {/* Open Live Route */}
+                            <Link
+                              href={sub.path}
+                              target="_blank"
+                              className="p-1 rounded border border-border text-muted-foreground hover:text-foreground transition-colors"
+                              title="Open in new tab"
+                            >
+                              <ExternalLink size={11} />
+                            </Link>
+  
+                            {/* Delete */}
+                            <button
+                              onClick={() => handleDeleteSubtab(sub.id, sub.label)}
+                              className="p-1 rounded border border-border text-muted-foreground hover:text-rose-400 hover:bg-rose-500/10 transition-colors cursor-pointer"
+                              title="Delete Sub-Item"
+                            >
+                              <Trash2 size={11} />
+                            </button>
+                          </div>
+                        </>
+                      ) : (
+                        /* Inline Edit Form for this Subtab */
+                        <div className="flex-1 flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full">
+                          <input
+                            type="text"
+                            value={editSubtabLabel}
+                            onChange={(e) => setEditSubtabLabel(e.target.value)}
+                            className="px-2.5 py-1 rounded border border-primary text-xs text-foreground bg-black/40 outline-none flex-1 font-semibold"
+                            placeholder="Title"
+                            autoFocus
+                          />
+                          <input
+                            type="text"
+                            value={editSubtabPath}
+                            onChange={(e) => setEditSubtabPath(e.target.value)}
+                            className="px-2.5 py-1 rounded border border-border text-xs font-mono text-primary bg-black/40 outline-none flex-1"
+                            placeholder="Route / Query"
+                          />
+                          <div className="flex items-center gap-1 flex-shrink-0">
+                            <button
+                              onClick={() => handleSaveSubtabEdit(sub.id)}
+                              className="flex items-center gap-1 px-2.5 py-1 rounded text-xs font-bold transition-transform active:scale-95 cursor-pointer"
+                              style={{ background: 'var(--primary)', color: '#121316' }}
+                            >
+                              <Check size={11} strokeWidth={3} />
+                              <span>Save</span>
+                            </button>
+                            <button
+                              onClick={() => setEditingSubtabId(null)}
+                              className="px-2 py-1 rounded border border-border text-xs text-muted-foreground hover:text-foreground cursor-pointer"
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="p-4 rounded-lg border border-dashed border-border/80 flex flex-col items-center justify-center gap-2 text-center">
+                <span className="text-xs text-muted-foreground">
+                  This tab does not currently have sub-dropdown options. It renders as a single link in the sidebar.
                 </span>
                 <button
-                  type="button"
-                  onClick={() => setShowAddSubtabForm(false)}
-                  className="text-muted-foreground hover:text-foreground text-xs"
+                  onClick={() => {
+                    setShowAddSubtabForm(true);
+                    setNewSubtabPath(`${currentTab.livePath}?tab=overview`);
+                  }}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border border-primary/40 text-primary hover:bg-primary/10 transition-colors cursor-pointer"
                 >
-                  <X size={13} />
+                  <Plus size={12} />
+                  <span>Convert to Sidebar Dropdown (Add First Sub-Item)</span>
                 </button>
               </div>
+            )}
+          </div>
+  
+          </div>
+        )}
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div className="flex flex-col gap-1">
-                  <label className="text-[11px] font-semibold text-muted-foreground">
-                    Display Title * (e.g., &quot;Statutory Inspections&quot;, &quot;Annual Renewals&quot;)
-                  </label>
-                  <input
-                    type="text"
-                    value={newSubtabLabel}
-                    onChange={(e) => {
-                      setNewSubtabLabel(e.target.value);
-                      if (!newSubtabPath || newSubtabPath.includes('?tab=')) {
-                        const slug = e.target.value.toLowerCase().replace(/[^a-z0-9]/g, '-');
-                        setNewSubtabPath(`${currentTab.livePath}?tab=${slug}`);
-                      }
-                    }}
-                    placeholder="Enter item title..."
-                    className="px-3 py-1.5 rounded-lg border border-border text-xs outline-none focus:border-primary text-foreground"
-                    style={{ background: 'var(--surface2)' }}
-                    autoFocus
-                  />
-                </div>
-
-                <div className="flex flex-col gap-1">
-                  <label className="text-[11px] font-semibold text-muted-foreground">
-                    Route URL / Filter Query * (e.g., &quot;{currentTab.livePath}?tab=certifications&quot;)
-                  </label>
-                  <input
-                    type="text"
-                    value={newSubtabPath}
-                    onChange={(e) => setNewSubtabPath(e.target.value)}
-                    placeholder={`${currentTab.livePath}?filter=...`}
-                    className="px-3 py-1.5 rounded-lg border border-border text-xs font-mono outline-none focus:border-primary text-foreground"
-                    style={{ background: 'var(--surface2)' }}
-                  />
-                </div>
-              </div>
-
-              <div className="flex items-center justify-end gap-2 pt-1">
-                <button
-                  type="button"
-                  onClick={() => setShowAddSubtabForm(false)}
-                  className="px-3 py-1 rounded-lg text-xs font-medium border border-border text-muted-foreground hover:text-foreground cursor-pointer"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold transition-transform active:scale-95 cursor-pointer"
-                  style={{ background: 'var(--primary)', color: '#121316' }}
-                >
-                  <Check size={12} strokeWidth={3} />
-                  <span>Save to Dropdown</span>
-                </button>
-              </div>
-            </form>
-          )}
-
-          {/* List of Sub-Items */}
-          {activeSubtabs.length > 0 ? (
-            <div className="flex flex-col gap-1.5">
-              {activeSubtabs.map((sub, idx) => {
-                const isEditingThis = editingSubtabId === sub.id;
-
+        {/* Interactive Sub-Tab Navigation Bar (Instant Switcher for All Sub-Pages) */}
+        {currentTab.subtabs && currentTab.subtabs.length > 0 && (
+          <div
+            className="p-2.5 rounded-xl border flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 shadow-sm flex-shrink-0"
+            style={{ background: "var(--surface)", borderColor: "var(--border)" }}
+          >
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5 pl-1 pr-2">
+                <Layers size={13} className="text-primary" />
+                <span>Pages:</span>
+              </span>
+              {currentTab.subtabs.map((sub) => {
+                const isSelected = (selectedSubTabId || currentTab.subtabs![0].id) === sub.id;
                 return (
-                  <div
+                  <button
                     key={sub.id}
-                    className="flex flex-col sm:flex-row sm:items-center justify-between p-2.5 rounded-lg border border-border/70 hover:border-border transition-all gap-2"
-                    style={{ background: 'var(--surface2)' }}
+                    type="button"
+                    onClick={() => setSelectedSubTabId(sub.id)}
+                    className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                      isSelected
+                        ? "shadow-md scale-[1.02]"
+                        : "text-muted-foreground hover:text-foreground hover:bg-surface2 border border-border/60"
+                    }`}
+                    style={{
+                      background: isSelected ? "var(--primary)" : "transparent",
+                      color: isSelected ? "#121316" : undefined,
+                    }}
                   >
-                    {!isEditingThis ? (
-                      <>
-                        <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                          <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-white/5 border border-white/10 text-muted-foreground flex-shrink-0">
-                            #{idx + 1}
-                          </span>
-                          <span className="font-semibold text-xs text-foreground truncate">
-                            {sub.label}
-                          </span>
-                          <span className="text-[10px] font-mono text-primary/80 truncate">
-                            {sub.path}
-                          </span>
-                        </div>
-
-                        <div className="flex items-center gap-1.5 flex-shrink-0">
-                          {/* Reorder Up / Down */}
-                          <button
-                            disabled={idx === 0}
-                            onClick={() => handleMoveSubtab(idx, 'up')}
-                            className="p-1 rounded border border-border text-muted-foreground hover:text-foreground disabled:opacity-20 cursor-pointer"
-                            title="Move Up"
-                          >
-                            <ArrowUp size={11} />
-                          </button>
-                          <button
-                            disabled={idx === activeSubtabs.length - 1}
-                            onClick={() => handleMoveSubtab(idx, 'down')}
-                            className="p-1 rounded border border-border text-muted-foreground hover:text-foreground disabled:opacity-20 cursor-pointer"
-                            title="Move Down"
-                          >
-                            <ArrowDown size={11} />
-                          </button>
-
-                          {/* Edit */}
-                          <button
-                            onClick={() => handleStartSubtabEdit(sub)}
-                            className="p-1 rounded border border-border text-muted-foreground hover:text-primary transition-colors cursor-pointer"
-                            title="Edit Title & URL"
-                          >
-                            <Edit2 size={11} />
-                          </button>
-
-                          {/* Open Live Route */}
-                          <Link
-                            href={sub.path}
-                            target="_blank"
-                            className="p-1 rounded border border-border text-muted-foreground hover:text-foreground transition-colors"
-                            title="Open in new tab"
-                          >
-                            <ExternalLink size={11} />
-                          </Link>
-
-                          {/* Delete */}
-                          <button
-                            onClick={() => handleDeleteSubtab(sub.id, sub.label)}
-                            className="p-1 rounded border border-border text-muted-foreground hover:text-rose-400 hover:bg-rose-500/10 transition-colors cursor-pointer"
-                            title="Delete Sub-Item"
-                          >
-                            <Trash2 size={11} />
-                          </button>
-                        </div>
-                      </>
-                    ) : (
-                      /* Inline Edit Form for this Subtab */
-                      <div className="flex-1 flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full">
-                        <input
-                          type="text"
-                          value={editSubtabLabel}
-                          onChange={(e) => setEditSubtabLabel(e.target.value)}
-                          className="px-2.5 py-1 rounded border border-primary text-xs text-foreground bg-black/40 outline-none flex-1 font-semibold"
-                          placeholder="Title"
-                          autoFocus
-                        />
-                        <input
-                          type="text"
-                          value={editSubtabPath}
-                          onChange={(e) => setEditSubtabPath(e.target.value)}
-                          className="px-2.5 py-1 rounded border border-border text-xs font-mono text-primary bg-black/40 outline-none flex-1"
-                          placeholder="Route / Query"
-                        />
-                        <div className="flex items-center gap-1 flex-shrink-0">
-                          <button
-                            onClick={() => handleSaveSubtabEdit(sub.id)}
-                            className="flex items-center gap-1 px-2.5 py-1 rounded text-xs font-bold transition-transform active:scale-95 cursor-pointer"
-                            style={{ background: 'var(--primary)', color: '#121316' }}
-                          >
-                            <Check size={11} strokeWidth={3} />
-                            <span>Save</span>
-                          </button>
-                          <button
-                            onClick={() => setEditingSubtabId(null)}
-                            className="px-2 py-1 rounded border border-border text-xs text-muted-foreground hover:text-foreground cursor-pointer"
-                          >
-                            Cancel
-                          </button>
-                        </div>
-                      </div>
-                    )}
-                  </div>
+                    <span>{sub.label}</span>
+                    <span
+                      className={`text-[10px] font-mono px-1.5 py-0.2 rounded font-semibold ${
+                        isSelected ? "bg-black/20 text-black" : "bg-white/5 text-muted-foreground"
+                      }`}
+                    >
+                      Editable Page
+                    </span>
+                  </button>
                 );
               })}
             </div>
-          ) : (
-            <div className="p-4 rounded-lg border border-dashed border-border/80 flex flex-col items-center justify-center gap-2 text-center">
-              <span className="text-xs text-muted-foreground">
-                This tab does not currently have sub-dropdown options. It renders as a single link in the sidebar.
-              </span>
-              <button
-                onClick={() => {
-                  setShowAddSubtabForm(true);
-                  setNewSubtabPath(`${currentTab.livePath}?tab=overview`);
-                }}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border border-primary/40 text-primary hover:bg-primary/10 transition-colors cursor-pointer"
-              >
-                <Plus size={12} />
-                <span>Convert to Sidebar Dropdown (Add First Sub-Item)</span>
-              </button>
-            </div>
-          )}
-        </div>
+            <span className="text-[11px] text-muted-foreground/80 pr-2">
+              Showing complete page editor for <strong className="text-foreground">{currentTab.subtabs.find(s => s.id === (selectedSubTabId || currentTab.subtabs![0].id))?.label || currentTab.label}</strong>
+            </span>
+          </div>
+        )}
 
-        {/* Active Editable Page Component */}
+        {/* Active Editable Page Component (Dynamically loads either root tab or selected subtab) */}
         <div className="min-w-0">
-          {/* If deep page exists for this tab: load the full DeepPageCMSEditor */}
-          {currentTab.deepPage && (
-            <DeepPageCMSEditor activePage={currentTab.deepPage} hidePageGrid={true} initialPortal={portal} />
+          {/* If deep page exists for this tab or subtab: load the full DeepPageCMSEditor */}
+          {effectiveDeepPage && (
+            <DeepPageCMSEditor key={effectiveDeepPage} activePage={effectiveDeepPage} hidePageGrid={true} initialPortal={portal} />
           )}
 
           {/* If it's one of the bottom 4 system tabs: load CompleteAppCMS for that section */}

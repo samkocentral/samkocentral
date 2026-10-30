@@ -226,7 +226,7 @@ export default function AssetDetailClient({ assetId }: { assetId: string }) {
     );
   });
 
-  const { user } = useAuth();
+  const { user, isViewer, canEdit, canDelete } = useAuth();
   const currentUserName = user?.name || 'Alexander Vance';
   const currentUserRole = user?.roleTitle || 'Super Admin';
   const currentUserInitials = user?.initials || 'AV';
@@ -801,63 +801,96 @@ export default function AssetDetailClient({ assetId }: { assetId: string }) {
               {asset.assetId}
             </span>
 
-            {/* Interactive Status Dropdown in Header */}
-            <div className="relative inline-block">
-              <select
-                value={asset.status}
-                onChange={(e) => handleStatusChange(e.target.value)}
-                className="appearance-none cursor-pointer pl-4 pr-6 py-1 rounded-full text-xs font-semibold outline-none transition-all capitalize"
+            {/* Status in Header */}
+            {isViewer || !canEdit ? (
+              <span
+                className="inline-flex items-center gap-1.5 pl-3 pr-3.5 py-1 rounded-full text-xs font-semibold capitalize select-none"
                 style={{
                   background: statusStyle.bg,
                   color: statusStyle.color,
                   border: `1px solid ${statusStyle.color}33`,
                 }}
               >
-                <option value="active" style={{ background: '#18181b', color: '#3dd68c' }}>Active</option>
-                <option value="under-maintenance" style={{ background: '#18181b', color: '#f59e0b' }}>Under Maintenance</option>
-                <option value="inactive" style={{ background: '#18181b', color: '#94a3b8' }}>Inactive</option>
-                <option value="disposed" style={{ background: '#18181b', color: '#f43f5e' }}>Disposed</option>
-                <option value="lost" style={{ background: '#18181b', color: '#f43f5e' }}>Lost</option>
-              </select>
+                <span
+                  className="w-1.5 h-1.5 rounded-full"
+                  style={{ background: statusStyle.color }}
+                />
+                {asset.status.replace('-', ' ')}
+              </span>
+            ) : (
+              <div className="relative inline-block">
+                <select
+                  value={asset.status}
+                  onChange={(e) => handleStatusChange(e.target.value)}
+                  className="appearance-none cursor-pointer pl-4 pr-6 py-1 rounded-full text-xs font-semibold outline-none transition-all capitalize"
+                  style={{
+                    background: statusStyle.bg,
+                    color: statusStyle.color,
+                    border: `1px solid ${statusStyle.color}33`,
+                  }}
+                >
+                  <option value="active" style={{ background: '#18181b', color: '#3dd68c' }}>Active</option>
+                  <option value="under-maintenance" style={{ background: '#18181b', color: '#f59e0b' }}>Under Maintenance</option>
+                  <option value="inactive" style={{ background: '#18181b', color: '#94a3b8' }}>Inactive</option>
+                  <option value="disposed" style={{ background: '#18181b', color: '#f43f5e' }}>Disposed</option>
+                  <option value="lost" style={{ background: '#18181b', color: '#f43f5e' }}>Lost</option>
+                </select>
+                <span
+                  className="w-1.5 h-1.5 rounded-full absolute left-2 top-1/2 -translate-y-1/2 pointer-events-none"
+                  style={{ background: statusStyle.color }}
+                />
+                <ChevronDown
+                  size={11}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none opacity-80"
+                  style={{ color: statusStyle.color }}
+                />
+              </div>
+            )}
+          {/* Condition in Header */}
+            {isViewer || !canEdit ? (
               <span
-                className="w-1.5 h-1.5 rounded-full absolute left-2 top-1/2 -translate-y-1/2 pointer-events-none"
-                style={{ background: statusStyle.color }}
-              />
-              <ChevronDown
-                size={11}
-                className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none opacity-80"
-                style={{ color: statusStyle.color }}
-              />
-            </div>
-
-            {/* Interactive Condition Dropdown in Header */}
-            <div className="relative inline-block">
-              <select
-                value={asset.condition}
-                onChange={(e) => handleConditionChange(e.target.value)}
-                className="appearance-none cursor-pointer pl-4 pr-6 py-1 rounded-full text-xs font-semibold outline-none transition-all capitalize"
+                className="inline-flex items-center gap-1.5 pl-3 pr-3.5 py-1 rounded-full text-xs font-semibold capitalize select-none"
                 style={{
                   background: `${condStyle}18`,
                   color: condStyle,
                   border: `1px solid ${condStyle}33`,
                 }}
               >
-                <option value="excellent" style={{ background: '#18181b', color: '#3dd68c' }}>Excellent</option>
-                <option value="good" style={{ background: '#18181b', color: '#60a5fa' }}>Good</option>
-                <option value="fair" style={{ background: '#18181b', color: '#f59e0b' }}>Fair</option>
-                <option value="poor" style={{ background: '#18181b', color: '#f97316' }}>Poor</option>
-                <option value="critical" style={{ background: '#18181b', color: '#f43f5e' }}>Critical</option>
-              </select>
-              <span
-                className="w-1.5 h-1.5 rounded-full absolute left-2 top-1/2 -translate-y-1/2 pointer-events-none"
-                style={{ background: condStyle }}
-              />
-              <ChevronDown
-                size={11}
-                className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none opacity-80"
-                style={{ color: condStyle }}
-              />
-            </div>
+                <span
+                  className="w-1.5 h-1.5 rounded-full"
+                  style={{ background: condStyle }}
+                />
+                {asset.condition}
+              </span>
+            ) : (
+              <div className="relative inline-block">
+                <select
+                  value={asset.condition}
+                  onChange={(e) => handleConditionChange(e.target.value)}
+                  className="appearance-none cursor-pointer pl-4 pr-6 py-1 rounded-full text-xs font-semibold outline-none transition-all capitalize"
+                  style={{
+                    background: `${condStyle}18`,
+                    color: condStyle,
+                    border: `1px solid ${condStyle}33`,
+                  }}
+                >
+                  <option value="excellent" style={{ background: '#18181b', color: '#3dd68c' }}>Excellent</option>
+                  <option value="good" style={{ background: '#18181b', color: '#60a5fa' }}>Good</option>
+                  <option value="fair" style={{ background: '#18181b', color: '#f59e0b' }}>Fair</option>
+                  <option value="poor" style={{ background: '#18181b', color: '#f97316' }}>Poor</option>
+                  <option value="critical" style={{ background: '#18181b', color: '#f43f5e' }}>Critical</option>
+                </select>
+                <span
+                  className="w-1.5 h-1.5 rounded-full absolute left-2 top-1/2 -translate-y-1/2 pointer-events-none"
+                  style={{ background: condStyle }}
+                />
+                <ChevronDown
+                  size={11}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none opacity-80"
+                  style={{ color: condStyle }}
+                />
+              </div>
+            )}
           </div>
           <div className="flex items-center gap-4 mt-1.5 text-xs text-muted-foreground flex-wrap">
             <span className="flex items-center gap-1"><Building2 size={11} /> {asset.hotelName || (asset as any).propertyName || 'Property'}</span>
@@ -867,28 +900,34 @@ export default function AssetDetailClient({ assetId }: { assetId: string }) {
           </div>
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">
-          <button
-            onClick={handleOpenEdit}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold border border-border hover:bg-surface2 transition-colors text-foreground"
-            style={{ background: 'var(--surface2)' }}
-            title="Edit Asset Details"
-          >
-            <Edit2 size={13} /> Edit Asset
-          </button>
-          <button
-            onClick={() => setShowDeleteAssetModal(true)}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold border border-rose-500/30 hover:bg-rose-500/15 text-rose-400 transition-colors"
-            title="Delete Asset Permanently"
-          >
-            <Trash2 size={13} /> Delete
-          </button>
-          <button
-            onClick={() => setShowLogModal(true)}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-transform active:scale-95"
-            style={{ background: 'var(--primary)', color: '#000' }}
-          >
-            <Wrench size={14} /> Log Maintenance
-          </button>
+          {!isViewer && canEdit && (
+            <button
+              onClick={handleOpenEdit}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold border border-border hover:bg-surface2 transition-colors text-foreground"
+              style={{ background: 'var(--surface2)' }}
+              title="Edit Asset Details"
+            >
+              <Edit2 size={13} /> Edit Asset
+            </button>
+          )}
+          {!isViewer && (canDelete ?? canEdit) && (
+            <button
+              onClick={() => setShowDeleteAssetModal(true)}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold border border-rose-500/30 hover:bg-rose-500/15 text-rose-400 transition-colors"
+              title="Delete Asset Permanently"
+            >
+              <Trash2 size={13} /> Delete
+            </button>
+          )}
+          {!isViewer && canEdit && (
+            <button
+              onClick={() => setShowLogModal(true)}
+              className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-transform active:scale-95"
+              style={{ background: 'var(--primary)', color: '#000' }}
+            >
+              <Wrench size={14} /> Log Maintenance
+            </button>
+          )}
         </div>
       </div>
 
@@ -1038,13 +1077,15 @@ export default function AssetDetailClient({ assetId }: { assetId: string }) {
           <div className="flex flex-col gap-4">
             <div className="flex items-center justify-between">
               <div className="font-head font-bold text-sm">{mRecords.length} Maintenance Records</div>
-              <button
-                onClick={() => setShowLogModal(true)}
-                className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold"
-                style={{ background: 'var(--primary)', color: '#000' }}
-              >
-                <Wrench size={14} /> Log New Maintenance
-              </button>
+              {!isViewer && canEdit && (
+                <button
+                  onClick={() => setShowLogModal(true)}
+                  className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold"
+                  style={{ background: 'var(--primary)', color: '#000' }}
+                >
+                  <Wrench size={14} /> Log New Maintenance
+                </button>
+              )}
             </div>
 
             {mRecords.length === 0 ? (
@@ -1225,14 +1266,16 @@ export default function AssetDetailClient({ assetId }: { assetId: string }) {
                       <Eye size={12} />
                       <span>View</span>
                     </button>
-                    <button
-                      type="button"
-                      onClick={() => setDeleteConfirm({ type: 'document', id: doc.id, name: doc.name })}
-                      title="Delete document"
-                      className="p-1.5 rounded-lg text-muted-foreground hover:text-red-400 hover:bg-red-500/10 transition-colors"
-                    >
-                      <Trash2 size={13} />
-                    </button>
+                    {!isViewer && (canDelete ?? canEdit) && (
+                      <button
+                        type="button"
+                        onClick={() => setDeleteConfirm({ type: 'document', id: doc.id, name: doc.name })}
+                        title="Delete document"
+                        className="p-1.5 rounded-lg text-muted-foreground hover:text-red-400 hover:bg-red-500/10 transition-colors"
+                      >
+                        <Trash2 size={13} />
+                      </button>
+                    )}
                   </div>
                 </div>
               ))}
@@ -1310,14 +1353,16 @@ export default function AssetDetailClient({ assetId }: { assetId: string }) {
                         >
                           <Maximize2 size={16} />
                         </button>
-                        <button
-                          type="button"
-                          onClick={() => setDeleteConfirm({ type: 'photo', id: photo.id, name: photo.name })}
-                          className="w-9 h-9 rounded-full bg-red-500/30 backdrop-blur-md flex items-center justify-center text-red-300 hover:bg-red-500/50 transition-colors"
-                          title="Delete Photo"
-                        >
-                          <Trash2 size={15} />
-                        </button>
+                        {!isViewer && (canDelete ?? canEdit) && (
+                          <button
+                            type="button"
+                            onClick={() => setDeleteConfirm({ type: 'photo', id: photo.id, name: photo.name })}
+                            className="w-9 h-9 rounded-full bg-red-500/30 backdrop-blur-md flex items-center justify-center text-red-300 hover:bg-red-500/50 transition-colors"
+                            title="Delete Photo"
+                          >
+                            <Trash2 size={15} />
+                          </button>
+                        )}
                       </div>
                     </div>
                     <div className="p-3 flex items-center justify-between">
@@ -2020,7 +2065,7 @@ export default function AssetDetailClient({ assetId }: { assetId: string }) {
             </div>
 
             <h3 className="font-head font-bold text-lg mb-2 text-foreground">
-              Delete {deleteConfirm.type === 'document' ? 'Document' : 'Photo'}?
+              Confirm Deletion
             </h3>
 
             <p className="text-xs text-muted-foreground leading-relaxed mb-6">
@@ -2324,7 +2369,7 @@ export default function AssetDetailClient({ assetId }: { assetId: string }) {
             </div>
 
             <h3 className="font-head font-bold text-lg mb-2 text-foreground">
-              Delete Entire Asset?
+              Confirm Deletion
             </h3>
 
             <p className="text-xs text-muted-foreground leading-relaxed mb-6">

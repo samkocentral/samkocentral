@@ -3,7 +3,7 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Search, ChevronDown, X, ExternalLink, Loader2, FileSpreadsheet, Plus, Tag, Edit2, Trash2, AlertTriangle, Check } from 'lucide-react';
+import { Search, ChevronDown, X, ExternalLink, Loader2, FileSpreadsheet, Plus, Tag, Edit2, Trash2, AlertTriangle, Check, Eye } from 'lucide-react';
 import { ASSETS, HOTELS, ASSET_CATEGORIES, DEPARTMENTS, type Asset, isAssetFixed } from '@/lib/assetData';
 import { api } from '@/lib/api';
 import { useAuth } from '@/lib/authContext';
@@ -77,7 +77,7 @@ function FilterSelect({
 }
 
 export default function AssetsClient() {
-  const { isViewer, canEdit, canUpload } = useAuth();
+  const { isViewer, canEdit, canUpload, canDelete } = useAuth();
   const searchParams = useSearchParams();
   const router = useRouter();
   const initialHotel = searchParams?.get('hotel') || '';
@@ -506,7 +506,7 @@ export default function AssetsClient() {
     isPageLoading,
     changePage,
     changePageSize,
-  } = useLoadingPagination(filtered, 7);
+  } = useLoadingPagination(filtered, 10);
 
   const hasFilters =
     Boolean(search) ||
@@ -562,7 +562,7 @@ export default function AssetsClient() {
   };
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex-1 min-h-0 flex flex-col h-full overflow-hidden">
       {/* Topbar */}
       <div
         className="flex items-center justify-between px-6 py-4 border-b border-border flex-shrink-0"
@@ -735,7 +735,7 @@ export default function AssetsClient() {
       </div>
 
       {/* Table */}
-      <div className="flex-1 overflow-x-auto overflow-y-auto">
+      <div className="flex-1 min-h-0 overflow-x-auto overflow-y-auto">
         <table className="w-full min-w-[1020px]">
           <thead
             className="sticky top-0 z-10"
@@ -875,27 +875,31 @@ export default function AssetsClient() {
                               <Link
                                 href={`/asset-management/assets/${asset.id}`}
                                 onClick={() => cacheAssetForDetail(asset)}
-                                className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-colors hover:bg-surface2"
+                                className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-colors hover:bg-surface2"
                                 style={{ background: 'rgba(232,201,122,0.12)', color: 'var(--primary)', border: '1px solid rgba(232,201,122,0.25)' }}
                                 title="View Full Details"
                               >
-                                <ExternalLink size={11} />
+                                <Eye size={12} />
                                 View
                               </Link>
-                              <button
-                                onClick={() => handleOpenEditAsset(asset)}
-                                className="p-1.5 rounded-lg border border-border hover:bg-surface2 text-muted-foreground hover:text-primary transition-colors cursor-pointer"
-                                title="Edit Asset"
-                              >
-                                <Edit2 size={12} />
-                              </button>
-                              <button
-                                onClick={() => setAssetToDelete(asset)}
-                                className="p-1.5 rounded-lg border border-rose-500/20 hover:bg-rose-500/15 text-rose-400 transition-colors cursor-pointer"
-                                title="Delete Asset"
-                              >
-                                <Trash2 size={12} />
-                              </button>
+                              {!isViewer && canEdit && (
+                                <button
+                                  onClick={() => handleOpenEditAsset(asset)}
+                                  className="p-1.5 rounded-lg border border-border hover:bg-surface2 text-muted-foreground hover:text-primary transition-colors cursor-pointer"
+                                  title="Edit Asset"
+                                >
+                                  <Edit2 size={12} />
+                                </button>
+                              )}
+                              {!isViewer && (canDelete ?? canEdit) && (
+                                <button
+                                  onClick={() => setAssetToDelete(asset)}
+                                  className="p-1.5 rounded-lg border border-rose-500/20 hover:bg-rose-500/15 text-rose-400 transition-colors cursor-pointer"
+                                  title="Delete Asset"
+                                >
+                                  <Trash2 size={12} />
+                                </button>
+                              )}
                             </div>
                           </td>
                         );
@@ -948,6 +952,7 @@ export default function AssetsClient() {
                           className="px-3 py-2.5 text-xs whitespace-nowrap cursor-pointer hover:bg-white/[0.04] transition-colors group"
                           onClick={(e) => {
                             e.stopPropagation();
+                            if (isViewer || !canEdit) return;
                             setInlineEditingCell({ id: asset.id, colId: col.id });
                             setInlineVal(String(val !== undefined && val !== null ? val : ''));
                           }}
@@ -957,7 +962,9 @@ export default function AssetsClient() {
                             <span className={val !== undefined && val !== null && String(val).trim() !== '' ? 'text-foreground font-medium' : 'text-muted-foreground/60'}>
                               {val !== undefined && val !== null && String(val).trim() !== '' ? String(val) : '—'}
                             </span>
-                            <Edit2 size={10} className="opacity-0 group-hover:opacity-60 text-primary transition-opacity shrink-0" />
+                            {!isViewer && canEdit && (
+                                <Edit2 size={10} className="opacity-0 group-hover:opacity-60 text-primary transition-opacity shrink-0" />
+                              )}
                           </div>
                         </td>
                       );
@@ -975,11 +982,12 @@ export default function AssetsClient() {
         currentPage={currentPage}
         totalRecords={totalRecords}
         pageSize={pageSize}
-        pageSizeOptions={[5, 7, 10, 20]}
+        pageSizeOptions={[5, 10, 15, 20, 50]}
         onPageChange={changePage}
         onPageSizeChange={changePageSize}
         isLoading={loading || isPageLoading}
         recordName="assets"
+        className="sticky bottom-0 z-20 flex-shrink-0"
       />
 
       {/* Add Category Modal */}

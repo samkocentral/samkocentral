@@ -6,6 +6,7 @@ import { Zap, Flame, Droplets, Search, Plus, Download, Eye, AlertTriangle, Check
 import Icon from '@/components/ui/AppIcon';
 import CustomDropdown from '@/components/ui/CustomDropdown';
 import { api } from '@/lib/api';
+import { useAuth } from '@/lib/authContext';
 import { toast } from 'sonner';
 import PageCMSEditButton from '@/components/cms/PageCMSEditButton';
 import { useDeepPageCms } from '@/lib/deepPageCms';
@@ -612,7 +613,7 @@ export default function UtilitiesRegisterClient() {
     isPageLoading,
     changePage,
     changePageSize,
-  } = useLoadingPagination(filtered, 4);
+  } = useLoadingPagination(filtered, 10);
 
   const handleExport = () => {
     const headers = ['Property', 'Utility Type', 'Supplier', 'Account Number', 'Meter Reference', 'Annual Cost', 'Monthly Cost', 'Contract Start', 'Contract End', 'Status'];
@@ -908,7 +909,7 @@ export default function UtilitiesRegisterClient() {
             currentPage={currentPage}
             totalRecords={totalRecords}
             pageSize={pageSize}
-            pageSizeOptions={[5, 7, 10, 20]}
+            pageSizeOptions={[5, 10, 15, 20, 50]}
             onPageChange={changePage}
             onPageSizeChange={changePageSize}
             isLoading={loading || isPageLoading}

@@ -2,11 +2,13 @@
 
 import React, { useState, useEffect } from 'react';
 import { Plus, Pencil, Trash2, Tag, X, Check } from 'lucide-react';
+import { useAuth } from '@/lib/authContext';
 import { ASSET_CATEGORIES, ASSETS, type AssetCategory } from '@/lib/assetData';
 import { api } from '@/lib/api';
 import PageCMSEditButton from '@/components/cms/PageCMSEditButton';
 import { useDeepPageCms } from '@/lib/deepPageCms';
 import LoadingPagination from '@/components/ui/LoadingPagination';
+import ConfirmDeleteModal from '@/components/modals/ConfirmDeleteModal';
 import { useLoadingPagination } from '@/hooks/useLoadingPagination';
 
 const PRESET_COLORS = [
@@ -111,6 +113,7 @@ function CategoryForm({ initial, onSave, onCancel }: CategoryFormProps) {
 }
 
 export default function CategoriesClient() {
+  const { isViewer, canEdit, canDelete } = useAuth();
   const [categories, setCategories] = useState<AssetCategory[]>(ASSET_CATEGORIES);
   const [liveAssets, setLiveAssets] = useState<any[]>(ASSETS);
   const [showAdd, setShowAdd] = useState(false);
@@ -200,10 +203,10 @@ export default function CategoriesClient() {
     isPageLoading,
     changePage,
     changePageSize,
-  } = useLoadingPagination(categories, 4);
+  } = useLoadingPagination(categories, 10);
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex-1 min-h-0 flex flex-col h-full overflow-hidden">
       {/* Header */}
       <div
         className="flex items-center justify-between px-6 py-4 border-b border-border flex-shrink-0"
@@ -273,33 +276,6 @@ export default function CategoriesClient() {
                           onCancel={() => setEditingId(null)}
                         />
                       </>
-                    ) : isDeleting ? (
-                      <div className="flex flex-col gap-3">
-                        <p className="text-sm font-medium">
-                          Delete <span style={{ color: cat.color }}>{cat.name}</span>?
-                        </p>
-                        {count > 0 && (
-                          <p className="text-xs text-muted-foreground">
-                            ⚠️ {count} asset{count !== 1 ? 's' : ''} use this category.
-                          </p>
-                        )}
-                        <div className="flex gap-2">
-                          <button
-                            onClick={() => handleDelete(cat.id)}
-                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold"
-                            style={{ background: 'rgba(244,63,94,0.15)', color: '#f43f5e' }}
-                          >
-                            <Trash2 size={12} /> Delete
-                          </button>
-                          <button
-                            onClick={() => setDeleteConfirm(null)}
-                            className="px-3 py-1.5 rounded-lg text-xs font-medium border border-border"
-                            style={{ background: 'var(--surface2)', color: 'var(--text2)' }}
-                          >
-                            Cancel
-                          </button>
-                        </div>
-                      </div>
                     ) : (
                       <>
                         <div className="flex items-start justify-between mb-3">
@@ -317,26 +293,30 @@ export default function CategoriesClient() {
                               </div>
                             </div>
                           </div>
-                          <div className="flex items-center gap-1">
-                            <button
-                              onClick={() => { setEditingId(cat.id); setShowAdd(false); }}
-                              className="w-7 h-7 rounded-lg flex items-center justify-center transition-colors"
-                              style={{ color: 'var(--text2)' }}
-                              onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--surface2)')}
-                              onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
-                            >
-                              <Pencil size={13} />
-                            </button>
-                            <button
-                              onClick={() => setDeleteConfirm(cat.id)}
-                              className="w-7 h-7 rounded-lg flex items-center justify-center transition-colors"
-                              style={{ color: 'var(--text2)' }}
-                              onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(244,63,94,0.1)')}
-                              onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
-                            >
-                              <Trash2 size={13} />
-                            </button>
-                          </div>
+                          {!isViewer && canEdit && (
+                            <div className="flex items-center gap-1">
+                              <button
+                                onClick={() => { setEditingId(cat.id); setShowAdd(false); }}
+                                className="w-7 h-7 rounded-lg flex items-center justify-center transition-colors"
+                                style={{ color: 'var(--text2)' }}
+                                onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--surface2)')}
+                                onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+                              >
+                                <Pencil size={13} />
+                              </button>
+                              {!isViewer && (canDelete ?? canEdit) && (
+                                <button
+                                  onClick={() => setDeleteConfirm(cat.id)}
+                                  className="w-7 h-7 rounded-lg flex items-center justify-center transition-colors"
+                                  style={{ color: 'var(--text2)' }}
+                                  onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(244,63,94,0.1)')}
+                                  onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+                                >
+                                  <Trash2 size={13} />
+                                </button>
+                              )}
+                            </div>
+                          )}
                         </div>
                         {/* Progress bar */}
                         <div className="h-1.5 rounded-full overflow-hidden" style={{ background: 'var(--surface3)' }}>
@@ -361,7 +341,7 @@ export default function CategoriesClient() {
               currentPage={currentPage}
               totalRecords={totalRecords}
               pageSize={pageSize}
-              pageSizeOptions={[6, 9, 12, 18]}
+              pageSizeOptions={[5, 10, 15, 20, 50]}
               onPageChange={changePage}
               onPageSizeChange={changePageSize}
               isLoading={isPageLoading}
@@ -423,6 +403,26 @@ export default function CategoriesClient() {
           </div>
         </div>
       </div>
+    
+      {/* Universal Delete Confirmation Modal */}
+      <ConfirmDeleteModal
+        isOpen={Boolean(deleteConfirm)}
+        onClose={() => setDeleteConfirm(null)}
+        onConfirm={() => {
+          if (deleteConfirm) handleDelete(deleteConfirm);
+        }}
+        title="Confirm Deletion"
+        itemIdentifier={deleteConfirm || undefined}
+        itemName={categories.find((c) => c.id === deleteConfirm)?.name || 'Category'}
+        registerName="asset categories"
+        customWarning={(() => {
+          const cat = categories.find((c) => c.id === deleteConfirm);
+          const count = liveAssets.filter((a) => a.category === cat?.name).length;
+          return count > 0
+            ? `Are you sure you want to permanently delete "${cat?.name || 'this category'}"? ${count} asset${count !== 1 ? 's' : ''} currently reference this category. This action cannot be undone.`
+            : undefined;
+        })()}
+      />
     </div>
   );
 }

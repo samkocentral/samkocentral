@@ -10,7 +10,19 @@ export async function GET(req: NextRequest) {
   const roleLevel = searchParams.get('roleLevel')?.toUpperCase() || '';
   const portal = searchParams.get('portal')?.toLowerCase() || '';
 
+  const includeBot = searchParams.get('includeBot') === 'true';
+
   let users = await getCollectionData('users');
+
+  // Strict isolation: Digital Bot account is hidden from all general user listings
+  if (!includeBot) {
+    users = users.filter(
+      (u: any) =>
+        u.id !== 'usr-bot-001' &&
+        u.email?.toLowerCase() !== 'digitalbot@samkocentral.com' &&
+        !u.name?.toLowerCase().includes('digital bot')
+    );
+  }
 
   if (search) {
     users = users.filter(
@@ -51,6 +63,16 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     if (!body.name || !body.email) {
       return NextResponse.json({ success: false, error: 'Name and email are required' }, { status: 400 });
+    }
+
+    if (
+      body.email?.toLowerCase().trim() === 'digitalbot@samkocentral.com' ||
+      body.name?.toLowerCase().trim().includes('digital bot')
+    ) {
+      return NextResponse.json(
+        { success: false, error: 'Cannot create an account with reserved Digital Bot credentials' },
+        { status: 400 }
+      );
     }
 
     const initials = body.name.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase();

@@ -219,7 +219,7 @@ export default function TasksClient() {
     isPageLoading,
     changePage,
     changePageSize,
-  } = useLoadingPagination(filteredTasks, 4);
+  } = useLoadingPagination(filteredTasks, 10);
 
   // Summary Metrics calculations (across selected properties)
   const scopedTasks = useMemo(() => {
@@ -370,7 +370,7 @@ export default function TasksClient() {
                   }}
                 >
                   <Plus size={14} />
-                  <span>{(cms.primaryActionLabel || 'Add Item').replace(/^[\+\s]+/, '').trim()}</span>
+                  <span>{(cms.primaryActionLabel && cms.primaryActionLabel.trim().toLowerCase() !== 'add item' ? cms.primaryActionLabel : 'Add Task').replace(/^[\+\s]+/, '').trim()}</span>
                 </button>
               </>
             ) : (
@@ -816,7 +816,7 @@ export default function TasksClient() {
           currentPage={currentPage}
           totalRecords={totalRecords}
           pageSize={pageSize}
-          pageSizeOptions={[5, 7, 10, 20]}
+          pageSizeOptions={[5, 10, 15, 20, 50]}
           onPageChange={changePage}
           onPageSizeChange={changePageSize}
           isLoading={isPageLoading}
@@ -872,7 +872,7 @@ export default function TasksClient() {
 
               <div>
                 <h3 className="text-base font-bold text-foreground">
-                  Delete Action Item?
+                  Confirm Deletion
                 </h3>
                 <p className="text-xs text-muted-foreground mt-1.5 leading-relaxed">
                   Are you sure you want to delete this task? This action cannot be undone and will be recorded in the system audit logs.
@@ -927,7 +927,7 @@ export default function TasksClient() {
                 }}
               >
                 <Trash2 size={14} />
-                <span>Delete Task</span>
+                <span>Delete Permanently</span>
               </button>
             </div>
           </div>

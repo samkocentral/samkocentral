@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useEffect, useCallback } from 'react';
 
-export function useLoadingPagination<T>(items: T[], initialPageSize: number = 4) {
+export function useLoadingPagination<T>(items: T[], initialPageSize: number = 10) {
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [pageSize, setPageSize] = useState<number>(initialPageSize);
   const [isPageLoading, setIsPageLoading] = useState<boolean>(false);

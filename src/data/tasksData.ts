@@ -35,7 +35,7 @@ export const TASK_ASSIGNEES = [
   { name: 'Sarah Chen', role: 'Operational Uploader', initials: 'SC', color: '#34d399' },
   { name: 'James Okafor', role: 'Electrical Engineer', initials: 'JO', color: '#fbbf24' },
   { name: 'Alexander Vance', role: 'Super Admin', initials: 'AV', color: '#f43f5e' },
-  { name: 'Digital Bot', role: 'Super Admin', initials: 'DB', color: '#06b6d4' },
+
 ];
 
 // Helper to format Date to YYYY-MM-DD

@@ -223,7 +223,7 @@ function normalizePolicy(item: any): InsurancePolicy {
 }
 
 export default function InsuranceRegisterClient() {
-  const { isViewer, canEdit } = useAuth();
+  const { isViewer, canEdit, canDelete } = useAuth();
   const {
     title: cmsTitle,
     subtitle: cmsSubtitle,
@@ -642,7 +642,7 @@ export default function InsuranceRegisterClient() {
     isPageLoading,
     changePage,
     changePageSize,
-  } = useLoadingPagination(filtered, 4);
+  } = useLoadingPagination(filtered, 10);
 
   const renewalsDue = policies.filter((p) => {
     const d = daysUntil(p.renewalDate);
@@ -877,7 +877,7 @@ export default function InsuranceRegisterClient() {
               currentPage={currentPage}
               totalRecords={totalRecords}
               pageSize={pageSize}
-              pageSizeOptions={[5, 7, 10, 20]}
+              pageSizeOptions={[5, 10, 15, 20, 50]}
               onPageChange={changePage}
               onPageSizeChange={changePageSize}
               isLoading={loading || isPageLoading}
@@ -967,20 +967,24 @@ export default function InsuranceRegisterClient() {
                             >
                               <Eye size={13} />
                             </button>
-                            <button
-                              className="p-1.5 rounded-lg border border-border hover:bg-surface2 transition-colors text-muted-foreground hover:text-primary cursor-pointer"
-                              title="Edit Claim"
-                              onClick={() => handleOpenEditClaim(claim)}
-                            >
-                              <Edit2 size={13} />
-                            </button>
-                            <button
-                              className="p-1.5 rounded-lg border border-rose-500/20 hover:bg-rose-500/15 text-rose-400 transition-colors cursor-pointer"
-                              title="Delete Claim"
-                              onClick={() => setClaimToDelete(claim)}
-                            >
-                              <Trash2 size={13} />
-                            </button>
+                            {!isViewer && canEdit && (
+                                <button
+                                  className="p-1.5 rounded-lg border border-border hover:bg-surface2 transition-colors text-muted-foreground hover:text-primary cursor-pointer"
+                                  title="Edit Claim"
+                                  onClick={() => handleOpenEditClaim(claim)}
+                                >
+                                  <Edit2 size={13} />
+                                </button>
+                              )}
+                              {!isViewer && (canDelete ?? canEdit) && (
+                                <button
+                                  className="p-1.5 rounded-lg border border-rose-500/20 hover:bg-rose-500/15 text-rose-400 transition-colors cursor-pointer"
+                                  title="Delete Claim"
+                                  onClick={() => setClaimToDelete(claim)}
+                                >
+                                  <Trash2 size={13} />
+                                </button>
+                              )}
                           </div>
                         </td>
                       </tr>

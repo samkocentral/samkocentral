@@ -6,6 +6,7 @@ import { ScrollText, Clock, CheckCircle2, Plus, Search, Download, Eye, Edit2, Fi
 import Icon from '@/components/ui/AppIcon';
 import CustomDropdown from '@/components/ui/CustomDropdown';
 import { api } from '@/lib/api';
+import { useAuth } from '@/lib/authContext';
 import { toast } from 'sonner';
 import { useCMSForm } from '@/lib/cmsConfig';
 import { useDeepPageCms } from '@/lib/deepPageCms';
@@ -552,6 +553,7 @@ function KPICard({ label, value, sub, color, icon: Icon }: { label: string; valu
 }
 
 export default function ContractsRegisterClient() {
+  const { isViewer, canEdit, canDelete } = useAuth();
   const {
     title: cmsTitle,
     subtitle: cmsSubtitle,
@@ -927,7 +929,7 @@ export default function ContractsRegisterClient() {
     isPageLoading,
     changePage,
     changePageSize,
-  } = useLoadingPagination(filtered, 4);
+  } = useLoadingPagination(filtered, 10);
 
   const suppliers = Array.from(new Map(contracts.map((c) => [c.supplierName, c])).values());
   const renewals = contracts.filter((c) => { const d = daysUntil(c.renewalDate); return d >= 0 && d <= 120; }).sort((a, b) => daysUntil(a.renewalDate) - daysUntil(b.renewalDate));
@@ -981,9 +983,11 @@ export default function ContractsRegisterClient() {
           >
             <Download size={13} /> Export
           </button>
+          {!isViewer && canEdit && (
           <button onClick={() => setShowAddModal(true)} className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-transform active:scale-95 cursor-pointer" style={{ background: 'var(--primary)', color: '#000' }}>
             <Plus size={14} /> {(cmsPrimaryActionLabel || 'Add Contract').replace(/^[\+\s]+/, '').trim()}
           </button>
+          )}
         </div>
       </div>
 
@@ -1194,12 +1198,16 @@ export default function ContractsRegisterClient() {
                                   <button className="p-1.5 rounded-lg hover:bg-surface2 transition-colors" style={{ color: 'var(--text2)' }} title="View Contract Details" onClick={() => setSelectedContract(contract)}>
                                     <Eye size={14} />
                                   </button>
-                                  <button className="p-1.5 rounded-lg hover:bg-surface2 transition-colors" style={{ color: 'var(--primary)' }} title="Edit Contract" onClick={() => handleOpenEdit(contract)}>
-                                    <Edit2 size={14} />
-                                  </button>
-                                  <button className="p-1.5 rounded-lg hover:bg-rose-500/20 text-rose-400 transition-colors" title="Delete Contract" onClick={() => setContractToDelete(contract)}>
-                                    <Trash2 size={14} />
-                                  </button>
+                                  {!isViewer && canEdit && (
+                                    <button className="p-1.5 rounded-lg hover:bg-surface2 transition-colors" style={{ color: 'var(--primary)' }} title="Edit Contract" onClick={() => handleOpenEdit(contract)}>
+                                      <Edit2 size={14} />
+                                    </button>
+                                  )}
+                                  {!isViewer && (canDelete ?? canEdit) && (
+                                    <button className="p-1.5 rounded-lg hover:bg-rose-500/20 text-rose-400 transition-colors" title="Delete Contract" onClick={() => setContractToDelete(contract)}>
+                                      <Trash2 size={14} />
+                                    </button>
+                                  )}
                                 </div>
                               </td>
                             );
@@ -1224,7 +1232,7 @@ export default function ContractsRegisterClient() {
               currentPage={currentPage}
               totalRecords={totalRecords}
               pageSize={pageSize}
-              pageSizeOptions={[5, 7, 10, 20]}
+              pageSizeOptions={[5, 10, 15, 20, 50]}
               onPageChange={changePage}
               onPageSizeChange={changePageSize}
               isLoading={loading || isPageLoading}
@@ -1431,13 +1439,15 @@ export default function ContractsRegisterClient() {
               </div>
             )}
             <div className="flex flex-wrap items-center gap-2 p-6 pt-0">
-              <button
-                onClick={() => handleOpenEdit(selectedContract)}
-                className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-transform active:scale-95"
-                style={{ background: 'var(--primary)', color: '#000' }}
-              >
-                <Edit2 size={13} /> Edit Contract
-              </button>
+              {!isViewer && canEdit && (
+                <button
+                  onClick={() => handleOpenEdit(selectedContract)}
+                  className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-transform active:scale-95"
+                  style={{ background: 'var(--primary)', color: '#000' }}
+                >
+                  <Edit2 size={13} /> Edit Contract
+                </button>
+              )}
               <button
                 onClick={() => setShowReminderModal(true)}
                 className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium border border-border transition-colors hover:bg-surface2"
@@ -1452,12 +1462,14 @@ export default function ContractsRegisterClient() {
               >
                 <FileText size={13} /> Documents
               </button>
-              <button
-                onClick={() => setContractToDelete(selectedContract)}
-                className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium border border-rose-500/30 text-rose-400 hover:bg-rose-500/10 transition-colors ml-auto"
-              >
-                <Trash2 size={13} /> Delete Contract
-              </button>
+              {!isViewer && (canDelete ?? canEdit) && (
+                <button
+                  onClick={() => setContractToDelete(selectedContract)}
+                  className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium border border-rose-500/30 text-rose-400 hover:bg-rose-500/10 transition-colors ml-auto"
+                >
+                  <Trash2 size={13} /> Delete Contract
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -2156,7 +2168,7 @@ export default function ContractsRegisterClient() {
                 <AlertTriangle size={20} />
               </div>
               <div className="min-w-0 flex-1">
-                <h3 className="font-head font-bold text-base text-foreground">Delete Contract</h3>
+                <h3 className="font-head font-bold text-base text-foreground">Confirm Deletion</h3>
                 <p className="text-xs text-muted-foreground mt-1">
                   Are you sure you want to delete <span className="font-semibold text-foreground">{contractToDelete.contractName}</span> ({contractToDelete.contractId}) with <span className="font-semibold text-foreground">{contractToDelete.supplierName}</span>?
                 </p>
@@ -2196,7 +2208,7 @@ export default function ContractsRegisterClient() {
                 className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-semibold bg-rose-600 hover:bg-rose-500 text-white transition-colors"
               >
                 {deleting ? <Loader2 size={13} className="animate-spin" /> : <Trash2 size={13} />}
-                Delete Contract
+                Delete Permanently
               </button>
             </div>
           </div>

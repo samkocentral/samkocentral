@@ -5,6 +5,9 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
   Upload,
+  CheckSquare,
+  Building2,
+  Calendar,
   Plus,
   ChevronDown,
   LogOut,
@@ -20,6 +23,7 @@ import {
   ExternalLink,
 } from 'lucide-react';
 import { useAuth, DEMO_CREDENTIALS } from '@/lib/authContext';
+import { getInitialTasks, type TaskItem } from '@/data/tasksData';
 import { useAppCms } from '@/lib/appCmsConfig';
 import { getPageConfig, type DeepAppCMSStore } from '@/lib/deepPageCms';
 import {
@@ -49,6 +53,10 @@ export default function Topbar({ title, subtitle, actions, hideDefaultActions = 
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const userMenuRef = useRef<HTMLDivElement>(null);
   const notifMenuRef = useRef<HTMLDivElement>(null);
+  const tasksMenuRef = useRef<HTMLDivElement>(null);
+  const [tasksOpen, setTasksOpen] = useState(false);
+  const [tasksFilter, setTasksFilter] = useState<'all' | 'urgent' | 'open'>('all');
+  const [tasksList, setTasksList] = useState<TaskItem[]>([]);
   const pathname = usePathname();
   const { dashboard: cmsDashboard, recentLogs: cmsRecentLogs, importExport: cmsImportExport } = useAppCms();
   const [cmsOverride, setCmsOverride] = useState<{
@@ -71,6 +79,7 @@ export default function Topbar({ title, subtitle, actions, hideDefaultActions = 
     roleBadgeColor,
     isImpersonating,
     exitImpersonation,
+    isDigitalBot,
   } = useAuth();
 
   // Load and listen for live notifications updates across the entire application
@@ -78,9 +87,24 @@ export default function Topbar({ title, subtitle, actions, hideDefaultActions = 
     const syncNotifs = () => {
       setNotifications(getNotifications());
     };
+    const syncTasks = () => {
+      try {
+        const stored = localStorage.getItem('samko_tasks');
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            setTasksList(parsed);
+            return;
+          }
+        }
+      } catch (e) {}
+      setTasksList(getInitialTasks());
+    };
+    syncTasks();
     syncNotifs();
 
     window.addEventListener('samko:notifications-updated', syncNotifs);
+    window.addEventListener('samko:task-changed', syncTasks);
     window.addEventListener('samko:data-changed', syncNotifs);
     window.addEventListener('storage', syncNotifs);
 
@@ -215,6 +239,9 @@ export default function Topbar({ title, subtitle, actions, hideDefaultActions = 
       if (notifMenuRef.current && !notifMenuRef.current.contains(e.target as Node)) {
         setNotifOpen(false);
       }
+      if (tasksMenuRef.current && !tasksMenuRef.current.contains(e.target as Node)) {
+        setTasksOpen(false);
+      }
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
@@ -338,7 +365,7 @@ export default function Topbar({ title, subtitle, actions, hideDefaultActions = 
             type="button"
             onClick={() => setNotifOpen(!notifOpen)}
             className="relative flex items-center gap-1.5 px-2.5 py-1 rounded-lg border transition-all hover:border-primary/60 hover:bg-surface2 cursor-pointer text-foreground group shadow-sm"
-            title="Facility Alarms & Real-Time Notifications"
+            title="Facility Alerts & Real-Time Notifications"
             style={{
               background: notifOpen ? 'var(--surface2)' : 'var(--surface)',
               borderColor: unreadCriticalCount > 0 ? 'rgba(239, 68, 68, 0.6)' : 'var(--border)',
@@ -357,7 +384,7 @@ export default function Topbar({ title, subtitle, actions, hideDefaultActions = 
               }`}
             />
             <span className="text-xs font-bold text-foreground hidden sm:inline">
-              Alarms
+              Alerts
             </span>
 
             {/* Counter Badge */}
@@ -400,7 +427,7 @@ export default function Topbar({ title, subtitle, actions, hideDefaultActions = 
                   <div>
                     <div className="flex items-center gap-2">
                       <span className="font-head font-bold text-xs sm:text-sm text-foreground">
-                        Live Alarms & Notifications
+                        Live Alerts & Notifications
                       </span>
                       {unreadCount > 0 && (
                         <span className="px-1.5 py-0.5 rounded-full text-[10px] font-black bg-rose-500/20 text-rose-300 border border-rose-500/30">
@@ -433,10 +460,10 @@ export default function Topbar({ title, subtitle, actions, hideDefaultActions = 
                   type="button"
                   onClick={() => triggerSimulatedAlarm()}
                   className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-bold text-amber-300 bg-amber-500/15 border border-amber-500/35 hover:bg-amber-500/25 transition-all shadow-sm cursor-pointer active:scale-95"
-                  title="Simulate an incoming live building alarm in real-time"
+                  title="Simulate an incoming live building alert in real-time"
                 >
                   <Sparkles size={12} className="text-amber-400" />
-                  <span>Simulate Alarm</span>
+                  <span>Simulate Alert</span>
                 </button>
 
                 <div className="flex items-center gap-1">
@@ -507,7 +534,7 @@ export default function Topbar({ title, subtitle, actions, hideDefaultActions = 
                     <Shield size={34} className="text-emerald-500/70 mb-2" />
                     <p className="text-xs font-bold text-foreground">All Systems Operating Normally</p>
                     <p className="text-[11px] text-muted-foreground mt-1 max-w-[240px]">
-                      No active notifications under this filter. New alarms appear here dynamically.
+                      No active notifications under this filter. New alerts appear here dynamically.
                     </p>
                   </div>
                 ) : (
@@ -650,6 +677,213 @@ export default function Topbar({ title, subtitle, actions, hideDefaultActions = 
           )}
         </div>
 
+        {/* Tasks View for Super Admin and Digital Bot */}
+        {(isSuperAdmin || isDigitalBot) && (
+          <div className="relative" ref={tasksMenuRef}>
+            <button
+              type="button"
+              onClick={() => setTasksOpen(!tasksOpen)}
+              className="relative flex items-center gap-1.5 px-2.5 py-1 rounded-lg border transition-all hover:border-primary/60 hover:bg-surface2 cursor-pointer text-foreground group shadow-sm"
+              title="Operational Tasks & Assigned Duties (Super Admin / Digital Bot)"
+              style={{
+                background: tasksOpen ? 'var(--surface2)' : 'var(--surface)',
+                borderColor: 'var(--border)',
+              }}
+              aria-label="Tasks"
+            >
+              <CheckSquare
+                size={14}
+                className="text-amber-400 group-hover:text-primary transition-colors"
+              />
+              <span className="text-xs font-bold text-foreground hidden sm:inline">
+                Tasks
+              </span>
+
+              {/* Dynamic Task Count Badge */}
+              <span
+                className="min-w-[18px] h-[18px] px-1 rounded-full flex items-center justify-center text-[10px] font-black"
+                style={{
+                  background: 'rgba(232, 201, 122, 0.2)',
+                  color: 'var(--primary)',
+                  border: '1px solid rgba(232, 201, 122, 0.35)',
+                }}
+              >
+                {tasksList.filter((t) => t.status !== 'completed').length}
+              </span>
+            </button>
+
+            {/* Tasks Popover Drawer */}
+            {tasksOpen && (
+              <div
+                className="absolute right-0 mt-2 w-96 sm:w-[440px] max-w-[92vw] rounded-2xl border border-border shadow-2xl z-50 flex flex-col overflow-hidden backdrop-blur-md animate-in fade-in zoom-in-95 duration-150"
+                style={{
+                  background: 'var(--card)',
+                  boxShadow: '0 20px 50px rgba(0,0,0,0.65), 0 0 0 1px rgba(255,255,255,0.06)',
+                }}
+              >
+                {/* Header */}
+                <div
+                  className="p-3.5 border-b border-border flex items-center justify-between"
+                  style={{ background: 'var(--surface2)' }}
+                >
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-7 h-7 rounded-lg bg-amber-500/15 border border-amber-500/25 flex items-center justify-center">
+                      <CheckSquare size={14} className="text-amber-400" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="font-head font-bold text-xs sm:text-sm text-foreground">
+                          Operational Tasks & Workflows
+                        </span>
+                        <span className="px-1.5 py-0.5 rounded-full text-[10px] font-black bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                          {tasksList.filter((t) => t.status !== 'completed').length} open
+                        </span>
+                      </div>
+                      <p className="text-[10px] text-muted-foreground mt-0.5">
+                        Assigned duties & property statutory actions
+                      </p>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => setTasksOpen(false)}
+                    className="p-1 rounded-lg text-muted-foreground hover:text-foreground hover:bg-surface3 transition-colors cursor-pointer"
+                  >
+                    <X size={15} />
+                  </button>
+                </div>
+
+                {/* Filter Tabs */}
+                <div
+                  className="px-3.5 pt-2 border-b border-border flex items-center gap-1 overflow-x-auto"
+                  style={{ background: 'var(--surface)' }}
+                >
+                  {[
+                    { key: 'all', label: 'All Tasks', count: tasksList.length },
+                    { key: 'urgent', label: 'Urgent', count: tasksList.filter((t) => t.priority === 'urgent').length },
+                    { key: 'open', label: 'Open', count: tasksList.filter((t) => t.status === 'open').length },
+                  ].map((tab) => {
+                    const isActive = tasksFilter === tab.key;
+                    return (
+                      <button
+                        key={tab.key}
+                        type="button"
+                        onClick={() => setTasksFilter(tab.key as any)}
+                        className="px-2.5 py-1.5 text-[11px] font-bold rounded-t-lg transition-all flex items-center gap-1.5 whitespace-nowrap cursor-pointer"
+                        style={{
+                          background: isActive ? 'var(--surface2)' : 'transparent',
+                          color: isActive ? 'var(--primary)' : 'var(--text2)',
+                          borderBottom: isActive ? '2px solid var(--primary)' : '2px solid transparent',
+                        }}
+                      >
+                        <span>{tab.label}</span>
+                        <span
+                          className="px-1.5 py-0.2 rounded-full text-[9px] font-black"
+                          style={{
+                            background: isActive ? 'var(--primary)' : 'var(--surface3)',
+                            color: isActive ? '#000' : 'var(--muted-foreground)',
+                          }}
+                        >
+                          {tab.count}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Tasks List */}
+                <div className="max-h-[340px] overflow-y-auto p-3 space-y-2 custom-scrollbar">
+                  {tasksList
+                    .filter((t) => {
+                      if (tasksFilter === 'urgent') return t.priority === 'urgent';
+                      if (tasksFilter === 'open') return t.status === 'open';
+                      return true;
+                    })
+                    .map((task) => (
+                      <Link
+                        key={task.id}
+                        href="/tasks"
+                        onClick={() => setTasksOpen(false)}
+                        className="block p-2.5 rounded-xl border border-border/70 hover:border-primary/50 transition-all hover:bg-surface2/80 text-foreground group"
+                        style={{ background: 'var(--surface2)' }}
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="flex items-center gap-1.5 min-w-0">
+                            <span
+                              className="px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-wider flex-shrink-0"
+                              style={{
+                                background:
+                                  task.priority === 'urgent'
+                                    ? 'rgba(244,63,94,0.15)'
+                                    : task.priority === 'high'
+                                    ? 'rgba(245,158,11,0.15)'
+                                    : 'rgba(56,189,248,0.15)',
+                                color:
+                                  task.priority === 'urgent'
+                                    ? '#f43f5e'
+                                    : task.priority === 'high'
+                                    ? '#f59e0b'
+                                    : '#38bdf8',
+                              }}
+                            >
+                              {task.priority}
+                            </span>
+                            <span className="text-[10px] text-muted-foreground truncate font-medium">
+                              {task.property}
+                            </span>
+                          </div>
+                          <span
+                            className="text-[10px] font-semibold whitespace-nowrap"
+                            style={{
+                              color: task.dueInDays < 0 ? '#f43f5e' : 'var(--muted-foreground)',
+                            }}
+                          >
+                            {task.dueInDays < 0
+                              ? `${Math.abs(task.dueInDays)}d overdue`
+                              : task.dueInDays === 0
+                              ? 'Due today'
+                              : `Due in ${task.dueInDays}d`}
+                          </span>
+                        </div>
+                        <p className="text-xs font-semibold text-foreground mt-1 group-hover:text-primary transition-colors line-clamp-1">
+                          {task.title}
+                        </p>
+                        <div className="flex items-center justify-between text-[10px] text-muted-foreground mt-1.5 pt-1.5 border-t border-border/40">
+                          <span className="flex items-center gap-1">
+                            <span
+                              className="w-4 h-4 rounded-full flex items-center justify-center text-[8px] font-bold text-black"
+                              style={{ background: task.assigneeColor || '#e8c97a' }}
+                            >
+                              {task.assigneeInitials}
+                            </span>
+                            <span>{task.assignee}</span>
+                          </span>
+                          <span className="capitalize">{task.status}</span>
+                        </div>
+                      </Link>
+                    ))}
+                </div>
+
+                {/* Footer link to Task Manager */}
+                <div
+                  className="p-3 border-t border-border flex items-center justify-between"
+                  style={{ background: 'var(--surface)' }}
+                >
+                  <Link
+                    href="/tasks"
+                    onClick={() => setTasksOpen(false)}
+                    className="w-full flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl text-xs font-bold samko-btn-primary transition-all text-center"
+                  >
+                    <span>Open Task Manager & Action List</span>
+                    <ExternalLink size={13} />
+                  </Link>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
         {actions}
 
         {/* Action buttons (hidden or restricted for L4 Viewers) */}
@@ -661,17 +895,6 @@ export default function Topbar({ title, subtitle, actions, hideDefaultActions = 
           >
             <Upload size={13} />
             <span className="hidden sm:inline">{cmsOverride.secondaryActionLabel || 'Upload Doc'}</span>
-          </Link>
-        )}
-
-        {!hideDefaultActions && canEdit && (
-          <Link
-            href="/asset-management/assets"
-            className="samko-btn-primary flex items-center gap-1.5"
-            style={{ padding: '6px 12px', fontSize: 12 }}
-          >
-            <Plus size={13} />
-            <span className="hidden sm:inline">{(cmsOverride.primaryActionLabel || 'Add Item').replace(/^[\+\s]+/, '').trim()}</span>
           </Link>
         )}
 
@@ -754,7 +977,13 @@ export default function Topbar({ title, subtitle, actions, hideDefaultActions = 
                     Switch Role (Testing)
                   </div>
                   <div className="space-y-1 mb-2">
-                    {DEMO_CREDENTIALS.map((cred) => {
+                    {DEMO_CREDENTIALS.filter((cred) => {
+                      const isBot =
+                        cred.user.id === 'usr-bot-001' ||
+                        cred.user.email?.toLowerCase() === 'digitalbot@samkocentral.com' ||
+                        cred.title.toLowerCase().includes('digital bot');
+                      return !isBot || isDigitalBot;
+                    }).map((cred) => {
                       const isActive = user.email === cred.user.email;
                       return (
                         <button

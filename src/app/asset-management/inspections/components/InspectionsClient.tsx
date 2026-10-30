@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
-import { ClipboardCheck, Clock, CheckCircle2, AlertTriangle, Search, ChevronDown, Calendar, User, ThumbsUp, ThumbsDown, Minus, Plus, Loader2, X } from 'lucide-react';
+import { ClipboardCheck, Clock, CheckCircle2, AlertTriangle, Search, ChevronDown, Calendar, User, ThumbsUp, ThumbsDown, Minus, Plus, Loader2, X, Eye } from 'lucide-react';
 import { MAINTENANCE_RECORDS, ASSETS, HOTELS } from '@/lib/assetData';
 import { api } from '@/lib/api';
 import PageCMSEditButton from '@/components/cms/PageCMSEditButton';
@@ -194,7 +194,7 @@ export default function InspectionsClient() {
     isPageLoading,
     changePage,
     changePageSize,
-  } = useLoadingPagination(filtered, 4);
+  } = useLoadingPagination(filtered, 10);
 
   const selected = selectedId ? inspections.find((i) => i.id === selectedId) : null;
 
@@ -538,10 +538,11 @@ export default function InspectionsClient() {
                         return (
                           <td key={col.id} className="px-3.5 py-2.5 text-right">
                             <button
-                              className="text-xs font-medium px-2.5 py-1 rounded-lg border border-border cursor-pointer hover:bg-surface2"
+                              className="inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-lg border border-border cursor-pointer hover:bg-surface2"
                               style={{ background: 'var(--surface2)', color: 'var(--text2)' }}
                               onClick={(e) => { e.stopPropagation(); setSelectedId(insp.id); }}
                             >
+                              <Eye size={12} />
                               View
                             </button>
                           </td>
@@ -565,7 +566,7 @@ export default function InspectionsClient() {
             currentPage={currentPage}
             totalRecords={totalRecords}
             pageSize={pageSize}
-            pageSizeOptions={[5, 7, 10, 20]}
+            pageSizeOptions={[5, 10, 15, 20, 50]}
             onPageChange={changePage}
             onPageSizeChange={changePageSize}
             isLoading={loading || isPageLoading}

@@ -144,7 +144,7 @@ export default function AddItemModal({
               <Plus size={18} />
             </div>
             <div>
-              <h2 className="text-base font-bold text-foreground">Add New Action Item</h2>
+              <h2 className="text-base font-bold text-foreground">Create Operational Task</h2>
               <p className="text-xs text-muted-foreground mt-0.5">
                 Create a trackable operational task with deadline and hotel assignment
               </p>

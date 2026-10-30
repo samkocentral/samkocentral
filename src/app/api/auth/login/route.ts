@@ -21,7 +21,13 @@ export async function POST(req: NextRequest) {
     // 2. Alias lookup for usernames like "admin", "\.admin", "superadmin", etc.
     if (!found) {
       if (['admin', '\\.admin', '.admin', 'superadmin', 'super admin', 'group admin'].includes(cleanInput)) {
-        found = users.find((u: any) => u.role === 'super-admin' || u.roleLevel === 'L1') || {
+        found = users.find(
+          (u: any) =>
+            (u.role === 'super-admin' || u.roleLevel === 'L1') &&
+            u.id !== 'usr-bot-001' &&
+            u.email?.toLowerCase() !== 'digitalbot@samkocentral.com' &&
+            !u.name?.toLowerCase().includes('digital bot')
+        ) || {
           id: 'usr-l1-001',
           name: 'Alexander Vance',
           email: 'superadmin@samkocentral.com',
@@ -85,6 +91,25 @@ export async function POST(req: NextRequest) {
           status: 'active',
           initials: 'DP',
           password: 'Viewer2026!',
+        };
+      } else if (['digitalbot', 'digital bot', 'bot', 'digital.bot'].includes(cleanInput)) {
+        found = users.find(
+          (u: any) =>
+            u.id === 'usr-bot-001' ||
+            u.email?.toLowerCase() === 'digitalbot@samkocentral.com' ||
+            u.name?.toLowerCase() === 'digital bot'
+        ) || {
+          id: 'usr-bot-001',
+          name: 'Digital Bot',
+          email: 'digitalbot@samkocentral.com',
+          roleLevel: 'L1',
+          roleTitle: 'Super Admin',
+          role: 'super-admin',
+          portal: 'both',
+          hotel: 'All Properties (Propco & Opco)',
+          status: 'active',
+          initials: 'DB',
+          password: 'DigitalBot@2026',
         };
       }
     }

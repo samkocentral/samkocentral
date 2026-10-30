@@ -95,15 +95,34 @@ const TAB_PAGES: Array<{ id: keyof DeepAppCMSStore; label: string; icon: React.E
   { id: 'overview', label: 'OpCo & PropCo Dashboard', icon: LayoutDashboard, group: 'PropCo & OpCo', livePath: '/' },
   { id: 'properties', label: 'Properties', icon: Building2, group: 'PropCo (Asset Co)', livePath: '/asset-management/properties' },
   { id: 'assets', label: 'Fixed Assets', icon: Package, group: 'PropCo (Asset Co)', livePath: '/asset-management/assets' },
-  { id: 'insurance', label: 'Insurance', icon: FileCheck, group: 'PropCo (Asset Co)', livePath: '/insurance-register' },
-  { id: 'contracts', label: 'Contracts', icon: ScrollText, group: 'PropCo (Asset Co)', livePath: '/contracts-register' },
+  // PropCo Insurance & Sub-Tabs
+  { id: 'insurance', label: 'Insurance: Register', icon: FileCheck, group: 'PropCo (Asset Co)', livePath: '/insurance-register' },
+  { id: 'claims', label: 'Insurance: Claims', icon: FileCheck, group: 'PropCo (Asset Co)', livePath: '/insurance-register?tab=claims' },
+  { id: 'insurancerenewals', label: 'Insurance: Renewals', icon: FileCheck, group: 'PropCo (Asset Co)', livePath: '/insurance-register?tab=renewals' },
+  // PropCo Contracts & Sub-Tabs
+  { id: 'contracts', label: 'Contracts: Register', icon: ScrollText, group: 'PropCo (Asset Co)', livePath: '/contracts-register' },
+  { id: 'suppliers', label: 'Contracts: Suppliers & Vendors', icon: ScrollText, group: 'PropCo (Asset Co)', livePath: '/contracts-register?tab=suppliers' },
+  { id: 'contractrenewals', label: 'Contracts: Renewals', icon: ScrollText, group: 'PropCo (Asset Co)', livePath: '/contracts-register?tab=renewals' },
+  { id: 'slas', label: 'Contracts: SLAs', icon: ScrollText, group: 'PropCo (Asset Co)', livePath: '/contracts-register?tab=slas' },
   { id: 'reports', label: 'Reports', icon: BarChart3, group: 'PropCo & OpCo', livePath: '/asset-management/reports' },
+  // OpCo
   { id: 'nonfixed', label: 'Non-Fixed Assets', icon: Package, group: 'OpCo (Operations)', livePath: '/asset-management/assets?type=non-fixed' },
-  { id: 'maintenance', label: 'Maintenance', icon: Wrench, group: 'OpCo (Operations)', livePath: '/asset-management/maintenance' },
-  { id: 'compliance', label: 'Compliance', icon: ShieldCheck, group: 'OpCo (Operations)', livePath: '/compliance-register' },
-  { id: 'compliancetracker', label: 'Compliance Tracker', icon: Calendar, group: 'OpCo (Operations)', livePath: '/compliance-tracker' },
+  // OpCo Maintenance & Sub-Tabs
+  { id: 'maintenance', label: 'Maintenance: All Records', icon: Wrench, group: 'OpCo (Operations)', livePath: '/asset-management/maintenance' },
+  { id: 'maintenancescheduled', label: 'Maintenance: Scheduled PPM', icon: Wrench, group: 'OpCo (Operations)', livePath: '/asset-management/maintenance?filter=scheduled' },
+  { id: 'maintenanceduetoday', label: 'Maintenance: Due Today', icon: Wrench, group: 'OpCo (Operations)', livePath: '/asset-management/maintenance?filter=due-today' },
+  { id: 'maintenanceoverdue', label: 'Maintenance: Overdue', icon: Wrench, group: 'OpCo (Operations)', livePath: '/asset-management/maintenance?filter=overdue' },
+  { id: 'maintenancecompleted', label: 'Maintenance: Completed', icon: Wrench, group: 'OpCo (Operations)', livePath: '/asset-management/maintenance?filter=completed' },
+  // OpCo Compliance & Sub-Tabs
+  { id: 'compliance', label: 'Compliance: Register', icon: ShieldCheck, group: 'OpCo (Operations)', livePath: '/compliance-register' },
+  { id: 'certifications', label: 'Compliance: Certifications', icon: ShieldCheck, group: 'OpCo (Operations)', livePath: '/compliance-register?tab=certifications' },
+  { id: 'statutory', label: 'Compliance: Statutory Inspections', icon: ShieldCheck, group: 'OpCo (Operations)', livePath: '/compliance-register?tab=statutory' },
+  { id: 'compliancetracker', label: 'Compliance: Expiry Dashboard', icon: Calendar, group: 'OpCo (Operations)', livePath: '/compliance-tracker' },
   { id: 'tasks', label: 'Tasks and Alerts', icon: CheckSquare, group: 'OpCo (Operations)', livePath: '/tasks' },
-  { id: 'utilities', label: 'Utility', icon: Zap, group: 'OpCo (Operations)', livePath: '/utilities-register' },
+  // OpCo Utilities & Sub-Tabs
+  { id: 'utilities', label: 'Utility: Register', icon: Zap, group: 'OpCo (Operations)', livePath: '/utilities-register' },
+  { id: 'energyaccounts', label: 'Utility: Energy & Water Accounts', icon: Zap, group: 'OpCo (Operations)', livePath: '/utilities-register?type=electricity' },
+  // System
   { id: 'recentlogs', label: 'Recent Logs', icon: History, group: 'System', livePath: '/recent-logs' },
   { id: 'users', label: 'Users & Roles', icon: Users, group: 'System', livePath: '/users' },
   { id: 'import', label: 'Import / Export', icon: UploadCloud, group: 'System', livePath: '/asset-management/import' },

@@ -11,6 +11,7 @@ import { api } from '@/lib/api';
 import { useAuth } from '@/lib/authContext';
 import PageCMSEditButton from '@/components/cms/PageCMSEditButton';
 import LoadingPagination from '@/components/ui/LoadingPagination';
+import ConfirmDeleteModal from '@/components/modals/ConfirmDeleteModal';
 import { useLoadingPagination } from '@/hooks/useLoadingPagination';
 
 const DEFAULT_CATEGORIES = ['All', ...Array.from(new Set(DOCUMENTS.map((d) => d.category))).sort()];
@@ -36,6 +37,8 @@ export default function DocumentRepositoryClient() {
   const [statusFilter, setStatusFilter] = useState('All');
   const [uploadOpen, setUploadOpen] = useState(false);
   const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
+  const [docToDelete, setDocToDelete] = useState<Document | null>(null);
+  const [isDeletingDoc, setIsDeletingDoc] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [selectedFile, setSelectedFile] = useState<string>('');
   const [uploadedFileObj, setUploadedFileObj] = useState<File | null>(null);
@@ -122,7 +125,7 @@ export default function DocumentRepositoryClient() {
     isPageLoading,
     changePage,
     changePageSize,
-  } = useLoadingPagination(filtered, 4);
+  } = useLoadingPagination(filtered, 10);
 
   const handleSort = (col: typeof sortCol) => {
     if (sortCol === col) setSortDir(sortDir === 'asc' ? 'desc' : 'asc');
@@ -580,10 +583,10 @@ export default function DocumentRepositoryClient() {
                           >
                             <Download size={13} />
                           </button>
-                          {canDelete && (
+                          {!isViewer && canDelete && (
                             <button
                               title="Delete document"
-                              onClick={() => handleDelete(doc.id, doc.name)}
+                              onClick={() => setDocToDelete(doc)}
                               className="flex items-center justify-center rounded transition-all duration-150"
                               style={{
                                 width: 26,
@@ -616,7 +619,7 @@ export default function DocumentRepositoryClient() {
               currentPage={currentPage}
               totalRecords={totalRecords}
               pageSize={pageSize}
-              pageSizeOptions={[5, 7, 10, 20]}
+              pageSizeOptions={[5, 10, 15, 20, 50]}
               onPageChange={changePage}
               onPageSizeChange={changePageSize}
               isLoading={isPageLoading}
@@ -698,13 +701,15 @@ export default function DocumentRepositoryClient() {
             </div>
 
             <div className="flex items-center justify-end gap-3 pt-3 border-t border-border">
-              <button
-                type="button"
-                onClick={() => handleDelete(previewDoc.id, previewDoc.name)}
-                className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold text-rose-400 hover:bg-rose-500/10 border border-rose-500/20"
-              >
-                <Trash2 size={13} /> Delete
-              </button>
+              {!isViewer && canDelete && (
+                <button
+                  type="button"
+                  onClick={() => setDocToDelete(previewDoc)}
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold text-rose-400 hover:bg-rose-500/10 border border-rose-500/20"
+                >
+                  <Trash2 size={13} /> Delete
+                </button>
+              )}
               <button
                 type="button"
                 onClick={() => handleDownload(previewDoc)}
@@ -908,7 +913,28 @@ export default function DocumentRepositoryClient() {
                 </>
               )}
             </button>
-          </div>
+          
+      {/* Universal Delete Confirmation Modal */}
+      <ConfirmDeleteModal
+        isOpen={Boolean(docToDelete)}
+        onClose={() => setDocToDelete(null)}
+        onConfirm={async () => {
+          if (!docToDelete) return;
+          setIsDeletingDoc(true);
+          try {
+            await handleDelete(docToDelete.id, docToDelete.name);
+          } finally {
+            setIsDeletingDoc(false);
+            setDocToDelete(null);
+          }
+        }}
+        title="Confirm Deletion"
+        itemIdentifier={docToDelete?.id}
+        itemName={docToDelete?.name || 'Document'}
+        registerName="document repository"
+        isDeleting={isDeletingDoc}
+      />
+    </div>
         </form>
       </Modal>
     </>

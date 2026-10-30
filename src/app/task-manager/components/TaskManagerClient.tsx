@@ -172,7 +172,7 @@ export default function TaskManagerClient() {
     isPageLoading,
     changePage,
     changePageSize,
-  } = useLoadingPagination(filtered, 4);
+  } = useLoadingPagination(filtered, 10);
 
   const taskCounts = useMemo(() => ({
     urgent: tasks.filter((t) => t.priority === 'urgent').length,
@@ -532,7 +532,7 @@ export default function TaskManagerClient() {
               currentPage={currentPage}
               totalRecords={totalRecords}
               pageSize={pageSize}
-              pageSizeOptions={[5, 7, 10, 20]}
+              pageSizeOptions={[5, 10, 15, 20, 50]}
               onPageChange={changePage}
               onPageSizeChange={changePageSize}
               isLoading={isPageLoading}

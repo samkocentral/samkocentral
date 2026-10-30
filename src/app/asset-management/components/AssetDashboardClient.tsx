@@ -93,7 +93,7 @@ export default function AssetDashboardClient() {
     isPageLoading,
     changePage,
     changePageSize,
-  } = useLoadingPagination(HOTELS, 4);
+  } = useLoadingPagination(HOTELS, 10);
 
   const categoryChartData = ASSET_CATEGORIES
     .map((c) => ({ name: c.name.replace(' & ', ' & '), value: stats.byCategory[c.name] || 0, color: c.color }))
@@ -380,7 +380,7 @@ export default function AssetDashboardClient() {
             currentPage={currentPage}
             totalRecords={totalRecords}
             pageSize={pageSize}
-            pageSizeOptions={[5, 7, 10]}
+            pageSizeOptions={[5, 10, 15, 20, 50]}
             onPageChange={changePage}
             onPageSizeChange={changePageSize}
             isLoading={isPageLoading}
