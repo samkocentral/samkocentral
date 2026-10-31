@@ -646,7 +646,7 @@ export default function ContractsRegisterClient() {
 
   // Documents modal state
   const [showDocumentsModal, setShowDocumentsModal] = useState(false);
-  const [documentsList, setDocumentsList] = useState<Array<{ id: string; name: string; size: string; date: string; type: string }>>([
+  const [documentsList, setDocumentsList] = useState<Array<{ id: string; name: string; size: string; date: string; type: string; url?: string }>>([
     { id: 'doc-1', name: 'Master_Service_Agreement_Executed.pdf', size: '2.4 MB', date: '12 Jan 2026', type: 'agreement' },
     { id: 'doc-2', name: 'SLA_Maintenance_Schedule_Scope.pdf', size: '1.1 MB', date: '15 Jan 2026', type: 'sla' },
     { id: 'doc-3', name: 'Statutory_Compliance_Certificate.pdf', size: '890 KB', date: '01 Feb 2026', type: 'certificate' },
@@ -864,9 +864,13 @@ export default function ContractsRegisterClient() {
     }
     try {
       await api.contracts.delete(id);
-      toast.success('Contract deleted successfully');
+      toast.success('Contract deleted permanently', {
+        description: `${contractToDelete.supplierName} removed from contracts register`,
+      });
     } catch (err) {
-      toast.success('Contract deleted locally');
+      toast.success('Contract deleted permanently', {
+        description: `${contractToDelete.supplierName} removed from contracts register`,
+      });
     } finally {
       setDeleting(false);
       setContractToDelete(null);
@@ -2123,7 +2127,7 @@ export default function ContractsRegisterClient() {
                   </div>
                   <div className="flex items-center gap-1.5 flex-shrink-0">
                     <button
-                      onClick={() => toast.info(`Viewing ${doc.name}`)}
+                      onClick={() => window.open(doc.url || "#", "_blank")}
                       className="px-2.5 py-1 rounded-md text-xs font-medium border border-border hover:bg-surface"
                       style={{ color: 'var(--text2)' }}
                     >

@@ -518,9 +518,35 @@ export function saveAppCmsConfig(config: AppCmsConfig): void {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(config));
     window.dispatchEvent(new CustomEvent(EVENT_KEY, { detail: config }));
+    fetch('/api/cms?type=app_cms', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(config),
+    }).catch((err) => console.warn('[AppCMS] Database sync warning:', err));
   } catch (err) {
     console.error('Error saving App CMS config:', err);
   }
+}
+
+// Background sync from database for app CMS configuration
+if (typeof window !== 'undefined') {
+  setTimeout(() => {
+    fetch('/api/cms?type=app_cms')
+      .then((r) => r.json())
+      .then((res) => {
+        if (res.success && res.data && typeof res.data === 'object') {
+          try {
+            const raw = localStorage.getItem(STORAGE_KEY);
+            const localObj = raw ? JSON.parse(raw) : null;
+            if (!localObj || JSON.stringify(localObj) !== JSON.stringify(res.data)) {
+              localStorage.setItem(STORAGE_KEY, JSON.stringify(res.data));
+              window.dispatchEvent(new CustomEvent(EVENT_KEY, { detail: res.data }));
+            }
+          } catch {}
+        }
+      })
+      .catch(() => {});
+  }, 150);
 }
 
 export function resetAppCmsConfig(): AppCmsConfig {

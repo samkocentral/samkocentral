@@ -501,6 +501,9 @@ export default function UtilitiesRegisterClient() {
       const created = res.data || payload;
       setAccounts((prev) => [created, ...prev]);
       setShowAddModal(false);
+      toast.success('Utility account created', {
+        description: `${created.supplier} (${created.utilityType}) added to ${created.property}`,
+      });
       setFormData({
         property: propertyOptions[0] || 'Crowne Plaza Kingston-south',
         utilityType: 'Electricity' as UtilityType,

@@ -241,7 +241,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const storedAdmin = localStorage.getItem('samko_original_admin');
       if (storedAdmin) {
         const parsedAdmin = JSON.parse(storedAdmin);
-        if (parsedAdmin && parsedAdmin.roleLevel === 'L1') {
+        if (parsedAdmin && (parsedAdmin.roleLevel === 'L1' || parsedAdmin.id === 'usr-bot-001' || parsedAdmin.email?.toLowerCase() === 'digitalbot@samkocentral.com')) {
           setOriginalAdmin(parsedAdmin);
         }
       }
@@ -264,9 +264,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (typeof window !== 'undefined') {
       window.dispatchEvent(new CustomEvent('samko:portal-changed', { detail: { portal: p } }));
     }
-    toast.info(`Switched to ${p === 'propco' ? 'Propco' : 'Opco'} Portal`, {
-      description: p === 'propco' ? 'Viewing Property Company & Asset Owner registers' : 'Viewing Hotel Operations & Maintenance registers',
-    });
+
   }, []);
 
   const switchUser = useCallback((newUser: AppUser) => {
@@ -281,7 +279,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       newUser?.name?.toLowerCase().includes('digital bot')
     );
 
-    // Super Admin cannot access the Digital Bot account
+    // Non-bot users (including regular Super Admin) cannot access or switch into the Digital Bot account
     if (isTargetBot && !isCurrentBot) {
       toast.error('Access Denied', {
         description: 'Super Admin cannot access the Digital Bot account. Access is restricted.',
@@ -289,12 +287,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return;
     }
 
-    // If currently a Super Admin and switching to a lower role, remember original admin
-    if (user.roleLevel === 'L1' && newUser.roleLevel !== 'L1') {
+    // Digital Bot and Super Admin can switch/impersonate any user (including Digital Bot previewing Super Admin)
+    const isMasterOrAdmin = isCurrentBot || user.roleLevel === 'L1';
+    if (isMasterOrAdmin && newUser.id !== user.id && !originalAdmin) {
       setOriginalAdmin(user);
       localStorage.setItem('samko_original_admin', JSON.stringify(user));
-    } else if (newUser.roleLevel === 'L1') {
-      // Switched back to Super Admin
+    } else if (originalAdmin && newUser.id === originalAdmin.id) {
+      // Switched back to original master/bot
       setOriginalAdmin(null);
       localStorage.removeItem('samko_original_admin');
     }
@@ -312,7 +311,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     toast.success(`Role switched: ${newUser.name}`, {
       description: `Active as ${newUser.roleTitle} (${newUser.roleLevel}) · ${newUser.hotel}`,
     });
-  }, [user, setActivePortal]);
+  }, [user, originalAdmin, setActivePortal]);
 
   const exitImpersonation = useCallback(() => {
     const admin = originalAdmin || DEMO_CREDENTIALS[0].user;
@@ -328,8 +327,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (typeof window !== 'undefined') {
       window.dispatchEvent(new CustomEvent('samko:user-changed', { detail: { user: admin } }));
     }
-    toast.info('Returned to Primary Admin Profile', {
-      description: 'Role impersonation ended',
+    const isBot = admin.id === 'usr-bot-001' ||
+      admin.email?.toLowerCase() === 'digitalbot@samkocentral.com' ||
+      admin.name?.toLowerCase().includes('digital bot');
+    toast.success(isBot ? 'Returned to Digital Bot Profile' : 'Returned to Super Admin Profile', {
+      description: isBot
+        ? 'Digital Bot · Full Master Access Restored'
+        : `${admin.name} · Full administrative access restored`,
     });
   }, [originalAdmin, setActivePortal]);
 
@@ -511,12 +515,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     user?.name?.toLowerCase().includes('digital bot')
   );
 
-  const canManageUsers = isSuperAdmin || isAdmin;
-  const canAccessSettings = isSuperAdmin;
-  const canEdit = !isViewer;
-  const canDelete = isSuperAdmin || isAdmin;
-  const canUpload = isSuperAdmin || isAdmin || isUploader;
-  const canSwitchPortal = isSuperAdmin;
+  const canManageUsers = isSuperAdmin || isAdmin || isDigitalBot;
+  const canAccessSettings = isSuperAdmin || isDigitalBot;
+  const canEdit = !isViewer || isDigitalBot;
+  const canDelete = isSuperAdmin || isAdmin || isDigitalBot;
+  const canUpload = isSuperAdmin || isAdmin || isUploader || isDigitalBot;
+  const canSwitchPortal = isSuperAdmin || isDigitalBot;
 
   const roleBadgeText =
     user.roleLevel === 'L1'
@@ -536,7 +540,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       ? '#10b981'
       : '#94a3b8';
 
-  const isImpersonating = Boolean(originalAdmin && originalAdmin.roleLevel === 'L1' && user.roleLevel !== 'L1');
+  const isImpersonating = Boolean(originalAdmin && user.id !== originalAdmin.id);
 
   return (
     <AuthContext.Provider

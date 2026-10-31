@@ -98,6 +98,7 @@ const memoryStore: Record<string, any[]> = {
 };
 
 const DB_FILE_PATH = path.join(process.cwd(), 'src', 'data', 'samko_db.json');
+let lastMtime = 0;
 
 function saveToDisk(data: Record<string, any[]>) {
   try {
@@ -106,14 +107,21 @@ function saveToDisk(data: Record<string, any[]>) {
       fs.mkdirSync(dir, { recursive: true });
     }
     fs.writeFileSync(DB_FILE_PATH, JSON.stringify(data, null, 2), 'utf-8');
+    try {
+      lastMtime = fs.statSync(DB_FILE_PATH).mtimeMs;
+    } catch {}
   } catch (e) {
     console.warn('[serverData] Disk save warning:', e);
   }
 }
 
-function loadFromDisk(): boolean {
+function loadFromDisk(force = false): boolean {
   try {
     if (fs.existsSync(DB_FILE_PATH)) {
+      const stats = fs.statSync(DB_FILE_PATH);
+      if (!force && stats.mtimeMs === lastMtime && Object.keys(memoryStore).length > 0) {
+        return true;
+      }
       const raw = fs.readFileSync(DB_FILE_PATH, 'utf-8');
       const parsed = JSON.parse(raw);
       if (parsed && typeof parsed === 'object') {
@@ -122,6 +130,7 @@ function loadFromDisk(): boolean {
             memoryStore[k] = parsed[k];
           }
         });
+        lastMtime = stats.mtimeMs;
         return true;
       }
     }
@@ -132,7 +141,7 @@ function loadFromDisk(): boolean {
 }
 
 // Hydrate from disk on initial module load
-if (!loadFromDisk()) {
+if (!loadFromDisk(true)) {
   saveToDisk(memoryStore);
 }
 

@@ -352,12 +352,15 @@ export default function ComplianceRegisterClient() {
       const created = res.data || { ...payload, id: `comp-${Date.now()}` };
       setItems((prev) => [created, ...prev]);
       setShowAddModal(false);
+      toast.success('Compliance item created', {
+        description: `${created.name} (${created.complianceId}) added successfully`,
+      });
 
       if (typeof window !== 'undefined') {
         window.dispatchEvent(new CustomEvent('samko:data-changed', { detail: { type: 'compliance' } }));
       }
     } catch (err: any) {
-      alert(`Error saving compliance item: ${err.message}`);
+      toast.error('Failed to create compliance item', { description: err.message });
     }
   };
 

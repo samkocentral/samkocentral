@@ -102,10 +102,10 @@ const OPCO_SECTION_TABS: SubTabDef[] = [
     livePath: '/asset-management/maintenance',
     description: 'Scheduled preventive maintenance, work orders, and contractor service logs',
     subtabs: [
-      { id: 'scheduled', label: 'Scheduled', livePath: '/asset-management/maintenance?filter=scheduled' },
-      { id: 'due-today', label: 'Due Today', livePath: '/asset-management/maintenance?filter=due-today' },
-      { id: 'overdue', label: 'Overdue', livePath: '/asset-management/maintenance?filter=overdue' },
-      { id: 'completed', label: 'Completed', livePath: '/asset-management/maintenance?filter=completed' },
+      { id: 'scheduled', label: 'Scheduled', livePath: '/asset-management/maintenance?filter=scheduled', deepPage: 'maintenancescheduled' },
+      { id: 'due-today', label: 'Due Today', livePath: '/asset-management/maintenance?filter=due-today', deepPage: 'maintenanceduetoday' },
+      { id: 'overdue', label: 'Overdue', livePath: '/asset-management/maintenance?filter=overdue', deepPage: 'maintenanceoverdue' },
+      { id: 'completed', label: 'Completed', livePath: '/asset-management/maintenance?filter=completed', deepPage: 'maintenancecompleted' },
     ],
   },
   {
@@ -116,10 +116,10 @@ const OPCO_SECTION_TABS: SubTabDef[] = [
     livePath: '/compliance-register',
     description: 'Statutory compliance standards, fire, water, lift, and gas certifications',
     subtabs: [
-      { id: 'register', label: 'Compliance Register', livePath: '/compliance-register' },
-      { id: 'certifications', label: 'Certifications', livePath: '/compliance-register?tab=certifications' },
-      { id: 'statutory', label: 'Statutory Inspections', livePath: '/compliance-register?tab=statutory' },
-      { id: 'expiry', label: 'Expiry Dashboard', livePath: '/compliance-tracker' },
+      { id: 'register', label: 'Compliance Register', livePath: '/compliance-register', deepPage: 'compliance' },
+      { id: 'certifications', label: 'Certifications', livePath: '/compliance-register?tab=certifications', deepPage: 'certifications' },
+      { id: 'statutory', label: 'Statutory Inspections', livePath: '/compliance-register?tab=statutory', deepPage: 'statutory' },
+      { id: 'expiry', label: 'Expiry Dashboard', livePath: '/compliance-tracker', deepPage: 'compliancetracker' },
     ],
   },
   {
@@ -156,8 +156,8 @@ const OPCO_SECTION_TABS: SubTabDef[] = [
     livePath: '/utilities-register',
     description: 'Electricity, gas, and water meter logs, tariffs, and utility accounts',
     subtabs: [
-      { id: 'register', label: 'Utilities Register', livePath: '/utilities-register' },
-      { id: 'energy', label: 'Energy & Water Accounts', livePath: '/utilities-register?type=electricity' },
+      { id: 'register', label: 'Utilities Register', livePath: '/utilities-register', deepPage: 'utilities' },
+      { id: 'energy', label: 'Energy & Water Accounts', livePath: '/utilities-register?type=electricity', deepPage: 'energyaccounts' },
     ],
   },
 ];
@@ -198,9 +198,9 @@ const PROPCO_SECTION_TABS: SubTabDef[] = [
     livePath: '/insurance-register',
     description: 'Building & property coverage policies, underwriters, premiums, and claims history',
     subtabs: [
-      { id: 'register', label: 'Insurance Register', livePath: '/insurance-register' },
-      { id: 'claims', label: 'Claims', livePath: '/insurance-register?tab=claims' },
-      { id: 'renewals', label: 'Renewals', livePath: '/insurance-register?tab=renewals' },
+      { id: 'register', label: 'Insurance Register', livePath: '/insurance-register', deepPage: 'insurance' },
+      { id: 'claims', label: 'Claims', livePath: '/insurance-register?tab=claims', deepPage: 'claims' },
+      { id: 'renewals', label: 'Renewals', livePath: '/insurance-register?tab=renewals', deepPage: 'insurancerenewals' },
     ],
   },
   {
@@ -211,10 +211,10 @@ const PROPCO_SECTION_TABS: SubTabDef[] = [
     livePath: '/contracts-register',
     description: 'Major vendor agreements, facility contracts, SLAs, notice periods, and renewals',
     subtabs: [
-      { id: 'register', label: 'Contracts Register', livePath: '/contracts-register' },
-      { id: 'suppliers', label: 'Suppliers', livePath: '/contracts-register?tab=suppliers' },
-      { id: 'renewals', label: 'Renewals', livePath: '/contracts-register?tab=renewals' },
-      { id: 'slas', label: 'SLAs', livePath: '/contracts-register?tab=slas' },
+      { id: 'register', label: 'Contracts Register', livePath: '/contracts-register', deepPage: 'contracts' },
+      { id: 'suppliers', label: 'Suppliers', livePath: '/contracts-register?tab=suppliers', deepPage: 'suppliers' },
+      { id: 'renewals', label: 'Renewals', livePath: '/contracts-register?tab=renewals', deepPage: 'contractrenewals' },
+      { id: 'slas', label: 'SLAs', livePath: '/contracts-register?tab=slas', deepPage: 'slas' },
     ],
   },
   {

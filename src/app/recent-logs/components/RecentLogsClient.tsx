@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useMemo, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import {
   AuditLogEntry,
   getRecentLogs,
@@ -21,6 +22,7 @@ import {
   X,
   Building2,
   Shield,
+  Bot,
   AlertTriangle,
   CheckCircle2,
   Clock,
@@ -34,6 +36,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import CustomDropdown from '@/components/ui/CustomDropdown';
+import { useAuth } from '@/lib/authContext';
 import { useAppCms } from '@/lib/appCmsConfig';
 import { useDeepPageCms } from '@/lib/deepPageCms';
 import PageCMSEditButton from '@/components/cms/PageCMSEditButton';
@@ -49,6 +52,15 @@ function toDateInputValue(d: Date): string {
 }
 
 export default function RecentLogsClient() {
+  const { user, isDigitalBot } = useAuth();
+  const searchParams = useSearchParams();
+  const [botOnlyFilter, setBotOnlyFilter] = useState<boolean>(() => searchParams?.get('bot') === 'true');
+
+  useEffect(() => {
+    if (searchParams?.get('bot') === 'true') {
+      setBotOnlyFilter(true);
+    }
+  }, [searchParams]);
   const deepCms = useDeepPageCms('recentlogs');
   const { recentLogs: cmsRecentLogs } = useAppCms();
 
@@ -106,31 +118,25 @@ export default function RecentLogsClient() {
     if (newPreset === 'today') {
       setFromDate(today);
       setToDate(today);
-      toast.info("Viewing Today's Logs");
     } else if (newPreset === '1week') {
       const past7 = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
       setFromDate(toDateInputValue(past7));
       setToDate(today);
-      toast.info('Viewing logs from the past 1 week');
     } else if (newPreset === '30days') {
       const past30 = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
       setFromDate(toDateInputValue(past30));
       setToDate(today);
-      toast.info('Viewing logs from the past 30 days');
     } else if (newPreset === '45days') {
       const past45 = new Date(now.getTime() - 45 * 24 * 60 * 60 * 1000);
       setFromDate(toDateInputValue(past45));
       setToDate(today);
-      toast.info('Viewing logs from the past 45 days');
     } else if (newPreset === '90days') {
       const past90 = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
       setFromDate(toDateInputValue(past90));
       setToDate(today);
-      toast.info('Viewing logs from the past 90 days');
     } else if (newPreset === 'all') {
       setFromDate('');
       setToDate('');
-      toast.info('Viewing all recorded logs');
     }
   };
 
@@ -150,12 +156,35 @@ export default function RecentLogsClient() {
     setSelectedCategory('ALL');
     setSelectedStatus('ALL');
     setSearchQuery('');
-    toast.success("Filters reset to Today's Logs");
+  };
+
+  // Helper to determine if a log belongs to the Digital Bot or system daemon
+  const isBotLog = (log: AuditLogEntry) => {
+    const email = (log.actorEmail || '').toLowerCase();
+    const name = (log.actorName || '').toLowerCase();
+    const resource = (log.resource || '').toLowerCase();
+    const details = (log.details || '').toLowerCase();
+    return (
+      email.includes('digitalbot') ||
+      email.includes('system.security') ||
+      name.includes('digital bot') ||
+      name.includes('security daemon') ||
+      name.includes('automated bot') ||
+      resource.includes('digital bot') ||
+      details.includes('digital bot')
+    );
   };
 
   // Filter logs based on date, user, category, status, and search query
   const filteredLogs = useMemo(() => {
     return logs.filter((log) => {
+      // 0. DIGITAL BOT AUDIT LOG TOGGLE / ACCESS:
+      const isBot = isBotLog(log);
+      if (botOnlyFilter) {
+        if (!isBot) return false;
+      } else {
+        if (!isDigitalBot && isBot) return false;
+      }
       // 1. Date filter
       const logDateOnly = log.timestamp.split(' ')[0]; // YYYY-MM-DD
       const logTime = new Date(log.timestamp.replace(' ', 'T')).getTime();
@@ -215,7 +244,7 @@ export default function RecentLogsClient() {
 
       return true;
     });
-  }, [logs, preset, todayStr, fromDate, toDate, selectedUser, selectedCategory, selectedStatus, searchQuery]);
+  }, [logs, preset, todayStr, fromDate, toDate, selectedUser, selectedCategory, selectedStatus, searchQuery, isDigitalBot, botOnlyFilter]);
 
   const {
     currentPage,
@@ -240,7 +269,6 @@ export default function RecentLogsClient() {
   // Quick user filter from table
   const handleQuickUserFilter = (email: string, name: string) => {
     setSelectedUser(email);
-    toast.info(`Filtered view by user: ${name}`);
   };
 
   // KPI Calculations
@@ -484,6 +512,24 @@ export default function RecentLogsClient() {
               />
             </div>
 
+            {/* Digital Bot Audit Logs Filter Button */}
+            <button
+              type="button"
+              onClick={() => setBotOnlyFilter((prev) => !prev)}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                botOnlyFilter
+                  ? 'bg-[#38bdf8] text-black shadow-md ring-1 ring-[#38bdf8]'
+                  : 'bg-[#38bdf8]/10 text-[#38bdf8] border border-[#38bdf8]/40 hover:bg-[#38bdf8]/20'
+              }`}
+              title="Toggle Digital Bot and security daemon audit events"
+            >
+              <Bot size={13} />
+              <span>{botOnlyFilter ? 'Showing Digital Bot Logs' : 'Digital Bot Logs'}</span>
+              <span className="text-[10px] px-1 py-0.2 rounded font-mono bg-black/20 text-current font-bold">
+                BOT
+              </span>
+            </button>
+
             {/* Export CSV Button */}
             {cmsRecentLogs?.allowExport !== false && (
               <button
@@ -531,20 +577,32 @@ export default function RecentLogsClient() {
               value={selectedUser}
               width="100%"
               options={[
-                { value: 'ALL', label: 'All Users & System Actors' },
-                ...AUDIT_USERS.map((u) => ({
-                  value: u.email,
-                  label: `${u.name} (${u.roleTitle} · ${u.roleLevel})`,
-                })),
+                { value: 'ALL', label: isDigitalBot ? 'All Users & System Actors' : 'All Standard Users' },
+                ...AUDIT_USERS
+                  .filter((u) => {
+                    if (!isDigitalBot) {
+                      const email = (u.email || '').toLowerCase();
+                      const name = (u.name || '').toLowerCase();
+                      if (
+                        email.includes('digitalbot') ||
+                        email.includes('system.security') ||
+                        name.includes('digital bot') ||
+                        name.includes('security daemon') ||
+                        name.includes('automated bot')
+                      ) {
+                        return false;
+                      }
+                    }
+                    return true;
+                  })
+                  .map((u) => ({
+                    value: u.email,
+                    label: `${u.name} (${u.roleTitle} · ${u.roleLevel})`,
+                  })),
               ]}
               onChange={(val) => {
                 setSelectedUser(val);
-                const userObj = AUDIT_USERS.find((u) => u.email === val);
-                if (userObj) {
-                  toast.info(`Filtered by user: ${userObj.name}`);
-                } else {
-                  toast.info('Viewing logs from all users');
-                }
+
               }}
             />
           </div>

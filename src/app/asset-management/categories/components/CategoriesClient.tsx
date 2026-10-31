@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Plus, Pencil, Trash2, Tag, X, Check } from 'lucide-react';
+import { toast } from 'sonner';
 import { useAuth } from '@/lib/authContext';
 import { ASSET_CATEGORIES, ASSETS, type AssetCategory } from '@/lib/assetData';
 import { api } from '@/lib/api';
@@ -138,6 +139,11 @@ export default function CategoriesClient() {
       }
     }
     loadData();
+    const handleDataChanged = () => {
+      loadData();
+    };
+    window.addEventListener('samko:data-changed', handleDataChanged);
+    return () => window.removeEventListener('samko:data-changed', handleDataChanged);
   }, []);
 
   const assetCountByCategory = (catName: string) =>
@@ -148,6 +154,9 @@ export default function CategoriesClient() {
     const newCat: AssetCategory = { id: tempId, ...data };
     setCategories((prev) => [...prev, newCat]);
     setShowAdd(false);
+    toast.success('Category created successfully', {
+      description: `"${data.name}" added to asset categories.`,
+    });
 
     try {
       const res = await api.categories.create(data);
@@ -167,6 +176,9 @@ export default function CategoriesClient() {
       prev.map((c) => (c.id === id ? { ...c, ...data } : c))
     );
     setEditingId(null);
+    toast.success('Category updated successfully', {
+      description: `"${data.name}" changes saved.`,
+    });
 
     try {
       await api.categories.update(id, data);
@@ -179,8 +191,13 @@ export default function CategoriesClient() {
   };
 
   const handleDelete = async (id: string) => {
+    const targetCategory = categories.find((c) => c.id === id);
     setCategories((prev) => prev.filter((c) => c.id !== id));
     setDeleteConfirm(null);
+
+    toast.success('Category deleted permanently', {
+      description: `"${targetCategory?.name || 'Category'}" removed from asset categories.`,
+    });
 
     try {
       await api.categories.delete(id);

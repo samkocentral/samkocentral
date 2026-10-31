@@ -390,12 +390,15 @@ export default function InsuranceRegisterClient() {
       const created = normalizePolicy(res.data || { ...payload, id: `ins-${Date.now()}` });
       setPolicies((prev) => [created, ...prev]);
       setShowAddModal(false);
+      toast.success('Insurance policy created', {
+        description: `Policy ${created.policyNumber} (${created.insuranceType}) registered successfully`,
+      });
 
       if (typeof window !== 'undefined') {
         window.dispatchEvent(new CustomEvent('samko:data-changed', { detail: { type: 'insurance' } }));
       }
     } catch (err: any) {
-      alert(`Error saving insurance policy: ${err.message}`);
+      toast.error('Failed to create insurance policy', { description: err.message });
     }
   };
 

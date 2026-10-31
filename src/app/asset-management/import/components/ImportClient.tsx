@@ -988,8 +988,8 @@ export default function ImportClient() {
 
         switchSheet(bestSheet, parsedSheets);
         setStep(2);
-        toast.success(`Parsed ${validSheetNames.length} sheet(s) from "${file.name}"`, {
-          description: `Loaded sheet "${bestSheet}" with ${parsedSheets[bestSheet]?.length || 0} rows.`,
+        toast.success('Excel File Uploaded Successfully', {
+          description: `Parsed ${validSheetNames.length} sheet(s) from "${file.name}" · Sheet "${bestSheet}" loaded (${parsedSheets[bestSheet]?.length || 0} rows)`,
         });
       } catch (err: any) {
         toast.error('Failed to parse Excel file', { description: err.message });

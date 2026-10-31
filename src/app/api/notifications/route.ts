@@ -1,8 +1,43 @@
 import { NextResponse } from 'next/server';
+import fs from 'fs';
+import path from 'path';
 import { getAdminDb } from '@/lib/firebaseAdmin';
 import { getDb } from '@/lib/firebase';
 import { collection, doc, getDocs, setDoc, deleteDoc, writeBatch, query, orderBy, limit } from 'firebase/firestore';
 import { INITIAL_NOTIFICATIONS, AppNotification } from '@/lib/notificationsData';
+
+const NOTIFS_FILE_PATH = path.join(process.cwd(), 'src', 'data', 'samko_notifications.json');
+
+function ensureDir(filePath: string) {
+  const dir = path.dirname(filePath);
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true });
+  }
+}
+
+function loadLocalNotifs(): AppNotification[] {
+  try {
+    if (fs.existsSync(NOTIFS_FILE_PATH)) {
+      const raw = fs.readFileSync(NOTIFS_FILE_PATH, 'utf-8');
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        return parsed;
+      }
+    }
+  } catch (e) {
+    console.warn('[api/notifications] Failed to load local notifications:', e);
+  }
+  return [...INITIAL_NOTIFICATIONS];
+}
+
+function saveLocalNotifs(notifs: any[]) {
+  try {
+    ensureDir(NOTIFS_FILE_PATH);
+    fs.writeFileSync(NOTIFS_FILE_PATH, JSON.stringify(notifs, null, 2), 'utf-8');
+  } catch (e) {
+    console.warn('[api/notifications] Failed to save local notifications:', e);
+  }
+}
 
 function withTimeout<T>(promise: Promise<T>, ms = 1800): Promise<T> {
   return Promise.race([
@@ -18,7 +53,8 @@ export async function GET() {
       const snap = await withTimeout(adminDb.collection('notifications').orderBy('timestamp', 'desc').limit(50).get(), 1800);
       if (!snap.empty && snap.docs.length >= 6) {
         const notifs = snap.docs.map((d: any) => ({ id: d.id, ...d.data() }));
-        return NextResponse.json({ success: true, data: notifs });
+        saveLocalNotifs(notifs);
+        return NextResponse.json({ success: true, data: notifs, source: 'firestore-admin' });
       } else {
         const batch = adminDb.batch();
         INITIAL_NOTIFICATIONS.forEach((n) => {
@@ -27,7 +63,9 @@ export async function GET() {
         });
         await withTimeout(batch.commit(), 1800);
         const refreshed = await withTimeout(adminDb.collection('notifications').orderBy('timestamp', 'desc').limit(50).get(), 1800);
-        return NextResponse.json({ success: true, data: refreshed.docs.map((d: any) => ({ id: d.id, ...d.data() })) });
+        const data = refreshed.docs.map((d: any) => ({ id: d.id, ...d.data() }));
+        saveLocalNotifs(data);
+        return NextResponse.json({ success: true, data, source: 'firestore-admin' });
       }
     } catch (e) {
       console.warn('[api/notifications] Admin GET failed or timed out:', e);
@@ -41,7 +79,8 @@ export async function GET() {
       const snap = await withTimeout(getDocs(q), 1800);
       if (!snap.empty && snap.docs.length >= 6) {
         const notifs = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-        return NextResponse.json({ success: true, data: notifs });
+        saveLocalNotifs(notifs);
+        return NextResponse.json({ success: true, data: notifs, source: 'firestore-client' });
       } else {
         const batch = writeBatch(clientDb);
         INITIAL_NOTIFICATIONS.forEach((n) => {
@@ -51,14 +90,16 @@ export async function GET() {
         await withTimeout(batch.commit(), 1800);
         const refreshedSnap = await withTimeout(getDocs(q), 1800);
         const notifs = refreshedSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
-        return NextResponse.json({ success: true, data: notifs });
+        saveLocalNotifs(notifs);
+        return NextResponse.json({ success: true, data: notifs, source: 'firestore-client' });
       }
     } catch (e) {
       console.warn('[api/notifications] Client GET failed or timed out:', e);
     }
   }
 
-  return NextResponse.json({ success: true, data: INITIAL_NOTIFICATIONS });
+  const local = loadLocalNotifs();
+  return NextResponse.json({ success: true, data: local, source: 'file-database' });
 }
 
 export async function POST(req: Request) {
@@ -72,19 +113,24 @@ export async function POST(req: Request) {
       read: body.read ?? false,
     };
 
+    // Save directly to local database
+    const local = loadLocalNotifs();
+    const updated = [payload, ...local.filter((n) => n.id !== notifId)];
+    saveLocalNotifs(updated);
+
     const adminDb = getAdminDb();
     if (adminDb) {
       await adminDb.collection('notifications').doc(notifId).set(payload, { merge: true });
-      return NextResponse.json({ success: true, data: payload });
+      return NextResponse.json({ success: true, data: payload, source: 'firestore' });
     }
 
     const clientDb = getDb();
     if (clientDb) {
       await setDoc(doc(clientDb, 'notifications', notifId), payload, { merge: true });
-      return NextResponse.json({ success: true, data: payload });
+      return NextResponse.json({ success: true, data: payload, source: 'firestore' });
     }
 
-    return NextResponse.json({ success: true, data: payload, offline: true });
+    return NextResponse.json({ success: true, data: payload, source: 'file-database' });
   } catch (err: any) {
     return NextResponse.json({ success: false, error: err?.message || String(err) }, { status: 500 });
   }
@@ -93,10 +139,14 @@ export async function POST(req: Request) {
 export async function PUT(req: Request) {
   try {
     const { id, read, markAll } = await req.json();
-    const adminDb = getAdminDb();
-    const clientDb = getDb();
+    const local = loadLocalNotifs();
 
     if (markAll) {
+      const updated = local.map((n) => ({ ...n, read: true }));
+      saveLocalNotifs(updated);
+
+      const adminDb = getAdminDb();
+      const clientDb = getDb();
       if (adminDb) {
         const snap = await adminDb.collection('notifications').where('read', '==', false).get();
         const batch = adminDb.batch();
@@ -108,10 +158,15 @@ export async function PUT(req: Request) {
         snap.docs.forEach((d) => batch.update(d.ref, { read: true }));
         await batch.commit();
       }
-      return NextResponse.json({ success: true, message: 'All marked as read in Firestore' });
+      return NextResponse.json({ success: true, message: 'All marked as read in database' });
     }
 
     if (id) {
+      const updated = local.map((n) => (n.id === id ? { ...n, read: Boolean(read) } : n));
+      saveLocalNotifs(updated);
+
+      const adminDb = getAdminDb();
+      const clientDb = getDb();
       if (adminDb) {
         await adminDb.collection('notifications').doc(id).update({ read: Boolean(read) });
       } else if (clientDb) {
@@ -132,10 +187,10 @@ export async function DELETE(req: Request) {
     const id = searchParams.get('id');
     const clearAll = searchParams.get('clearAll') === 'true';
 
-    const adminDb = getAdminDb();
-    const clientDb = getDb();
-
     if (clearAll) {
+      saveLocalNotifs([]);
+      const adminDb = getAdminDb();
+      const clientDb = getDb();
       if (adminDb) {
         const snap = await adminDb.collection('notifications').get();
         const batch = adminDb.batch();
@@ -147,16 +202,21 @@ export async function DELETE(req: Request) {
         snap.docs.forEach((d) => batch.delete(d.ref));
         await batch.commit();
       }
-      return NextResponse.json({ success: true, message: 'All notifications cleared in Firestore' });
+      return NextResponse.json({ success: true, message: 'All notifications cleared in database' });
     }
 
     if (id) {
+      const local = loadLocalNotifs();
+      saveLocalNotifs(local.filter((n) => n.id !== id));
+
+      const adminDb = getAdminDb();
+      const clientDb = getDb();
       if (adminDb) {
         await adminDb.collection('notifications').doc(id).delete();
       } else if (clientDb) {
         await deleteDoc(doc(clientDb, 'notifications', id));
       }
-      return NextResponse.json({ success: true, message: `Notification ${id} deleted in Firestore` });
+      return NextResponse.json({ success: true, message: `Notification ${id} deleted in database` });
     }
 
     return NextResponse.json({ success: false, message: 'Missing id parameter' }, { status: 400 });

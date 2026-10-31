@@ -396,7 +396,7 @@ export default function UsersClient() {
       return;
     }
     // Permission check: L2 Admin cannot modify L1 Super Admin
-    if (targetUser.roleLevel === 'L1' && !isSuperAdmin) {
+    if (targetUser.roleLevel === 'L1' && !isSuperAdmin && !isDigitalBot) {
       toast.error('Permission denied', { description: 'Only Super Admins can modify L1 users' });
       return;
     }
@@ -423,11 +423,13 @@ export default function UsersClient() {
       return;
     }
     // Permission check
-    if (targetUser.roleLevel === 'L1') {
-      toast.error('Cannot delete Super Admin account');
+    if (targetUser.roleLevel === 'L1' && !isDigitalBot) {
+      toast.error('Cannot delete Super Admin account', {
+        description: 'Only Digital Bot has master authority to remove Super Admin accounts.',
+      });
       return;
     }
-    if (targetUser.roleLevel === 'L2' && !isSuperAdmin) {
+    if (targetUser.roleLevel === 'L2' && !isSuperAdmin && !isDigitalBot) {
       toast.error('Permission denied', { description: 'Only Super Admins can remove L2 Admins' });
       return;
     }
@@ -472,11 +474,11 @@ export default function UsersClient() {
       return;
     }
     // Permission guard: L2 cannot edit L1
-    if (user.roleLevel === 'L1' && !isSuperAdmin) {
+    if (user.roleLevel === 'L1' && !isSuperAdmin && !isDigitalBot) {
       toast.error('Permission denied', { description: 'Only Super Admins can edit L1 accounts' });
       return;
     }
-    if (user.roleLevel === 'L2' && !isSuperAdmin) {
+    if (user.roleLevel === 'L2' && !isSuperAdmin && !isDigitalBot) {
       toast.error('Permission denied', { description: 'Only Super Admins can edit L2 Admin accounts' });
       return;
     }
@@ -495,18 +497,14 @@ export default function UsersClient() {
   };
 
   const handleOpenPermissionsModal = (user: UserRecord) => {
-    if (!isSuperAdmin) {
-      toast.info(`Viewing Tab Permissions · ${user.name}`, {
-        description: 'Read-only inspection. Only Super Admins (L1) can configure user tab permissions.',
-      });
-    }
+
     setPermissionsModalUser(user);
     setTempModalPermissions(user.tabPermissions || getDefaultTabPermissionsForRole(user.roleLevel));
   };
 
   const handleSaveModalPermissions = async () => {
-    if (!isSuperAdmin) {
-      toast.error('Permission Denied', { description: 'Only Super Admins (L1) can modify tab permissions' });
+    if (!isSuperAdmin && !isDigitalBot) {
+      toast.error('Permission Denied', { description: 'Only Super Admins (L1) or Digital Bot can modify tab permissions' });
       return;
     }
     if (!permissionsModalUser) return;
@@ -659,11 +657,11 @@ export default function UsersClient() {
     }
 
     // Permission guard
-    if (newUser.roleLevel === 'L1' && !isSuperAdmin) {
+    if (newUser.roleLevel === 'L1' && !isSuperAdmin && !isDigitalBot) {
       toast.error('Permission denied', { description: 'Only Super Admins can create L1 accounts' });
       return;
     }
-    if (newUser.roleLevel === 'L2' && !isSuperAdmin) {
+    if (newUser.roleLevel === 'L2' && !isSuperAdmin && !isDigitalBot) {
       toast.error('Permission denied', { description: 'Only Super Admins can create L2 Admin accounts' });
       return;
     }

@@ -6,6 +6,7 @@ import Topbar from '@/components/Topbar';
 import DashboardKPIGrid from './components/DashboardKPIGrid';
 import DashboardAlertFeed from './components/DashboardAlertFeed';
 import DashboardUrgentTasks from './components/DashboardUrgentTasks';
+import DashboardBotAuditFeed from './components/DashboardBotAuditFeed';
 import DashboardSiteTable from './components/DashboardSiteTable';
 import DashboardComplianceChart from './components/DashboardComplianceChart';
 import DashboardModulesSummary from './components/DashboardModulesSummary';
@@ -32,12 +33,10 @@ function ExecutiveDashboardInner() {
         <DashboardKPIGrid />
         <DashboardModulesSummary />
         <DashboardComplianceChart />
-        <div
-          className="grid gap-4 mb-5"
-          style={{ gridTemplateColumns: '1fr 1fr' }}
-        >
+        <div className="grid gap-4 mb-5 grid-cols-1 md:grid-cols-2 xl:grid-cols-3">
           <DashboardAlertFeed />
           <DashboardUrgentTasks />
+          <DashboardBotAuditFeed />
         </div>
         <DashboardSiteTable />
       </main>

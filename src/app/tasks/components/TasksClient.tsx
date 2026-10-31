@@ -147,7 +147,7 @@ export default function TasksClient() {
     const { id, title } = taskToDelete;
     setTasks((prev) => prev.filter((t) => t.id !== id));
     setTaskToDelete(null);
-    toast.error('Task deleted successfully', {
+    toast.success('Task deleted permanently', {
       description: `"${title}" has been permanently removed.`,
     });
 
