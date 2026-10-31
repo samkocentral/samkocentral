@@ -97,7 +97,11 @@ const memoryStore: Record<string, any[]> = {
   ],
 };
 
-const DB_FILE_PATH = path.join(process.cwd(), 'src', 'data', 'samko_db.json');
+const SEED_DB_PATH = path.join(process.cwd(), 'src', 'data', 'samko_db.json');
+const RUNTIME_DB_DIR = process.env.NODE_ENV === 'production' && fs.existsSync('/tmp')
+  ? '/tmp'
+  : path.join(process.cwd(), '.runtime_data');
+const DB_FILE_PATH = path.join(RUNTIME_DB_DIR, 'samko_db.json');
 let lastMtime = 0;
 
 function saveToDisk(data: Record<string, any[]>) {
@@ -117,12 +121,13 @@ function saveToDisk(data: Record<string, any[]>) {
 
 function loadFromDisk(force = false): boolean {
   try {
-    if (fs.existsSync(DB_FILE_PATH)) {
-      const stats = fs.statSync(DB_FILE_PATH);
+    const targetPath = fs.existsSync(DB_FILE_PATH) ? DB_FILE_PATH : fs.existsSync(SEED_DB_PATH) ? SEED_DB_PATH : null;
+    if (targetPath) {
+      const stats = fs.statSync(targetPath);
       if (!force && stats.mtimeMs === lastMtime && Object.keys(memoryStore).length > 0) {
         return true;
       }
-      const raw = fs.readFileSync(DB_FILE_PATH, 'utf-8');
+      const raw = fs.readFileSync(targetPath, 'utf-8');
       const parsed = JSON.parse(raw);
       if (parsed && typeof parsed === 'object') {
         Object.keys(parsed).forEach((k) => {

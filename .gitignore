@@ -37,3 +37,6 @@ jest-test-results.json
 
 # Optional: if using TurboRepo or monorepo
 turbo/
+
+# Runtime data files (prevent git pull lockups on PaaS like GoDaddy)
+.runtime_data/

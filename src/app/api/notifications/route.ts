@@ -6,7 +6,11 @@ import { getDb } from '@/lib/firebase';
 import { collection, doc, getDocs, setDoc, deleteDoc, writeBatch, query, orderBy, limit } from 'firebase/firestore';
 import { INITIAL_NOTIFICATIONS, AppNotification } from '@/lib/notificationsData';
 
-const NOTIFS_FILE_PATH = path.join(process.cwd(), 'src', 'data', 'samko_notifications.json');
+const SEED_NOTIFS_PATH = path.join(process.cwd(), 'src', 'data', 'samko_notifications.json');
+const RUNTIME_NOTIFS_DIR = process.env.NODE_ENV === 'production' && fs.existsSync('/tmp')
+  ? '/tmp'
+  : path.join(process.cwd(), '.runtime_data');
+const NOTIFS_FILE_PATH = path.join(RUNTIME_NOTIFS_DIR, 'samko_notifications.json');
 
 function ensureDir(filePath: string) {
   const dir = path.dirname(filePath);
@@ -19,6 +23,13 @@ function loadLocalNotifs(): AppNotification[] {
   try {
     if (fs.existsSync(NOTIFS_FILE_PATH)) {
       const raw = fs.readFileSync(NOTIFS_FILE_PATH, 'utf-8');
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        return parsed;
+      }
+    }
+    if (fs.existsSync(SEED_NOTIFS_PATH)) {
+      const raw = fs.readFileSync(SEED_NOTIFS_PATH, 'utf-8');
       const parsed = JSON.parse(raw);
       if (Array.isArray(parsed) && parsed.length > 0) {
         return parsed;
