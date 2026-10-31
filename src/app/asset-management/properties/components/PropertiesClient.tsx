@@ -15,7 +15,7 @@ import ConfirmDeleteModal from '@/components/modals/ConfirmDeleteModal';
 import { useLoadingPagination } from '@/hooks/useLoadingPagination';
 
 export default function PropertiesClient() {
-  const { isViewer, canEdit } = useAuth();
+  const { isViewer, canEdit, canDelete } = useAuth();
   const {
     title: cmsTitle,
     subtitle: cmsSubtitle,
@@ -297,13 +297,23 @@ export default function PropertiesClient() {
 
           <PageCMSEditButton pageId="properties" pageName="Properties & Sites" />
 
-          <button
-            onClick={() => setShowAddModal(true)}
-            className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-bold transition-all shadow-sm"
-            style={{ background: 'var(--primary)', color: '#000' }}
-          >
-            <Plus size={14} /> {(cmsPrimaryActionLabel || 'Add Property').replace(/^[\+\s]+/, '').trim()}
-          </button>
+          {canEdit && !isViewer && (
+            <button
+              onClick={() => setShowAddModal(true)}
+              className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-bold transition-all shadow-sm cursor-pointer"
+              style={{ background: 'var(--primary)', color: '#000' }}
+            >
+              <Plus size={14} /> {(cmsPrimaryActionLabel || 'Add Property').replace(/^[\+\s]+/, '').trim()}
+            </button>
+          )}
+          {isViewer && (
+            <span
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold"
+              style={{ background: 'rgba(148,163,184,0.12)', color: '#94a3b8', border: '1px solid rgba(148,163,184,0.25)' }}
+            >
+              L4 · Read-Only Access
+            </span>
+          )}
         </div>
       </div>
 
@@ -746,14 +756,16 @@ export default function PropertiesClient() {
               </div>
 
               <div className="flex items-center justify-between pt-4 border-t border-border">
-                <button
-                  type="button"
-                  onClick={() => handleDeleteProperty(editingProperty.id, editingProperty.name)}
-                  className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold text-rose-400 hover:bg-rose-500/10 border border-rose-500/30 transition-colors"
-                >
-                  <Trash2 size={13} />
-                  <span>Delete Property</span>
-                </button>
+                {!isViewer && (canDelete ?? canEdit) && (
+                  <button
+                    type="button"
+                    onClick={() => handleDeleteProperty(editingProperty.id, editingProperty.name)}
+                    className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold text-rose-400 hover:bg-rose-500/10 border border-rose-500/30 transition-colors cursor-pointer"
+                  >
+                    <Trash2 size={13} />
+                    <span>Delete Property</span>
+                  </button>
+                )}
 
                 <div className="flex items-center gap-2">
                   <button

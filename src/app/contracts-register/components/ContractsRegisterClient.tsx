@@ -736,6 +736,12 @@ export default function ContractsRegisterClient() {
   const cmsHotelOptions = getDropdownOptions('hotel', propertyOptions.map((h) => ({ value: h, label: h })));
 
   const handleStatusChange = async (id: string, newStatus: ContractStatus) => {
+    if (isViewer || !canEdit) {
+      toast.error('Permission Denied', {
+        description: 'L4 Viewers have read-only access. Status changes are disabled.',
+      });
+      return;
+    }
     setContracts((prev) =>
       prev.map((c) => (c.id === id ? { ...c, status: newStatus } : c))
     );
@@ -893,6 +899,12 @@ export default function ContractsRegisterClient() {
   };
 
   const handleUploadDocument = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (isViewer) {
+      toast.error('Permission Denied', {
+        description: 'L4 Viewers have read-only access. Document upload is disabled.',
+      });
+      return;
+    }
     const file = e.target.files?.[0];
     if (!file) return;
     const newDoc = {
@@ -988,9 +1000,17 @@ export default function ContractsRegisterClient() {
             <Download size={13} /> Export
           </button>
           {!isViewer && canEdit && (
-          <button onClick={() => setShowAddModal(true)} className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-transform active:scale-95 cursor-pointer" style={{ background: 'var(--primary)', color: '#000' }}>
-            <Plus size={14} /> {(cmsPrimaryActionLabel || 'Add Contract').replace(/^[\+\s]+/, '').trim()}
-          </button>
+            <button onClick={() => setShowAddModal(true)} className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-transform active:scale-95 cursor-pointer" style={{ background: 'var(--primary)', color: '#000' }}>
+              <Plus size={14} /> {(cmsPrimaryActionLabel || 'Add Contract').replace(/^[\+\s]+/, '').trim()}
+            </button>
+          )}
+          {isViewer && (
+            <span
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold"
+              style={{ background: 'rgba(148,163,184,0.12)', color: '#94a3b8', border: '1px solid rgba(148,163,184,0.25)' }}
+            >
+              L4 · Read-Only Access
+            </span>
           )}
         </div>
       </div>
@@ -1163,6 +1183,23 @@ export default function ContractsRegisterClient() {
                             );
                           }
                           if (colKey === 'status') {
+                            if (isViewer || !canEdit) {
+                              return (
+                                <td key={col.id} className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
+                                  <span
+                                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold select-none"
+                                    style={{
+                                      background: sc.bg,
+                                      color: sc.color,
+                                      border: `1px solid ${sc.color}33`,
+                                    }}
+                                  >
+                                    <span className="w-1.5 h-1.5 rounded-full" style={{ background: sc.color }} />
+                                    {sc.label}
+                                  </span>
+                                </td>
+                              );
+                            }
                             return (
                               <td key={col.id} className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
                                 <div className="relative inline-block">
@@ -1380,33 +1417,47 @@ export default function ContractsRegisterClient() {
               <div>
                 <div className="flex items-center gap-2 mb-1">
                   <span className="font-mono text-xs px-2 py-0.5 rounded" style={{ background: 'var(--surface3)', color: 'var(--text2)' }}>{selectedContract.contractId}</span>
-                  <div className="relative inline-block">
-                    <select
-                      value={selectedContract.status}
-                      onChange={(e) => handleStatusChange(selectedContract.id, e.target.value as ContractStatus)}
-                      className="appearance-none cursor-pointer pl-4 pr-6 py-1 rounded-full text-xs font-semibold outline-none transition-all capitalize"
+                  {isViewer || !canEdit ? (
+                    <span
+                      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold select-none"
                       style={{
                         background: (STATUS_CONFIG[selectedContract.status] || STATUS_CONFIG.active).bg,
                         color: (STATUS_CONFIG[selectedContract.status] || STATUS_CONFIG.active).color,
                         border: `1px solid ${(STATUS_CONFIG[selectedContract.status] || STATUS_CONFIG.active).color}33`,
                       }}
                     >
-                      <option value="active" style={{ background: '#18181b', color: '#3dd68c' }}>Active</option>
-                      <option value="expiring-soon" style={{ background: '#18181b', color: '#f59e0b' }}>Expiring Soon</option>
-                      <option value="expired" style={{ background: '#18181b', color: '#f43f5e' }}>Expired</option>
-                      <option value="pending" style={{ background: '#18181b', color: '#60a5fa' }}>Pending</option>
-                      <option value="terminated" style={{ background: '#18181b', color: '#94a3b8' }}>Terminated</option>
-                    </select>
-                    <span
-                      className="w-1.5 h-1.5 rounded-full absolute left-2 top-1/2 -translate-y-1/2 pointer-events-none"
-                      style={{ background: (STATUS_CONFIG[selectedContract.status] || STATUS_CONFIG.active).color }}
-                    />
-                    <ChevronDown
-                      size={11}
-                      className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none opacity-80"
-                      style={{ color: (STATUS_CONFIG[selectedContract.status] || STATUS_CONFIG.active).color }}
-                    />
-                  </div>
+                      <span className="w-1.5 h-1.5 rounded-full" style={{ background: (STATUS_CONFIG[selectedContract.status] || STATUS_CONFIG.active).color }} />
+                      {(STATUS_CONFIG[selectedContract.status] || STATUS_CONFIG.active).label}
+                    </span>
+                  ) : (
+                    <div className="relative inline-block">
+                      <select
+                        value={selectedContract.status}
+                        onChange={(e) => handleStatusChange(selectedContract.id, e.target.value as ContractStatus)}
+                        className="appearance-none cursor-pointer pl-4 pr-6 py-1 rounded-full text-xs font-semibold outline-none transition-all capitalize"
+                        style={{
+                          background: (STATUS_CONFIG[selectedContract.status] || STATUS_CONFIG.active).bg,
+                          color: (STATUS_CONFIG[selectedContract.status] || STATUS_CONFIG.active).color,
+                          border: `1px solid ${(STATUS_CONFIG[selectedContract.status] || STATUS_CONFIG.active).color}33`,
+                        }}
+                      >
+                        <option value="active" style={{ background: '#18181b', color: '#3dd68c' }}>Active</option>
+                        <option value="expiring-soon" style={{ background: '#18181b', color: '#f59e0b' }}>Expiring Soon</option>
+                        <option value="expired" style={{ background: '#18181b', color: '#f43f5e' }}>Expired</option>
+                        <option value="pending" style={{ background: '#18181b', color: '#60a5fa' }}>Pending</option>
+                        <option value="terminated" style={{ background: '#18181b', color: '#94a3b8' }}>Terminated</option>
+                      </select>
+                      <span
+                        className="w-1.5 h-1.5 rounded-full absolute left-2 top-1/2 -translate-y-1/2 pointer-events-none"
+                        style={{ background: (STATUS_CONFIG[selectedContract.status] || STATUS_CONFIG.active).color }}
+                      />
+                      <ChevronDown
+                        size={11}
+                        className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none opacity-80"
+                        style={{ color: (STATUS_CONFIG[selectedContract.status] || STATUS_CONFIG.active).color }}
+                      />
+                    </div>
+                  )}
                   {selectedContract.autoRenew && <span className="text-xs font-semibold px-2 py-0.5 rounded-full" style={{ background: 'rgba(61,214,140,0.12)', color: '#3dd68c' }}>Auto Renew</span>}
                 </div>
                 <h2 className="font-head font-bold text-lg">{selectedContract.contractName}</h2>
@@ -2146,11 +2197,16 @@ export default function ContractsRegisterClient() {
             </div>
 
             <div className="pt-3 border-t border-border flex items-center justify-between">
-              <label className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold cursor-pointer border border-border hover:bg-surface2 transition-colors" style={{ color: 'var(--foreground)' }}>
-                <Upload size={13} className="text-primary" />
-                Upload New Document
-                <input type="file" onChange={handleUploadDocument} className="hidden" />
-              </label>
+              {!isViewer && (
+                <label className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold cursor-pointer border border-border hover:bg-surface2 transition-colors" style={{ color: 'var(--foreground)' }}>
+                  <Upload size={13} className="text-primary" />
+                  Upload New Document
+                  <input type="file" onChange={handleUploadDocument} className="hidden" />
+                </label>
+              )}
+              {isViewer && (
+                <span className="text-xs text-muted-foreground italic">Document repository in read-only mode</span>
+              )}
               <button
                 onClick={() => setShowDocumentsModal(false)}
                 className="px-4 py-1.5 rounded-lg text-xs font-semibold border border-border"

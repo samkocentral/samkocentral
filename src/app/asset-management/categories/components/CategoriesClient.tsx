@@ -237,13 +237,23 @@ export default function CategoriesClient() {
         </div>
         <div className="flex items-center gap-2">
           <PageCMSEditButton pageId="categories" pageName="Asset Categories" />
-          <button
-            onClick={() => { setShowAdd(true); setEditingId(null); }}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold"
-            style={{ background: 'var(--primary)', color: '#000' }}
-          >
-            <Plus size={15} /> {(cmsPrimaryAction || 'Add Category').replace(/^[\+\s]+/, '').trim()}
-          </button>
+          {canEdit && !isViewer && (
+            <button
+              onClick={() => { setShowAdd(true); setEditingId(null); }}
+              className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold cursor-pointer"
+              style={{ background: 'var(--primary)', color: '#000' }}
+            >
+              <Plus size={15} /> {(cmsPrimaryAction || 'Add Category').replace(/^[\+\s]+/, '').trim()}
+            </button>
+          )}
+          {isViewer && (
+            <span
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold"
+              style={{ background: 'rgba(148,163,184,0.12)', color: '#94a3b8', border: '1px solid rgba(148,163,184,0.25)' }}
+            >
+              L4 · Read-Only Access
+            </span>
+          )}
         </div>
       </div>
 

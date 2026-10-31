@@ -318,6 +318,7 @@ function KPICard({ label, value, sub, color, icon: Icon }: { label: string; valu
 }
 
 export default function UtilitiesRegisterClient() {
+  const { isViewer, canEdit, canDelete } = useAuth();
   const {
     title: cmsTitle,
     subtitle: cmsSubtitle,
@@ -666,9 +667,19 @@ export default function UtilitiesRegisterClient() {
           >
             <Download size={13} /> Export
           </button>
-          <button onClick={() => setShowAddModal(true)} className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-transform active:scale-95 cursor-pointer" style={{ background: 'var(--primary)', color: '#000' }}>
-            <Plus size={14} /> {(cmsPrimaryActionLabel || 'Add Account').replace(/^[\+\s]+/, '').trim()}
-          </button>
+          {canEdit && (
+            <button onClick={() => setShowAddModal(true)} className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-transform active:scale-95 cursor-pointer" style={{ background: 'var(--primary)', color: '#000' }}>
+              <Plus size={14} /> {(cmsPrimaryActionLabel || 'Add Account').replace(/^[\+\s]+/, '').trim()}
+            </button>
+          )}
+          {isViewer && (
+            <span
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold"
+              style={{ background: 'rgba(148,163,184,0.12)', color: '#94a3b8', border: '1px solid rgba(148,163,184,0.25)' }}
+            >
+              L4 · Read-Only Access
+            </span>
+          )}
         </div>
       </div>
 
@@ -823,32 +834,49 @@ export default function UtilitiesRegisterClient() {
                       if (colKey === 'status') {
                         return (
                           <td key={col.id} className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
-                            <div className="relative inline-block">
-                              <select
-                                value={account.status}
-                                onChange={(e) => handleStatusChange(account.id, e.target.value as UtilityStatus)}
-                                className="appearance-none cursor-pointer pl-4 pr-6 py-1 rounded-full text-xs font-semibold outline-none transition-all capitalize"
+                            {isViewer ? (
+                              <span
+                                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold capitalize select-none"
                                 style={{
                                   background: sc.bg,
                                   color: sc.color,
                                   border: `1px solid ${sc.color}33`,
                                 }}
                               >
-                                <option value="active" style={{ background: '#18181b', color: '#3dd68c' }}>Active</option>
-                                <option value="expiring-soon" style={{ background: '#18181b', color: '#f59e0b' }}>Expiring Soon</option>
-                                <option value="expired" style={{ background: '#18181b', color: '#f43f5e' }}>Expired</option>
-                                <option value="incomplete" style={{ background: '#18181b', color: '#94a3b8' }}>Incomplete</option>
-                              </select>
-                              <span
-                                className="w-1.5 h-1.5 rounded-full absolute left-2 top-1/2 -translate-y-1/2 pointer-events-none"
-                                style={{ background: sc.color }}
-                              />
-                              <ChevronDown
-                                size={11}
-                                className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none opacity-80"
-                                style={{ color: sc.color }}
-                              />
-                            </div>
+                                <span
+                                  className="w-1.5 h-1.5 rounded-full"
+                                  style={{ background: sc.color }}
+                                />
+                                {account.status.replace('-', ' ')}
+                              </span>
+                            ) : (
+                              <div className="relative inline-block">
+                                <select
+                                  value={account.status}
+                                  onChange={(e) => handleStatusChange(account.id, e.target.value as UtilityStatus)}
+                                  className="appearance-none cursor-pointer pl-4 pr-6 py-1 rounded-full text-xs font-semibold outline-none transition-all capitalize"
+                                  style={{
+                                    background: sc.bg,
+                                    color: sc.color,
+                                    border: `1px solid ${sc.color}33`,
+                                  }}
+                                >
+                                  <option value="active" style={{ background: '#18181b', color: '#3dd68c' }}>Active</option>
+                                  <option value="expiring-soon" style={{ background: '#18181b', color: '#f59e0b' }}>Expiring Soon</option>
+                                  <option value="expired" style={{ background: '#18181b', color: '#f43f5e' }}>Expired</option>
+                                  <option value="incomplete" style={{ background: '#18181b', color: '#94a3b8' }}>Incomplete</option>
+                                </select>
+                                <span
+                                  className="w-1.5 h-1.5 rounded-full absolute left-2 top-1/2 -translate-y-1/2 pointer-events-none"
+                                  style={{ background: sc.color }}
+                                />
+                                <ChevronDown
+                                  size={11}
+                                  className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none opacity-80"
+                                  style={{ color: sc.color }}
+                                />
+                              </div>
+                            )}
                           </td>
                         );
                       }
@@ -876,20 +904,24 @@ export default function UtilitiesRegisterClient() {
                               >
                                 <Eye size={13} />
                               </button>
-                              <button
-                                className="p-1.5 rounded-lg border border-border hover:bg-surface2 transition-colors text-muted-foreground hover:text-primary cursor-pointer"
-                                title="Edit Utility Account"
-                                onClick={() => handleOpenEdit(account)}
-                              >
-                                <Edit2 size={13} />
-                              </button>
-                              <button
-                                className="p-1.5 rounded-lg border border-rose-500/20 hover:bg-rose-500/15 text-rose-400 transition-colors cursor-pointer"
-                                title="Delete Utility Account"
-                                onClick={() => setAccountToDelete(account)}
-                              >
-                                <Trash2 size={13} />
-                              </button>
+                              {!isViewer && canEdit && (
+                                <button
+                                  className="p-1.5 rounded-lg border border-border hover:bg-surface2 transition-colors text-muted-foreground hover:text-primary cursor-pointer"
+                                  title="Edit Utility Account"
+                                  onClick={() => handleOpenEdit(account)}
+                                >
+                                  <Edit2 size={13} />
+                                </button>
+                              )}
+                              {!isViewer && (canDelete ?? canEdit) && (
+                                <button
+                                  className="p-1.5 rounded-lg border border-rose-500/20 hover:bg-rose-500/15 text-rose-400 transition-colors cursor-pointer"
+                                  title="Delete Utility Account"
+                                  onClick={() => setAccountToDelete(account)}
+                                >
+                                  <Trash2 size={13} />
+                                </button>
+                              )}
                             </div>
                           </td>
                         );
@@ -1004,21 +1036,25 @@ export default function UtilitiesRegisterClient() {
             )}
             <div className="flex items-center justify-between gap-2 p-6 border-t border-border" style={{ background: 'var(--surface2)' }}>
               <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => handleOpenEdit(selectedAccount)}
-                  className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-semibold border border-border hover:bg-surface2 text-foreground transition-colors"
-                  style={{ background: 'var(--surface)' }}
-                >
-                  <Edit2 size={13} /> Edit Account
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setAccountToDelete(selectedAccount)}
-                  className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-semibold border border-rose-500/30 hover:bg-rose-500/15 text-rose-400 transition-colors"
-                >
-                  <Trash2 size={13} /> Delete Account
-                </button>
+                {!isViewer && canEdit && (
+                  <button
+                    type="button"
+                    onClick={() => handleOpenEdit(selectedAccount)}
+                    className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-semibold border border-border hover:bg-surface2 text-foreground transition-colors cursor-pointer"
+                    style={{ background: 'var(--surface)' }}
+                  >
+                    <Edit2 size={13} /> Edit Account
+                  </button>
+                )}
+                {!isViewer && (canDelete ?? canEdit) && (
+                  <button
+                    type="button"
+                    onClick={() => setAccountToDelete(selectedAccount)}
+                    className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-semibold border border-rose-500/30 hover:bg-rose-500/15 text-rose-400 transition-colors cursor-pointer"
+                  >
+                    <Trash2 size={13} /> Delete Account
+                  </button>
+                )}
               </div>
               <button
                 type="button"

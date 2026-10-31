@@ -25,6 +25,7 @@ import {
   Upload,
   Users,
   Layers,
+  ShieldAlert,
 } from 'lucide-react';
 import Icon from '@/components/ui/AppIcon';
 import { useAuth } from '@/lib/authContext';
@@ -121,7 +122,7 @@ function SectionCard({ title, children }: { title: string; children: React.React
 }
 
 export default function SettingsClient() {
-  const { isSuperAdmin, isDigitalBot, user } = useAuth();
+  const { isSuperAdmin, isDigitalBot, canAccessSettings, user } = useAuth();
   const searchParams = useSearchParams();
   const initialTab = ((searchParams?.get('tab')) as SettingsTab) || 'general';
   const initialPage = (searchParams?.get('page') as any) || 'properties';
@@ -215,6 +216,23 @@ export default function SettingsClient() {
     }
     setTimeout(() => setSaved(false), 2000);
   };
+
+  if (!isSuperAdmin && !isDigitalBot && !canAccessSettings) {
+    return (
+      <div className="flex flex-col items-center justify-center h-full p-8 text-center" style={{ minHeight: '65vh' }}>
+        <div className="w-14 h-14 rounded-2xl flex items-center justify-center mb-4" style={{ background: 'rgba(244,63,94,0.12)', color: '#f43f5e' }}>
+          <ShieldAlert size={28} />
+        </div>
+        <h2 className="text-xl font-bold text-foreground mb-2">Access Restricted</h2>
+        <p className="text-sm text-muted-foreground max-w-md mb-6 leading-relaxed">
+          System Settings and Platform Configuration controls are restricted to administrators. You do not have permission to view or edit system configurations.
+        </p>
+        <Link href="/" className="px-4 py-2 rounded-lg text-xs font-semibold" style={{ background: 'var(--primary)', color: '#000' }}>
+          Return to Dashboard
+        </Link>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col h-full">

@@ -345,14 +345,16 @@ export default function TaskManagerClient() {
             title="No tasks match your filters"
             description="Adjust the priority or status filters, or create a new task to get started."
             action={
-              <button
-                onClick={() => setCreateOpen(true)}
-                className="samko-btn-primary flex items-center gap-2"
-                style={{ padding: '8px 16px', fontSize: 13 }}
-              >
-                <Plus size={13} />
-                Create Task
-              </button>
+              canEdit && !isViewer ? (
+                <button
+                  onClick={() => setCreateOpen(true)}
+                  className="samko-btn-primary flex items-center gap-2"
+                  style={{ padding: '8px 16px', fontSize: 13 }}
+                >
+                  <Plus size={13} />
+                  Create Task
+                </button>
+              ) : undefined
             }
           />
         ) : (

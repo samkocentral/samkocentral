@@ -8,6 +8,7 @@ import StatusBadge from '@/components/ui/StatusBadge';
 import EmptyState from '@/components/ui/EmptyState';
 import StatusDropdown from '@/components/ui/StatusDropdown';
 import { api } from '@/lib/api';
+import { useAuth } from '@/lib/authContext';
 import { toast } from 'sonner';
 import PageCMSEditButton from '@/components/cms/PageCMSEditButton';
 import { useDeepPageCms } from '@/lib/deepPageCms';
@@ -15,6 +16,7 @@ import LoadingPagination from '@/components/ui/LoadingPagination';
 import { useLoadingPagination } from '@/hooks/useLoadingPagination';
 
 export default function ComplianceTrackerClient() {
+  const { isViewer, canEdit } = useAuth();
   const {
     title: cmsTitle,
     subtitle: cmsSubtitle,
@@ -417,13 +419,23 @@ export default function ComplianceTrackerClient() {
             <span style={{ color: 'var(--foreground)', fontWeight: 600 }}>{filtered.length}</span> of {complianceList.length} items
           </p>
           <PageCMSEditButton pageId="compliancetracker" pageName="Compliance Expiry Tracker" />
-          <button
-            onClick={() => setShowAddModal(true)}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-semibold transition-transform active:scale-95"
-            style={{ background: 'var(--primary)', color: '#000' }}
-          >
-            <Plus size={14} /> {(cmsPrimaryActionLabel || 'Log Compliance / Issue').replace(/^[\+\s]+/, '').trim()}
-          </button>
+          {canEdit && !isViewer && (
+            <button
+              onClick={() => setShowAddModal(true)}
+              className="flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-semibold transition-transform active:scale-95 cursor-pointer"
+              style={{ background: 'var(--primary)', color: '#000' }}
+            >
+              <Plus size={14} /> {(cmsPrimaryActionLabel || 'Log Compliance / Issue').replace(/^[\+\s]+/, '').trim()}
+            </button>
+          )}
+          {isViewer && (
+            <span
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold"
+              style={{ background: 'rgba(148,163,184,0.12)', color: '#94a3b8', border: '1px solid rgba(148,163,184,0.25)' }}
+            >
+              L4 · Read-Only Access
+            </span>
+          )}
         </div>
       </div>
 
@@ -560,28 +572,30 @@ export default function ComplianceTrackerClient() {
                                   {item.notes}
                                 </p>
                               </div>
-                              <div className="flex items-center gap-2 flex-shrink-0">
-                                <button
-                                  className="samko-btn-ghost"
-                                  style={{ padding: '6px 14px', fontSize: 12 }}
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleCreateTask(item);
-                                  }}
-                                >
-                                  Create Task
-                                </button>
-                                <button
-                                  className="samko-btn-primary"
-                                  style={{ padding: '6px 14px', fontSize: 12 }}
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleStatusChange(item, 'ok');
-                                  }}
-                                >
-                                  Mark Reviewed
-                                </button>
-                              </div>
+                              {!isViewer && canEdit && (
+                                <div className="flex items-center gap-2 flex-shrink-0">
+                                  <button
+                                    className="samko-btn-ghost"
+                                    style={{ padding: '6px 14px', fontSize: 12 }}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleCreateTask(item);
+                                    }}
+                                  >
+                                    Create Task
+                                  </button>
+                                  <button
+                                    className="samko-btn-primary"
+                                    style={{ padding: '6px 14px', fontSize: 12 }}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleStatusChange(item, 'ok');
+                                    }}
+                                  >
+                                    Mark Reviewed
+                                  </button>
+                                </div>
+                              )}
                             </div>
                           </td>
                         </tr>

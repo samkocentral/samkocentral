@@ -813,60 +813,78 @@ export default function InsuranceRegisterClient() {
                         </td>
                         <td className="px-4 py-3 text-sm text-muted-foreground whitespace-nowrap">{policy.responsibleManager}</td>
                         <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
-                          {/* Dynamic interactive Status dropdown */}
-                          <div className="relative inline-block">
-                            <select
-                              disabled={isViewer}
-                              value={policy.status}
-                              onChange={(e) => handleStatusChange(policy.id, e.target.value)}
-                              className={`appearance-none ${isViewer ? 'cursor-default opacity-85' : 'cursor-pointer'} pl-4 pr-6 py-1 rounded-full text-xs font-semibold outline-none transition-all capitalize`}
-                              title={isViewer ? 'Read-only access (L4 Viewer)' : 'Change status'}
+                          {isViewer ? (
+                            <span
+                              className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold capitalize select-none"
                               style={{
                                 background: sc.bg,
                                 color: sc.color,
                                 border: `1px solid ${sc.color}33`,
                               }}
                             >
-                              <option value="active" style={{ background: '#18181b', color: '#3dd68c' }}>Active</option>
-                              <option value="expiring-soon" style={{ background: '#18181b', color: '#f59e0b' }}>Expiring Soon</option>
-                              <option value="expired" style={{ background: '#18181b', color: '#f43f5e' }}>Expired</option>
-                              <option value="pending-renewal" style={{ background: '#18181b', color: '#60a5fa' }}>Pending Renewal</option>
-                            </select>
-                            <span
-                              className="w-1.5 h-1.5 rounded-full absolute left-2 top-1/2 -translate-y-1/2 pointer-events-none"
-                              style={{ background: sc.color }}
-                            />
-                            <ChevronDown
-                              size={11}
-                              className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none opacity-80"
-                              style={{ color: sc.color }}
-                            />
-                          </div>
+                              <span
+                                className="w-1.5 h-1.5 rounded-full"
+                                style={{ background: sc.color }}
+                              />
+                              {sc.label}
+                            </span>
+                          ) : (
+                            <div className="relative inline-block">
+                              <select
+                                value={policy.status}
+                                onChange={(e) => handleStatusChange(policy.id, e.target.value)}
+                                className="appearance-none cursor-pointer pl-4 pr-6 py-1 rounded-full text-xs font-semibold outline-none transition-all capitalize"
+                                style={{
+                                  background: sc.bg,
+                                  color: sc.color,
+                                  border: `1px solid ${sc.color}33`,
+                                }}
+                              >
+                                <option value="active" style={{ background: '#18181b', color: '#3dd68c' }}>Active</option>
+                                <option value="expiring-soon" style={{ background: '#18181b', color: '#f59e0b' }}>Expiring Soon</option>
+                                <option value="expired" style={{ background: '#18181b', color: '#f43f5e' }}>Expired</option>
+                                <option value="pending-renewal" style={{ background: '#18181b', color: '#60a5fa' }}>Pending Renewal</option>
+                              </select>
+                              <span
+                                className="w-1.5 h-1.5 rounded-full absolute left-2 top-1/2 -translate-y-1/2 pointer-events-none"
+                                style={{ background: sc.color }}
+                              />
+                              <ChevronDown
+                                size={11}
+                                className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none opacity-80"
+                                style={{ color: sc.color }}
+                              />
+                            </div>
+                          )}
                         </td>
                         <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
                           <div className="flex items-center gap-1.5 whitespace-nowrap">
                             <button
-                              className="p-1.5 rounded-lg border border-border hover:bg-surface2 transition-colors"
+                              className="p-1.5 rounded-lg border border-border hover:bg-surface2 transition-colors cursor-pointer"
                               style={{ color: 'var(--text2)' }}
                               title="View Details"
                               onClick={() => setSelectedPolicy(policy)}
                             >
                               <Eye size={13} />
                             </button>
-                            <button
-                              className="p-1.5 rounded-lg border border-border hover:bg-surface2 transition-colors text-muted-foreground hover:text-primary"
-                              title="Edit Policy"
-                              onClick={() => handleOpenEdit(policy)}
-                            >
-                              <Edit2 size={13} />
-                            </button>
-                            <button
-                              className="p-1.5 rounded-lg border border-rose-500/20 hover:bg-rose-500/15 text-rose-400 transition-colors"
-                              title="Delete Policy"
-                              onClick={() => setPolicyToDelete(policy)}
-                            >
-                              <Trash2 size={13} />
-                            </button>
+                            {!isViewer && canEdit && (
+                              <button
+                                className="p-1.5 rounded-lg border border-border hover:bg-surface2 transition-colors text-muted-foreground hover:text-primary cursor-pointer"
+                                title="Edit Policy"
+                                onClick={() => handleOpenEdit(policy)}
+                              >
+                                <Edit2 size={13} />
+                              </button>
+                            )}
+                            {!isViewer && (canDelete ?? canEdit) && (
+                              <button
+                                className="p-1.5 rounded-lg border border-rose-500/20 hover:bg-rose-500/15 text-rose-400 transition-colors cursor-pointer"
+                                title="Delete Policy"
+                                onClick={() => setPolicyToDelete(policy)}
+                              >
+                                <Trash2 size={13} />
+                              </button>
+                            )}
                           </div>
                         </td>
                       </tr>
@@ -1084,23 +1102,27 @@ export default function InsuranceRegisterClient() {
             )}
             <div className="flex items-center justify-between gap-2 p-6 border-t border-border" style={{ background: 'var(--surface2)' }}>
               <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => handleOpenEdit(selectedPolicy)}
-                  className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-semibold border border-border hover:bg-surface2 text-foreground transition-colors"
-                  style={{ background: 'var(--surface)' }}
-                >
-                  <Edit2 size={13} /> Edit Policy
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setPolicyToDelete(selectedPolicy)}
-                  className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-semibold border border-rose-500/30 hover:bg-rose-500/15 text-rose-400 transition-colors"
-                >
-                  <Trash2 size={13} /> Delete Policy
-                </button>
+                {!isViewer && canEdit && (
+                  <button
+                    type="button"
+                    onClick={() => handleOpenEdit(selectedPolicy)}
+                    className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-semibold border border-border hover:bg-surface2 text-foreground transition-colors cursor-pointer"
+                    style={{ background: 'var(--surface)' }}
+                  >
+                    <Edit2 size={13} /> Edit Policy
+                  </button>
+                )}
+                {!isViewer && (canDelete ?? canEdit) && (
+                  <button
+                    type="button"
+                    onClick={() => setPolicyToDelete(selectedPolicy)}
+                    className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-semibold border border-rose-500/30 hover:bg-rose-500/15 text-rose-400 transition-colors cursor-pointer"
+                  >
+                    <Trash2 size={13} /> Delete Policy
+                  </button>
+                )}
               </div>
-              <button onClick={() => setSelectedPolicy(null)} className="samko-btn-primary px-5 py-2">Close</button>
+              <button onClick={() => setSelectedPolicy(null)} className="samko-btn-primary px-5 py-2 cursor-pointer">Close</button>
             </div>
           </div>
         </div>
@@ -1736,28 +1758,32 @@ export default function InsuranceRegisterClient() {
               </div>
             </div>
             <div className="flex items-center justify-between p-4 border-t border-border" style={{ background: 'var(--surface2)' }}>
-              <button
-                onClick={() => {
-                  setClaimToDelete(selectedClaim);
-                  setSelectedClaim(null);
-                }}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-rose-400 hover:bg-rose-500/15 border border-rose-500/20 transition-colors cursor-pointer"
-              >
-                <Trash2 size={13} /> Delete Claim
-              </button>
-              <div className="flex items-center gap-2">
+              {!isViewer && (canDelete ?? canEdit) && (
                 <button
                   onClick={() => {
-                    handleOpenEditClaim(selectedClaim);
+                    setClaimToDelete(selectedClaim);
                     setSelectedClaim(null);
                   }}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border border-border hover:bg-surface3 transition-colors cursor-pointer"
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-rose-400 hover:bg-rose-500/15 border border-rose-500/20 transition-colors cursor-pointer"
                 >
-                  <Edit2 size={13} /> Edit Claim
+                  <Trash2 size={13} /> Delete Claim
                 </button>
+              )}
+              <div className="flex items-center gap-2 ml-auto">
+                {!isViewer && canEdit && (
+                  <button
+                    onClick={() => {
+                      handleOpenEditClaim(selectedClaim);
+                      setSelectedClaim(null);
+                    }}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border border-border hover:bg-surface3 transition-colors cursor-pointer"
+                  >
+                    <Edit2 size={13} /> Edit Claim
+                  </button>
+                )}
                 <button
                   onClick={() => setSelectedClaim(null)}
-                  className="px-4 py-1.5 rounded-lg text-xs font-semibold"
+                  className="px-4 py-1.5 rounded-lg text-xs font-semibold cursor-pointer"
                   style={{ background: 'var(--primary)', color: '#000' }}
                 >
                   Close

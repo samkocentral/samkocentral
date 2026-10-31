@@ -133,6 +133,12 @@ export default function DocumentRepositoryClient() {
   };
 
   const handleStatusChange = async (id: string, newStatus: DocStatus) => {
+    if (isViewer || !canUpload) {
+      toast.error('Permission Denied', {
+        description: 'L4 Viewers have read-only access. Status modifications are disabled.',
+      });
+      return;
+    }
     setDocuments((prev) =>
       prev.map((d) => (d.id === id ? { ...d, status: newStatus } : d))
     );
@@ -154,6 +160,12 @@ export default function DocumentRepositoryClient() {
   };
 
   const handleDelete = async (id: string, name: string) => {
+    if (isViewer || !canDelete) {
+      toast.error('Permission Denied', {
+        description: 'L4 Viewers cannot delete repository documents.',
+      });
+      return;
+    }
     setDocuments((prev) => prev.filter((d) => d.id !== id));
     if (previewDoc && previewDoc.id === id) setPreviewDoc(null);
     toast.success('Document deleted successfully', { description: name });
@@ -498,33 +510,45 @@ export default function DocumentRepositoryClient() {
                         </span>
                       </td>
                       <td className="table-cell" onClick={(e) => e.stopPropagation()}>
-                        <div className="relative inline-block">
-                          <select
-                            disabled={isViewer}
-                            value={doc.status}
-                            onChange={(e) => handleStatusChange(doc.id, e.target.value as DocStatus)}
-                            className={`appearance-none ${isViewer ? 'cursor-default opacity-85' : 'cursor-pointer'} pl-4 pr-6 py-1 rounded-full text-xs font-semibold outline-none transition-all capitalize`}
-                            title={isViewer ? 'Read-only access (L4 Viewer)' : 'Change status'}
+                        {isViewer || !canUpload ? (
+                          <span
+                            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold select-none"
                             style={{
                               background: doc.status === 'ok' ? 'rgba(61,214,140,0.12)' : doc.status === 'warning' ? 'rgba(245,158,11,0.12)' : 'rgba(244,63,94,0.12)',
                               color: doc.status === 'ok' ? '#3dd68c' : doc.status === 'warning' ? '#f59e0b' : '#f43f5e',
                               border: `1px solid ${doc.status === 'ok' ? '#3dd68c33' : doc.status === 'warning' ? '#f59e0b33' : '#f43f5e33'}`,
                             }}
                           >
-                            <option value="ok" style={{ background: '#18181b', color: '#3dd68c' }}>Compliant</option>
-                            <option value="warning" style={{ background: '#18181b', color: '#f59e0b' }}>Due Soon</option>
-                            <option value="critical" style={{ background: '#18181b', color: '#f43f5e' }}>Overdue</option>
-                          </select>
-                          <span
-                            className="w-1.5 h-1.5 rounded-full absolute left-2 top-1/2 -translate-y-1/2 pointer-events-none"
-                            style={{ background: doc.status === 'ok' ? '#3dd68c' : doc.status === 'warning' ? '#f59e0b' : '#f43f5e' }}
-                          />
-                          <ChevronDown
-                            size={11}
-                            className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none opacity-80"
-                            style={{ color: doc.status === 'ok' ? '#3dd68c' : doc.status === 'warning' ? '#f59e0b' : '#f43f5e' }}
-                          />
-                        </div>
+                            <span className="w-1.5 h-1.5 rounded-full" style={{ background: doc.status === 'ok' ? '#3dd68c' : doc.status === 'warning' ? '#f59e0b' : '#f43f5e' }} />
+                            {doc.status === 'ok' ? 'Compliant' : doc.status === 'warning' ? 'Due Soon' : 'Overdue'}
+                          </span>
+                        ) : (
+                          <div className="relative inline-block">
+                            <select
+                              value={doc.status}
+                              onChange={(e) => handleStatusChange(doc.id, e.target.value as DocStatus)}
+                              className="appearance-none cursor-pointer pl-4 pr-6 py-1 rounded-full text-xs font-semibold outline-none transition-all capitalize"
+                              style={{
+                                background: doc.status === 'ok' ? 'rgba(61,214,140,0.12)' : doc.status === 'warning' ? 'rgba(245,158,11,0.12)' : 'rgba(244,63,94,0.12)',
+                                color: doc.status === 'ok' ? '#3dd68c' : doc.status === 'warning' ? '#f59e0b' : '#f43f5e',
+                                border: `1px solid ${doc.status === 'ok' ? '#3dd68c33' : doc.status === 'warning' ? '#f59e0b33' : '#f43f5e33'}`,
+                              }}
+                            >
+                              <option value="ok" style={{ background: '#18181b', color: '#3dd68c' }}>Compliant</option>
+                              <option value="warning" style={{ background: '#18181b', color: '#f59e0b' }}>Due Soon</option>
+                              <option value="critical" style={{ background: '#18181b', color: '#f43f5e' }}>Overdue</option>
+                            </select>
+                            <span
+                              className="w-1.5 h-1.5 rounded-full absolute left-2 top-1/2 -translate-y-1/2 pointer-events-none"
+                              style={{ background: doc.status === 'ok' ? '#3dd68c' : doc.status === 'warning' ? '#f59e0b' : '#f43f5e' }}
+                            />
+                            <ChevronDown
+                              size={11}
+                              className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none opacity-80"
+                              style={{ color: doc.status === 'ok' ? '#3dd68c' : doc.status === 'warning' ? '#f59e0b' : '#f43f5e' }}
+                            />
+                          </div>
+                        )}
                       </td>
                       <td className="table-cell text-muted2" style={{ fontSize: 11 }}>
                         {doc.version}

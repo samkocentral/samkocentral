@@ -4,6 +4,7 @@ import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { ClipboardCheck, Clock, CheckCircle2, AlertTriangle, Search, ChevronDown, Calendar, User, ThumbsUp, ThumbsDown, Minus, Plus, Loader2, X, Eye } from 'lucide-react';
 import { MAINTENANCE_RECORDS, ASSETS, HOTELS } from '@/lib/assetData';
 import { api } from '@/lib/api';
+import { useAuth } from '@/lib/authContext';
 import PageCMSEditButton from '@/components/cms/PageCMSEditButton';
 import { useDeepPageCms } from '@/lib/deepPageCms';
 import LoadingPagination from '@/components/ui/LoadingPagination';
@@ -55,6 +56,7 @@ function StatCard({ label, value, color, icon: Icon }: { label: string; value: n
 }
 
 export default function InspectionsClient() {
+  const { isViewer, canEdit } = useAuth();
   const {
     title: cmsTitle,
     subtitle: cmsSubtitle,
@@ -296,24 +298,34 @@ export default function InspectionsClient() {
         </div>
         <div className="flex items-center gap-2">
           <PageCMSEditButton pageId="inspections" pageName="Asset Inspections & Audits" />
-          <button
-            onClick={() => {
-              if (assets.length > 0) {
-                setNewForm((prev) => ({
-                  ...prev,
-                  assetId: assets[0].id,
-                  assetName: assets[0].name,
-                  hotelId: assets[0].hotelId,
-                  hotelName: assets[0].hotelName,
-                }));
-              }
-              setShowNewModal(true);
-            }}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-transform active:scale-95"
-            style={{ background: 'var(--primary)', color: '#000' }}
-          >
-            <ClipboardCheck size={15} /> {(cmsPrimaryActionLabel || 'New Inspection').replace(/^[\+\s]+/, '').trim()}
-          </button>
+          {canEdit && !isViewer && (
+            <button
+              onClick={() => {
+                if (assets.length > 0) {
+                  setNewForm((prev) => ({
+                    ...prev,
+                    assetId: assets[0].id,
+                    assetName: assets[0].name,
+                    hotelId: assets[0].hotelId,
+                    hotelName: assets[0].hotelName,
+                  }));
+                }
+                setShowNewModal(true);
+              }}
+              className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-transform active:scale-95 cursor-pointer"
+              style={{ background: 'var(--primary)', color: '#000' }}
+            >
+              <ClipboardCheck size={15} /> {(cmsPrimaryActionLabel || 'New Inspection').replace(/^[\+\s]+/, '').trim()}
+            </button>
+          )}
+          {isViewer && (
+            <span
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold"
+              style={{ background: 'rgba(148,163,184,0.12)', color: '#94a3b8', border: '1px solid rgba(148,163,184,0.25)' }}
+            >
+              L4 · Read-Only Access
+            </span>
+          )}
         </div>
       </div>
 
@@ -506,31 +518,48 @@ export default function InspectionsClient() {
                       if (colKey === 'result') {
                         return (
                           <td key={col.id} className="px-3.5 py-2.5" onClick={(e) => e.stopPropagation()}>
-                            <div className="relative inline-block">
-                              <select
-                                value={insp.result || 'pending'}
-                                onChange={(e) => handleResultChange(insp.id, e.target.value as 'pass' | 'fail' | 'pending')}
-                                className="appearance-none cursor-pointer pl-4 pr-6 py-1 rounded-full text-xs font-semibold outline-none transition-all capitalize"
+                            {isViewer || !canEdit ? (
+                              <span
+                                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold capitalize select-none"
                                 style={{
                                   background: RESULT_CONFIG[insp.result || 'pending'].bg,
                                   color: RESULT_CONFIG[insp.result || 'pending'].color,
                                   border: `1px solid ${RESULT_CONFIG[insp.result || 'pending'].color}33`,
                                 }}
                               >
-                                <option value="pass" style={{ background: '#18181b', color: '#3dd68c' }}>Pass</option>
-                                <option value="fail" style={{ background: '#18181b', color: '#f43f5e' }}>Fail</option>
-                                <option value="pending" style={{ background: '#18181b', color: '#94a3b8' }}>Pending</option>
-                              </select>
-                              <span
-                                className="w-1.5 h-1.5 rounded-full absolute left-2 top-1/2 -translate-y-1/2 pointer-events-none"
-                                style={{ background: RESULT_CONFIG[insp.result || 'pending'].color }}
-                              />
-                              <ChevronDown
-                                size={11}
-                                className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none opacity-80"
-                                style={{ color: RESULT_CONFIG[insp.result || 'pending'].color }}
-                              />
-                            </div>
+                                <span
+                                  className="w-1.5 h-1.5 rounded-full"
+                                  style={{ background: RESULT_CONFIG[insp.result || 'pending'].color }}
+                                />
+                                {insp.result || 'pending'}
+                              </span>
+                            ) : (
+                              <div className="relative inline-block">
+                                <select
+                                  value={insp.result || 'pending'}
+                                  onChange={(e) => handleResultChange(insp.id, e.target.value as 'pass' | 'fail' | 'pending')}
+                                  className="appearance-none cursor-pointer pl-4 pr-6 py-1 rounded-full text-xs font-semibold outline-none transition-all capitalize"
+                                  style={{
+                                    background: RESULT_CONFIG[insp.result || 'pending'].bg,
+                                    color: RESULT_CONFIG[insp.result || 'pending'].color,
+                                    border: `1px solid ${RESULT_CONFIG[insp.result || 'pending'].color}33`,
+                                  }}
+                                >
+                                  <option value="pass" style={{ background: '#18181b', color: '#3dd68c' }}>Pass</option>
+                                  <option value="fail" style={{ background: '#18181b', color: '#f43f5e' }}>Fail</option>
+                                  <option value="pending" style={{ background: '#18181b', color: '#94a3b8' }}>Pending</option>
+                                </select>
+                                <span
+                                  className="w-1.5 h-1.5 rounded-full absolute left-2 top-1/2 -translate-y-1/2 pointer-events-none"
+                                  style={{ background: RESULT_CONFIG[insp.result || 'pending'].color }}
+                                />
+                                <ChevronDown
+                                  size={11}
+                                  className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none opacity-80"
+                                  style={{ color: RESULT_CONFIG[insp.result || 'pending'].color }}
+                                />
+                              </div>
+                            )}
                           </td>
                         );
                       }
@@ -634,31 +663,48 @@ export default function InspectionsClient() {
                 )}
                 <div>
                   <div className="text-xs text-muted-foreground mb-1">Result</div>
-                  <div className="relative inline-block">
-                    <select
-                      value={selected.result || 'pending'}
-                      onChange={(e) => handleResultChange(selected.id, e.target.value as 'pass' | 'fail' | 'pending')}
-                      className="appearance-none cursor-pointer pl-4 pr-6 py-1 rounded-full text-xs font-semibold outline-none transition-all capitalize"
+                  {isViewer || !canEdit ? (
+                    <span
+                      className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold capitalize select-none"
                       style={{
                         background: RESULT_CONFIG[selected.result || 'pending'].bg,
                         color: RESULT_CONFIG[selected.result || 'pending'].color,
                         border: `1px solid ${RESULT_CONFIG[selected.result || 'pending'].color}33`,
                       }}
                     >
-                      <option value="pass" style={{ background: '#18181b', color: '#3dd68c' }}>Pass</option>
-                      <option value="fail" style={{ background: '#18181b', color: '#f43f5e' }}>Fail</option>
-                      <option value="pending" style={{ background: '#18181b', color: '#94a3b8' }}>Pending</option>
-                    </select>
-                    <span
-                      className="w-1.5 h-1.5 rounded-full absolute left-2 top-1/2 -translate-y-1/2 pointer-events-none"
-                      style={{ background: RESULT_CONFIG[selected.result || 'pending'].color }}
-                    />
-                    <ChevronDown
-                      size={11}
-                      className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none opacity-80"
-                      style={{ color: RESULT_CONFIG[selected.result || 'pending'].color }}
-                    />
-                  </div>
+                      <span
+                        className="w-1.5 h-1.5 rounded-full"
+                        style={{ background: RESULT_CONFIG[selected.result || 'pending'].color }}
+                      />
+                      {selected.result || 'pending'}
+                    </span>
+                  ) : (
+                    <div className="relative inline-block">
+                      <select
+                        value={selected.result || 'pending'}
+                        onChange={(e) => handleResultChange(selected.id, e.target.value as 'pass' | 'fail' | 'pending')}
+                        className="appearance-none cursor-pointer pl-4 pr-6 py-1 rounded-full text-xs font-semibold outline-none transition-all capitalize"
+                        style={{
+                          background: RESULT_CONFIG[selected.result || 'pending'].bg,
+                          color: RESULT_CONFIG[selected.result || 'pending'].color,
+                          border: `1px solid ${RESULT_CONFIG[selected.result || 'pending'].color}33`,
+                        }}
+                      >
+                        <option value="pass" style={{ background: '#18181b', color: '#3dd68c' }}>Pass</option>
+                        <option value="fail" style={{ background: '#18181b', color: '#f43f5e' }}>Fail</option>
+                        <option value="pending" style={{ background: '#18181b', color: '#94a3b8' }}>Pending</option>
+                      </select>
+                      <span
+                        className="w-1.5 h-1.5 rounded-full absolute left-2 top-1/2 -translate-y-1/2 pointer-events-none"
+                        style={{ background: RESULT_CONFIG[selected.result || 'pending'].color }}
+                      />
+                      <ChevronDown
+                        size={11}
+                        className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none opacity-80"
+                        style={{ color: RESULT_CONFIG[selected.result || 'pending'].color }}
+                      />
+                    </div>
+                  )}
                 </div>
                 {selected.notes && (
                   <div>
@@ -668,10 +714,10 @@ export default function InspectionsClient() {
                 )}
 
                 <div className="pt-3 border-t border-border flex flex-col gap-2">
-                  {selected.status !== 'completed' && (
+                  {selected.status !== 'completed' && !isViewer && canEdit && (
                     <button
                       onClick={() => handleCompleteInspection(selected)}
-                      className="w-full py-2 rounded-lg text-sm font-semibold transition-transform active:scale-95"
+                      className="w-full py-2 rounded-lg text-sm font-semibold transition-transform active:scale-95 cursor-pointer"
                       style={{ background: 'var(--primary)', color: '#000' }}
                     >
                       Complete Inspection

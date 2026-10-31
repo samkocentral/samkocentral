@@ -11,6 +11,7 @@ import {
 import * as XLSX from 'xlsx';
 import { HOTELS } from '@/lib/assetData';
 import { api } from '@/lib/api';
+import { useAuth } from '@/lib/authContext';
 import { toast } from 'sonner';
 import { useAppCms } from '@/lib/appCmsConfig';
 import { useDeepPageCms } from '@/lib/deepPageCms';
@@ -871,6 +872,7 @@ const STEPS = [
 ];
 
 export default function ImportClient() {
+  const { isViewer, canUpload } = useAuth();
   const cms = useDeepPageCms('import');
   const { importExport: cmsImportExport } = useAppCms();
   const [step, setStep] = useState<Step>(1);
@@ -1001,11 +1003,23 @@ export default function ImportClient() {
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     setDragOver(false);
+    if (isViewer || !canUpload) {
+      toast.error('Permission Denied', {
+        description: 'L4 Viewers have read-only access. Bulk data ingestion is restricted.',
+      });
+      return;
+    }
     const file = e.dataTransfer.files[0];
     if (file) processUploadedFile(file);
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (isViewer || !canUpload) {
+      toast.error('Permission Denied', {
+        description: 'L4 Viewers have read-only access. Bulk data ingestion is restricted.',
+      });
+      return;
+    }
     const file = e.target.files?.[0];
     if (file) processUploadedFile(file);
   };
@@ -1129,6 +1143,12 @@ export default function ImportClient() {
 
   // Execute import to database
   const handleExecuteImport = async () => {
+    if (isViewer || !canUpload) {
+      toast.error('Permission Denied', {
+        description: 'L4 Viewers cannot commit bulk imports to the database.',
+      });
+      return;
+    }
     try {
       setImporting(true);
       const recordsToSave = getMappedRecords();
@@ -1378,43 +1398,65 @@ export default function ImportClient() {
 
             {/* Dropzone */}
             <div
-              onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+              onDragOver={(e) => {
+                if (isViewer) return;
+                e.preventDefault();
+                setDragOver(true);
+              }}
               onDragLeave={() => setDragOver(false)}
               onDrop={handleDrop}
-              className="rounded-2xl border-2 border-dashed p-10 text-center transition-all cursor-pointer"
+              className={`rounded-2xl border-2 border-dashed p-10 text-center transition-all ${
+                isViewer ? 'cursor-not-allowed opacity-80' : 'cursor-pointer'
+              }`}
               style={{
-                borderColor: dragOver ? 'var(--primary)' : 'var(--border)',
+                borderColor: isViewer ? 'var(--border)' : dragOver ? 'var(--primary)' : 'var(--border)',
                 background: dragOver ? 'rgba(232,201,122,0.05)' : 'var(--surface)',
               }}
-              onClick={() => document.getElementById('universal-excel-input')?.click()}
+              onClick={() => {
+                if (isViewer) {
+                  toast.error('Permission Denied', {
+                    description: 'L4 Viewers have read-only access. Bulk data upload is restricted.',
+                  });
+                  return;
+                }
+                document.getElementById('universal-excel-input')?.click();
+              }}
             >
               <input
                 id="universal-excel-input"
                 type="file"
                 accept=".xlsx,.xls,.csv"
                 className="hidden"
+                disabled={isViewer || !canUpload}
                 onChange={handleFileChange}
               />
               <div
                 className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4"
-                style={{ background: 'rgba(232,201,122,0.12)', color: 'var(--primary)' }}
+                style={{
+                  background: isViewer ? 'rgba(255,255,255,0.05)' : 'rgba(232,201,122,0.12)',
+                  color: isViewer ? 'var(--text2)' : 'var(--primary)',
+                }}
               >
                 <FileSpreadsheet size={32} />
               </div>
               <h3 className="font-head font-bold text-lg mb-1">
-                Upload Excel Sheet for {activeDestination.shortLabel}
+                {isViewer ? 'Read-Only Mode: Bulk Ingestion Restricted' : `Upload Excel Sheet for ${activeDestination.shortLabel}`}
               </h3>
               <p className="text-xs text-muted-foreground mb-4">
-                Drag and drop your .xlsx, .xls, or .csv file here, or click to browse. Supports multi-sheet workbooks!
+                {isViewer
+                  ? 'Your account has L4 Read-Only Access. Bulk upload is disabled, but you can still download templates or export data above.'
+                  : 'Drag and drop your .xlsx, .xls, or .csv file here, or click to browse. Supports multi-sheet workbooks!'}
               </p>
-              <button
-                type="button"
-                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-semibold"
-                style={{ background: 'var(--primary)', color: '#000' }}
-              >
-                <Upload size={15} />
-                Browse Files
-              </button>
+              {!isViewer && (
+                <button
+                  type="button"
+                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-semibold"
+                  style={{ background: 'var(--primary)', color: '#000' }}
+                >
+                  <Upload size={15} />
+                  Browse Files
+                </button>
+              )}
             </div>
 
             {/* Pre-structured Template Download Card */}
