@@ -374,7 +374,7 @@ export const DEFAULT_APP_CMS: AppCmsConfig = {
     ],
   },
   recentLogs: {
-    moduleTitle: 'Recent Logs & System Audit Trail',
+    moduleTitle: 'Audit Logs',
     retentionDays: '180',
     categories: [
       'Security & Authentication',
@@ -436,7 +436,7 @@ export const DEFAULT_APP_CMS: AppCmsConfig = {
     { id: 'dashboard', label: 'Dashboard', href: '/', iconName: 'LayoutDashboard', enabled: true, order: 1 },
     { id: 'propco', label: 'PROPCO', href: '#propco', iconName: 'Building2', enabled: true, order: 2, badgeText: 'ASSET CO' },
     { id: 'opco', label: 'OPCO', href: '#opco', iconName: 'Shield', enabled: true, order: 3, badgeText: 'OPERATIONS' },
-    { id: 'recent-logs', label: 'Recent Logs', href: '/recent-logs', iconName: 'History', enabled: true, order: 4 },
+    { id: 'recent-logs', label: 'Audit Logs', href: '/recent-logs', iconName: 'History', enabled: true, order: 4 },
     { id: 'import', label: 'Import / Export', href: '/asset-management/import', iconName: 'Upload', enabled: true, order: 5 },
     { id: 'users', label: 'Users & Roles', href: '/users', iconName: 'Users', enabled: true, order: 6 },
     { id: 'settings', label: 'Settings', href: '/settings', iconName: 'Settings', enabled: true, order: 7 },

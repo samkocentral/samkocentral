@@ -50,7 +50,7 @@ export const ALL_SYSTEM_TABS: TabConfig[] = [
   },
   {
     id: 'recent-logs',
-    name: 'Recent Logs & Audit Trail',
+    name: 'Audit Logs',
     group: 'Core & Portfolio',
     path: '/recent-logs',
     description: 'Real-time ledger of actions taken by users, sign-offs, and critical system events',

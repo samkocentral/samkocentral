@@ -4,6 +4,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback } fr
 import { useRouter } from 'next/navigation';
 import { api } from './api';
 import { toast } from 'sonner';
+import { recordAuditLog } from './auditLogger';
 import {
   type UserTabPermissions,
   type TabAccessMode,
@@ -308,6 +309,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (typeof window !== 'undefined') {
       window.dispatchEvent(new CustomEvent('samko:user-changed', { detail: { user: newUser } }));
     }
+    try {
+      recordAuditLog({
+        actorName: user.name,
+        actorEmail: user.email,
+        actorInitials: user.initials,
+        roleLevel: user.roleLevel,
+        action: 'ROLE_SWITCH',
+        actionLabel: `Role Switched to ${newUser.roleTitle} (${newUser.roleLevel})`,
+        category: 'AUTH',
+        categoryLabel: 'Authentication & Access',
+        resource: `User Session Context · ${newUser.name}`,
+        property: newUser.hotel || 'All Properties (Portfolio)',
+        details: `${user.name} switched operational role to ${newUser.name} (${newUser.roleTitle} · ${newUser.roleLevel}) on ${newUser.portal.toUpperCase()} portal.`,
+      });
+    } catch {}
     toast.success(`Role switched: ${newUser.name}`, {
       description: `Active as ${newUser.roleTitle} (${newUser.roleLevel}) · ${newUser.hotel}`,
     });
@@ -409,6 +425,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       window.dispatchEvent(new CustomEvent('samko:auth-changed', { detail: { authenticated: true } }));
     }
 
+    try {
+      recordAuditLog({
+        actorName: authedUser.name,
+        actorEmail: authedUser.email,
+        actorInitials: authedUser.initials,
+        roleLevel: authedUser.roleLevel,
+        action: 'LOGIN',
+        actionLabel: 'User Signed In',
+        category: 'AUTH',
+        categoryLabel: 'Authentication',
+        resource: `${authedUser.roleTitle} Session`,
+        property: authedUser.hotel || 'All Properties (Portfolio)',
+        details: `${authedUser.name} authenticated successfully with role ${authedUser.roleTitle} (${authedUser.roleLevel}).`,
+      });
+    } catch {}
+
     return authedUser;
   }, [setActivePortal]);
 
@@ -422,6 +454,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (typeof window !== 'undefined') {
       window.dispatchEvent(new CustomEvent('samko:auth-changed', { detail: { authenticated: false } }));
     }
+    try {
+      recordAuditLog({
+        actorName: user.name,
+        actorEmail: user.email,
+        actorInitials: user.initials,
+        roleLevel: user.roleLevel,
+        action: 'LOGIN',
+        actionLabel: 'User Signed Out',
+        category: 'AUTH',
+        categoryLabel: 'Authentication',
+        resource: `${user.roleTitle} Session Ended`,
+        property: user.hotel || 'All Properties (Portfolio)',
+        details: `${user.name} safely signed out of SamkoCentral UK session.`,
+      });
+    } catch {}
     toast.success('Signed out successfully', {
       description: 'You have been safely logged out of your session',
     });

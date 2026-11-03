@@ -1,4 +1,5 @@
 // ─── CLIENT API SERVICE FOR SAMKOCENTRAL ─────────────────────────────
+import { recordAuditLog } from './auditLogger';
 // Interacts with /api/... endpoints backed by Firebase Firestore
 
 async function fetchJson<T>(url: string, options?: RequestInit): Promise<T> {
@@ -57,11 +58,26 @@ export const api = {
   },
 
   // ── Universal Bulk Import ─────────────────────────────
-  bulkImport: (collection: string, items: any[]) =>
-    fetchJson<{ success: boolean; collection: string; count: number; data: any[]; message: string }>('/api/bulk-import', {
+  bulkImport: async (collection: string, items: any[]) => {
+    const res = await fetchJson<{ success: boolean; collection: string; count: number; data: any[]; message: string }>('/api/bulk-import', {
       method: 'POST',
       body: JSON.stringify({ collection, items }),
-    }),
+    });
+    if (res.success) {
+      try {
+        recordAuditLog({
+          action: 'CREATE',
+          actionLabel: 'Universal Bulk Import',
+          category: 'ASSET_REGISTER',
+          categoryLabel: 'Import & Registry',
+          resource: `Bulk Import: ${collection.toUpperCase()} (${items.length} records)`,
+          property: 'All Properties (Portfolio)',
+          details: `Imported ${items.length} records into ${collection} register.`,
+        });
+      } catch {}
+    }
+    return res;
+  },
 
   // ── Categories ─────────────────────────────────────────
   categories: {
@@ -113,20 +129,65 @@ export const api = {
       fetchJson<{ success: boolean; total: number; data: any[] }>(`/api/assets${buildQuery(params)}`),
     getById: (id: string) =>
       fetchJson<{ success: boolean; data: any }>(`/api/assets/${encodeURIComponent(id)}`),
-    create: (data: any) =>
-      fetchJson<{ success: boolean; data: any }>('/api/assets', {
+    create: async (data: any) => {
+      const res = await fetchJson<{ success: boolean; data: any }>('/api/assets', {
         method: 'POST',
         body: JSON.stringify(data),
-      }),
-    update: (id: string, data: any) =>
-      fetchJson<{ success: boolean; data: any }>(`/api/assets/${encodeURIComponent(id)}`, {
+      });
+      if (res.success) {
+        try {
+          recordAuditLog({
+            action: 'CREATE',
+            actionLabel: 'Asset Added',
+            category: 'ASSET_REGISTER',
+            categoryLabel: 'Asset Register',
+            resource: data.name || data.assetName || 'Asset Item',
+            property: data.property || data.hotel || 'Portfolio Asset',
+            details: `Registered asset "${data.name || data.assetName || ''}" in category ${data.category || 'General'}.`,
+          });
+        } catch {}
+      }
+      return res;
+    },
+    update: async (id: string, data: any) => {
+      const res = await fetchJson<{ success: boolean; data: any }>(`/api/assets/${encodeURIComponent(id)}`, {
         method: 'PUT',
         body: JSON.stringify(data),
-      }),
-    delete: (id: string) =>
-      fetchJson<{ success: boolean; message: string }>(`/api/assets/${encodeURIComponent(id)}`, {
+      });
+      if (res.success) {
+        try {
+          recordAuditLog({
+            action: 'UPDATE',
+            actionLabel: 'Asset Updated',
+            category: 'ASSET_REGISTER',
+            categoryLabel: 'Asset Register',
+            resource: data.name || data.assetName || `Asset ${id}`,
+            property: data.property || data.hotel || 'Portfolio Asset',
+            details: `Updated asset record "${data.name || data.assetName || id}".`,
+          });
+        } catch {}
+      }
+      return res;
+    },
+    delete: async (id: string) => {
+      const res = await fetchJson<{ success: boolean; message: string }>(`/api/assets/${encodeURIComponent(id)}`, {
         method: 'DELETE',
-      }),
+      });
+      if (res.success) {
+        try {
+          recordAuditLog({
+            action: 'DELETE',
+            actionLabel: 'Asset Deleted',
+            category: 'ASSET_REGISTER',
+            categoryLabel: 'Asset Register',
+            resource: `Asset ${id}`,
+            status: 'warning',
+            details: `Deleted asset ${id} from register.`,
+          });
+        } catch {}
+      }
+      return res;
+    },
     bulkCreate: (items: any[]) =>
       fetchJson<{ success: boolean; count: number; data: any[]; message: string }>('/api/assets/bulk', {
         method: 'POST',
@@ -140,16 +201,46 @@ export const api = {
       fetchJson<{ success: boolean; total: number; data: any[] }>(`/api/maintenance${buildQuery(params)}`),
     getById: (id: string) =>
       fetchJson<{ success: boolean; data: any }>(`/api/maintenance/${encodeURIComponent(id)}`),
-    create: (data: any) =>
-      fetchJson<{ success: boolean; data: any }>('/api/maintenance', {
+    create: async (data: any) => {
+      const res = await fetchJson<{ success: boolean; data: any }>('/api/maintenance', {
         method: 'POST',
         body: JSON.stringify(data),
-      }),
-    update: (id: string, data: any) =>
-      fetchJson<{ success: boolean; data: any }>(`/api/maintenance/${encodeURIComponent(id)}`, {
+      });
+      if (res.success) {
+        try {
+          recordAuditLog({
+            action: 'CREATE',
+            actionLabel: 'Maintenance Service Created',
+            category: 'MAINTENANCE',
+            categoryLabel: 'Planned Maintenance',
+            resource: data.assetName || data.title || 'Maintenance Task',
+            property: data.property || 'Portfolio Property',
+            details: `Scheduled maintenance servicing "${data.title || data.assetName || ''}".`,
+          });
+        } catch {}
+      }
+      return res;
+    },
+    update: async (id: string, data: any) => {
+      const res = await fetchJson<{ success: boolean; data: any }>(`/api/maintenance/${encodeURIComponent(id)}`, {
         method: 'PUT',
         body: JSON.stringify(data),
-      }),
+      });
+      if (res.success) {
+        try {
+          recordAuditLog({
+            action: 'UPDATE',
+            actionLabel: 'Maintenance Schedule Updated',
+            category: 'MAINTENANCE',
+            categoryLabel: 'Planned Maintenance',
+            resource: data.assetName || data.title || `Task ${id}`,
+            property: data.property || 'Portfolio Property',
+            details: `Updated servicing status to "${data.status || 'Updated'}" for ${data.title || data.assetName || id}.`,
+          });
+        } catch {}
+      }
+      return res;
+    },
     delete: (id: string) =>
       fetchJson<{ success: boolean; message: string }>(`/api/maintenance/${encodeURIComponent(id)}`, {
         method: 'DELETE',
@@ -162,11 +253,26 @@ export const api = {
       fetchJson<{ success: boolean; total: number; data: any[] }>(`/api/compliance${buildQuery(params)}`),
     getById: (id: string) =>
       fetchJson<{ success: boolean; data: any }>(`/api/compliance/${encodeURIComponent(id)}`),
-    create: (data: any) =>
-      fetchJson<{ success: boolean; data: any }>('/api/compliance', {
+    create: async (data: any) => {
+      const res = await fetchJson<{ success: boolean; data: any }>('/api/compliance', {
         method: 'POST',
         body: JSON.stringify(data),
-      }),
+      });
+      if (res.success) {
+        try {
+          recordAuditLog({
+            action: 'CREATE',
+            actionLabel: 'Compliance Document Uploaded',
+            category: 'COMPLIANCE',
+            categoryLabel: 'Compliance Register',
+            resource: data.title || data.type || 'Statutory Certificate',
+            property: data.property || 'Portfolio Property',
+            details: `Uploaded statutory certificate "${data.title || data.type || ''}".`,
+          });
+        } catch {}
+      }
+      return res;
+    },
     update: (id: string, data: any) =>
       fetchJson<{ success: boolean; data: any }>(`/api/compliance/${encodeURIComponent(id)}`, {
         method: 'PUT',

@@ -52,15 +52,33 @@ function toDateInputValue(d: Date): string {
 }
 
 export default function RecentLogsClient() {
-  const { user, isDigitalBot } = useAuth();
+  const { user, originalAdmin } = useAuth();
   const searchParams = useSearchParams();
-  const [botOnlyFilter, setBotOnlyFilter] = useState<boolean>(() => searchParams?.get('bot') === 'true');
+
+  // Strict privacy rule: Digital Bot internal logs are strictly hidden from all users & admins
+  const isStrictDigitalBot = useMemo(() => {
+    if (originalAdmin) return false;
+    return Boolean(
+      user?.id === 'usr-bot-001' ||
+      user?.email?.toLowerCase() === 'digitalbot@samkocentral.com' ||
+      user?.name?.toLowerCase().includes('digital bot')
+    );
+  }, [user, originalAdmin]);
+
+  const [botOnlyFilter, setBotOnlyFilter] = useState<boolean>(() => {
+    if (!isStrictDigitalBot) return false;
+    return searchParams?.get('bot') === 'true';
+  });
 
   useEffect(() => {
+    if (!isStrictDigitalBot) {
+      setBotOnlyFilter(false);
+      return;
+    }
     if (searchParams?.get('bot') === 'true') {
       setBotOnlyFilter(true);
     }
-  }, [searchParams]);
+  }, [searchParams, isStrictDigitalBot]);
   const deepCms = useDeepPageCms('recentlogs');
   const { recentLogs: cmsRecentLogs } = useAppCms();
 
@@ -79,7 +97,26 @@ export default function RecentLogsClient() {
     ];
   }, [deepCms.columns]);
 
-  const [logs] = useState<AuditLogEntry[]>(() => getRecentLogs());
+  const [logs, setLogs] = useState<AuditLogEntry[]>(() => getRecentLogs(user));
+
+  const refreshLogs = React.useCallback(() => {
+    setLogs(getRecentLogs(user));
+  }, [user]);
+
+  useEffect(() => {
+    refreshLogs();
+    const handleLogEvent = () => refreshLogs();
+    window.addEventListener('samko:audit-log-created', handleLogEvent);
+    window.addEventListener('samko:data-changed', handleLogEvent);
+    window.addEventListener('samko:audit-logs-updated', handleLogEvent);
+    window.addEventListener('storage', handleLogEvent);
+    return () => {
+      window.removeEventListener('samko:audit-log-created', handleLogEvent);
+      window.removeEventListener('samko:data-changed', handleLogEvent);
+      window.removeEventListener('samko:audit-logs-updated', handleLogEvent);
+      window.removeEventListener('storage', handleLogEvent);
+    };
+  }, [refreshLogs]);
   
   // Requirement 2: Default view defaults to showing "Today's Logs"
   const [preset, setPreset] = useState<PresetType>('today');
@@ -178,12 +215,12 @@ export default function RecentLogsClient() {
   // Filter logs based on date, user, category, status, and search query
   const filteredLogs = useMemo(() => {
     return logs.filter((log) => {
-      // 0. DIGITAL BOT AUDIT LOG TOGGLE / ACCESS:
+      // 0. DIGITAL BOT AUDIT LOG ACCESS (Strictly hidden from all standard users and admins):
       const isBot = isBotLog(log);
-      if (botOnlyFilter) {
+      if (!isStrictDigitalBot) {
+        if (isBot) return false;
+      } else if (botOnlyFilter) {
         if (!isBot) return false;
-      } else {
-        if (!isDigitalBot && isBot) return false;
       }
       // 1. Date filter
       const logDateOnly = log.timestamp.split(' ')[0]; // YYYY-MM-DD
@@ -244,7 +281,7 @@ export default function RecentLogsClient() {
 
       return true;
     });
-  }, [logs, preset, todayStr, fromDate, toDate, selectedUser, selectedCategory, selectedStatus, searchQuery, isDigitalBot, botOnlyFilter]);
+  }, [logs, preset, todayStr, fromDate, toDate, selectedUser, selectedCategory, selectedStatus, searchQuery, isStrictDigitalBot, botOnlyFilter]);
 
   const {
     currentPage,
@@ -512,23 +549,25 @@ export default function RecentLogsClient() {
               />
             </div>
 
-            {/* Digital Bot Audit Logs Filter Button */}
-            <button
-              type="button"
-              onClick={() => setBotOnlyFilter((prev) => !prev)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                botOnlyFilter
-                  ? 'bg-[#38bdf8] text-black shadow-md ring-1 ring-[#38bdf8]'
-                  : 'bg-[#38bdf8]/10 text-[#38bdf8] border border-[#38bdf8]/40 hover:bg-[#38bdf8]/20'
-              }`}
-              title="Toggle Digital Bot and security daemon audit events"
-            >
-              <Bot size={13} />
-              <span>{botOnlyFilter ? 'Showing Digital Bot Logs' : 'Digital Bot Logs'}</span>
-              <span className="text-[10px] px-1 py-0.2 rounded font-mono bg-black/20 text-current font-bold">
-                BOT
-              </span>
-            </button>
+            {/* Digital Bot Audit Logs Filter Button - ONLY visible to strict Digital Bot, 100% hidden from all admins and users */}
+            {isStrictDigitalBot && (
+              <button
+                type="button"
+                onClick={() => setBotOnlyFilter((prev) => !prev)}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                  botOnlyFilter
+                    ? 'bg-[#38bdf8] text-black shadow-md ring-1 ring-[#38bdf8]'
+                    : 'bg-[#38bdf8]/10 text-[#38bdf8] border border-[#38bdf8]/40 hover:bg-[#38bdf8]/20'
+                }`}
+                title="Toggle Digital Bot internal audit events"
+              >
+                <Bot size={13} />
+                <span>{botOnlyFilter ? 'Showing Digital Bot Logs' : 'Digital Bot Logs'}</span>
+                <span className="text-[10px] px-1 py-0.2 rounded font-mono bg-black/20 text-current font-bold">
+                  BOT
+                </span>
+              </button>
+            )}
 
             {/* Export CSV Button */}
             {cmsRecentLogs?.allowExport !== false && (
@@ -547,7 +586,7 @@ export default function RecentLogsClient() {
               </button>
             )}
 
-            <PageCMSEditButton pageId="recentlogs" pageName="Recent Logs & Audit Trail" />
+            <PageCMSEditButton pageId="recentlogs" pageName="Audit Logs" />
 
             {/* Reset Filter Button */}
             <button
@@ -577,10 +616,10 @@ export default function RecentLogsClient() {
               value={selectedUser}
               width="100%"
               options={[
-                { value: 'ALL', label: isDigitalBot ? 'All Users & System Actors' : 'All Standard Users' },
+                { value: 'ALL', label: isStrictDigitalBot ? 'All Users & System Actors' : 'All Users' },
                 ...AUDIT_USERS
                   .filter((u) => {
-                    if (!isDigitalBot) {
+                    if (!isStrictDigitalBot) {
                       const email = (u.email || '').toLowerCase();
                       const name = (u.name || '').toLowerCase();
                       if (

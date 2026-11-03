@@ -57,6 +57,7 @@ import {
 import {
   type AuditLogEntry,
   INITIAL_AUDIT_LOGS,
+  recordAuditLog,
   ACTION_STYLES,
   STATUS_STYLES,
   exportAuditLogsToCSV,
@@ -456,7 +457,7 @@ export default function UsersClient() {
       status: 'warning',
       details: `Permanently removed account ${targetUser.name} (${targetUser.roleLevel} - ${targetUser.roleTitle}) from directory.`,
     };
-    setAuditLogs((prev) => [auditEvent, ...prev]);
+    setAuditLogs((prev) => [auditEvent, ...prev]); try { recordAuditLog(auditEvent); } catch {}
 
     try {
       await api.users.delete(targetUser.id);
@@ -543,7 +544,7 @@ export default function UsersClient() {
       status: 'success',
       details: `Updated tab-level enable/disable switches and access levels (Read Only vs Edit & Write) for ${permissionsModalUser.name}.`,
     };
-    setAuditLogs((prev) => [auditEvent, ...prev]);
+    setAuditLogs((prev) => [auditEvent, ...prev]); try { recordAuditLog(auditEvent); } catch {}
 
     try {
       await api.users.update(permissionsModalUser.id, { tabPermissions: tempModalPermissions });
@@ -629,7 +630,7 @@ export default function UsersClient() {
         { field: 'hotel', previous: editingUser.hotel, current: editForm.hotel },
       ],
     };
-    setAuditLogs((prev) => [auditEvent, ...prev]);
+    setAuditLogs((prev) => [auditEvent, ...prev]); try { recordAuditLog(auditEvent); } catch {}
 
     try {
       await api.users.update(editingUser.id, updatedUser);
@@ -720,7 +721,7 @@ export default function UsersClient() {
         status: 'success',
         details: `Provisioned dynamic user account for ${newUser.name} with ${newUser.roleLevel} privileges assigned to ${newUser.hotel}.`,
       };
-      setAuditLogs((prev) => [auditEvent, ...prev]);
+      setAuditLogs((prev) => [auditEvent, ...prev]); try { recordAuditLog(auditEvent); } catch {}
       setNewUser({
         name: '',
         email: '',
@@ -1840,7 +1841,7 @@ export default function UsersClient() {
                         border: 'var(--border)',
                       };
                       const statusStyle = STATUS_STYLES[log.status] || STATUS_STYLES.success;
-                      const roleConf = ROLE_LEVEL_CONFIG[log.roleLevel];
+                      const roleConf = ROLE_LEVEL_CONFIG[log.roleLevel as RoleLevel] || ROLE_LEVEL_CONFIG.L1;
 
                       return (
                         <tr
@@ -2601,39 +2602,46 @@ export default function UsersClient() {
                 <Users size={11} /> Actor Profile
               </div>
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div
-                    className="w-9 h-9 rounded-full flex items-center justify-center font-extrabold text-xs"
-                    style={{
-                      background: ROLE_LEVEL_CONFIG[selectedAuditLog.roleLevel].color,
-                      color: '#000',
-                    }}
-                  >
-                    {selectedAuditLog.actorInitials}
-                  </div>
-                  <div>
-                    <div className="text-sm font-bold text-foreground flex items-center gap-2">
-                      <span>{selectedAuditLog.actorName}</span>
-                      <span
-                        className="px-1.5 py-0.2 rounded text-[10px] font-extrabold"
-                        style={{
-                          background: ROLE_LEVEL_CONFIG[selectedAuditLog.roleLevel].badgeBg,
-                          color: ROLE_LEVEL_CONFIG[selectedAuditLog.roleLevel].color,
-                        }}
-                      >
-                        {selectedAuditLog.roleLevel}
-                      </span>
-                    </div>
-                    <div className="text-xs text-muted-foreground">{selectedAuditLog.actorEmail}</div>
-                  </div>
-                </div>
+                {(() => {
+                  const roleConf = ROLE_LEVEL_CONFIG[selectedAuditLog.roleLevel as RoleLevel] || ROLE_LEVEL_CONFIG.L1;
+                  return (
+                    <>
+                      <div className="flex items-center gap-3">
+                        <div
+                          className="w-9 h-9 rounded-full flex items-center justify-center font-extrabold text-xs"
+                          style={{
+                            background: roleConf.color,
+                            color: '#000',
+                          }}
+                        >
+                          {selectedAuditLog.actorInitials}
+                        </div>
+                        <div>
+                          <div className="text-sm font-bold text-foreground flex items-center gap-2">
+                            <span>{selectedAuditLog.actorName}</span>
+                            <span
+                              className="px-1.5 py-0.2 rounded text-[10px] font-extrabold"
+                              style={{
+                                background: roleConf.badgeBg,
+                                color: roleConf.color,
+                              }}
+                            >
+                              {selectedAuditLog.roleLevel}
+                            </span>
+                          </div>
+                          <div className="text-xs text-muted-foreground">{selectedAuditLog.actorEmail}</div>
+                        </div>
+                      </div>
 
-                <div className="text-right">
-                  <div className="text-xs font-semibold text-foreground">
-                    {ROLE_LEVEL_CONFIG[selectedAuditLog.roleLevel].title}
-                  </div>
-                  <div className="text-[10px] text-muted-foreground">Certified Role Authority</div>
-                </div>
+                      <div className="text-right">
+                        <div className="text-xs font-semibold text-foreground">
+                          {roleConf.title}
+                        </div>
+                        <div className="text-[10px] text-muted-foreground">Certified Role Authority</div>
+                      </div>
+                    </>
+                  );
+                })()}
               </div>
             </div>
 

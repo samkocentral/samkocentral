@@ -869,9 +869,9 @@ export const DEFAULT_DEEP_CMS: DeepAppCMSStore = {
   },
   recentlogs: {
     id: 'recentlogs',
-    title: 'Recent Logs & Audit Trail',
+    title: 'Audit Logs',
     subtitle: 'Live audit trail and historical logs across all properties, users, and compliance operations',
-    badgeText: 'Live Audit Trail',
+    badgeText: 'Audit Trail',
     badgeColor: '#a78bfa',
     searchPlaceholder: 'Search audit logs by actor, action, resource, IP address...',
     primaryActionLabel: 'Export CSV',

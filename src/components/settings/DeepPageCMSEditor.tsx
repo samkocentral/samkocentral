@@ -123,7 +123,7 @@ const TAB_PAGES: Array<{ id: keyof DeepAppCMSStore; label: string; icon: React.E
   { id: 'utilities', label: 'Utility: Register', icon: Zap, group: 'OpCo (Operations)', livePath: '/utilities-register' },
   { id: 'energyaccounts', label: 'Utility: Energy & Water Accounts', icon: Zap, group: 'OpCo (Operations)', livePath: '/utilities-register?type=electricity' },
   // System
-  { id: 'recentlogs', label: 'Recent Logs', icon: History, group: 'System', livePath: '/recent-logs' },
+  { id: 'recentlogs', label: 'Audit Logs', icon: History, group: 'System', livePath: '/recent-logs' },
   { id: 'users', label: 'Users & Roles', icon: Users, group: 'System', livePath: '/users' },
   { id: 'import', label: 'Import / Export', icon: UploadCloud, group: 'System', livePath: '/asset-management/import' },
 ];

@@ -1056,7 +1056,7 @@ export default function Sidebar({ currentPath }: SidebarProps) {
     if (isInBottom('recent-logs') && isNavVisible('recent-logs')) {
       items.push({
         id: 'recent-logs',
-        label: getNavLabel('recent-logs', 'Recent Logs'),
+        label: getNavLabel('recent-logs', 'Audit Logs'),
         href: '/recent-logs',
         icon: <History size={16} />,
       });
@@ -1330,7 +1330,7 @@ export default function Sidebar({ currentPath }: SidebarProps) {
             {isInPropCo('recent-logs') && isNavVisible('recent-logs') &&
               renderPropCoNavItem({
                 id: 'recent-logs',
-                label: getNavLabel('recent-logs', 'Recent Logs'),
+                label: getNavLabel('recent-logs', 'Audit Logs'),
                 href: '/recent-logs',
                 icon: <History size={15} />,
               })}
@@ -1532,7 +1532,7 @@ export default function Sidebar({ currentPath }: SidebarProps) {
             {isInOpCo('recent-logs') && isNavVisible('recent-logs') &&
               renderOpCoNavItem({
                 id: 'recent-logs',
-                label: getNavLabel('recent-logs', 'Recent Logs'),
+                label: getNavLabel('recent-logs', 'Audit Logs'),
                 href: '/recent-logs',
                 icon: <History size={15} />,
               })}
