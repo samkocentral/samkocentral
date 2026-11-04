@@ -85,123 +85,41 @@ export function isBotLog(log: AuditLogEntry): boolean {
   );
 }
 
-// Identify legacy mock daemon logs that were previously fabricated
-export function isMockDaemonLog(log: AuditLogEntry): boolean {
+// Identify any dummy, mock, or synthetic seed logs to permanently purge them
+export function isDummyOrMockLog(log: AuditLogEntry): boolean {
+  if (!log) return true;
+  const id = log.id || '';
   const details = (log.details || '').toLowerCase();
   const actionLabel = (log.actionLabel || '').toLowerCase();
   const resource = (log.resource || '').toLowerCase();
+
   return (
+    id.startsWith('AUD-INIT-') ||
+    id.startsWith('AUD-BOT-') ||
+    id.startsWith('AUD-94') ||
     actionLabel.includes('access boundary check') ||
     actionLabel.includes('cms store sync') ||
     actionLabel.includes('statutory health sweep') ||
+    actionLabel.includes('annual portfolio sign-off') ||
+    actionLabel.includes('certificate auto-renewed') ||
     resource.includes('governance vault') ||
     resource.includes('cms schema store') ||
-    resource.includes('portfolio compliance matrix')
+    resource.includes('portfolio compliance matrix') ||
+    resource.includes('statutory certification dossier') ||
+    resource.includes('tls/ssl wildcard') ||
+    details.includes('automated let’s encrypt') ||
+    details.includes('internal daemon loop') ||
+    details.includes('simulated')
   );
 }
 
-// Generate authentic initial platform events if local storage is empty
-function getInitialRealLogs(): AuditLogEntry[] {
-  const now = new Date();
-  const minutesAgo = (mins: number) => new Date(now.getTime() - mins * 60 * 1000);
+export function isMockDaemonLog(log: AuditLogEntry): boolean {
+  return isDummyOrMockLog(log);
+}
 
-  return [
-    {
-      id: `AUD-INIT-001`,
-      timestamp: formatDateTime(minutesAgo(4)),
-      relativeTime: '4m ago',
-      actorName: 'Alexander Vance',
-      actorEmail: 'superadmin@samkocentral.com',
-      actorInitials: 'AV',
-      roleLevel: 'L1',
-      action: 'LOGIN',
-      actionLabel: 'User Signed In',
-      category: 'AUTH',
-      categoryLabel: 'Authentication',
-      resource: 'Super Admin Management Session',
-      property: 'All Properties (Portfolio)',
-      ipAddress: '86.154.21.90 (Verified London Session)',
-      location: 'London, United Kingdom',
-      status: 'success',
-      details: 'Super Admin Alexander Vance authenticated successfully with two-factor authorization.',
-    },
-    {
-      id: `AUD-INIT-002`,
-      timestamp: formatDateTime(minutesAgo(25)),
-      relativeTime: '25m ago',
-      actorName: 'Rachel Green',
-      actorEmail: 'admin.propco@samkocentral.com',
-      actorInitials: 'RG',
-      roleLevel: 'L2',
-      action: 'UPDATE',
-      actionLabel: 'Asset Portfolio Verification',
-      category: 'ASSET_REGISTER',
-      categoryLabel: 'Asset Register',
-      resource: 'Fixed Asset Register (100 Assets)',
-      property: 'All Properties (Portfolio)',
-      ipAddress: '194.73.112.5 (Kingston Office)',
-      location: 'London, United Kingdom',
-      status: 'success',
-      details: 'Verified balance sheet valuation and condition ratings across all 5 hotel properties.',
-    },
-    {
-      id: `AUD-INIT-003`,
-      timestamp: formatDateTime(minutesAgo(50)),
-      relativeTime: '50m ago',
-      actorName: 'Marcus Webb',
-      actorEmail: 'admin.opco@samkocentral.com',
-      actorInitials: 'MW',
-      roleLevel: 'L2',
-      action: 'UPDATE',
-      actionLabel: 'PPM Maintenance Schedule Audit',
-      category: 'MAINTENANCE',
-      categoryLabel: 'Planned Maintenance',
-      resource: 'Daikin VRV Air Conditioning Quarterly Service',
-      property: 'Crowne Plaza Kingston-south',
-      ipAddress: '82.41.88.19 (Site Engineering Workstation)',
-      location: 'Kingston upon Thames, UK',
-      status: 'success',
-      details: 'Confirmed contractor servicing schedule for CoolTech Solutions Ltd.',
-    },
-    {
-      id: `AUD-INIT-004`,
-      timestamp: formatDateTime(minutesAgo(110)),
-      relativeTime: '1h ago',
-      actorName: 'Sarah Chen',
-      actorEmail: 'uploader@samkocentral.com',
-      actorInitials: 'SC',
-      roleLevel: 'L3',
-      action: 'CREATE',
-      actionLabel: 'Document Uploaded',
-      category: 'COMPLIANCE',
-      categoryLabel: 'Compliance Register',
-      resource: 'LOLER Statutory Lift Thorough Examination Pass Certificate',
-      property: 'Stanhill Court',
-      ipAddress: '194.73.112.5',
-      location: 'Horley / Gatwick, UK',
-      status: 'success',
-      details: 'Uploaded certified LOLER inspection documentation issued by Zurich Municipal Engineering.',
-    },
-    {
-      id: `AUD-INIT-005`,
-      timestamp: formatDateTime(minutesAgo(220)),
-      relativeTime: '3h ago',
-      actorName: 'Alexander Vance',
-      actorEmail: 'superadmin@samkocentral.com',
-      actorInitials: 'AV',
-      roleLevel: 'L1',
-      action: 'UPDATE',
-      actionLabel: 'Security Boundary Verification',
-      category: 'SECURITY',
-      categoryLabel: 'Platform Security',
-      resource: 'Role Hierarchy & Access Controls',
-      property: 'All Properties (Portfolio)',
-      ipAddress: '86.154.21.90',
-      location: 'London, United Kingdom',
-      status: 'success',
-      details: 'Enforced read-only security sealing across all register tables for L4 Viewer accounts.',
-    },
-  ];
+// Zero dummy logs: platform starts in clean live operational state
+function getInitialRealLogs(): AuditLogEntry[] {
+  return [];
 }
 
 /**
@@ -229,13 +147,9 @@ export function getRealAuditLogs(currentUser?: any): AuditLogEntry[] {
     }
   }
 
+  // Zero dummy logs rule: If empty, remain clean live empty array []
   if (storedLogs.length === 0) {
-    storedLogs = getInitialRealLogs();
-    if (typeof window !== 'undefined') {
-      try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(storedLogs));
-      } catch {}
-    }
+    storedLogs = [];
   }
 
   // Update relative time dynamically
@@ -268,12 +182,101 @@ export function getRealAuditLogs(currentUser?: any): AuditLogEntry[] {
      activeUser?.name?.toLowerCase().includes('digital bot'))
   );
 
-  // Requirement: Digital Bot logs MUST be strictly hidden from all other users including the admin!
-  if (!isStrictDigitalBot) {
-    storedLogs = storedLogs.filter((log) => !isBotLog(log));
-  }
+  // Filter logs strictly through multi-tier role clearance and privacy boundaries
+  storedLogs = storedLogs.filter((log) => canUserViewAuditLog(activeUser, log));
 
   return storedLogs;
+}
+
+/**
+ * Evaluates whether a given user has clearance to view a specific audit log entry.
+ * Strictly prevents administrative actions, role impersonations, and higher-level
+ * audit events from leaking to lower roles (e.g. David Park L4, Sarah Chen L3, etc.).
+ */
+export function canUserViewAuditLog(user: any, log: AuditLogEntry): boolean {
+  if (!user) return false;
+
+  const role = user.roleLevel || 'L4';
+  const userEmail = (user.email || '').toLowerCase();
+  const logActorEmail = (log.actorEmail || '').toLowerCase();
+  const isSelf = Boolean(userEmail && logActorEmail === userEmail);
+
+  // 1. Digital Bot strict isolation: bot logs are visible ONLY to the actual bot session
+  if (isBotLog(log)) {
+    const isStrictBot = (
+      user.id === 'usr-bot-001' ||
+      userEmail === 'digitalbot@samkocentral.com' ||
+      (user.name || '').toLowerCase().includes('digital bot')
+    );
+    if (!isStrictBot) return false;
+  }
+
+  // 2. Sensitive Governance Sealing:
+  // - ROLE_SWITCH: Role impersonation / previewing another user's view (e.g. "Role Switched to Viewer (L4)")
+  // - SECURITY: Internal security audits, token verifications, boundary enforcement
+  // These are strictly confidential governance operations visible ONLY to authentic L1 Super Admin!
+  if (log.action === 'ROLE_SWITCH' || log.category === 'SECURITY') {
+    return role === 'L1';
+  }
+
+  // 3. Super Admin (L1) has full governance visibility across all legitimate records
+  if (role === 'L1') {
+    return true;
+  }
+
+  // 4. Sealing Super Admin (L1) actions from lower roles:
+  // Lower roles (L2, L3, L4) must NEVER see actions executed by Super Admin (L1)
+  // (e.g., Alexander Vance sessions, admin sign-outs, or admin edits to accounts).
+  if (log.roleLevel === 'L1' && !isSelf) {
+    return false;
+  }
+
+  // 5. Authentication (AUTH) Events (Login / Logout):
+  // Users below L1 can ONLY see their own login/logout history.
+  // David Park (L4) must never see Marcus Webb (L2) or Alexander Vance (L1) signing in or out.
+  if (log.category === 'AUTH') {
+    return isSelf;
+  }
+
+  // 6. User Management (USER_MANAGEMENT) Events:
+  // L3 (Uploader) and L4 (Viewer) must NEVER see user management logs (adding/deleting users, role changes).
+  if (log.category === 'USER_MANAGEMENT') {
+    if (role === 'L3' || role === 'L4') return false;
+    if (role === 'L2') {
+      return isPortalAllowed(user, log);
+    }
+  }
+
+  // 7. Property / Site Boundary Clearance:
+  // Standard operational logs (ASSET_REGISTER, COMPLIANCE, MAINTENANCE)
+  // must match the user's assigned properties if they are restricted.
+  return isPropertyAllowed(user, log.property);
+}
+
+export function isPropertyAllowed(user: any, logProperty?: string): boolean {
+  if (!logProperty || logProperty === 'All Properties (Portfolio)' || logProperty === 'Portfolio Asset') {
+    return true;
+  }
+  const assigned = user?.assignedProperties;
+  if (!assigned || !Array.isArray(assigned) || assigned.length === 0 || assigned.includes('all')) {
+    return true;
+  }
+  const cleanLogProp = logProperty.toLowerCase();
+  return assigned.some((p: string) => cleanLogProp.includes(p.toLowerCase()));
+}
+
+export function isPortalAllowed(user: any, log: AuditLogEntry): boolean {
+  const portal = user?.portal;
+  if (!portal || portal === 'both') return true;
+  const prop = (log.property || '').toLowerCase();
+  const details = (log.details || '').toLowerCase();
+  if (portal === 'propco' && (prop.includes('opco') || details.includes('opco portal'))) {
+    return false;
+  }
+  if (portal === 'opco' && (prop.includes('propco') || details.includes('propco portal'))) {
+    return false;
+  }
+  return true;
 }
 
 /**
@@ -392,4 +395,21 @@ export function exportAuditLogsToCSV(logs: AuditLogEntry[]) {
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
+}
+
+/**
+ * Hard reset: purges all stored audit logs from both localStorage and server,
+ * resetting the platform audit ledger to a pristine 100% clean live state.
+ */
+export function resetAuditLogs(): void {
+  if (typeof window !== 'undefined') {
+    try {
+      localStorage.removeItem(STORAGE_KEY);
+      localStorage.removeItem('samko_recent_logs');
+      localStorage.setItem(STORAGE_KEY, JSON.stringify([]));
+      window.dispatchEvent(new CustomEvent('samko:audit-logs-updated'));
+      window.dispatchEvent(new CustomEvent('samko:data-changed', { detail: { type: 'audit-log' } }));
+    } catch {}
+    fetch('/api/audit-logs', { method: 'DELETE' }).catch(() => {});
+  }
 }

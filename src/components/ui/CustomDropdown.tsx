@@ -360,7 +360,7 @@ export default function CustomDropdown({
   return (
     <div
       ref={containerRef}
-      className={`relative inline-block text-left ${className}`}
+      className={`relative inline-block text-left ${width === '100%' ? 'w-full block' : ''} ${className}`}
       style={{ width: width ? width : undefined }}
     >
       {/* Trigger Button */}
@@ -369,9 +369,13 @@ export default function CustomDropdown({
         disabled={disabled}
         onClick={() => !disabled && setIsOpen((prev) => !prev)}
         className={`group flex items-center justify-between gap-2 rounded-xl transition-all select-none outline-none ${
+          width === '100%' ? 'w-full' : ''
+        } ${
           disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:border-primary/40'
         }`}
         style={{
+          width: width === '100%' ? '100%' : undefined,
+          minHeight: '38px',
           background: variant === 'filter' ? 'var(--surface2)' : 'var(--surface)',
           color: isPlaceholder ? 'var(--text2)' : 'var(--foreground)',
           border: isOpen

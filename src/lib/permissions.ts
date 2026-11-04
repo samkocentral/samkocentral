@@ -189,6 +189,20 @@ export const ALL_SYSTEM_TABS: TabConfig[] = [
     description: 'Global organization preferences, email alerts, CMS customization, and audit retention',
     isSystem: true,
   },
+  {
+    id: 'approvals',
+    name: 'Approvals Register',
+    group: 'Administration',
+    path: '/approvals',
+    description: 'Review and approve newly submitted assets, documents and compliance items',
+  },
+  {
+    id: 'docs-upload',
+    name: 'Document Repository',
+    group: 'Governance & Legal',
+    path: '/document-repository',
+    description: 'Universal document repository, compliance certificates, warranties and O&M manual uploads',
+  },
 ];
 
 export type TabAccessMode = 'read' | 'write';
@@ -212,6 +226,12 @@ export const DEFAULT_L2_ADMIN_PERMISSIONS: UserTabPermissions = ALL_SYSTEM_TABS.
   (acc, tab) => {
     if (tab.id === 'settings') {
       acc[tab.id] = { enabled: true, accessLevel: 'read' };
+    } else if (tab.id === 'approvals') {
+      // Approvals tab is strictly restricted to Super Admin & Digital Bot (L1)
+      acc[tab.id] = { enabled: false, accessLevel: 'read' };
+    } else if (tab.id === 'docs-upload') {
+      // Docs Upload is accessible to PropCo / OpCo Admin (L2)
+      acc[tab.id] = { enabled: true, accessLevel: 'write' };
     } else {
       acc[tab.id] = { enabled: true, accessLevel: 'write' };
     }
@@ -222,8 +242,12 @@ export const DEFAULT_L2_ADMIN_PERMISSIONS: UserTabPermissions = ALL_SYSTEM_TABS.
 
 export const DEFAULT_L3_UPLOADER_PERMISSIONS: UserTabPermissions = ALL_SYSTEM_TABS.reduce(
   (acc, tab) => {
-    if (tab.id === 'users' || tab.id === 'settings') {
+    if (tab.id === 'users' || tab.id === 'settings' || tab.id === 'approvals') {
+      // Approvals, Users & Settings are hidden from L3 Uploader
       acc[tab.id] = { enabled: false, accessLevel: 'read' };
+    } else if (tab.id === 'docs-upload') {
+      // Docs Upload is accessible to L3 Uploader
+      acc[tab.id] = { enabled: true, accessLevel: 'write' };
     } else if (tab.group === 'Core & Portfolio' || tab.group === 'Asset Management' || tab.group === 'Maintenance') {
       acc[tab.id] = { enabled: true, accessLevel: 'write' };
     } else {
@@ -236,7 +260,8 @@ export const DEFAULT_L3_UPLOADER_PERMISSIONS: UserTabPermissions = ALL_SYSTEM_TA
 
 export const DEFAULT_L4_VIEWER_PERMISSIONS: UserTabPermissions = ALL_SYSTEM_TABS.reduce(
   (acc, tab) => {
-    if (tab.id === 'users' || tab.id === 'settings') {
+    if (tab.id === 'users' || tab.id === 'settings' || tab.id === 'approvals' || tab.id === 'docs-upload') {
+      // Approvals, Docs Upload, Users & Settings are hidden from L4 Viewer
       acc[tab.id] = { enabled: false, accessLevel: 'read' };
     } else {
       acc[tab.id] = { enabled: true, accessLevel: 'read' };
@@ -261,12 +286,22 @@ export function getAllRoleTabTemplates(): Record<string, UserTabPermissions> {
     const raw = localStorage.getItem(STORAGE_ROLE_TEMPLATES_KEY);
     if (raw) {
       const parsed = JSON.parse(raw);
-      return {
+      const res = {
         L1: { ...DEFAULT_L1_SUPER_ADMIN_PERMISSIONS, ...(parsed.L1 || {}) },
         L2: { ...DEFAULT_L2_ADMIN_PERMISSIONS, ...(parsed.L2 || {}) },
         L3: { ...DEFAULT_L3_UPLOADER_PERMISSIONS, ...(parsed.L3 || {}) },
         L4: { ...DEFAULT_L4_VIEWER_PERMISSIONS, ...(parsed.L4 || {}) },
       };
+      // Mandatory security constraints even if cached in localStorage
+      if (res.L2.approvals) res.L2.approvals.enabled = false;
+      if (res.L3.approvals) res.L3.approvals.enabled = false;
+      if (res.L4.approvals) res.L4.approvals.enabled = false;
+      if (res.L1.approvals) res.L1.approvals.enabled = true;
+      if (res.L1['docs-upload']) res.L1['docs-upload'].enabled = true;
+      if (res.L2['docs-upload']) res.L2['docs-upload'].enabled = true;
+      if (res.L3['docs-upload']) res.L3['docs-upload'].enabled = true;
+      if (res.L4['docs-upload']) res.L4['docs-upload'].enabled = false;
+      return res;
     }
   } catch (err) {
     console.warn('Failed to load role tab templates from localStorage:', err);
@@ -419,7 +454,7 @@ export const DEFAULT_TAB_SECTIONS: Record<string, TabSectionLocation> = {
   insurance: 'propco',
   contracts: 'propco',
   'contract-reports': 'propco',
-  documents: 'propco',
+  documents: 'bottom',
   'multi-site': 'propco',
   reports: 'both',
 
@@ -438,6 +473,8 @@ export const DEFAULT_TAB_SECTIONS: Record<string, TabSectionLocation> = {
   'qr-codes': 'opco',
 
   // Bottom / Common
+  approvals: 'bottom',
+  'docs-upload': 'bottom',
   'recent-logs': 'bottom',
   import: 'bottom',
   users: 'bottom',
@@ -490,6 +527,8 @@ export const TAB_ALIASES: Record<string, string[]> = {
   'task-module': ['tasks'],
   compliance: ['compliance-tracker'],
   'compliance-tracker': ['compliance'],
+  documents: ['docs-upload'],
+  'docs-upload': ['documents'],
 };
 
 /**

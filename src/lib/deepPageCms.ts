@@ -41,6 +41,7 @@ export interface DeepPageDropdown {
   id: string;
   label: string;
   options: string[];
+  deletedOptions?: string[];
 }
 
 export interface DeepPageSection {
@@ -272,6 +273,148 @@ export function getDynamicEnergyAccountsList(): Array<Record<string, any>> {
   }));
 }
 
+// ─── MASTER SYSTEM CATEGORIES & TYPES (UNIFIED ACROSS APPLICATION & CMS) ────
+export const DEFAULT_CONTRACT_CATEGORIES = [
+  'Lift Maintenance',
+  'Fire Alarm Maintenance',
+  'HVAC',
+  'Pest Control',
+  'Cleaning',
+  'Laundry',
+  'Waste Collection',
+  'Security',
+  'Landscaping',
+  'Catering Equipment',
+  'IT Support',
+  'Internet',
+  'Telephone',
+  'Utilities',
+  'Building Maintenance',
+  'Roofing',
+  'Plumbing',
+  'Electrical',
+  'Kitchen Equipment',
+  'Generator',
+  'Pest Inspection',
+  'Licensing',
+  'Professional Services',
+  'F&B Supply',
+  'HR & Payroll',
+  'Maintenance & Servicing',
+  'Waste & Cleaning',
+  'Housekeeping',
+];
+
+export const DEFAULT_INSURANCE_CATEGORIES = [
+  'Property & Buildings',
+  'Public Liability',
+  'Employers Liability',
+  'Business Interruption',
+  'Cyber & Data',
+  'Directors & Officers',
+  'Engineering & Machinery',
+  'Motor Fleet',
+  'Terrorism',
+  'Environmental',
+];
+
+export const DEFAULT_INSURANCE_TYPES = [
+  'Commercial Combined',
+  'Building Insurance',
+  'Contents Insurance',
+  'Public Liability',
+  'Employers Liability',
+  'Product Liability',
+  'Property All Risks',
+  'Fleet Policy',
+  'Cyber Insurance',
+  'Equipment Breakdown',
+  'Statutory Inspection',
+  'Business Interruption',
+];
+
+export const DEFAULT_MAINTENANCE_CATEGORIES = [
+  'HVAC',
+  'Fire & Life Safety',
+  'Electrical',
+  'Kitchen',
+  'Plumbing',
+  'Lifts',
+  'Building Fabric',
+  'Statutory Compliance',
+  'Security',
+  'Plant & Machinery',
+];
+
+export const DEFAULT_MAINTENANCE_TYPES = [
+  'Statutory',
+  'Preventive',
+  'Corrective',
+  'Inspection',
+  'Service',
+  'Emergency',
+];
+
+export const DEFAULT_UTILITY_CATEGORIES = [
+  'Half-Hourly (HH)',
+  'Non-Half-Hourly (NHH)',
+  'Commercial Standard',
+  'Pass-Through Tariff',
+  'Fixed Rate Tariff',
+  'Flexible Basket',
+  'Green Tariff',
+];
+
+export const DEFAULT_UTILITY_TYPES = [
+  'Electricity',
+  'Gas',
+  'Water',
+  'Broadband / Telecom',
+  'Waste Management',
+  'Renewable / Solar',
+];
+
+export const DEFAULT_DOCUMENT_CATEGORIES = [
+  'Architectural & O&M',
+  'Statutory Certificates',
+  'Insurance',
+  'Manuals & Warranties',
+  'Contracts',
+  'Fire Safety',
+  'Health & Safety',
+  'Food Hygiene',
+  'Water & Legionella',
+  'Electrical Safety',
+  'Gas Safety',
+  'Licensing',
+  'HR & Training',
+];
+
+export const DEFAULT_COMPLIANCE_CATEGORIES = [
+  'Fire Risk Assessment',
+  'Fire Alarm Certificate',
+  'Emergency Lighting',
+  'PAT Testing',
+  'Fixed Wire Testing',
+  'Gas Safety',
+  'Water Hygiene',
+  'Legionella',
+  'Lift Inspection',
+  'Pressure Systems',
+  'Kitchen Extraction',
+  'HVAC Certification',
+  'Asbestos Survey',
+  'Electrical Compliance',
+  'Health & Safety',
+  'Food Hygiene',
+  'Environmental',
+  'Insurance Compliance',
+  'Hotel Brand Standards',
+  'Local Authority Requirements',
+];
+
+export const DEFAULT_ASSET_CATEGORIES = ASSET_CATEGORIES.map((c) => c.name);
+
 // ─── SYSTEM DEFAULT DEEP PAGE CONFIGURATIONS ──────────────────────────────────
 
 export const DEFAULT_DEEP_CMS: DeepAppCMSStore = {
@@ -410,11 +553,12 @@ export const DEFAULT_DEEP_CMS: DeepAppCMSStore = {
       { id: 'asset-kpi-4', label: 'High Risk Flagged', value: '4 Critical Assets', subtitle: 'Urgent service inspection', color: '#f43f5e', enabled: true },
     ],
     dropdowns: [
-      { id: 'asset-cat', label: 'Asset Category', options: ['All Categories', 'HVAC & Air Conditioning', 'Electrical & Lighting', 'Plant Equipment & Boilers', 'Fire Safety & Alarms', 'Commercial Kitchen & Catering', 'Bathroom & Sanitaryware', 'Lifts & Escalators', 'IT & Telecoms'] },
-      { id: 'asset-hotel', label: 'Property / Hotel Site', options: ['All Hotels', 'Crowne Plaza Kingston-south', 'Stanhill Court', 'Hotel Hampton 1 & 2', 'Ravens Ait Island', 'River Club', 'Warren House', 'Gatwick Manor Hotel', 'Sharnbrook Hotel'] },
-      { id: 'asset-dept', label: 'Department', options: ['All Departments', 'Engineering & Facilities', 'Housekeeping', 'Food & Beverage', 'Front Office', 'Spa & Leisure', 'Security', 'Administration'] },
-      { id: 'asset-cond', label: 'Asset Condition', options: ['All Conditions', 'Excellent', 'Good', 'Fair', 'Poor', 'End of Life'] },
-      { id: 'asset-risk', label: 'Risk Rating', options: ['All Risk Levels', 'Low Risk', 'Medium Risk', 'High Risk', 'Urgent Statutory'] },
+      { id: 'asset-cat', label: 'Asset Category', options: DEFAULT_ASSET_CATEGORIES },
+      { id: 'category', label: 'Asset Category', options: DEFAULT_ASSET_CATEGORIES },
+      { id: 'asset-hotel', label: 'Property / Hotel Site', options: ['Crowne Plaza Kingston-south', 'Stanhill Court', 'Hotel Hampton 1 & 2', 'Ravens Ait Island', 'River Club', 'Warren House', 'Gatwick Manor Hotel', 'Sharnbrook Hotel'] },
+      { id: 'asset-dept', label: 'Department', options: ['Engineering & Facilities', 'Housekeeping', 'Food & Beverage', 'Front Office', 'Spa & Leisure', 'Security', 'Administration'] },
+      { id: 'asset-cond', label: 'Asset Condition', options: ['Excellent', 'Good', 'Fair', 'Poor', 'End of Life'] },
+      { id: 'asset-risk', label: 'Risk Rating', options: ['Low Risk', 'Medium Risk', 'High Risk', 'Urgent Statutory'] },
     ],
     tabFilters: [
       { id: 'fixed', label: 'Fixed Assets', count: ASSETS.filter((a) => isAssetFixed(a)).length },
@@ -485,7 +629,9 @@ export const DEFAULT_DEEP_CMS: DeepAppCMSStore = {
       { id: 'maint-kpi-4', label: 'Completed', value: `${MAINTENANCE_RECORDS.filter((m) => m.status === 'completed').length} Done`, subtitle: 'Servicing complete', color: '#3dd68c', enabled: true },
     ],
     dropdowns: [
-      { id: 'property', label: 'Filter by Property', options: ['All Properties', ...HOTELS.map((h) => h.name)] },
+      { id: 'category', label: 'All Categories', options: DEFAULT_MAINTENANCE_CATEGORIES },
+      { id: 'type', label: 'Maintenance Type', options: DEFAULT_MAINTENANCE_TYPES },
+      { id: 'property', label: 'Filter by Property', options: HOTELS.map((h) => h.name) },
     ],
     columns: [
       { id: 'asset', label: 'Asset Name', originalLabel: 'Asset', visible: true, order: 1 },
@@ -532,7 +678,7 @@ export const DEFAULT_DEEP_CMS: DeepAppCMSStore = {
     dropdowns: [
       { id: 'status', label: 'All Statuses', options: ['All Statuses', 'compliant', 'expiring-soon', 'overdue', 'pending'] },
       { id: 'property', label: 'All Properties', options: ['All Properties', ...HOTELS.map((h) => h.name)] },
-      { id: 'category', label: 'All Categories', options: ['All Categories', 'Fire Risk Assessment', 'Fire Alarm Certificate', 'Gas Safety', 'Legionella', 'PAT Testing', 'Fixed Wire Testing', 'Lift Inspection'] },
+      { id: 'category', label: 'All Categories', options: ['All Categories', ...DEFAULT_COMPLIANCE_CATEGORIES] },
     ],
     columns: [
       { id: 'id', label: 'Compliance ID', originalLabel: 'ID', visible: true, order: 1 },
@@ -576,9 +722,9 @@ export const DEFAULT_DEEP_CMS: DeepAppCMSStore = {
       { id: 'cont-kpi-5', label: 'Annual Value', value: '£1.18M', subtitle: 'Total committed portfolio spend', color: '#e8c97a', enabled: true },
     ],
     dropdowns: [
-      { id: 'status', label: 'All Statuses', options: ['All Statuses', 'active', 'expiring-soon', 'expired', 'pending', 'terminated'] },
-      { id: 'hotel', label: 'All Properties', options: ['All Properties', ...HOTELS.map((h) => h.name), 'Group / Portfolio-wide'] },
-      { id: 'category', label: 'All Categories', options: ['All Categories', 'Lift Maintenance', 'Fire Alarm Maintenance', 'HVAC', 'Pest Control', 'Cleaning', 'Laundry', 'Waste Collection', 'Security', 'IT Support', 'Utilities', 'Building Maintenance'] },
+      { id: 'status', label: 'All Statuses', options: ['active', 'expiring-soon', 'expired', 'pending', 'terminated'] },
+      { id: 'hotel', label: 'All Properties', options: [...HOTELS.map((h) => h.name), 'Group / Portfolio-wide'] },
+      { id: 'category', label: 'All Categories', options: DEFAULT_CONTRACT_CATEGORIES },
     ],
     columns: [
       { id: 'contractId', label: 'Contract ID', originalLabel: 'ID', visible: true, order: 1 },
@@ -624,8 +770,9 @@ export const DEFAULT_DEEP_CMS: DeepAppCMSStore = {
       { id: 'ins-kpi-5', label: 'Active Claims', value: '1 Claim', subtitle: 'Open & in-progress claims', color: '#a78bfa', enabled: true },
     ],
     dropdowns: [
-      { id: 'type', label: 'All Insurance Types', options: ['All Insurance Types', 'Building Insurance', 'Contents Insurance', 'Public Liability', 'Employers Liability', 'Product Liability', 'Cyber Insurance', 'Equipment Breakdown', 'Business Interruption'] },
-      { id: 'hotel', label: 'All Properties', options: ['All Properties', ...HOTELS.map((h) => h.name)] },
+      { id: 'category', label: 'All Categories', options: DEFAULT_INSURANCE_CATEGORIES },
+      { id: 'type', label: 'All Insurance Types', options: DEFAULT_INSURANCE_TYPES },
+      { id: 'hotel', label: 'All Properties', options: HOTELS.map((h) => h.name) },
     ],
     columns: [
       { id: 'policyNumber', label: 'Policy Number', originalLabel: 'Policy No.', visible: true, order: 1 },
@@ -667,8 +814,10 @@ export const DEFAULT_DEEP_CMS: DeepAppCMSStore = {
       { id: 'util-kpi-6', label: 'Annual Spend', value: '£279k', subtitle: 'Tracked utility costs', color: '#60a5fa', enabled: true },
     ],
     dropdowns: [
-      { id: 'property', label: 'Filter by Property', options: ['All Properties', 'Crowne Plaza Kingston', 'Warren House Hotel', 'Stanhill Court Hotel', 'The River Club', 'Hotel Hampton 1 & 2', 'Ravens Ait Island', 'Clapham Apartment', 'The Sharnbrook'] },
-      { id: 'status', label: 'Filter by Status', options: ['All Statuses', 'active', 'expiring', 'expired', 'incomplete'] },
+      { id: 'category', label: 'All Categories', options: DEFAULT_UTILITY_CATEGORIES },
+      { id: 'type', label: 'Utility Type', options: DEFAULT_UTILITY_TYPES },
+      { id: 'property', label: 'Filter by Property', options: ['Crowne Plaza Kingston', 'Warren House Hotel', 'Stanhill Court Hotel', 'The River Club', 'Hotel Hampton 1 & 2', 'Ravens Ait Island', 'Clapham Apartment', 'The Sharnbrook'] },
+      { id: 'status', label: 'Filter by Status', options: ['active', 'expiring', 'expired', 'incomplete'] },
     ],
     columns: [
       { id: 'property', label: 'Property / Site', originalLabel: 'Property', visible: true, order: 1 },
@@ -744,9 +893,9 @@ export const DEFAULT_DEEP_CMS: DeepAppCMSStore = {
       { id: 'doc-kpi-4', label: 'Compliant', value: '7 Valid', subtitle: 'Verified documents', color: '#3dd68c', enabled: true },
     ],
     dropdowns: [
-      { id: 'category', label: 'All Categories', options: ['All Categories', 'Architectural & O&M', 'Statutory Certificates', 'Insurance', 'Manuals & Warranties', 'Contracts'] },
-      { id: 'site', label: 'All Sites', options: ['All Sites', ...HOTELS.map((h) => h.name)] },
-      { id: 'status', label: 'All Statuses', options: ['All Statuses', 'critical', 'warning', 'ok'] },
+      { id: 'category', label: 'All Categories', options: DEFAULT_DOCUMENT_CATEGORIES },
+      { id: 'site', label: 'All Sites', options: HOTELS.map((h) => h.name) },
+      { id: 'status', label: 'All Statuses', options: ['critical', 'warning', 'ok'] },
     ],
     columns: [
       { id: 'name', label: 'Document Title', originalLabel: 'Name', visible: true, order: 1 },
@@ -1629,9 +1778,59 @@ export function getDeepCMSStore(): DeepAppCMSStore {
                 return existing ? { ...defKpi, ...existing } : defKpi;
               })
             : undefined,
-          dropdowns: Array.isArray(saved.dropdowns)
-            ? saved.dropdowns
-            : (def.dropdowns ? [...def.dropdowns] : []),
+          dropdowns: (() => {
+            const defDropdowns = def.dropdowns || [];
+            const savedDropdowns = Array.isArray(saved.dropdowns) ? saved.dropdowns : [];
+            const mergedDropdowns: DeepPageDropdown[] = [];
+
+            // 1. Process all default dropdowns
+            defDropdowns.forEach((dd) => {
+              const matchingSaved = savedDropdowns.find(
+                (sd) => sd.id === dd.id || (sd.id === 'asset-cat' && dd.id === 'category') || (sd.id === 'category' && dd.id === 'asset-cat')
+              );
+              const deleted = new Set((matchingSaved?.deletedOptions || []).map((o: string) => o.toLowerCase()));
+              const combinedOptions: string[] = [];
+              const seen = new Set<string>();
+
+              // If saved had options (like user-added 'jyothi'), keep them first
+              if (matchingSaved && Array.isArray(matchingSaved.options)) {
+                matchingSaved.options.forEach((opt: string) => {
+                  const clean = typeof opt === 'string' ? opt.trim() : String(opt).trim();
+                  const lower = clean.toLowerCase();
+                  if (clean && !lower.startsWith('all ') && lower !== 'all' && !deleted.has(lower) && !seen.has(lower)) {
+                    seen.add(lower);
+                    combinedOptions.push(clean);
+                  }
+                });
+              }
+
+              // Merge in default options if not deleted and not already present
+              dd.options.forEach((opt: string) => {
+                const clean = typeof opt === 'string' ? opt.trim() : String(opt).trim();
+                const lower = clean.toLowerCase();
+                if (clean && !lower.startsWith('all ') && lower !== 'all' && !deleted.has(lower) && !seen.has(lower)) {
+                  seen.add(lower);
+                  combinedOptions.push(clean);
+                }
+              });
+
+              mergedDropdowns.push({
+                id: dd.id,
+                label: matchingSaved?.label || dd.label,
+                options: combinedOptions,
+                deletedOptions: matchingSaved?.deletedOptions || [],
+              });
+            });
+
+            // 2. Include any additional custom dropdowns added in CMS
+            savedDropdowns.forEach((sd) => {
+              if (!mergedDropdowns.some((m) => m.id === sd.id || (m.id === 'asset-cat' && sd.id === 'category') || (m.id === 'category' && sd.id === 'asset-cat'))) {
+                mergedDropdowns.push(sd);
+              }
+            });
+
+            return mergedDropdowns;
+          })(),
           columns: Array.isArray(rawSavedColumns) && rawSavedColumns.length > 0
             ? (() => {
                 const savedCols: ColumnDefinition[] = rawSavedColumns.map((c: any, idx: number) => ({
@@ -1658,6 +1857,9 @@ export function getDeepCMSStore(): DeepAppCMSStore {
         };
       }
     });
+    if (store.recentlogs) {
+      store.recentlogs.title = 'Audit Logs';
+    }
     return store;
   } catch (err) {
     console.error('Error reading Deep CMS:', err);
@@ -2070,12 +2272,31 @@ export function addDropdownOption(
   const page = store[pageId];
   if (!page) return false;
   if (!page.dropdowns) page.dropdowns = [];
-  const d = page.dropdowns.find((item) => item.id === dropdownId);
-  if (!d) return false;
-  if (!d.options.includes(option)) {
-    d.options.push(option);
-    saveDeepCMSStore(store);
+  let d = page.dropdowns.find((item) => item.id === dropdownId);
+  if (!d && dropdownId === 'category') {
+    d = page.dropdowns.find((item) => item.id === 'asset-cat');
   }
+  if (!d) {
+    d = {
+      id: dropdownId,
+      label: dropdownId.charAt(0).toUpperCase() + dropdownId.slice(1),
+      options: [],
+      deletedOptions: [],
+    };
+    page.dropdowns.push(d);
+  }
+  const clean = option.trim();
+  if (!clean) return false;
+
+  // Unmark from deletedOptions if previously deleted
+  if (d.deletedOptions) {
+    d.deletedOptions = d.deletedOptions.filter((o) => o.toLowerCase() !== clean.toLowerCase());
+  }
+
+  if (!d.options.some((o) => o.toLowerCase() === clean.toLowerCase())) {
+    d.options.push(clean);
+  }
+  saveDeepCMSStore(store);
   return true;
 }
 
@@ -2087,9 +2308,49 @@ export function removeDropdownOption(
   const store = getDeepCMSStore();
   const page = store[pageId];
   if (!page || !page.dropdowns) return false;
-  const d = page.dropdowns.find((item) => item.id === dropdownId);
+  let d = page.dropdowns.find((item) => item.id === dropdownId);
+  if (!d && dropdownId === 'category') {
+    d = page.dropdowns.find((item) => item.id === 'asset-cat');
+  }
   if (!d) return false;
-  d.options.splice(optionIndex, 1);
+  if (optionIndex < 0 || optionIndex >= d.options.length) return false;
+
+  const [removed] = d.options.splice(optionIndex, 1);
+  if (removed) {
+    if (!d.deletedOptions) d.deletedOptions = [];
+    const lower = removed.toLowerCase();
+    if (!d.deletedOptions.some((o) => o.toLowerCase() === lower)) {
+      d.deletedOptions.push(removed);
+    }
+  }
+  saveDeepCMSStore(store);
+  return true;
+}
+
+export function removeDropdownOptionByName(
+  pageId: keyof DeepAppCMSStore,
+  dropdownId: string,
+  optionName: string
+): boolean {
+  const store = getDeepCMSStore();
+  const page = store[pageId];
+  if (!page || !page.dropdowns) return false;
+  let d = page.dropdowns.find((item) => item.id === dropdownId);
+  if (!d && dropdownId === 'category') {
+    d = page.dropdowns.find((item) => item.id === 'asset-cat');
+  }
+  if (!d) return false;
+
+  const clean = optionName.trim();
+  const lower = clean.toLowerCase();
+  const idx = d.options.findIndex((opt) => opt.trim().toLowerCase() === lower);
+  if (idx !== -1) {
+    d.options.splice(idx, 1);
+  }
+  if (!d.deletedOptions) d.deletedOptions = [];
+  if (!d.deletedOptions.some((o) => o.toLowerCase() === lower)) {
+    d.deletedOptions.push(clean);
+  }
   saveDeepCMSStore(store);
   return true;
 }

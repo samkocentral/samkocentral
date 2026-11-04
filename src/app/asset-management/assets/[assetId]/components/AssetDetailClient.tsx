@@ -307,7 +307,11 @@ export default function AssetDetailClient({ assetId }: { assetId: string }) {
       ]);
 
       if (assetRes.status === 'fulfilled' && assetRes.value.success && assetRes.value.data) {
-        setAsset(assetRes.value.data);
+        const item = assetRes.value.data;
+        if (item.approvalStatus === 'approved') {
+          item.status = 'active';
+        }
+        setAsset(item);
         if (typeof window !== 'undefined') {
           try {
             sessionStorage.setItem(`samko_asset_${assetId}`, JSON.stringify(assetRes.value.data));
@@ -382,7 +386,8 @@ export default function AssetDetailClient({ assetId }: { assetId: string }) {
 
   // Handle status update dynamically
   const handleStatusChange = async (newStatus: string) => {
-    const updated = { ...asset, status: newStatus as any };
+    const approvalStatus = newStatus === 'active' ? 'approved' : newStatus === 'under-maintenance' ? 'hold' : (asset as any).approvalStatus || 'approved';
+    const updated = { ...asset, status: newStatus as any, approvalStatus };
     setAsset(updated);
     setAuditEvents((prev) => [
       {
@@ -407,7 +412,7 @@ export default function AssetDetailClient({ assetId }: { assetId: string }) {
     });
 
     try {
-      await api.assets.update(asset.id, { status: newStatus });
+      await api.assets.update(asset.id, { status: newStatus, approvalStatus });
     } catch (err) {
       console.error('Failed to sync asset status:', err);
       toast.error('Failed to update status');

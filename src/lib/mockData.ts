@@ -34,6 +34,10 @@ export interface Document {
   uploaded: string;
   uploadedBy: string;
   version: string;
+  fileUrl?: string;
+  fileName?: string;
+  fileType?: string;
+  notes?: string;
 }
 
 export interface ComplianceItem {

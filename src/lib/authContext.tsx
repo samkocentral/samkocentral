@@ -478,6 +478,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Tab permissions helpers
   const isTabEnabled = useCallback(
     (tabId: string): boolean => {
+      const isSuperAdminOrBot =
+        user.roleLevel === 'L1' ||
+        user.id === 'usr-bot-001' ||
+        user.name?.toLowerCase().includes('digital bot');
+
+      // Approvals tab is strictly restricted to Super Admin (L1) and Digital Bot
+      if (tabId === 'approvals') {
+        return isSuperAdminOrBot;
+      }
+
+      // Docs Upload is accessible to Super Admin, Digital Bot, PropCo Admin, OpCo Admin, Uploader. Hidden for L4 Viewer.
+      if (tabId === 'docs-upload') {
+        return user.roleLevel !== 'L4';
+      }
+
       if (user.roleLevel === 'L1') return true;
       const perms = user.tabPermissions || getDefaultTabPermissionsForRole(user.roleLevel);
       if (perms[tabId] !== undefined) return perms[tabId].enabled;
@@ -505,6 +520,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const getTabAccess = useCallback(
     (tabId: string): 'read' | 'write' | 'none' => {
+      const isSuperAdminOrBot =
+        user.roleLevel === 'L1' ||
+        user.id === 'usr-bot-001' ||
+        user.name?.toLowerCase().includes('digital bot');
+
+      if (tabId === 'approvals') {
+        return isSuperAdminOrBot ? 'write' : 'none';
+      }
+      if (tabId === 'docs-upload') {
+        return user.roleLevel !== 'L4' ? 'write' : 'none';
+      }
+
       if (user.roleLevel === 'L1') return 'write';
       if (!isTabEnabled(tabId)) return 'none';
       const perms = user.tabPermissions || getDefaultTabPermissionsForRole(user.roleLevel);

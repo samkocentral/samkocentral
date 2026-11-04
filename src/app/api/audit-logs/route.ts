@@ -75,3 +75,8 @@ export async function POST(req: Request) {
   }
 }
 
+
+export async function DELETE() {
+  saveLogsToDisk([]);
+  return NextResponse.json({ success: true, message: 'All audit logs reset to clean live state.' });
+}

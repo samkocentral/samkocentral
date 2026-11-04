@@ -1,1233 +1,1426 @@
-'use client';
-
-import React, { useState, useMemo, useEffect, useCallback } from 'react';
-import { useSearchParams, useRouter } from 'next/navigation';
-import { Wrench, AlertTriangle, Clock, CheckCircle2, Calendar, Search, ChevronDown, Loader2, Plus, X, Building2, Edit2, Trash2, Eye } from 'lucide-react';
-import { MAINTENANCE_RECORDS, HOTELS, ASSETS, type MaintenanceRecord, type Hotel } from '@/lib/assetData';
-import { api } from '@/lib/api';
-import { useAuth } from '@/lib/authContext';
-import { toast } from 'sonner';
-import Icon from '@/components/ui/AppIcon';
-import CustomDropdown from '@/components/ui/CustomDropdown';
-import StatusDropdown from '@/components/ui/StatusDropdown';
-import { useDeepPageCms } from '@/lib/deepPageCms';
-import PageCMSEditButton from '@/components/cms/PageCMSEditButton';
-import LoadingPagination from '@/components/ui/LoadingPagination';
-import { useLoadingPagination } from '@/hooks/useLoadingPagination';
-
-type TabId = 'all' | 'scheduled' | 'due-today' | 'overdue' | 'completed';
-
-const STATUS_STYLES: Record<string, { bg: string; color: string; label: string }> = {
-  overdue: { bg: 'rgba(244,63,94,0.12)', color: '#f43f5e', label: 'Overdue' },
-  'due-today': { bg: 'rgba(245,158,11,0.12)', color: '#f59e0b', label: 'Due Today' },
-  scheduled: { bg: 'rgba(96,165,250,0.12)', color: '#60a5fa', label: 'Scheduled' },
-  completed: { bg: 'rgba(61,214,140,0.12)', color: '#3dd68c', label: 'Completed' },
-  'in-progress': { bg: 'rgba(167,139,250,0.12)', color: '#a78bfa', label: 'In Progress' },
-};
-
-const FREQ_STYLES: Record<string, string> = {
-  monthly: '#f43f5e',
-  quarterly: '#f59e0b',
-  '6-monthly': '#60a5fa',
-  yearly: '#3dd68c',
-  custom: '#a78bfa',
-};
-
-function StatCard({
-  label,
-  value,
-  color,
-  icon: IconComponent,
-  isActive,
-  onClick,
-}: {
-  label: string;
-  value: number;
-  color: string;
-  icon: React.ElementType;
-  isActive?: boolean;
-  onClick?: () => void;
-}) {
-  return (
-    <div
-      onClick={onClick}
-      className={`rounded-xl border p-4 relative overflow-hidden transition-all duration-150 ${onClick ? 'cursor-pointer hover:border-border-strong hover:scale-[1.01]' : ''}`}
-      style={{
-        background: isActive ? `${color}18` : 'var(--surface)',
-        borderColor: isActive ? color : 'var(--border)',
-        boxShadow: isActive ? `0 0 14px ${color}22` : 'none',
-      }}
-    >
-      <div className="absolute top-0 left-0 right-0 h-0.5" style={{ background: color }} />
-      <div className="flex items-center justify-between mb-2">
-        <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: `${color}18` }}>
-          <IconComponent size={15} style={{ color }} />
-        </div>
-        {isActive && (
-          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider" style={{ background: `${color}25`, color }}>
-            Active
-          </span>
-        )}
-      </div>
-      <div className="font-head text-2xl font-extrabold" style={{ color }}>{value}</div>
-      <div className="text-xs text-muted-foreground mt-0.5 font-medium">{label}</div>
-    </div>
-  );
-}
-
-export default function MaintenanceClient() {
-  const { isViewer, canEdit, canDelete } = useAuth();
-  const {
-    title: cmsTitle,
-    subtitle: cmsSubtitle,
-    searchPlaceholder: cmsSearchPlaceholder,
-    primaryActionLabel: cmsPrimaryActionLabel,
-    columns: cmsColumns,
-    items: cmsItems,
-  } = useDeepPageCms('maintenance');
-
-  const activeColumns = useMemo(() => {
-    if (cmsColumns && cmsColumns.length > 0) {
-      return [...cmsColumns].sort((a, b) => a.order - b.order).filter((c) => c.visible !== false);
-    }
-    return [
-      { id: 'asset', label: 'Asset Name', visible: true, order: 1 },
-      { id: 'property', label: 'Property Site', visible: true, order: 2 },
-      { id: 'type', label: 'Service Type', visible: true, order: 3 },
-      { id: 'frequency', label: 'Frequency', visible: true, order: 4 },
-      { id: 'scheduledDate', label: 'Scheduled Date', visible: true, order: 5 },
-      { id: 'assignedTo', label: 'Assigned To', visible: true, order: 6 },
-      { id: 'status', label: 'Status', visible: true, order: 7 },
-      { id: 'nextDueDate', label: 'Next Due Date', visible: true, order: 8 },
-      { id: 'actions', label: 'Actions', visible: true, order: 9 },
-    ];
-  }, [cmsColumns]);
-
-  const customColumns = useMemo(() => {
-    const standardKeys = new Set(['asset', 'property', 'type', 'frequency', 'scheduleddate', 'assignedto', 'status', 'nextduedate', 'actions']);
-    return (cmsColumns || []).filter((c) => !standardKeys.has(c.id.toLowerCase()));
-  }, [cmsColumns]);
-
-  const searchParams = useSearchParams();
-  const router = useRouter();
-
-  const filterParam = searchParams?.get('filter') as TabId | null;
-  const initialTab: TabId = filterParam && ['all', 'scheduled', 'due-today', 'overdue', 'completed'].includes(filterParam)
-    ? filterParam
-    : (searchParams?.has('filter') ? 'all' : 'all');
-
-  const [records, setRecords] = useState<MaintenanceRecord[]>(() => {
-    if (typeof window !== 'undefined') {
-      try {
-        const cached = sessionStorage.getItem('samko_cache_maintenance');
-        if (cached) {
-          const parsed = JSON.parse(cached);
-          if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-        }
-      } catch {}
-    }
-    if (cmsItems && cmsItems.length > 0) return cmsItems as any;
-    return MAINTENANCE_RECORDS;
-  });
-
-  useEffect(() => {
-    if (cmsItems && cmsItems.length > 0) {
-      setRecords(cmsItems as any);
-    }
-  }, [cmsItems]);
-  const [properties, setProperties] = useState<Hotel[]>(HOTELS);
-  const [liveAssets, setLiveAssets] = useState<any[]>(ASSETS);
-  const [activeTab, setActiveTab] = useState<TabId>(initialTab);
-
-  useEffect(() => {
-    const f = searchParams?.get('filter') as TabId | null;
-    if (f && ['all', 'scheduled', 'due-today', 'overdue', 'completed'].includes(f)) {
-      setActiveTab(f);
-    } else if (!f) {
-      setActiveTab('all');
-    }
-  }, [searchParams]);
-
-  const handleTabChange = (tabId: TabId) => {
-    setActiveTab(tabId);
-    const url = tabId === 'all'
-      ? '/asset-management/maintenance'
-      : `/asset-management/maintenance?filter=${tabId}`;
-    router.push(url, { scroll: false });
-  };
-  const [search, setSearch] = useState('');
-  const [propertyFilter, setPropertyFilter] = useState<string[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [updatingId, setUpdatingId] = useState<string | null>(null);
-  const [showAddModal, setShowAddModal] = useState(false);
-  const [savingNew, setSavingNew] = useState(false);
-
-  const [showEditModal, setShowEditModal] = useState(false);
-  const [viewingRecord, setViewingRecord] = useState<any | null>(null);
-  const [editingRecord, setEditingRecord] = useState<MaintenanceRecord | null>(null);
-  const [savingEdit, setSavingEdit] = useState(false);
-  const [recordToDelete, setRecordToDelete] = useState<MaintenanceRecord | null>(null);
-  const [deletingRecord, setDeletingRecord] = useState(false);
-
-  const [addForm, setAddForm] = useState({
-    assetId: ASSETS[0]?.id || 'AST-001',
-    assetName: ASSETS[0]?.name || 'Daikin AC Unit',
-    hotelId: ASSETS[0]?.hotelId || 'h-01',
-    hotelName: HOTELS[0]?.name || 'Crowne Plaza Kingston-south',
-    type: 'Preventive Maintenance Inspection',
-    frequency: 'quarterly' as MaintenanceRecord['frequency'],
-    scheduledDate: new Date().toISOString().slice(0, 10),
-    nextDueDate: new Date(Date.now() + 90 * 86400000).toISOString().slice(0, 10),
-    assignedTo: 'Marcus Webb',
-    status: 'scheduled' as MaintenanceRecord['status'],
-    notes: '',
-  });
-
-  const fetchRecords = useCallback(async () => {
-    try {
-      setLoading(true);
-      const [mRes, pRes, aRes] = await Promise.allSettled([
-        api.maintenance.getAll(),
-        api.properties.getAll(),
-        api.assets.getAll(),
-      ]);
-
-      if (mRes.status === 'fulfilled' && mRes.value.success && mRes.value.data && mRes.value.data.length > 0) {
-        setRecords(mRes.value.data);
-        try {
-          sessionStorage.setItem('samko_cache_maintenance', JSON.stringify(mRes.value.data));
-        } catch {}
-      }
-      if (pRes.status === 'fulfilled' && pRes.value.success && pRes.value.data && pRes.value.data.length > 0) {
-        setProperties(pRes.value.data);
-      }
-      if (aRes.status === 'fulfilled' && aRes.value.success && aRes.value.data && aRes.value.data.length > 0) {
-        setLiveAssets(aRes.value.data);
-      }
-    } catch (err) {
-      console.warn('Using local fallback maintenance data:', err);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchRecords();
-    const handleDataChanged = () => {
-      fetchRecords();
-    };
-    window.addEventListener('samko:data-changed', handleDataChanged);
-    return () => window.removeEventListener('samko:data-changed', handleDataChanged);
-  }, [fetchRecords]);
-
-  const counts = useMemo(() => ({
-    all: records.length,
-    scheduled: records.filter((m) => m.status === 'scheduled').length,
-    'due-today': records.filter((m) => m.status === 'due-today').length,
-    overdue: records.filter((m) => m.status === 'overdue').length,
-    completed: records.filter((m) => m.status === 'completed').length,
-  }), [records]);
-
-  const filtered = useMemo(() => {
-    return records.filter((m) => {
-      const matchTab = activeTab === 'all' || m.status === activeTab;
-      const hotelOrProp = (m.hotelName || (m as any).propertyName || '').toLowerCase();
-      const matchSearch =
-        !search ||
-        m.assetName.toLowerCase().includes(search.toLowerCase()) ||
-        m.type.toLowerCase().includes(search.toLowerCase()) ||
-        hotelOrProp.includes(search.toLowerCase());
-      const matchHotel =
-        propertyFilter.length === 0 ||
-        propertyFilter.includes(m.hotelId) ||
-        propertyFilter.includes((m as any).propertyId);
-      return matchTab && matchSearch && matchHotel;
-    });
-  }, [records, activeTab, search, propertyFilter]);
-
-  const {
-    currentPage,
-    pageSize,
-    totalRecords,
-    paginatedItems: paginatedRecords,
-    isPageLoading,
-    changePage,
-    changePageSize,
-  } = useLoadingPagination(filtered, 10);
-
-  const handleStatusChange = async (id: string, newStatus: string) => {
-    setUpdatingId(id);
-    const completedDate = newStatus === 'completed' ? new Date().toISOString().split('T')[0] : undefined;
-
-    // Optimistically update
-    setRecords((prev) =>
-      prev.map((r) => {
-        if (r.id === id) {
-          return {
-            ...r,
-            status: newStatus as any,
-            ...(completedDate ? { completedDate } : {}),
-          };
-        }
-        return r;
-      })
-    );
-
-    // Notify listeners across app (Sidebar badges, Properties stats)
-    if (typeof window !== 'undefined') {
-      window.dispatchEvent(
-        new CustomEvent('samko:data-changed', {
-          detail: { type: 'maintenance', id, status: newStatus },
-        })
-      );
-    }
-
-    const statusLabel = (newStatus || 'completed').replace('-', ' ').toUpperCase();
-    toast.success('Maintenance Status Updated', {
-      description: `Task marked as ${statusLabel}`,
-    });
-
-    try {
-      await api.maintenance.update(id, {
-        status: newStatus,
-        ...(completedDate ? { completedDate } : {}),
-      });
-    } catch (err: any) {
-      console.error('Failed to sync status to server:', err);
-      toast.error('Failed to update maintenance status', { description: err?.message || 'Server error' });
-    } finally {
-      setUpdatingId(null);
-    }
-  };
-
-  const handleSelectAsset = (assetId: string) => {
-    const asset = liveAssets.find((a) => (a.id || a.assetId) === assetId);
-    if (asset) {
-      setAddForm((prev) => ({
-        ...prev,
-        assetId: asset.id || asset.assetId,
-        assetName: asset.name,
-        hotelId: asset.hotelId || 'h-01',
-        hotelName: asset.hotelName || asset.property || 'Crowne Plaza Kingston-south',
-      }));
-    }
-  };
-
-  const handleAddSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setSavingNew(true);
-    const newId = `maint-${Date.now()}`;
-    const newRecord: MaintenanceRecord = {
-      ...addForm,
-      id: newId,
-    };
-
-    setRecords((prev) => [newRecord, ...prev]);
-    setShowAddModal(false);
-
-    toast.success('Maintenance logged & scheduled', {
-      description: `${newRecord.type} for ${newRecord.assetName}`,
-    });
-
-    if (typeof window !== 'undefined') {
-      window.dispatchEvent(
-        new CustomEvent('samko:data-changed', {
-          detail: { type: 'maintenance', id: newId },
-        })
-      );
-    }
-
-    try {
-      await api.maintenance.create(newRecord);
-    } catch (err: any) {
-      console.warn('Failed to persist maintenance to Firestore:', err);
-    } finally {
-      setSavingNew(false);
-    }
-  };
-
-  const handleOpenEdit = (m: MaintenanceRecord) => {
-    setEditingRecord({ ...m });
-    setShowEditModal(true);
-  };
-
-  const handleSaveEdit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!editingRecord) return;
-    setSavingEdit(true);
-    try {
-      const updated = { ...editingRecord };
-      setRecords((prev) => prev.map((r) => (r.id === updated.id ? updated : r)));
-      setShowEditModal(false);
-      toast.success('Maintenance record updated', { description: `${updated.type} for ${updated.assetName}` });
-      if (typeof window !== 'undefined') {
-        window.dispatchEvent(new CustomEvent('samko:data-changed', { detail: { type: 'maintenance', id: updated.id } }));
-      }
-      await api.maintenance.update(updated.id, updated);
-    } catch (err: any) {
-      toast.error('Failed to update maintenance record');
-    } finally {
-      setSavingEdit(false);
-    }
-  };
-
-  const handleDelete = async () => {
-    if (!recordToDelete) return;
-    const id = recordToDelete.id;
-    setDeletingRecord(true);
-    try {
-      setRecords((prev) => prev.filter((r) => r.id !== id));
-      toast.success('Maintenance record deleted', { description: `${recordToDelete.type} removed` });
-      if (typeof window !== 'undefined') {
-        window.dispatchEvent(new CustomEvent('samko:data-changed', { detail: { type: 'maintenance', id } }));
-      }
-      await api.maintenance.delete(id);
-    } catch (err: any) {
-      toast.error('Failed to delete maintenance record');
-    } finally {
-      setDeletingRecord(false);
-      setRecordToDelete(null);
-    }
-  };
-
-  const tabs: { id: TabId; label: string; icon: React.ElementType; color: string }[] = [
-    { id: 'all', label: 'All', icon: Wrench, color: '#60a5fa' },
-    { id: 'scheduled', label: 'Scheduled', icon: Calendar, color: '#60a5fa' },
-    { id: 'due-today', label: 'Due Today', icon: Clock, color: '#f59e0b' },
-    { id: 'overdue', label: 'Overdue', icon: AlertTriangle, color: '#f43f5e' },
-    { id: 'completed', label: 'Completed', icon: CheckCircle2, color: '#3dd68c' },
-  ];
-
-  return (
-    <div className="flex-1 min-h-0 flex flex-col h-full overflow-hidden">
-      {/* Topbar */}
-      <div className="flex items-center justify-between px-6 py-4 border-b border-border flex-shrink-0" style={{ background: 'var(--surface)' }}>
-        <div>
-          <div className="flex items-center gap-2">
-            <h1 className="font-head text-xl font-bold">{cmsTitle || 'Maintenance'}</h1>
-            {loading && <Loader2 size={14} className="animate-spin text-muted-foreground" />}
-          </div>
-          <p className="text-xs text-muted-foreground mt-0.5">{cmsSubtitle || 'Preventive Maintenance Management'}</p>
-        </div>
-        <div className="flex items-center gap-3">
-          {counts.overdue > 0 && (
-            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold" style={{ background: 'rgba(244,63,94,0.12)', color: '#f43f5e' }}>
-              <AlertTriangle size={13} />
-              {counts.overdue} Overdue
-            </span>
-          )}
-
-          <PageCMSEditButton pageId="maintenance" pageName="Planned Maintenance (PPM)" />
-
-          {canEdit && (
-            <button
-              onClick={() => setShowAddModal(true)}
-              className="flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-semibold transition-transform active:scale-95"
-              style={{ background: 'var(--primary)', color: '#000' }}
-            >
-              <Plus size={14} /> {(cmsPrimaryActionLabel || 'Schedule Maintenance').replace(/^[\+\s]+/, '').trim()}
-            </button>
-          )}
-          {isViewer && (
-            <span
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold"
-              style={{ background: 'rgba(148,163,184,0.12)', color: '#94a3b8', border: '1px solid rgba(148,163,184,0.25)' }}
-            >
-              L4 · Read-Only Access
-            </span>
-          )}
-        </div>
-      </div>
-
-      {/* KPI Row */}
-      <div className="grid grid-cols-4 gap-4 px-6 py-4 border-b border-border flex-shrink-0" style={{ background: 'var(--background)' }}>
-        <StatCard
-          label="Scheduled"
-          value={counts.scheduled}
-          color="#60a5fa"
-          icon={Calendar}
-          isActive={activeTab === 'scheduled'}
-          onClick={() => handleTabChange('scheduled')}
-        />
-        <StatCard
-          label="Due Today"
-          value={counts['due-today']}
-          color="#f59e0b"
-          icon={Clock}
-          isActive={activeTab === 'due-today'}
-          onClick={() => handleTabChange('due-today')}
-        />
-        <StatCard
-          label="Overdue"
-          value={counts.overdue}
-          color="#f43f5e"
-          icon={AlertTriangle}
-          isActive={activeTab === 'overdue'}
-          onClick={() => handleTabChange('overdue')}
-        />
-        <StatCard
-          label="Completed"
-          value={counts.completed}
-          color="#3dd68c"
-          icon={CheckCircle2}
-          isActive={activeTab === 'completed'}
-          onClick={() => handleTabChange('completed')}
-        />
-      </div>
-
-      {/* Tabs */}
-      <div className="flex items-center gap-1 px-6 pt-3 border-b border-border flex-shrink-0" style={{ background: 'var(--surface)' }}>
-        {tabs.map((tab) => (
-          <button
-            key={tab.id}
-            onClick={() => handleTabChange(tab.id)}
-            className="flex items-center gap-2 px-4 py-2.5 text-sm font-semibold border-b-2 transition-colors cursor-pointer"
-            style={{
-              borderColor: activeTab === tab.id ? tab.color : 'transparent',
-              color: activeTab === tab.id ? tab.color : 'var(--text2)',
-              background: 'transparent',
-            }}
-          >
-            <tab.icon size={14} />
-            {tab.label}
-            <span className="px-1.5 py-0.5 rounded text-xs font-bold" style={{ background: 'var(--surface2)', color: 'var(--text2)' }}>
-              {counts[tab.id]}
-            </span>
-          </button>
-        ))}
-      </div>
-
-      {/* Filters */}
-      <div className="flex items-center gap-3 px-6 py-2.5 border-b border-border flex-shrink-0" style={{ background: 'var(--surface)' }}>
-        <div className="flex items-center gap-2 px-3 py-2 rounded-lg border border-border flex-1 max-w-sm" style={{ background: 'var(--surface2)' }}>
-          <Search size={14} className="text-muted-foreground" />
-          <input
-            className="bg-transparent text-sm outline-none flex-1"
-            placeholder="Search asset, type, property…"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            style={{ color: 'var(--foreground)' }}
-          />
-        </div>
-        <CustomDropdown
-          label="All Properties"
-          value={propertyFilter}
-          options={properties.map((h) => ({ value: h.id, label: h.name }))}
-          onChange={setPropertyFilter}
-          multiple
-        />
-      </div>
-
-      {/* Table */}
-      <div className="flex-1 overflow-x-auto overflow-y-auto">
-        <table className="w-full min-w-[880px]">
-          <thead className="sticky top-0 z-10" style={{ background: 'var(--surface)' }}>
-            <tr>
-              {activeColumns.map((col) => (
-                <th
-                  key={col.id}
-                  className={`text-left text-xs font-bold uppercase tracking-wide text-muted-foreground px-3.5 py-3 border-b border-border whitespace-nowrap ${
-                    col.id.toLowerCase() === 'actions' ? 'text-right' : ''
-                  }`}
-                >
-                  {col.label}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {filtered.length === 0 ? (
-              <tr>
-                <td colSpan={activeColumns.length || 9} className="text-center py-16 text-muted-foreground text-sm">
-                  No maintenance records found.
-                </td>
-              </tr>
-            ) : (
-              paginatedRecords.map((m) => {
-                const s = STATUS_STYLES[m.status] || STATUS_STYLES.scheduled;
-                const propDisplayName = m.hotelName || (m as any).property || (m as any).propertyName || 'Property';
-                const isItemUpdating = updatingId === m.id;
-
-                return (
-                  <tr
-                    key={m.id}
-                    className="border-b border-border transition-colors"
-                    onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = 'var(--surface2)'; }}
-                    onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
-                  >
-                    {activeColumns.map((col) => {
-                      const colKey = col.id.toLowerCase();
-                      if (colKey === 'asset') {
-                        return (
-                          <td key={col.id} className="px-3.5 py-2.5">
-                            <div className="text-sm font-medium">{m.assetName || (m as any).asset || '—'}</div>
-                            <div className="text-xs text-muted-foreground font-mono">{m.assetId || m.id}</div>
-                          </td>
-                        );
-                      }
-                      if (colKey === 'property') {
-                        return (
-                          <td key={col.id} className="px-3.5 py-2.5 text-xs text-muted-foreground max-w-36">
-                            <div className="truncate" title={propDisplayName}>{propDisplayName}</div>
-                          </td>
-                        );
-                      }
-                      if (colKey === 'type') {
-                        return (
-                          <td key={col.id} className="px-3.5 py-2.5 text-sm">
-                            {m.type || '—'}
-                          </td>
-                        );
-                      }
-                      if (colKey === 'frequency') {
-                        return (
-                          <td key={col.id} className="px-3.5 py-2.5">
-                            <span
-                              className="inline-block px-2 py-0.5 rounded text-xs font-semibold capitalize"
-                              style={{ background: `${FREQ_STYLES[m.frequency] || '#6b7280'}18`, color: FREQ_STYLES[m.frequency] || '#6b7280' }}
-                            >
-                              {m.frequency}
-                            </span>
-                          </td>
-                        );
-                      }
-                      if (colKey === 'scheduleddate') {
-                        return (
-                          <td key={col.id} className="px-3.5 py-2.5 text-xs text-muted-foreground whitespace-nowrap">
-                            {m.scheduledDate ? new Date(m.scheduledDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'}
-                          </td>
-                        );
-                      }
-                      if (colKey === 'assignedto') {
-                        return (
-                          <td key={col.id} className="px-3.5 py-2.5 text-sm">{m.assignedTo || 'Unassigned'}</td>
-                        );
-                      }
-                      if (colKey === 'status') {
-                        return (
-                          <td key={col.id} className="px-3.5 py-2.5" onClick={(e) => e.stopPropagation()}>
-                            <StatusDropdown
-                              value={m.status}
-                              disabled={isItemUpdating || isViewer || !canEdit}
-                              options={[
-                                { value: 'scheduled', label: 'Scheduled', color: '#60a5fa', bg: 'rgba(96,165,250,0.12)' },
-                                { value: 'due-today', label: 'Due Today', color: '#f59e0b', bg: 'rgba(245,158,11,0.12)' },
-                                { value: 'overdue', label: 'Overdue', color: '#f43f5e', bg: 'rgba(244,63,94,0.12)' },
-                                { value: 'in-progress', label: 'In Progress', color: '#a78bfa', bg: 'rgba(167,139,250,0.12)' },
-                                { value: 'completed', label: 'Completed', color: '#3dd68c', bg: 'rgba(61,214,140,0.12)' },
-                              ]}
-                              onChange={(val) => handleStatusChange(m.id, val)}
-                            />
-                          </td>
-                        );
-                      }
-                      if (colKey === 'nextduedate') {
-                        return (
-                          <td key={col.id} className="px-3.5 py-2.5 text-xs text-muted-foreground whitespace-nowrap">
-                            {m.nextDueDate ? new Date(m.nextDueDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'}
-                          </td>
-                        );
-                      }
-                      if (colKey === 'actions') {
-                        return (
-                          <td key={col.id} className="px-3.5 py-2.5 text-right" onClick={(e) => e.stopPropagation()}>
-                            <div className="flex items-center justify-end gap-1.5 whitespace-nowrap">
-                              <button
-                                onClick={() => setViewingRecord(m)}
-                                className="p-1.5 rounded-lg border border-border hover:bg-surface2 transition-colors cursor-pointer"
-                                style={{ color: 'var(--text2)' }}
-                                title="View Maintenance Details"
-                              >
-                                <Eye size={12} />
-                              </button>
-                              {!isViewer && canEdit && (
-                                <button
-                                  onClick={() => handleOpenEdit(m)}
-                                  className="p-1.5 rounded-lg border border-border hover:bg-surface2 text-muted-foreground hover:text-primary transition-colors cursor-pointer"
-                                  title="Edit Maintenance Record"
-                                >
-                                  <Edit2 size={12} />
-                                </button>
-                              )}
-                              {!isViewer && (canDelete ?? canEdit) && (
-                                <button
-                                  onClick={() => setRecordToDelete(m)}
-                                  className="p-1.5 rounded-lg border border-rose-500/20 hover:bg-rose-500/15 text-rose-400 transition-colors cursor-pointer"
-                                  title="Delete Maintenance Record"
-                                >
-                                  <Trash2 size={12} />
-                                </button>
-                              )}
-                            </div>
-                          </td>
-                        );
-                      }
-
-                      // Dynamic custom columns
-                      const val = (m as any)[col.id] ?? (m as any)[colKey];
-                      return (
-                        <td key={col.id} className="px-3.5 py-2.5 text-xs text-foreground whitespace-nowrap">
-                          {val !== undefined && val !== null && String(val).trim() !== '' ? String(val) : '—'}
-                        </td>
-                      );
-                    })}
-                  </tr>
-                );
-              })
-            )}
-          </tbody>
-        </table>
-      </div>
-
-      {/* Loading Pagination Bar */}
-      <LoadingPagination
-        currentPage={currentPage}
-        totalRecords={totalRecords}
-        pageSize={pageSize}
-        pageSizeOptions={[5, 10, 15, 20, 50]}
-        onPageChange={changePage}
-        onPageSizeChange={changePageSize}
-        isLoading={loading || isPageLoading}
-        recordName="maintenance tasks"
-        className="sticky bottom-0 z-20 flex-shrink-0"
-      />
-
-      {/* Schedule Maintenance Modal */}
-      {showAddModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(4px)' }}>
-          <div className="w-full max-w-xl rounded-2xl border border-border overflow-hidden shadow-2xl animate-in fade-in zoom-in-95 duration-200" style={{ background: 'var(--surface)' }}>
-            <div className="flex items-center justify-between px-6 py-4 border-b border-border" style={{ background: 'var(--surface2)' }}>
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'rgba(232,201,122,0.15)', color: 'var(--primary)' }}>
-                  <Wrench size={16} />
-                </div>
-                <div>
-                  <h3 className="font-head font-bold text-base text-foreground">Schedule Maintenance Record</h3>
-                  <p className="text-xs text-muted-foreground">Create a PPM or reactive service task for any asset</p>
-                </div>
-              </div>
-              <button
-                onClick={() => setShowAddModal(false)}
-                className="w-7 h-7 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-surface"
-              >
-                <X size={16} />
-              </button>
-            </div>
-
-            <form onSubmit={handleAddSubmit} className="p-6 space-y-4 max-h-[80vh] overflow-y-auto">
-              {/* Asset Selection */}
-              <div>
-                <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wide">
-                  Select Asset *
-                </label>
-                <select
-                  value={addForm.assetId}
-                  onChange={(e) => handleSelectAsset(e.target.value)}
-                  className="w-full px-3 py-2.5 rounded-lg border border-border text-xs outline-none cursor-pointer"
-                  style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
-                  required
-                >
-                  {liveAssets.map((a) => (
-                    <option key={a.id || a.assetId} value={a.id || a.assetId}>
-                      {a.assetId || a.id} — {a.name} ({a.hotelName || a.property || 'Property'})
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Maintenance Type & Property */}
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wide">
-                    Maintenance Type / Title *
-                  </label>
-                  <input
-                    type="text"
-                    value={addForm.type}
-                    onChange={(e) => setAddForm({ ...addForm, type: e.target.value })}
-                    placeholder="e.g. Quarterly Filter PPM"
-                    className="w-full px-3 py-2 rounded-lg border border-border text-xs outline-none"
-                    style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wide">
-                    Property
-                  </label>
-                  <select
-                    value={addForm.hotelName}
-                    onChange={(e) => {
-                      const p = properties.find((pr) => pr.name === e.target.value);
-                      setAddForm({ ...addForm, hotelName: e.target.value, hotelId: p ? p.id : 'h-01' });
-                    }}
-                    className="w-full px-3 py-2 rounded-lg border border-border text-xs outline-none"
-                    style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
-                  >
-                    {properties.map((p) => (
-                      <option key={p.id} value={p.name}>{p.name}</option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              {/* Frequency & Status */}
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wide">
-                    Frequency
-                  </label>
-                  <select
-                    value={addForm.frequency}
-                    onChange={(e) => setAddForm({ ...addForm, frequency: e.target.value as any })}
-                    className="w-full px-3 py-2 rounded-lg border border-border text-xs outline-none"
-                    style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
-                  >
-                    <option value="monthly">Monthly</option>
-                    <option value="quarterly">Quarterly</option>
-                    <option value="6-monthly">6-Monthly</option>
-                    <option value="yearly">Yearly</option>
-                    <option value="custom">Custom / Ad-hoc</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wide">
-                    Initial Status
-                  </label>
-                  <select
-                    value={addForm.status}
-                    onChange={(e) => setAddForm({ ...addForm, status: e.target.value as any })}
-                    className="w-full px-3 py-2 rounded-lg border border-border text-xs outline-none"
-                    style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
-                  >
-                    <option value="scheduled">Scheduled</option>
-                    <option value="due-today">Due Today</option>
-                    <option value="in-progress">In Progress</option>
-                    <option value="overdue">Overdue</option>
-                    <option value="completed">Completed</option>
-                  </select>
-                </div>
-              </div>
-
-              {/* Dates */}
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wide">
-                    Scheduled Date
-                  </label>
-                  <input
-                    type="date"
-                    value={addForm.scheduledDate}
-                    onChange={(e) => setAddForm({ ...addForm, scheduledDate: e.target.value })}
-                    className="w-full px-3 py-2 rounded-lg border border-border text-xs outline-none"
-                    style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wide">
-                    Next Due Date
-                  </label>
-                  <input
-                    type="date"
-                    value={addForm.nextDueDate}
-                    onChange={(e) => setAddForm({ ...addForm, nextDueDate: e.target.value })}
-                    className="w-full px-3 py-2 rounded-lg border border-border text-xs outline-none"
-                    style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
-                    required
-                  />
-                </div>
-              </div>
-
-              {/* Assigned To & Notes */}
-              <div>
-                <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wide">
-                  Assigned Engineer / Contractor
-                </label>
-                <input
-                  type="text"
-                  value={addForm.assignedTo}
-                  onChange={(e) => setAddForm({ ...addForm, assignedTo: e.target.value })}
-                  placeholder="e.g. Marcus Webb, Chubb Fire, Otis UK"
-                  className="w-full px-3 py-2 rounded-lg border border-border text-xs outline-none"
-                  style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
-                  required
-                />
-              </div>
-
-              {/* Dynamic Custom Columns */}
-              {customColumns.map((col) => (
-                <div key={col.id}>
-                  <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wide">
-                    {col.label}
-                  </label>
-                  <input
-                    type="text"
-                    value={(addForm as any)[col.id] || ''}
-                    onChange={(e) => setAddForm({ ...addForm, [col.id]: e.target.value })}
-                    placeholder={`Enter ${col.label}...`}
-                    className="w-full px-3 py-2 rounded-lg border border-border text-xs outline-none"
-                    style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
-                  />
-                </div>
-              ))}
-
-              <div>
-                <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wide">
-                  Work Notes / Scope of Service
-                </label>
-                <textarea
-                  value={addForm.notes}
-                  onChange={(e) => setAddForm({ ...addForm, notes: e.target.value })}
-                  rows={3}
-                  placeholder="Details of inspection, parts required, or vendor references…"
-                  className="w-full px-3 py-2 rounded-lg border border-border text-xs outline-none"
-                  style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
-                />
-              </div>
-
-              <div className="flex items-center justify-end gap-3 pt-3 border-t border-border">
-                <button
-                  type="button"
-                  onClick={() => setShowAddModal(false)}
-                  className="px-4 py-2 rounded-lg text-xs font-semibold border border-border"
-                  style={{ background: 'var(--surface2)', color: 'var(--text2)' }}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={savingNew}
-                  className="flex items-center gap-2 px-5 py-2 rounded-lg text-xs font-semibold"
-                  style={{ background: 'var(--primary)', color: '#000' }}
-                >
-                  {savingNew ? (
-                    <>
-                      <Loader2 size={13} className="animate-spin" /> Saving…
-                    </>
-                  ) : (
-                    <>
-                      <CheckCircle2 size={13} /> Save & Schedule
-                    </>
-                  )}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* View Maintenance Details Modal (Available to all roles including Viewers) */}
-      {viewingRecord && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.7)' }} onClick={() => setViewingRecord(null)}>
-          <div className="rounded-2xl border border-border w-full max-w-xl max-h-[85vh] overflow-auto" style={{ background: 'var(--surface)' }} onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between p-6 border-b border-border">
-              <div className="flex items-center gap-2.5">
-                <div className="p-2 rounded-xl bg-amber-400/10 text-amber-400">
-                  <Wrench size={18} />
-                </div>
-                <div>
-                  <h2 className="font-head font-bold text-lg">{viewingRecord.title || viewingRecord.task}</h2>
-                  <p className="text-xs text-muted-foreground">{viewingRecord.hotel || viewingRecord.site || 'Site'} · {viewingRecord.asset || 'General'}</p>
-                </div>
-              </div>
-              <button onClick={() => setViewingRecord(null)} className="text-muted-foreground hover:text-foreground text-xl font-bold px-2">×</button>
-            </div>
-            <div className="p-6 space-y-4">
-              <div className="grid grid-cols-2 gap-4 text-xs">
-                <div>
-                  <span className="text-muted-foreground block mb-1">Status</span>
-                  <span className="font-bold uppercase tracking-wider">{viewingRecord.status}</span>
-                </div>
-                <div>
-                  <span className="text-muted-foreground block mb-1">Frequency</span>
-                  <span className="font-semibold">{viewingRecord.frequency || 'Monthly'}</span>
-                </div>
-                <div>
-                  <span className="text-muted-foreground block mb-1">Last Completed</span>
-                  <span className="font-semibold">{viewingRecord.lastDate || viewingRecord.lastCompleted || '—'}</span>
-                </div>
-                <div>
-                  <span className="text-muted-foreground block mb-1">Next Due Date</span>
-                  <span className="font-semibold">{viewingRecord.nextDueDate || '—'}</span>
-                </div>
-                <div>
-                  <span className="text-muted-foreground block mb-1">Vendor / Contractor</span>
-                  <span className="font-semibold">{viewingRecord.vendor || 'Internal Engineering'}</span>
-                </div>
-                <div>
-                  <span className="text-muted-foreground block mb-1">Estimated Cost</span>
-                  <span className="font-semibold">£{viewingRecord.cost?.toLocaleString?.() || '0'}</span>
-                </div>
-              </div>
-              {viewingRecord.notes && (
-                <div className="pt-2 border-t border-border">
-                  <span className="text-xs text-muted-foreground block mb-1">Notes & Details</span>
-                  <p className="text-xs p-3 rounded-lg" style={{ background: 'var(--surface2)' }}>{viewingRecord.notes}</p>
-                </div>
-              )}
-            </div>
-            <div className="flex items-center justify-between p-6 pt-0 border-t border-border mt-4">
-              <div className="flex items-center gap-2">
-                {!isViewer && canEdit && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const rec = viewingRecord;
-                      setViewingRecord(null);
-                      handleOpenEdit(rec);
-                    }}
-                    className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-semibold border border-border hover:bg-surface2 text-foreground transition-colors"
-                    style={{ background: 'var(--surface2)' }}
-                  >
-                    <Edit2 size={13} /> Edit Record
-                  </button>
-                )}
-                {!isViewer && (canDelete ?? canEdit) && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const rec = viewingRecord;
-                      setViewingRecord(null);
-                      setRecordToDelete(rec);
-                    }}
-                    className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-semibold border border-rose-500/30 hover:bg-rose-500/15 text-rose-400 transition-colors"
-                  >
-                    <Trash2 size={13} /> Delete Record
-                  </button>
-                )}
-              </div>
-              <button onClick={() => setViewingRecord(null)} className="px-5 py-2 rounded-lg text-xs font-semibold" style={{ background: 'var(--primary)', color: '#000' }}>
-                Close
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Edit Maintenance Modal */}
-      {showEditModal && editingRecord && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(4px)' }}>
-          <div className="w-full max-w-xl rounded-2xl border border-border overflow-hidden shadow-2xl animate-in fade-in zoom-in-95 duration-200" style={{ background: 'var(--surface)' }}>
-            <div className="flex items-center justify-between px-6 py-4 border-b border-border" style={{ background: 'var(--surface2)' }}>
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'rgba(232,201,122,0.15)', color: 'var(--primary)' }}>
-                  <Edit2 size={16} />
-                </div>
-                <div>
-                  <h3 className="font-head font-bold text-base text-foreground">Edit Maintenance Record</h3>
-                  <p className="text-xs text-muted-foreground">{editingRecord.assetName} · Update record dynamically</p>
-                </div>
-              </div>
-              <button
-                onClick={() => setShowEditModal(false)}
-                className="w-7 h-7 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground"
-              >
-                <X size={16} />
-              </button>
-            </div>
-
-            <form onSubmit={handleSaveEdit} className="p-6 space-y-4 max-h-[80vh] overflow-y-auto">
-              <div className="grid grid-cols-2 gap-3">
-                <div className="col-span-2">
-                  <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wide">
-                    Maintenance Task / Service Name *
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={editingRecord.type}
-                    onChange={(e) => setEditingRecord({ ...editingRecord, type: e.target.value })}
-                    className="w-full px-3 py-2 rounded-lg border border-border text-xs outline-none"
-                    style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wide">
-                    Frequency
-                  </label>
-                  <select
-                    value={editingRecord.frequency}
-                    onChange={(e) => setEditingRecord({ ...editingRecord, frequency: e.target.value as any })}
-                    className="w-full px-3 py-2 rounded-lg border border-border text-xs outline-none"
-                    style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
-                  >
-                    <option value="monthly">Monthly</option>
-                    <option value="quarterly">Quarterly</option>
-                    <option value="6-monthly">6-Monthly</option>
-                    <option value="yearly">Yearly</option>
-                    <option value="custom">Custom</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wide">
-                    Status
-                  </label>
-                  <select
-                    value={editingRecord.status}
-                    onChange={(e) => setEditingRecord({ ...editingRecord, status: e.target.value as any })}
-                    className="w-full px-3 py-2 rounded-lg border border-border text-xs outline-none"
-                    style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
-                  >
-                    <option value="scheduled">Scheduled</option>
-                    <option value="due-today">Due Today</option>
-                    <option value="overdue">Overdue</option>
-                    <option value="in-progress">In Progress</option>
-                    <option value="completed">Completed</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wide">
-                    Scheduled Date
-                  </label>
-                  <input
-                    type="date"
-                    required
-                    value={editingRecord.scheduledDate}
-                    onChange={(e) => setEditingRecord({ ...editingRecord, scheduledDate: e.target.value })}
-                    className="w-full px-3 py-2 rounded-lg border border-border text-xs outline-none"
-                    style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wide">
-                    Next Due Date
-                  </label>
-                  <input
-                    type="date"
-                    required
-                    value={editingRecord.nextDueDate}
-                    onChange={(e) => setEditingRecord({ ...editingRecord, nextDueDate: e.target.value })}
-                    className="w-full px-3 py-2 rounded-lg border border-border text-xs outline-none"
-                    style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
-                  />
-                </div>
-
-                <div className="col-span-2">
-                  <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wide">
-                    Assigned Engineer / Contractor
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={editingRecord.assignedTo}
-                    onChange={(e) => setEditingRecord({ ...editingRecord, assignedTo: e.target.value })}
-                    className="w-full px-3 py-2 rounded-lg border border-border text-xs outline-none"
-                    style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
-                  />
-                </div>
-              </div>
-
-              {/* Dynamic Custom Columns */}
-              {customColumns.map((col) => (
-                <div key={col.id}>
-                  <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wide">
-                    {col.label}
-                  </label>
-                  <input
-                    type="text"
-                    value={(addForm as any)[col.id] || ''}
-                    onChange={(e) => setAddForm({ ...addForm, [col.id]: e.target.value })}
-                    placeholder={`Enter ${col.label}...`}
-                    className="w-full px-3 py-2 rounded-lg border border-border text-xs outline-none"
-                    style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
-                  />
-                </div>
-              ))}
-
-              <div>
-                <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wide">
-                  Work Notes / Scope of Service
-                </label>
-                <textarea
-                  value={editingRecord.notes || ''}
-                  onChange={(e) => setEditingRecord({ ...editingRecord, notes: e.target.value })}
-                  rows={3}
-                  className="w-full px-3 py-2 rounded-lg border border-border text-xs outline-none"
-                  style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
-                />
-              </div>
-
-              <div className="flex items-center justify-end gap-3 pt-3 border-t border-border">
-                <button
-                  type="button"
-                  onClick={() => setShowEditModal(false)}
-                  className="px-4 py-2 rounded-lg text-xs font-semibold border border-border"
-                  style={{ background: 'var(--surface2)', color: 'var(--text2)' }}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={savingEdit}
-                  className="flex items-center gap-2 px-5 py-2 rounded-lg text-xs font-semibold"
-                  style={{ background: 'var(--primary)', color: '#000' }}
-                >
-                  {savingEdit ? (
-                    <>
-                      <Loader2 size={13} className="animate-spin" /> Saving…
-                    </>
-                  ) : (
-                    <>
-                      <CheckCircle2 size={13} /> Save Changes
-                    </>
-                  )}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* Delete Confirmation Dialog */}
-      {recordToDelete && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(4px)' }}>
-          <div className="w-full max-w-md rounded-2xl border border-rose-500/30 p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-150" style={{ background: 'var(--surface)' }}>
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-rose-500/20 text-rose-400">
-                <AlertTriangle size={20} />
-              </div>
-              <div>
-                <h3 className="font-head font-bold text-base text-foreground">Confirm Deletion</h3>
-                <p className="text-xs text-muted-foreground">{recordToDelete.assetName}</p>
-              </div>
-            </div>
-            <p className="text-xs leading-relaxed text-muted-foreground mb-5">
-              Are you sure you want to permanently delete the <strong className="text-foreground">{recordToDelete.type}</strong> maintenance task for <strong className="text-foreground">{recordToDelete.assetName}</strong>? This action cannot be undone.
-            </p>
-            <div className="flex items-center justify-end gap-3">
-              <button
-                type="button"
-                onClick={() => setRecordToDelete(null)}
-                className="px-4 py-2 rounded-lg text-xs font-semibold border border-border hover:bg-surface2 transition-colors"
-                style={{ background: 'var(--surface2)', color: 'var(--text2)' }}
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                disabled={deletingRecord}
-                onClick={handleDelete}
-                className="flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-semibold bg-rose-600 hover:bg-rose-500 text-white transition-colors"
-              >
-                {deletingRecord ? (
-                  <>
-                    <Loader2 size={13} className="animate-spin" /> Deleting…
-                  </>
-                ) : (
-                  <>
-                    <Trash2 size={13} /> Delete Permanently
-                  </>
-                )}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
+'use client';
+
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
+import { Wrench, AlertTriangle, Clock, CheckCircle2, Calendar, Search, ChevronDown, Loader2, Plus, X, Building2, Edit2, Trash2, Eye, Tag } from 'lucide-react';
+import { MAINTENANCE_RECORDS, HOTELS, ASSETS, type MaintenanceRecord, type Hotel } from '@/lib/assetData';
+import { api } from '@/lib/api';
+import { useAuth } from '@/lib/authContext';
+import { toast } from 'sonner';
+import Icon from '@/components/ui/AppIcon';
+import CustomDropdown from '@/components/ui/CustomDropdown';
+import StatusDropdown from '@/components/ui/StatusDropdown';
+import { useDeepPageCms, addDropdownOption, removeDropdownOptionByName } from '@/lib/deepPageCms';
+import PageCMSEditButton from '@/components/cms/PageCMSEditButton';
+import LoadingPagination from '@/components/ui/LoadingPagination';
+import { useLoadingPagination } from '@/hooks/useLoadingPagination';
+
+
+const DEFAULT_MAINTENANCE_CATEGORIES = [
+  'HVAC & Ventilation',
+  'Electrical & Lighting',
+  'Plumbing & Drainage',
+  'Fire Safety & Protection',
+  'Lifts & Vertical Transport',
+  'Kitchen & Catering',
+  'Building Fabric & Roof',
+  'Security & Access Control',
+];
+
+type TabId = 'all' | 'scheduled' | 'due-today' | 'overdue' | 'completed';
+
+const STATUS_STYLES: Record<string, { bg: string; color: string; label: string }> = {
+  overdue: { bg: 'rgba(244,63,94,0.12)', color: '#f43f5e', label: 'Overdue' },
+  'due-today': { bg: 'rgba(245,158,11,0.12)', color: '#f59e0b', label: 'Due Today' },
+  scheduled: { bg: 'rgba(96,165,250,0.12)', color: '#60a5fa', label: 'Scheduled' },
+  completed: { bg: 'rgba(61,214,140,0.12)', color: '#3dd68c', label: 'Completed' },
+  'in-progress': { bg: 'rgba(167,139,250,0.12)', color: '#a78bfa', label: 'In Progress' },
+};
+
+const FREQ_STYLES: Record<string, string> = {
+  monthly: '#f43f5e',
+  quarterly: '#f59e0b',
+  '6-monthly': '#60a5fa',
+  yearly: '#3dd68c',
+  custom: '#a78bfa',
+};
+
+function StatCard({
+  label,
+  value,
+  color,
+  icon: IconComponent,
+  isActive,
+  onClick,
+}: {
+  label: string;
+  value: number;
+  color: string;
+  icon: React.ElementType;
+  isActive?: boolean;
+  onClick?: () => void;
+}) {
+  return (
+    <div
+      onClick={onClick}
+      className={`rounded-xl border p-4 relative overflow-hidden transition-all duration-150 ${onClick ? 'cursor-pointer hover:border-border-strong hover:scale-[1.01]' : ''}`}
+      style={{
+        background: isActive ? `${color}18` : 'var(--surface)',
+        borderColor: isActive ? color : 'var(--border)',
+        boxShadow: isActive ? `0 0 14px ${color}22` : 'none',
+      }}
+    >
+      <div className="absolute top-0 left-0 right-0 h-0.5" style={{ background: color }} />
+      <div className="flex items-center justify-between mb-2">
+        <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: `${color}18` }}>
+          <IconComponent size={15} style={{ color }} />
+        </div>
+        {isActive && (
+          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider" style={{ background: `${color}25`, color }}>
+            Active
+          </span>
+        )}
+      </div>
+      <div className="font-head text-2xl font-extrabold" style={{ color }}>{value}</div>
+      <div className="text-xs text-muted-foreground mt-0.5 font-medium">{label}</div>
+    </div>
+  );
+}
+
+export default function MaintenanceClient() {
+  const { isViewer, canEdit, canDelete } = useAuth();
+  const {
+    title: cmsTitle,
+    subtitle: cmsSubtitle,
+    searchPlaceholder: cmsSearchPlaceholder,
+    primaryActionLabel: cmsPrimaryActionLabel,
+    columns: cmsColumns,
+    items: cmsItems,
+    dropdowns: cmsDropdowns,
+  } = useDeepPageCms('maintenance');
+
+  const activeColumns = useMemo(() => {
+    if (cmsColumns && cmsColumns.length > 0) {
+      return [...cmsColumns].sort((a, b) => a.order - b.order).filter((c) => c.visible !== false);
+    }
+    return [
+      { id: 'asset', label: 'Asset Name', visible: true, order: 1 },
+      { id: 'property', label: 'Property Site', visible: true, order: 2 },
+      { id: 'type', label: 'Service Type', visible: true, order: 3 },
+      { id: 'frequency', label: 'Frequency', visible: true, order: 4 },
+      { id: 'scheduledDate', label: 'Scheduled Date', visible: true, order: 5 },
+      { id: 'assignedTo', label: 'Assigned To', visible: true, order: 6 },
+      { id: 'status', label: 'Status', visible: true, order: 7 },
+      { id: 'nextDueDate', label: 'Next Due Date', visible: true, order: 8 },
+      { id: 'actions', label: 'Actions', visible: true, order: 9 },
+    ];
+  }, [cmsColumns]);
+
+  const customColumns = useMemo(() => {
+    const standardKeys = new Set(['asset', 'property', 'type', 'frequency', 'scheduleddate', 'assignedto', 'status', 'nextduedate', 'actions']);
+    return (cmsColumns || []).filter((c) => !standardKeys.has(c.id.toLowerCase()));
+  }, [cmsColumns]);
+
+  const searchParams = useSearchParams();
+  const router = useRouter();
+
+  const filterParam = searchParams?.get('filter') as TabId | null;
+  const initialTab: TabId = filterParam && ['all', 'scheduled', 'due-today', 'overdue', 'completed'].includes(filterParam)
+    ? filterParam
+    : (searchParams?.has('filter') ? 'all' : 'all');
+
+  const [records, setRecords] = useState<MaintenanceRecord[]>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const cached = sessionStorage.getItem('samko_cache_maintenance');
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        }
+      } catch {}
+    }
+    if (cmsItems && cmsItems.length > 0) return cmsItems as any;
+    return MAINTENANCE_RECORDS;
+  });
+
+  useEffect(() => {
+    if (cmsItems && cmsItems.length > 0) {
+      setRecords(cmsItems as any);
+    }
+  }, [cmsItems]);
+  const [properties, setProperties] = useState<Hotel[]>(HOTELS);
+  const [liveAssets, setLiveAssets] = useState<any[]>(ASSETS);
+  const [activeTab, setActiveTab] = useState<TabId>(initialTab);
+
+  useEffect(() => {
+    const f = searchParams?.get('filter') as TabId | null;
+    if (f && ['all', 'scheduled', 'due-today', 'overdue', 'completed'].includes(f)) {
+      setActiveTab(f);
+    } else if (!f) {
+      setActiveTab('all');
+    }
+  }, [searchParams]);
+
+  const handleTabChange = (tabId: TabId) => {
+    setActiveTab(tabId);
+    const url = tabId === 'all'
+      ? '/asset-management/maintenance'
+      : `/asset-management/maintenance?filter=${tabId}`;
+    router.push(url, { scroll: false });
+  };
+  const [search, setSearch] = useState('');
+  const [propertyFilter, setPropertyFilter] = useState<string[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [updatingId, setUpdatingId] = useState<string | null>(null);
+  // Category state
+  const [customCategories, setCustomCategories] = useState<string[]>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = localStorage.getItem('samko_maintenance_categories');
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (Array.isArray(parsed)) return parsed;
+        }
+      } catch {}
+    }
+    return [];
+  });
+
+  const categoryDropdown = (cmsDropdowns || []).find((d) => d.id === 'category');
+  const allCategories = useMemo(() => {
+    const cmsOptions = categoryDropdown?.options || [];
+    const deleted = new Set((categoryDropdown?.deletedOptions || []).map((o) => o.toLowerCase()));
+    const merged = new Set<string>();
+
+    cmsOptions.forEach((c) => {
+      const clean = c.trim();
+      if (clean && !clean.toLowerCase().startsWith('all ') && clean.toLowerCase() !== 'all' && !deleted.has(clean.toLowerCase())) {
+        merged.add(clean);
+      }
+    });
+
+    DEFAULT_MAINTENANCE_CATEGORIES.forEach((c) => {
+      const clean = c.trim();
+      if (!deleted.has(clean.toLowerCase())) {
+        merged.add(clean);
+      }
+    });
+
+    customCategories.forEach((c) => {
+      const clean = c.trim();
+      if (!deleted.has(clean.toLowerCase())) {
+        merged.add(clean);
+      }
+    });
+
+    return Array.from(merged).sort();
+  }, [categoryDropdown, customCategories]);
+
+  const [categoryFilter, setCategoryFilter] = useState<string[]>([]);
+  const [showAddCategoryModal, setShowAddCategoryModal] = useState(false);
+  const [newCatName, setNewCatName] = useState('');
+
+  const handleSaveCategory = (e: React.FormEvent) => {
+    e.preventDefault();
+    const c = newCatName.trim();
+    if (!c) return;
+    addDropdownOption('maintenance', 'category', c);
+    if (!customCategories.includes(c)) {
+      const updated = [...customCategories, c];
+      setCustomCategories(updated);
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('samko_maintenance_categories', JSON.stringify(updated));
+        window.dispatchEvent(new CustomEvent('samko:data-changed', { detail: { type: 'maintenance_category', name: c } }));
+      }
+    }
+    toast.success('Maintenance Category Created', { description: `Added "${c}" to maintenance categories` });
+    setNewCatName('');
+  };
+
+  const handleDeleteCategory = (catName: string) => {
+    removeDropdownOptionByName('maintenance', 'category', catName);
+    const updated = customCategories.filter((c) => c.toLowerCase() !== catName.toLowerCase());
+    setCustomCategories(updated);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('samko_maintenance_categories', JSON.stringify(updated));
+      window.dispatchEvent(new CustomEvent('samko:data-changed', { detail: { type: 'maintenance_category_deleted', name: catName } }));
+    }
+    setCategoryFilter((prev) => prev.filter((c) => c !== catName));
+    toast.success(`Removed category "${catName}"`);
+  };
+
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [savingNew, setSavingNew] = useState(false);
+
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [viewingRecord, setViewingRecord] = useState<any | null>(null);
+  const [editingRecord, setEditingRecord] = useState<MaintenanceRecord | null>(null);
+  const [savingEdit, setSavingEdit] = useState(false);
+  const [recordToDelete, setRecordToDelete] = useState<MaintenanceRecord | null>(null);
+  const [deletingRecord, setDeletingRecord] = useState(false);
+
+  const [addForm, setAddForm] = useState({
+    assetId: ASSETS[0]?.id || 'AST-001',
+    assetName: ASSETS[0]?.name || 'Daikin AC Unit',
+    hotelId: ASSETS[0]?.hotelId || 'h-01',
+    hotelName: HOTELS[0]?.name || 'Crowne Plaza Kingston-south',
+    type: 'Preventive Maintenance Inspection',
+    frequency: 'quarterly' as MaintenanceRecord['frequency'],
+    scheduledDate: new Date().toISOString().slice(0, 10),
+    nextDueDate: new Date(Date.now() + 90 * 86400000).toISOString().slice(0, 10),
+    assignedTo: 'Marcus Webb',
+    status: 'scheduled' as MaintenanceRecord['status'],
+    notes: '',
+  });
+
+  const fetchRecords = useCallback(async () => {
+    try {
+      setLoading(true);
+      const [mRes, pRes, aRes] = await Promise.allSettled([
+        api.maintenance.getAll(),
+        api.properties.getAll(),
+        api.assets.getAll(),
+      ]);
+
+      if (mRes.status === 'fulfilled' && mRes.value.success && mRes.value.data && mRes.value.data.length > 0) {
+        setRecords(mRes.value.data);
+        try {
+          sessionStorage.setItem('samko_cache_maintenance', JSON.stringify(mRes.value.data));
+        } catch {}
+      }
+      if (pRes.status === 'fulfilled' && pRes.value.success && pRes.value.data && pRes.value.data.length > 0) {
+        setProperties(pRes.value.data);
+      }
+      if (aRes.status === 'fulfilled' && aRes.value.success && aRes.value.data && aRes.value.data.length > 0) {
+        setLiveAssets(aRes.value.data);
+      }
+    } catch (err) {
+      console.warn('Using local fallback maintenance data:', err);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchRecords();
+    const handleDataChanged = () => {
+      fetchRecords();
+    };
+    window.addEventListener('samko:data-changed', handleDataChanged);
+    return () => window.removeEventListener('samko:data-changed', handleDataChanged);
+  }, [fetchRecords]);
+
+  const counts = useMemo(() => ({
+    all: records.length,
+    scheduled: records.filter((m) => m.status === 'scheduled').length,
+    'due-today': records.filter((m) => m.status === 'due-today').length,
+    overdue: records.filter((m) => m.status === 'overdue').length,
+    completed: records.filter((m) => m.status === 'completed').length,
+  }), [records]);
+
+  const filtered = useMemo(() => {
+    return records.filter((m) => {
+      const matchTab = activeTab === 'all' || m.status === activeTab;
+      const hotelOrProp = (m.hotelName || (m as any).propertyName || '').toLowerCase();
+      const matchSearch =
+        !search ||
+        m.assetName.toLowerCase().includes(search.toLowerCase()) ||
+        m.type.toLowerCase().includes(search.toLowerCase()) ||
+        hotelOrProp.includes(search.toLowerCase());
+      const matchHotel =
+        propertyFilter.length === 0 ||
+        propertyFilter.includes(m.hotelId) ||
+        propertyFilter.includes((m as any).propertyId);
+      const matchCategory =
+        categoryFilter.length === 0 ||
+        categoryFilter.includes((m as any).category) ||
+        categoryFilter.some((c) => m.type.toLowerCase().includes(c.toLowerCase()));
+      return matchTab && matchSearch && matchHotel && matchCategory;
+    });
+  }, [records, activeTab, search, propertyFilter]);
+
+  const {
+    currentPage,
+    pageSize,
+    totalRecords,
+    paginatedItems: paginatedRecords,
+    isPageLoading,
+    changePage,
+    changePageSize,
+  } = useLoadingPagination(filtered, 10);
+
+  const handleStatusChange = async (id: string, newStatus: string) => {
+    setUpdatingId(id);
+    const completedDate = newStatus === 'completed' ? new Date().toISOString().split('T')[0] : undefined;
+
+    // Optimistically update
+    setRecords((prev) =>
+      prev.map((r) => {
+        if (r.id === id) {
+          return {
+            ...r,
+            status: newStatus as any,
+            ...(completedDate ? { completedDate } : {}),
+          };
+        }
+        return r;
+      })
+    );
+
+    // Notify listeners across app (Sidebar badges, Properties stats)
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(
+        new CustomEvent('samko:data-changed', {
+          detail: { type: 'maintenance', id, status: newStatus },
+        })
+      );
+    }
+
+    const statusLabel = (newStatus || 'completed').replace('-', ' ').toUpperCase();
+    toast.success('Maintenance Status Updated', {
+      description: `Task marked as ${statusLabel}`,
+    });
+
+    try {
+      await api.maintenance.update(id, {
+        status: newStatus,
+        ...(completedDate ? { completedDate } : {}),
+      });
+    } catch (err: any) {
+      console.error('Failed to sync status to server:', err);
+      toast.error('Failed to update maintenance status', { description: err?.message || 'Server error' });
+    } finally {
+      setUpdatingId(null);
+    }
+  };
+
+  const handleSelectAsset = (assetId: string) => {
+    const asset = liveAssets.find((a) => (a.id || a.assetId) === assetId);
+    if (asset) {
+      setAddForm((prev) => ({
+        ...prev,
+        assetId: asset.id || asset.assetId,
+        assetName: asset.name,
+        hotelId: asset.hotelId || 'h-01',
+        hotelName: asset.hotelName || asset.property || 'Crowne Plaza Kingston-south',
+      }));
+    }
+  };
+
+  const handleAddSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSavingNew(true);
+    const newId = `maint-${Date.now()}`;
+    const newRecord: MaintenanceRecord = {
+      ...addForm,
+      id: newId,
+    };
+
+    setRecords((prev) => [newRecord, ...prev]);
+    setShowAddModal(false);
+
+    toast.success('Maintenance logged & scheduled', {
+      description: `${newRecord.type} for ${newRecord.assetName}`,
+    });
+
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(
+        new CustomEvent('samko:data-changed', {
+          detail: { type: 'maintenance', id: newId },
+        })
+      );
+    }
+
+    try {
+      await api.maintenance.create(newRecord);
+    } catch (err: any) {
+      console.warn('Failed to persist maintenance to Firestore:', err);
+    } finally {
+      setSavingNew(false);
+    }
+  };
+
+  const handleOpenEdit = (m: MaintenanceRecord) => {
+    setEditingRecord({ ...m });
+    setShowEditModal(true);
+  };
+
+  const handleSaveEdit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingRecord) return;
+    setSavingEdit(true);
+    try {
+      const updated = { ...editingRecord };
+      setRecords((prev) => prev.map((r) => (r.id === updated.id ? updated : r)));
+      setShowEditModal(false);
+      toast.success('Maintenance record updated', { description: `${updated.type} for ${updated.assetName}` });
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('samko:data-changed', { detail: { type: 'maintenance', id: updated.id } }));
+      }
+      await api.maintenance.update(updated.id, updated);
+    } catch (err: any) {
+      toast.error('Failed to update maintenance record');
+    } finally {
+      setSavingEdit(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!recordToDelete) return;
+    const id = recordToDelete.id;
+    setDeletingRecord(true);
+    try {
+      setRecords((prev) => prev.filter((r) => r.id !== id));
+      toast.success('Maintenance record deleted', { description: `${recordToDelete.type} removed` });
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('samko:data-changed', { detail: { type: 'maintenance', id } }));
+      }
+      await api.maintenance.delete(id);
+    } catch (err: any) {
+      toast.error('Failed to delete maintenance record');
+    } finally {
+      setDeletingRecord(false);
+      setRecordToDelete(null);
+    }
+  };
+
+  const tabs: { id: TabId; label: string; icon: React.ElementType; color: string }[] = [
+    { id: 'all', label: 'All', icon: Wrench, color: '#60a5fa' },
+    { id: 'scheduled', label: 'Scheduled', icon: Calendar, color: '#60a5fa' },
+    { id: 'due-today', label: 'Due Today', icon: Clock, color: '#f59e0b' },
+    { id: 'overdue', label: 'Overdue', icon: AlertTriangle, color: '#f43f5e' },
+    { id: 'completed', label: 'Completed', icon: CheckCircle2, color: '#3dd68c' },
+  ];
+
+  return (
+    <div className="flex-1 min-h-0 flex flex-col h-full overflow-hidden">
+      {/* Topbar */}
+      <div className="flex items-center justify-between px-6 py-4 border-b border-border flex-shrink-0" style={{ background: 'var(--surface)' }}>
+        <div>
+          <div className="flex items-center gap-2">
+            <h1 className="font-head text-xl font-bold">{cmsTitle || 'Maintenance'}</h1>
+            {loading && <Loader2 size={14} className="animate-spin text-muted-foreground" />}
+          </div>
+          <p className="text-xs text-muted-foreground mt-0.5">{cmsSubtitle || 'Preventive Maintenance Management'}</p>
+        </div>
+        <div className="flex items-center gap-3">
+          {counts.overdue > 0 && (
+            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold" style={{ background: 'rgba(244,63,94,0.12)', color: '#f43f5e' }}>
+              <AlertTriangle size={13} />
+              {counts.overdue} Overdue
+            </span>
+          )}
+
+          <PageCMSEditButton pageId="maintenance" pageName="Planned Maintenance (PPM)" />
+
+          {canEdit && (
+            <>
+              <button
+                onClick={() => setShowAddCategoryModal(true)}
+                className="flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-semibold border border-border transition-colors hover:border-primary cursor-pointer"
+                style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
+              >
+                <Tag size={13} style={{ color: 'var(--primary)' }} />
+                Add Category
+              </button>
+              <button
+                onClick={() => setShowAddModal(true)}
+                className="flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-semibold transition-transform active:scale-95"
+                style={{ background: 'var(--primary)', color: '#000' }}
+              >
+                <Plus size={14} /> {(cmsPrimaryActionLabel || 'Schedule Maintenance').replace(/^[\+\s]+/, '').trim()}
+              </button>
+            </>
+          )}
+          {isViewer && (
+            <span
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold"
+              style={{ background: 'rgba(148,163,184,0.12)', color: '#94a3b8', border: '1px solid rgba(148,163,184,0.25)' }}
+            >
+              L4 · Read-Only Access
+            </span>
+          )}
+        </div>
+      </div>
+
+      {/* KPI Row */}
+      <div className="grid grid-cols-4 gap-4 px-6 py-4 border-b border-border flex-shrink-0" style={{ background: 'var(--background)' }}>
+        <StatCard
+          label="Scheduled"
+          value={counts.scheduled}
+          color="#60a5fa"
+          icon={Calendar}
+          isActive={activeTab === 'scheduled'}
+          onClick={() => handleTabChange('scheduled')}
+        />
+        <StatCard
+          label="Due Today"
+          value={counts['due-today']}
+          color="#f59e0b"
+          icon={Clock}
+          isActive={activeTab === 'due-today'}
+          onClick={() => handleTabChange('due-today')}
+        />
+        <StatCard
+          label="Overdue"
+          value={counts.overdue}
+          color="#f43f5e"
+          icon={AlertTriangle}
+          isActive={activeTab === 'overdue'}
+          onClick={() => handleTabChange('overdue')}
+        />
+        <StatCard
+          label="Completed"
+          value={counts.completed}
+          color="#3dd68c"
+          icon={CheckCircle2}
+          isActive={activeTab === 'completed'}
+          onClick={() => handleTabChange('completed')}
+        />
+      </div>
+
+      {/* Tabs */}
+      <div className="flex items-center gap-1 px-6 pt-3 border-b border-border flex-shrink-0" style={{ background: 'var(--surface)' }}>
+        {tabs.map((tab) => (
+          <button
+            key={tab.id}
+            onClick={() => handleTabChange(tab.id)}
+            className="flex items-center gap-2 px-4 py-2.5 text-sm font-semibold border-b-2 transition-colors cursor-pointer"
+            style={{
+              borderColor: activeTab === tab.id ? tab.color : 'transparent',
+              color: activeTab === tab.id ? tab.color : 'var(--text2)',
+              background: 'transparent',
+            }}
+          >
+            <tab.icon size={14} />
+            {tab.label}
+            <span className="px-1.5 py-0.5 rounded text-xs font-bold" style={{ background: 'var(--surface2)', color: 'var(--text2)' }}>
+              {counts[tab.id]}
+            </span>
+          </button>
+        ))}
+      </div>
+
+      {/* Filters */}
+      <div className="flex items-center gap-3 px-6 py-2.5 border-b border-border flex-shrink-0" style={{ background: 'var(--surface)' }}>
+        <div className="flex items-center gap-2 px-3 py-2 rounded-lg border border-border flex-1 max-w-sm" style={{ background: 'var(--surface2)' }}>
+          <Search size={14} className="text-muted-foreground" />
+          <input
+            className="bg-transparent text-sm outline-none flex-1"
+            placeholder="Search asset, type, property…"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            style={{ color: 'var(--foreground)' }}
+          />
+        </div>
+        <CustomDropdown
+          label="All Properties"
+          value={propertyFilter}
+          options={properties.map((h) => ({ value: h.id, label: h.name }))}
+          onChange={setPropertyFilter}
+          multiple
+        />
+        <CustomDropdown
+          label="All Categories"
+          value={categoryFilter}
+          options={allCategories.map((c) => ({ value: c, label: c }))}
+          onChange={setCategoryFilter}
+          multiple
+        />
+      </div>
+
+      {/* Table */}
+      <div className="flex-1 overflow-x-auto overflow-y-auto">
+        <table className="w-full min-w-[880px]">
+          <thead className="sticky top-0 z-10" style={{ background: 'var(--surface)' }}>
+            <tr>
+              {activeColumns.map((col) => (
+                <th
+                  key={col.id}
+                  className={`text-left text-xs font-bold uppercase tracking-wide text-muted-foreground px-3.5 py-3 border-b border-border whitespace-nowrap ${
+                    col.id.toLowerCase() === 'actions' ? 'text-right' : ''
+                  }`}
+                >
+                  {col.label}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {filtered.length === 0 ? (
+              <tr>
+                <td colSpan={activeColumns.length || 9} className="text-center py-16 text-muted-foreground text-sm">
+                  No maintenance records found.
+                </td>
+              </tr>
+            ) : (
+              paginatedRecords.map((m) => {
+                const s = STATUS_STYLES[m.status] || STATUS_STYLES.scheduled;
+                const propDisplayName = m.hotelName || (m as any).property || (m as any).propertyName || 'Property';
+                const isItemUpdating = updatingId === m.id;
+
+                return (
+                  <tr
+                    key={m.id}
+                    className="border-b border-border transition-colors"
+                    onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = 'var(--surface2)'; }}
+                    onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
+                  >
+                    {activeColumns.map((col) => {
+                      const colKey = col.id.toLowerCase();
+                      if (colKey === 'asset') {
+                        return (
+                          <td key={col.id} className="px-3.5 py-2.5">
+                            <div className="text-sm font-medium">{m.assetName || (m as any).asset || '—'}</div>
+                            <div className="text-xs text-muted-foreground font-mono">{m.assetId || m.id}</div>
+                          </td>
+                        );
+                      }
+                      if (colKey === 'property') {
+                        return (
+                          <td key={col.id} className="px-3.5 py-2.5 text-xs text-muted-foreground max-w-36">
+                            <div className="truncate" title={propDisplayName}>{propDisplayName}</div>
+                          </td>
+                        );
+                      }
+                      if (colKey === 'type') {
+                        return (
+                          <td key={col.id} className="px-3.5 py-2.5 text-sm">
+                            {m.type || '—'}
+                          </td>
+                        );
+                      }
+                      if (colKey === 'frequency') {
+                        return (
+                          <td key={col.id} className="px-3.5 py-2.5">
+                            <span
+                              className="inline-block px-2 py-0.5 rounded text-xs font-semibold capitalize"
+                              style={{ background: `${FREQ_STYLES[m.frequency] || '#6b7280'}18`, color: FREQ_STYLES[m.frequency] || '#6b7280' }}
+                            >
+                              {m.frequency}
+                            </span>
+                          </td>
+                        );
+                      }
+                      if (colKey === 'scheduleddate') {
+                        return (
+                          <td key={col.id} className="px-3.5 py-2.5 text-xs text-muted-foreground whitespace-nowrap">
+                            {m.scheduledDate ? new Date(m.scheduledDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'}
+                          </td>
+                        );
+                      }
+                      if (colKey === 'assignedto') {
+                        return (
+                          <td key={col.id} className="px-3.5 py-2.5 text-sm">{m.assignedTo || 'Unassigned'}</td>
+                        );
+                      }
+                      if (colKey === 'status') {
+                        return (
+                          <td key={col.id} className="px-3.5 py-2.5" onClick={(e) => e.stopPropagation()}>
+                            <StatusDropdown
+                              value={m.status}
+                              disabled={isItemUpdating || isViewer || !canEdit}
+                              options={[
+                                { value: 'scheduled', label: 'Scheduled', color: '#60a5fa', bg: 'rgba(96,165,250,0.12)' },
+                                { value: 'due-today', label: 'Due Today', color: '#f59e0b', bg: 'rgba(245,158,11,0.12)' },
+                                { value: 'overdue', label: 'Overdue', color: '#f43f5e', bg: 'rgba(244,63,94,0.12)' },
+                                { value: 'in-progress', label: 'In Progress', color: '#a78bfa', bg: 'rgba(167,139,250,0.12)' },
+                                { value: 'completed', label: 'Completed', color: '#3dd68c', bg: 'rgba(61,214,140,0.12)' },
+                              ]}
+                              onChange={(val) => handleStatusChange(m.id, val)}
+                            />
+                          </td>
+                        );
+                      }
+                      if (colKey === 'nextduedate') {
+                        return (
+                          <td key={col.id} className="px-3.5 py-2.5 text-xs text-muted-foreground whitespace-nowrap">
+                            {m.nextDueDate ? new Date(m.nextDueDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'}
+                          </td>
+                        );
+                      }
+                      if (colKey === 'actions') {
+                        return (
+                          <td key={col.id} className="px-3.5 py-2.5 text-right" onClick={(e) => e.stopPropagation()}>
+                            <div className="flex items-center justify-end gap-1.5 whitespace-nowrap">
+                              <button
+                                onClick={() => setViewingRecord(m)}
+                                className="p-1.5 rounded-lg border border-border hover:bg-surface2 transition-colors cursor-pointer"
+                                style={{ color: 'var(--text2)' }}
+                                title="View Maintenance Details"
+                              >
+                                <Eye size={12} />
+                              </button>
+                              {!isViewer && canEdit && (
+                                <button
+                                  onClick={() => handleOpenEdit(m)}
+                                  className="p-1.5 rounded-lg border border-border hover:bg-surface2 text-muted-foreground hover:text-primary transition-colors cursor-pointer"
+                                  title="Edit Maintenance Record"
+                                >
+                                  <Edit2 size={12} />
+                                </button>
+                              )}
+                              {!isViewer && (canDelete ?? canEdit) && (
+                                <button
+                                  onClick={() => setRecordToDelete(m)}
+                                  className="p-1.5 rounded-lg border border-rose-500/20 hover:bg-rose-500/15 text-rose-400 transition-colors cursor-pointer"
+                                  title="Delete Maintenance Record"
+                                >
+                                  <Trash2 size={12} />
+                                </button>
+                              )}
+                            </div>
+                          </td>
+                        );
+                      }
+
+                      // Dynamic custom columns
+                      const val = (m as any)[col.id] ?? (m as any)[colKey];
+                      return (
+                        <td key={col.id} className="px-3.5 py-2.5 text-xs text-foreground whitespace-nowrap">
+                          {val !== undefined && val !== null && String(val).trim() !== '' ? String(val) : '—'}
+                        </td>
+                      );
+                    })}
+                  </tr>
+                );
+              })
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Loading Pagination Bar */}
+      <LoadingPagination
+        currentPage={currentPage}
+        totalRecords={totalRecords}
+        pageSize={pageSize}
+        pageSizeOptions={[5, 10, 15, 20, 50]}
+        onPageChange={changePage}
+        onPageSizeChange={changePageSize}
+        isLoading={loading || isPageLoading}
+        recordName="maintenance tasks"
+        className="sticky bottom-0 z-20 flex-shrink-0"
+      />
+
+      {/* Schedule Maintenance Modal */}
+      {showAddModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(4px)' }}>
+          <div className="w-full max-w-xl rounded-2xl border border-border overflow-hidden shadow-2xl animate-in fade-in zoom-in-95 duration-200" style={{ background: 'var(--surface)' }}>
+            <div className="flex items-center justify-between px-6 py-4 border-b border-border" style={{ background: 'var(--surface2)' }}>
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'rgba(232,201,122,0.15)', color: 'var(--primary)' }}>
+                  <Wrench size={16} />
+                </div>
+                <div>
+                  <h3 className="font-head font-bold text-base text-foreground">Schedule Maintenance Record</h3>
+                  <p className="text-xs text-muted-foreground">Create a PPM or reactive service task for any asset</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowAddModal(false)}
+                className="w-7 h-7 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-surface"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            <form onSubmit={handleAddSubmit} className="p-6 space-y-4 max-h-[80vh] overflow-y-auto">
+              {/* Asset Selection */}
+              <div>
+                <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wide">
+                  Select Asset *
+                </label>
+                <select
+                  value={addForm.assetId}
+                  onChange={(e) => handleSelectAsset(e.target.value)}
+                  className="w-full px-3 py-2.5 rounded-lg border border-border text-xs outline-none cursor-pointer"
+                  style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
+                  required
+                >
+                  {liveAssets.map((a) => (
+                    <option key={a.id || a.assetId} value={a.id || a.assetId}>
+                      {a.assetId || a.id} — {a.name} ({a.hotelName || a.property || 'Property'})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Maintenance Type & Property */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wide">
+                    Maintenance Type / Title *
+                  </label>
+                  <input
+                    type="text"
+                    value={addForm.type}
+                    onChange={(e) => setAddForm({ ...addForm, type: e.target.value })}
+                    placeholder="e.g. Quarterly Filter PPM"
+                    className="w-full px-3 py-2 rounded-lg border border-border text-xs outline-none"
+                    style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wide">
+                    Property
+                  </label>
+                  <select
+                    value={addForm.hotelName}
+                    onChange={(e) => {
+                      const p = properties.find((pr) => pr.name === e.target.value);
+                      setAddForm({ ...addForm, hotelName: e.target.value, hotelId: p ? p.id : 'h-01' });
+                    }}
+                    className="w-full px-3 py-2 rounded-lg border border-border text-xs outline-none"
+                    style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
+                  >
+                    {properties.map((p) => (
+                      <option key={p.id} value={p.name}>{p.name}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {/* Frequency & Status */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wide">
+                    Frequency
+                  </label>
+                  <select
+                    value={addForm.frequency}
+                    onChange={(e) => setAddForm({ ...addForm, frequency: e.target.value as any })}
+                    className="w-full px-3 py-2 rounded-lg border border-border text-xs outline-none"
+                    style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
+                  >
+                    <option value="monthly">Monthly</option>
+                    <option value="quarterly">Quarterly</option>
+                    <option value="6-monthly">6-Monthly</option>
+                    <option value="yearly">Yearly</option>
+                    <option value="custom">Custom / Ad-hoc</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wide">
+                    Initial Status
+                  </label>
+                  <select
+                    value={addForm.status}
+                    onChange={(e) => setAddForm({ ...addForm, status: e.target.value as any })}
+                    className="w-full px-3 py-2 rounded-lg border border-border text-xs outline-none"
+                    style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
+                  >
+                    <option value="scheduled">Scheduled</option>
+                    <option value="due-today">Due Today</option>
+                    <option value="in-progress">In Progress</option>
+                    <option value="overdue">Overdue</option>
+                    <option value="completed">Completed</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Dates */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wide">
+                    Scheduled Date
+                  </label>
+                  <input
+                    type="date"
+                    value={addForm.scheduledDate}
+                    onChange={(e) => setAddForm({ ...addForm, scheduledDate: e.target.value })}
+                    className="w-full px-3 py-2 rounded-lg border border-border text-xs outline-none"
+                    style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wide">
+                    Next Due Date
+                  </label>
+                  <input
+                    type="date"
+                    value={addForm.nextDueDate}
+                    onChange={(e) => setAddForm({ ...addForm, nextDueDate: e.target.value })}
+                    className="w-full px-3 py-2 rounded-lg border border-border text-xs outline-none"
+                    style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
+                    required
+                  />
+                </div>
+              </div>
+
+              {/* Assigned To & Notes */}
+              <div>
+                <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wide">
+                  Assigned Engineer / Contractor
+                </label>
+                <input
+                  type="text"
+                  value={addForm.assignedTo}
+                  onChange={(e) => setAddForm({ ...addForm, assignedTo: e.target.value })}
+                  placeholder="e.g. Marcus Webb, Chubb Fire, Otis UK"
+                  className="w-full px-3 py-2 rounded-lg border border-border text-xs outline-none"
+                  style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
+                  required
+                />
+              </div>
+
+              {/* Dynamic Custom Columns */}
+              {customColumns.map((col) => (
+                <div key={col.id}>
+                  <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wide">
+                    {col.label}
+                  </label>
+                  <input
+                    type="text"
+                    value={(addForm as any)[col.id] || ''}
+                    onChange={(e) => setAddForm({ ...addForm, [col.id]: e.target.value })}
+                    placeholder={`Enter ${col.label}...`}
+                    className="w-full px-3 py-2 rounded-lg border border-border text-xs outline-none"
+                    style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
+                  />
+                </div>
+              ))}
+
+              <div>
+                <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wide">
+                  Work Notes / Scope of Service
+                </label>
+                <textarea
+                  value={addForm.notes}
+                  onChange={(e) => setAddForm({ ...addForm, notes: e.target.value })}
+                  rows={3}
+                  placeholder="Details of inspection, parts required, or vendor references…"
+                  className="w-full px-3 py-2 rounded-lg border border-border text-xs outline-none"
+                  style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-3 pt-3 border-t border-border">
+                <button
+                  type="button"
+                  onClick={() => setShowAddModal(false)}
+                  className="px-4 py-2 rounded-lg text-xs font-semibold border border-border"
+                  style={{ background: 'var(--surface2)', color: 'var(--text2)' }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={savingNew}
+                  className="flex items-center gap-2 px-5 py-2 rounded-lg text-xs font-semibold"
+                  style={{ background: 'var(--primary)', color: '#000' }}
+                >
+                  {savingNew ? (
+                    <>
+                      <Loader2 size={13} className="animate-spin" /> Saving…
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle2 size={13} /> Save & Schedule
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* View Maintenance Details Modal (Available to all roles including Viewers) */}
+      {viewingRecord && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.7)' }} onClick={() => setViewingRecord(null)}>
+          <div className="rounded-2xl border border-border w-full max-w-xl max-h-[85vh] overflow-auto" style={{ background: 'var(--surface)' }} onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between p-6 border-b border-border">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2 rounded-xl bg-amber-400/10 text-amber-400">
+                  <Wrench size={18} />
+                </div>
+                <div>
+                  <h2 className="font-head font-bold text-lg">{viewingRecord.title || viewingRecord.task}</h2>
+                  <p className="text-xs text-muted-foreground">{viewingRecord.hotel || viewingRecord.site || 'Site'} · {viewingRecord.asset || 'General'}</p>
+                </div>
+              </div>
+              <button onClick={() => setViewingRecord(null)} className="text-muted-foreground hover:text-foreground text-xl font-bold px-2">×</button>
+            </div>
+            <div className="p-6 space-y-4">
+              <div className="grid grid-cols-2 gap-4 text-xs">
+                <div>
+                  <span className="text-muted-foreground block mb-1">Status</span>
+                  <span className="font-bold uppercase tracking-wider">{viewingRecord.status}</span>
+                </div>
+                <div>
+                  <span className="text-muted-foreground block mb-1">Frequency</span>
+                  <span className="font-semibold">{viewingRecord.frequency || 'Monthly'}</span>
+                </div>
+                <div>
+                  <span className="text-muted-foreground block mb-1">Last Completed</span>
+                  <span className="font-semibold">{viewingRecord.lastDate || viewingRecord.lastCompleted || '—'}</span>
+                </div>
+                <div>
+                  <span className="text-muted-foreground block mb-1">Next Due Date</span>
+                  <span className="font-semibold">{viewingRecord.nextDueDate || '—'}</span>
+                </div>
+                <div>
+                  <span className="text-muted-foreground block mb-1">Vendor / Contractor</span>
+                  <span className="font-semibold">{viewingRecord.vendor || 'Internal Engineering'}</span>
+                </div>
+                <div>
+                  <span className="text-muted-foreground block mb-1">Estimated Cost</span>
+                  <span className="font-semibold">£{viewingRecord.cost?.toLocaleString?.() || '0'}</span>
+                </div>
+              </div>
+              {viewingRecord.notes && (
+                <div className="pt-2 border-t border-border">
+                  <span className="text-xs text-muted-foreground block mb-1">Notes & Details</span>
+                  <p className="text-xs p-3 rounded-lg" style={{ background: 'var(--surface2)' }}>{viewingRecord.notes}</p>
+                </div>
+              )}
+            </div>
+            <div className="flex items-center justify-between p-6 pt-0 border-t border-border mt-4">
+              <div className="flex items-center gap-2">
+                {!isViewer && canEdit && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const rec = viewingRecord;
+                      setViewingRecord(null);
+                      handleOpenEdit(rec);
+                    }}
+                    className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-semibold border border-border hover:bg-surface2 text-foreground transition-colors"
+                    style={{ background: 'var(--surface2)' }}
+                  >
+                    <Edit2 size={13} /> Edit Record
+                  </button>
+                )}
+                {!isViewer && (canDelete ?? canEdit) && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const rec = viewingRecord;
+                      setViewingRecord(null);
+                      setRecordToDelete(rec);
+                    }}
+                    className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-semibold border border-rose-500/30 hover:bg-rose-500/15 text-rose-400 transition-colors"
+                  >
+                    <Trash2 size={13} /> Delete Record
+                  </button>
+                )}
+              </div>
+              <button onClick={() => setViewingRecord(null)} className="px-5 py-2 rounded-lg text-xs font-semibold" style={{ background: 'var(--primary)', color: '#000' }}>
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Maintenance Modal */}
+      {showEditModal && editingRecord && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(4px)' }}>
+          <div className="w-full max-w-xl rounded-2xl border border-border overflow-hidden shadow-2xl animate-in fade-in zoom-in-95 duration-200" style={{ background: 'var(--surface)' }}>
+            <div className="flex items-center justify-between px-6 py-4 border-b border-border" style={{ background: 'var(--surface2)' }}>
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'rgba(232,201,122,0.15)', color: 'var(--primary)' }}>
+                  <Edit2 size={16} />
+                </div>
+                <div>
+                  <h3 className="font-head font-bold text-base text-foreground">Edit Maintenance Record</h3>
+                  <p className="text-xs text-muted-foreground">{editingRecord.assetName} · Update record dynamically</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowEditModal(false)}
+                className="w-7 h-7 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveEdit} className="p-6 space-y-4 max-h-[80vh] overflow-y-auto">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="col-span-2">
+                  <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wide">
+                    Maintenance Task / Service Name *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={editingRecord.type}
+                    onChange={(e) => setEditingRecord({ ...editingRecord, type: e.target.value })}
+                    className="w-full px-3 py-2 rounded-lg border border-border text-xs outline-none"
+                    style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wide">
+                    Frequency
+                  </label>
+                  <select
+                    value={editingRecord.frequency}
+                    onChange={(e) => setEditingRecord({ ...editingRecord, frequency: e.target.value as any })}
+                    className="w-full px-3 py-2 rounded-lg border border-border text-xs outline-none"
+                    style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
+                  >
+                    <option value="monthly">Monthly</option>
+                    <option value="quarterly">Quarterly</option>
+                    <option value="6-monthly">6-Monthly</option>
+                    <option value="yearly">Yearly</option>
+                    <option value="custom">Custom</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wide">
+                    Status
+                  </label>
+                  <select
+                    value={editingRecord.status}
+                    onChange={(e) => setEditingRecord({ ...editingRecord, status: e.target.value as any })}
+                    className="w-full px-3 py-2 rounded-lg border border-border text-xs outline-none"
+                    style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
+                  >
+                    <option value="scheduled">Scheduled</option>
+                    <option value="due-today">Due Today</option>
+                    <option value="overdue">Overdue</option>
+                    <option value="in-progress">In Progress</option>
+                    <option value="completed">Completed</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wide">
+                    Scheduled Date
+                  </label>
+                  <input
+                    type="date"
+                    required
+                    value={editingRecord.scheduledDate}
+                    onChange={(e) => setEditingRecord({ ...editingRecord, scheduledDate: e.target.value })}
+                    className="w-full px-3 py-2 rounded-lg border border-border text-xs outline-none"
+                    style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wide">
+                    Next Due Date
+                  </label>
+                  <input
+                    type="date"
+                    required
+                    value={editingRecord.nextDueDate}
+                    onChange={(e) => setEditingRecord({ ...editingRecord, nextDueDate: e.target.value })}
+                    className="w-full px-3 py-2 rounded-lg border border-border text-xs outline-none"
+                    style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
+                  />
+                </div>
+
+                <div className="col-span-2">
+                  <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wide">
+                    Assigned Engineer / Contractor
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={editingRecord.assignedTo}
+                    onChange={(e) => setEditingRecord({ ...editingRecord, assignedTo: e.target.value })}
+                    className="w-full px-3 py-2 rounded-lg border border-border text-xs outline-none"
+                    style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
+                  />
+                </div>
+              </div>
+
+              {/* Dynamic Custom Columns */}
+              {customColumns.map((col) => (
+                <div key={col.id}>
+                  <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wide">
+                    {col.label}
+                  </label>
+                  <input
+                    type="text"
+                    value={(addForm as any)[col.id] || ''}
+                    onChange={(e) => setAddForm({ ...addForm, [col.id]: e.target.value })}
+                    placeholder={`Enter ${col.label}...`}
+                    className="w-full px-3 py-2 rounded-lg border border-border text-xs outline-none"
+                    style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
+                  />
+                </div>
+              ))}
+
+              <div>
+                <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wide">
+                  Work Notes / Scope of Service
+                </label>
+                <textarea
+                  value={editingRecord.notes || ''}
+                  onChange={(e) => setEditingRecord({ ...editingRecord, notes: e.target.value })}
+                  rows={3}
+                  className="w-full px-3 py-2 rounded-lg border border-border text-xs outline-none"
+                  style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-3 pt-3 border-t border-border">
+                <button
+                  type="button"
+                  onClick={() => setShowEditModal(false)}
+                  className="px-4 py-2 rounded-lg text-xs font-semibold border border-border"
+                  style={{ background: 'var(--surface2)', color: 'var(--text2)' }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={savingEdit}
+                  className="flex items-center gap-2 px-5 py-2 rounded-lg text-xs font-semibold"
+                  style={{ background: 'var(--primary)', color: '#000' }}
+                >
+                  {savingEdit ? (
+                    <>
+                      <Loader2 size={13} className="animate-spin" /> Saving…
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle2 size={13} /> Save Changes
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Dialog */}
+      {recordToDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(4px)' }}>
+          <div className="w-full max-w-md rounded-2xl border border-rose-500/30 p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-150" style={{ background: 'var(--surface)' }}>
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-rose-500/20 text-rose-400">
+                <AlertTriangle size={20} />
+              </div>
+              <div>
+                <h3 className="font-head font-bold text-base text-foreground">Confirm Deletion</h3>
+                <p className="text-xs text-muted-foreground">{recordToDelete.assetName}</p>
+              </div>
+            </div>
+            <p className="text-xs leading-relaxed text-muted-foreground mb-5">
+              Are you sure you want to permanently delete the <strong className="text-foreground">{recordToDelete.type}</strong> maintenance task for <strong className="text-foreground">{recordToDelete.assetName}</strong>? This action cannot be undone.
+            </p>
+            <div className="flex items-center justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => setRecordToDelete(null)}
+                className="px-4 py-2 rounded-lg text-xs font-semibold border border-border hover:bg-surface2 transition-colors"
+                style={{ background: 'var(--surface2)', color: 'var(--text2)' }}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={deletingRecord}
+                onClick={handleDelete}
+                className="flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-semibold bg-rose-600 hover:bg-rose-500 text-white transition-colors"
+              >
+                {deletingRecord ? (
+                  <>
+                    <Loader2 size={13} className="animate-spin" /> Deleting…
+                  </>
+                ) : (
+                  <>
+                    <Trash2 size={13} /> Delete Permanently
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+          {/* Add Maintenance Category Modal */}
+      {showAddCategoryModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(4px)' }}>
+          <div className="w-full max-w-lg rounded-2xl border border-border overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200" style={{ background: 'var(--surface)' }}>
+            <div className="flex items-center justify-between px-6 py-4 border-b border-border" style={{ background: 'var(--surface2)' }}>
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'rgba(232,201,122,0.15)', color: 'var(--primary)' }}>
+                  <Tag size={16} />
+                </div>
+                <div>
+                  <h3 className="font-head font-bold text-base text-foreground">Manage Maintenance Categories</h3>
+                  <p className="text-xs text-muted-foreground">Add new categories or delete existing categories</p>
+                </div>
+              </div>
+              <button onClick={() => setShowAddCategoryModal(false)} className="w-7 h-7 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground cursor-pointer">
+                <X size={16} />
+              </button>
+            </div>
+            <div className="p-6 space-y-4">
+              <form onSubmit={handleSaveCategory} className="space-y-3">
+                <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wide">Add New Category</label>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    className="flex-1 px-3 py-2 rounded-lg border border-border text-xs outline-none focus:border-primary"
+                    style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
+                    placeholder="e.g. Refrigeration, Water Treatment, Solar Panels"
+                    value={newCatName}
+                    onChange={(e) => setNewCatName(e.target.value)}
+                    autoFocus
+                  />
+                  <button
+                    type="submit"
+                    disabled={!newCatName.trim()}
+                    className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-semibold bg-primary text-black cursor-pointer disabled:opacity-50"
+                  >
+                    <Plus size={13} /> Add
+                  </button>
+                </div>
+              </form>
+
+              <div className="space-y-2 pt-2 border-t border-border">
+                <div className="flex items-center justify-between">
+                  <label className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
+                    Active Categories ({allCategories.length})
+                  </label>
+                  <span className="text-[10px] text-muted-foreground">Click × to delete</span>
+                </div>
+                <div className="flex flex-wrap gap-1.5 max-h-48 overflow-y-auto custom-scrollbar p-2.5 rounded-xl border border-border/60 bg-black/25">
+                  {allCategories.map((c) => (
+                    <span
+                      key={c}
+                      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs border border-border bg-surface text-foreground font-medium"
+                    >
+                      <span className="truncate max-w-[200px]">{c}</span>
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteCategory(c)}
+                        className="text-muted-foreground hover:text-rose-400 p-0.5 cursor-pointer rounded transition-colors"
+                        title={`Remove "${c}"`}
+                      >
+                        <X size={11} />
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end pt-3 border-t border-border">
+                <button
+                  type="button"
+                  onClick={() => setShowAddCategoryModal(false)}
+                  className="px-4 py-2 rounded-lg text-xs font-semibold border border-border cursor-pointer"
+                  style={{ background: 'var(--surface2)', color: 'var(--text2)' }}
+                >
+                  Done
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+</div>
+  );
+}

@@ -436,10 +436,12 @@ export const DEFAULT_APP_CMS: AppCmsConfig = {
     { id: 'dashboard', label: 'Dashboard', href: '/', iconName: 'LayoutDashboard', enabled: true, order: 1 },
     { id: 'propco', label: 'PROPCO', href: '#propco', iconName: 'Building2', enabled: true, order: 2, badgeText: 'ASSET CO' },
     { id: 'opco', label: 'OPCO', href: '#opco', iconName: 'Shield', enabled: true, order: 3, badgeText: 'OPERATIONS' },
-    { id: 'recent-logs', label: 'Audit Logs', href: '/recent-logs', iconName: 'History', enabled: true, order: 4 },
-    { id: 'import', label: 'Import / Export', href: '/asset-management/import', iconName: 'Upload', enabled: true, order: 5 },
-    { id: 'users', label: 'Users & Roles', href: '/users', iconName: 'Users', enabled: true, order: 6 },
-    { id: 'settings', label: 'Settings', href: '/settings', iconName: 'Settings', enabled: true, order: 7 },
+    { id: 'approvals', label: 'Approvals', href: '/approvals', iconName: 'ClipboardCheck', enabled: true, order: 4 },
+    { id: 'docs-upload', label: 'Docs Upload', href: '/document-repository', iconName: 'CloudUpload', enabled: true, order: 5 },
+    { id: 'recent-logs', label: 'Audit Logs', href: '/recent-logs', iconName: 'History', enabled: true, order: 6 },
+    { id: 'import', label: 'Import / Export', href: '/asset-management/import', iconName: 'Upload', enabled: true, order: 7 },
+    { id: 'users', label: 'Users & Roles', href: '/users', iconName: 'Users', enabled: true, order: 8 },
+    { id: 'settings', label: 'Settings', href: '/settings', iconName: 'Settings', enabled: true, order: 9 },
   ],
 };
 
@@ -483,6 +485,43 @@ export function getAppCmsConfig(): AppCmsConfig {
           t.name = 'OpCo Dashboard';
         }
       });
+    }
+
+    if (config.recentLogs?.moduleTitle) {
+      if (config.recentLogs.moduleTitle.toLowerCase().includes('recent logs')) {
+        config.recentLogs.moduleTitle = 'Audit Logs';
+      }
+    }
+    if (config.navigationItems) {
+      config.navigationItems.forEach((n) => {
+        if (n.id === 'recent-logs') {
+          n.label = 'Audit Logs';
+        }
+      });
+      if (!config.navigationItems.some((n) => n.id === 'approvals')) {
+        config.navigationItems.push({
+          id: 'approvals',
+          label: 'Approvals',
+          href: '/approvals',
+          iconName: 'ClipboardCheck',
+          enabled: true,
+          order: 4,
+        });
+      }
+      const docNav = config.navigationItems.find((n) => n.id === 'docs-upload');
+      if (docNav && docNav.href === '/docs-upload') {
+        docNav.href = '/document-repository';
+      }
+      if (!config.navigationItems.some((n) => n.id === 'docs-upload')) {
+        config.navigationItems.push({
+          id: 'docs-upload',
+          label: 'Docs Upload',
+          href: '/document-repository',
+          iconName: 'CloudUpload',
+          enabled: true,
+          order: 5,
+        });
+      }
     }
 
         const ensureSubtabs = (portalKey: 'propco' | 'opco') => {

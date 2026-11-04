@@ -110,7 +110,13 @@ function saveToDisk(data: Record<string, any[]>) {
     if (!fs.existsSync(dir)) {
       fs.mkdirSync(dir, { recursive: true });
     }
-    fs.writeFileSync(DB_FILE_PATH, JSON.stringify(data, null, 2), 'utf-8');
+    const jsonStr = JSON.stringify(data, null, 2);
+    fs.writeFileSync(DB_FILE_PATH, jsonStr, 'utf-8');
+    try {
+      if (fs.existsSync(path.dirname(SEED_DB_PATH))) {
+        fs.writeFileSync(SEED_DB_PATH, jsonStr, 'utf-8');
+      }
+    } catch {}
     try {
       lastMtime = fs.statSync(DB_FILE_PATH).mtimeMs;
     } catch {}
@@ -360,6 +366,20 @@ export async function bulkCreateDocuments(collectionName: string, items: any[]):
 export async function updateDocument(collectionName: string, id: string, data: any): Promise<any | null> {
   loadFromDisk();
   const updatedAt = new Date().toISOString();
+
+  // Normalize asset approval and status interconnection
+  if (collectionName === 'assets' && data && typeof data === 'object') {
+    if (data.approvalStatus === 'approved') {
+      data.status = 'active';
+    } else if (data.approvalStatus === 'pending' || data.approvalStatus === 'hold') {
+      data.status = 'under-maintenance';
+    } else if (data.status === 'active' && !data.approvalStatus) {
+      data.approvalStatus = 'approved';
+    } else if (data.status === 'under-maintenance' && !data.approvalStatus) {
+      data.approvalStatus = 'pending';
+    }
+  }
+
   const store = memoryStore[collectionName] || [];
   const idx = store.findIndex((item: any) => matchesId(item, id));
   

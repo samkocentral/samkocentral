@@ -147,30 +147,62 @@ export default function AssetsClient() {
   }, [activeColumns]);
 
   const [assets, setAssets] = useState<Asset[]>(() => {
+    let raw: any[] = ASSETS;
     if (typeof window !== 'undefined') {
       try {
-        const cached = sessionStorage.getItem('samko_all_assets');
+        const cached = localStorage.getItem('samko_all_assets') || sessionStorage.getItem('samko_all_assets');
         if (cached) {
           const parsed = JSON.parse(cached);
-          if (Array.isArray(parsed) && parsed.length >= 40) return parsed;
+          if (Array.isArray(parsed) && parsed.length > 0) raw = parsed;
         }
       } catch {}
     }
-    return ASSETS;
+    return raw.map((a) => {
+      const explicit = (a as any).approvalStatus;
+      const approvalStatus = explicit || (a.status === 'under-maintenance' ? 'pending' : 'approved');
+      const status = approvalStatus === 'approved'
+        ? (a.status === 'under-maintenance' ? 'active' : (a.status || 'active'))
+        : (a.status || 'under-maintenance');
+      return {
+        ...a,
+        approvalStatus,
+        status,
+      };
+    });
   });
+
+  const saveAssetsToStorage = (updatedAssets: Asset[]) => {
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.setItem('samko_all_assets', JSON.stringify(updatedAssets));
+        sessionStorage.setItem('samko_all_assets', JSON.stringify(updatedAssets));
+        window.dispatchEvent(new CustomEvent('samko:assets-changed', { detail: { assets: updatedAssets } }));
+        window.dispatchEvent(new CustomEvent('samko:approvals-changed', { detail: { submissions: updatedAssets } }));
+        window.dispatchEvent(new CustomEvent('samko:data-changed', { detail: { type: 'assets' } }));
+      } catch (e) {}
+    }
+  };
 
   useEffect(() => {
     if (cmsAssets && cmsAssets.length >= 30) {
-      if (isNonFixed) {
-        setAssets((prev) => {
-          const fixedPart = prev.filter((a) => isAssetFixed(a));
-          return [...fixedPart, ...(cmsAssets as Asset[])];
+      setAssets((prev) => {
+        const prevMap = new Map(prev.map((a) => [a.id || a.assetId, a]));
+        const merged = (cmsAssets as Asset[]).map((c) => {
+          const id = c.id || c.assetId;
+          const existing = prevMap.get(id);
+          return existing ? { ...c, ...existing } : c;
         });
-      } else {
-        setAssets(cmsAssets as Asset[]);
-      }
+        const cmsIds = new Set((cmsAssets as Asset[]).map((c) => c.id || c.assetId));
+        prev.forEach((p) => {
+          const id = p.id || p.assetId;
+          if (!cmsIds.has(id)) {
+            merged.unshift(p);
+          }
+        });
+        return merged;
+      });
     }
-  }, [cmsAssets, isNonFixed]);
+  }, [cmsAssets]);
 
   const [properties, setProperties] = useState<{ value: string; label: string }[]>(
     HOTELS.map((h) => ({ value: h.id, label: h.name }))
@@ -297,10 +329,45 @@ export default function AssetsClient() {
       ]);
 
       if (assetsRes.status === 'fulfilled' && assetsRes.value.success && assetsRes.value.data && assetsRes.value.data.length > 0) {
-        setAssets(assetsRes.value.data);
-        try {
-          sessionStorage.setItem('samko_all_assets', JSON.stringify(assetsRes.value.data));
-        } catch {}
+        let localMap: Record<string, any> = {};
+        if (typeof window !== 'undefined') {
+          try {
+            const cached = localStorage.getItem('samko_all_assets') || sessionStorage.getItem('samko_all_assets');
+            if (cached) {
+              const parsed = JSON.parse(cached);
+              if (Array.isArray(parsed)) {
+                parsed.forEach((x: any) => {
+                  const k = x.id || x.assetId;
+                  if (k) localMap[k] = x;
+                });
+              }
+            }
+          } catch {}
+        }
+
+        const normalizedAssets = assetsRes.value.data.map((item: any) => {
+          const k = item.id || item.assetId;
+          const localItem = localMap[k];
+          const approvalStatus =
+            localItem?.approvalStatus === 'approved' || item.approvalStatus === 'approved'
+              ? 'approved'
+              : (localItem?.approvalStatus || item.approvalStatus || (item.status === 'under-maintenance' ? 'pending' : 'approved'));
+
+          const status =
+            approvalStatus === 'approved'
+              ? 'active'
+              : (approvalStatus === 'pending' || approvalStatus === 'hold' ? 'under-maintenance' : (localItem?.status || item.status || 'active'));
+
+          return {
+            ...item,
+            ...(localItem || {}),
+            approvalStatus,
+            status,
+          };
+        });
+
+        setAssets(normalizedAssets);
+        saveAssetsToStorage(normalizedAssets);
       }
       if (propsRes.status === 'fulfilled' && propsRes.value.success && propsRes.value.data && propsRes.value.data.length > 0) {
         setProperties(propsRes.value.data.map((p: any) => ({ value: p.id, label: p.name })));
@@ -317,38 +384,67 @@ export default function AssetsClient() {
 
   useEffect(() => {
     fetchAssets();
-    const handleDataChanged = () => {
+    const handleSync = () => {
+      try {
+        const cached = localStorage.getItem('samko_all_assets') || sessionStorage.getItem('samko_all_assets');
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            const synced = parsed.map((a: any) => {
+              const appStatus = a.approvalStatus || 'approved';
+              const st = appStatus === 'approved'
+                ? (a.status === 'under-maintenance' ? 'active' : (a.status || 'active'))
+                : (a.status || 'under-maintenance');
+              return { ...a, approvalStatus: appStatus, status: st };
+            });
+            setAssets(synced);
+            return;
+          }
+        }
+      } catch {}
       fetchAssets();
     };
-    window.addEventListener('samko:data-changed', handleDataChanged);
-    return () => window.removeEventListener('samko:data-changed', handleDataChanged);
+    window.addEventListener('samko:data-changed', handleSync);
+    window.addEventListener('samko:assets-changed', handleSync);
+    window.addEventListener('samko:approvals-changed', handleSync);
+    window.addEventListener('storage', handleSync);
+    return () => {
+      window.removeEventListener('samko:data-changed', handleSync);
+      window.removeEventListener('samko:assets-changed', handleSync);
+      window.removeEventListener('samko:approvals-changed', handleSync);
+      window.removeEventListener('storage', handleSync);
+    };
   }, [fetchAssets]);
 
   const handleStatusChange = async (assetId: string, newStatus: string) => {
-    // Optimistic update
-    setAssets((prev) =>
-      prev.map((a) => (a.id === assetId ? { ...a, status: newStatus as any } : a))
-    );
+    const approvalStatus = newStatus === 'active' ? ('approved' as const) : (newStatus === 'under-maintenance' ? ('hold' as const) : ('approved' as const));
+    const updated = assets.map((a) => {
+      if (a.id === assetId || a.assetId === assetId) {
+        return {
+          ...a,
+          status: newStatus as any,
+          approvalStatus,
+          updatedAt: new Date().toISOString(),
+        };
+      }
+      return a;
+    });
 
-    // Notify other components
-    if (typeof window !== 'undefined') {
-      window.dispatchEvent(
-        new CustomEvent('samko:data-changed', {
-          detail: { type: 'asset', id: assetId, status: newStatus },
-        })
-      );
-    }
+    setAssets(updated);
+    saveAssetsToStorage(updated);
 
     const label = newStatus.replace('-', ' ').replace(/\b\w/g, (c) => c.toUpperCase());
     toast.success('Asset Status Updated', {
-      description: `Asset status changed to ${label}`,
+      description: `Asset status changed to ${label} across all registers`,
     });
 
     try {
-      await api.assets.update(assetId, { status: newStatus });
+      await api.assets.update(assetId, {
+        status: newStatus,
+        approvalStatus,
+      });
     } catch (err: any) {
-      console.error('Failed to sync asset status:', err);
-      toast.error('Failed to update status', { description: err?.message || 'Server error' });
+      console.warn('Failed to sync asset status:', err);
     }
   };
 
@@ -389,7 +485,9 @@ export default function AssetsClient() {
       createdAt: new Date().toISOString(),
     };
 
-    setAssets((prev) => [assetToSave as any, ...prev]);
+    const nextList = [assetToSave as any, ...assets];
+    setAssets(nextList);
+    saveAssetsToStorage(nextList);
     addPageItem(pageKey, assetToSave);
     setShowAddAssetModal(false);
     toast.success('Asset created', { description: `${assetToSave.name} saved to database` });
@@ -426,7 +524,9 @@ export default function AssetsClient() {
       purchaseCost: Number(editingAsset.purchaseCost) || 0,
       updatedAt: new Date().toISOString(),
     };
-    setAssets((prev) => prev.map((a) => (a.id === updated.id ? updated : a)));
+    const nextList = assets.map((a) => (a.id === updated.id ? updated : a));
+    setAssets(nextList);
+    saveAssetsToStorage(nextList);
     updatePageItem(pageKey, updated.id, updated);
     setShowEditAssetModal(false);
     toast.success('Asset updated', { description: `${updated.name} updated successfully` });
@@ -446,7 +546,9 @@ export default function AssetsClient() {
     if (!assetToDelete) return;
     const id = assetToDelete.id;
     setDeletingAsset(true);
-    setAssets((prev) => prev.filter((a) => a.id !== id));
+    const nextList = assets.filter((a) => a.id !== id && a.assetId !== id);
+    setAssets(nextList);
+    saveAssetsToStorage(nextList);
     deletePageItem(pageKey, id);
     toast.success('Asset deleted', { description: `${assetToDelete.name} removed from register` });
     if (typeof window !== 'undefined') {
@@ -848,13 +950,15 @@ export default function AssetsClient() {
                         );
                       }
                       if (colKey === 'status') {
+                        const effectiveStatus = (asset as any).approvalStatus === 'approved' ? 'active' : (asset.status || 'active');
+                        const statusStyle = STATUS_CONFIG[effectiveStatus] || STATUS_CONFIG.active;
                         return (
                           <td key={col.id} className="px-3 py-2.5" onClick={(e) => e.stopPropagation()}>
                             {!canEdit || isViewer ? (
-                              <Badge label={STATUS_CONFIG[asset.status || 'active']?.label || asset.status || 'Active'} style={s} />
+                              <Badge label={STATUS_CONFIG[effectiveStatus]?.label || effectiveStatus} style={statusStyle} />
                             ) : (
                               <StatusDropdown
-                                value={asset.status || 'active'}
+                                value={effectiveStatus}
                                 options={[
                                   { value: 'active', label: 'Active', color: '#3dd68c', bg: 'rgba(61,214,140,0.12)' },
                                   { value: 'under-maintenance', label: 'Under Maintenance', color: '#f59e0b', bg: 'rgba(245,158,11,0.12)' },

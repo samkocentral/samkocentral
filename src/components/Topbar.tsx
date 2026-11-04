@@ -162,12 +162,11 @@ export default function Topbar({ title, subtitle, actions, hideDefaultActions = 
         }
       }
       if (pathname === '/recent-logs') {
-        if (cmsRecentLogs?.moduleTitle) {
-          setCmsOverride({
-            title: cmsRecentLogs.moduleTitle,
-          });
-          return;
-        }
+        setCmsOverride({
+          title: 'Audit Logs',
+          subtitle: 'Live audit trail of real platform operations, compliance checks, and user activities',
+        });
+        return;
       }
       if (pathname.startsWith('/asset-management/import')) {
         if (cmsImportExport?.moduleTitle) {

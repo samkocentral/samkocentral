@@ -2,14 +2,14 @@
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { ShieldCheck, AlertTriangle, Clock, CheckCircle2, TrendingUp, Plus, Search, Download, Eye, Edit2, FileText, Bell, ChevronDown, Loader2, Trash2, X, Check } from 'lucide-react';
+import { ShieldCheck, AlertTriangle, Clock, CheckCircle2, TrendingUp, Plus, Search, Download, Eye, Edit2, FileText, Bell, ChevronDown, Loader2, Trash2, X, Check, Tag } from 'lucide-react';
 import { api } from '@/lib/api';
 import { useAuth } from '@/lib/authContext';
 import { toast } from 'sonner';
 import Icon from '@/components/ui/AppIcon';
 import CustomDropdown from '@/components/ui/CustomDropdown';
 import StatusDropdown from '@/components/ui/StatusDropdown';
-import { useDeepPageCms } from '@/lib/deepPageCms';
+import { useDeepPageCms, DEFAULT_COMPLIANCE_CATEGORIES, addDropdownOption, removeDropdownOptionByName } from '@/lib/deepPageCms';
 import PageCMSEditButton from '@/components/cms/PageCMSEditButton';
 import LoadingPagination from '@/components/ui/LoadingPagination';
 import { useLoadingPagination } from '@/hooks/useLoadingPagination';
@@ -185,7 +185,108 @@ export default function ComplianceRegisterClient() {
     primaryActionLabel: cmsPrimaryActionLabel,
     columns: cmsColumns,
     items: cmsItems,
+    dropdowns: cmsDropdowns,
   } = useDeepPageCms('compliance');
+
+  // Dynamic custom categories synced with deepPageCms and localStorage
+  const [customCategories, setCustomCategories] = useState<string[]>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = localStorage.getItem('samko_compliance_categories');
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (Array.isArray(parsed)) return parsed;
+        }
+      } catch {}
+    }
+    return [];
+  });
+
+  const categoryDropdown = (cmsDropdowns || []).find((d) => d.id === 'category');
+  const allCategories = useMemo(() => {
+    const cmsOptions = categoryDropdown?.options || [];
+    const deleted = new Set((categoryDropdown?.deletedOptions || []).map((o) => o.toLowerCase()));
+    const merged = new Set<string>();
+
+    cmsOptions.forEach((o) => {
+      const clean = o.trim();
+      if (clean && !clean.toLowerCase().startsWith('all ') && !deleted.has(clean.toLowerCase())) {
+        merged.add(clean);
+      }
+    });
+
+    DEFAULT_COMPLIANCE_CATEGORIES.forEach((c) => {
+      const clean = c.trim();
+      if (!deleted.has(clean.toLowerCase())) {
+        merged.add(clean);
+      }
+    });
+
+    customCategories.forEach((c) => {
+      const clean = c.trim();
+      if (!deleted.has(clean.toLowerCase())) {
+        merged.add(clean);
+      }
+    });
+
+    return Array.from(merged).sort();
+  }, [categoryDropdown, customCategories]);
+
+  useEffect(() => {
+    const handleCategorySync = () => {
+      if (typeof window !== 'undefined') {
+        try {
+          const saved = localStorage.getItem('samko_compliance_categories');
+          if (saved) {
+            const parsed = JSON.parse(saved);
+            if (Array.isArray(parsed)) setCustomCategories(parsed);
+          }
+        } catch {}
+      }
+    };
+    window.addEventListener('samko:compliance_categories_updated', handleCategorySync);
+    window.addEventListener('samko:deep-cms-updated', handleCategorySync);
+    window.addEventListener('samko:data-changed', handleCategorySync);
+    return () => {
+      window.removeEventListener('samko:compliance_categories_updated', handleCategorySync);
+      window.removeEventListener('samko:deep-cms-updated', handleCategorySync);
+      window.removeEventListener('samko:data-changed', handleCategorySync);
+    };
+  }, []);
+
+  const [showAddCategoryModal, setShowAddCategoryModal] = useState(false);
+  const [newCatName, setNewCatName] = useState('');
+
+  const handleSaveCategory = (e: React.FormEvent) => {
+    e.preventDefault();
+    const c = newCatName.trim();
+    if (!c) return;
+    addDropdownOption('compliance', 'category', c);
+    if (!customCategories.includes(c)) {
+      const updated = [...customCategories, c];
+      setCustomCategories(updated);
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('samko_compliance_categories', JSON.stringify(updated));
+        window.dispatchEvent(new CustomEvent('samko:compliance_categories_updated', { detail: { categories: updated } }));
+        window.dispatchEvent(new CustomEvent('samko:data-changed', { detail: { type: 'compliance_category', name: c } }));
+      }
+    }
+    toast.success('Compliance Category Created', { description: `Added "${c}" to compliance categories` });
+    setNewCatName('');
+  };
+
+  const handleDeleteCategory = (catName: string) => {
+    removeDropdownOptionByName('compliance', 'category', catName);
+    const updated = customCategories.filter((c) => c.toLowerCase() !== catName.toLowerCase());
+    setCustomCategories(updated);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('samko_compliance_categories', JSON.stringify(updated));
+      window.dispatchEvent(new CustomEvent('samko:compliance_categories_updated', { detail: { categories: updated } }));
+      window.dispatchEvent(new CustomEvent('samko:data-changed', { detail: { type: 'compliance_category_deleted', name: catName } }));
+    }
+    setFilterCategory((prev) => prev.filter((c) => c !== catName));
+    toast.success(`Removed category "${catName}"`);
+  };
 
   const activeColumns = useMemo(() => {
     if (cmsColumns && cmsColumns.length > 0) {
@@ -501,6 +602,17 @@ export default function ComplianceRegisterClient() {
           >
             <Download size={13} /> Export
           </button>
+          {!isViewer && canEdit && (
+            <button
+              type="button"
+              onClick={() => setShowAddCategoryModal(true)}
+              className="flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-semibold border border-border transition-colors hover:border-primary cursor-pointer"
+              style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
+            >
+              <Tag size={13} style={{ color: 'var(--primary)' }} />
+              Add Category
+            </button>
+          )}
           {canEdit && (
             <button
               onClick={() => setShowAddModal(true)}
@@ -584,7 +696,7 @@ export default function ComplianceRegisterClient() {
           value={filterCategory}
           multiple
           align="right"
-          options={COMPLIANCE_CATEGORIES.map((c) => ({ value: c, label: c }))}
+          options={allCategories.map((c) => ({ value: c, label: c }))}
           onChange={setFilterCategory}
         />
       </div>
@@ -888,7 +1000,7 @@ export default function ComplianceRegisterClient() {
                     className="rounded-lg border border-border px-3 py-2 text-sm outline-none cursor-pointer"
                     style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
                   >
-                    {COMPLIANCE_CATEGORIES.map((c) => <option key={c}>{c}</option>)}
+                    {allCategories.map((c) => <option key={c} value={c}>{c}</option>)}
                   </select>
                 </div>
                 <div className="flex flex-col gap-1">
@@ -1067,7 +1179,7 @@ export default function ComplianceRegisterClient() {
                     className="rounded-lg border border-border px-3 py-2 text-sm outline-none cursor-pointer"
                     style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
                   >
-                    {COMPLIANCE_CATEGORIES.map((c) => <option key={c}>{c}</option>)}
+                    {allCategories.map((c) => <option key={c} value={c}>{c}</option>)}
                   </select>
                 </div>
                 <div className="flex flex-col gap-1">
@@ -1204,6 +1316,89 @@ export default function ComplianceRegisterClient() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Manage Compliance Categories Modal */}
+      {showAddCategoryModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(4px)' }}>
+          <div className="w-full max-w-lg rounded-2xl border border-border overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200" style={{ background: 'var(--surface)' }}>
+            <div className="flex items-center justify-between px-6 py-4 border-b border-border" style={{ background: 'var(--surface2)' }}>
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'rgba(232,201,122,0.15)', color: 'var(--primary)' }}>
+                  <Tag size={16} />
+                </div>
+                <div>
+                  <h3 className="font-head font-bold text-base text-foreground">Manage Compliance Categories</h3>
+                  <p className="text-xs text-muted-foreground">Add new categories or remove unwanted categories</p>
+                </div>
+              </div>
+              <button onClick={() => setShowAddCategoryModal(false)} className="w-7 h-7 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground cursor-pointer">
+                <X size={16} />
+              </button>
+            </div>
+            <div className="p-6 space-y-4">
+              <form onSubmit={handleSaveCategory} className="space-y-3">
+                <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wide">Add New Category</label>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    className="flex-1 px-3 py-2 rounded-lg border border-border text-xs outline-none focus:border-primary"
+                    style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
+                    placeholder="e.g. Facilities Management, Legionella Control, Kitchen Extraction"
+                    value={newCatName}
+                    onChange={(e) => setNewCatName(e.target.value)}
+                    autoFocus
+                  />
+                  <button
+                    type="submit"
+                    disabled={!newCatName.trim()}
+                    className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-semibold bg-primary text-black cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <Plus size={13} /> Add
+                  </button>
+                </div>
+              </form>
+
+              <div className="space-y-2 pt-2 border-t border-border">
+                <div className="flex items-center justify-between">
+                  <label className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
+                    Active Categories ({allCategories.length})
+                  </label>
+                  <span className="text-[10px] text-muted-foreground">Click × to delete</span>
+                </div>
+                <div className="flex flex-wrap gap-1.5 max-h-48 overflow-y-auto custom-scrollbar p-2.5 rounded-xl border border-border/60 bg-black/25">
+                  {allCategories.map((c) => (
+                    <span
+                      key={c}
+                      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs border border-border bg-surface text-foreground font-medium"
+                    >
+                      <span className="truncate max-w-[200px]">{c}</span>
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteCategory(c)}
+                        className="text-muted-foreground hover:text-rose-400 p-0.5 cursor-pointer rounded transition-colors"
+                        title={`Remove "${c}"`}
+                      >
+                        <X size={11} />
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end pt-3 border-t border-border">
+                <button
+                  type="button"
+                  onClick={() => setShowAddCategoryModal(false)}
+                  className="px-4 py-2 rounded-lg text-xs font-semibold border border-border cursor-pointer"
+                  style={{ background: 'var(--surface2)', color: 'var(--text2)' }}
+                >
+                  Done
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}

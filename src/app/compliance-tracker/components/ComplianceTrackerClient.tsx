@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
-import { Search, X, ShieldAlert, ShieldCheck, Clock, Loader2, ChevronDown, Plus, FileText, AlertTriangle, CheckCircle2 } from 'lucide-react';
+import { Search, X, ShieldAlert, ShieldCheck, Clock, Loader2, ChevronDown, Plus, FileText, AlertTriangle, CheckCircle2, Tag } from 'lucide-react';
 import { COMPLIANCE, daysUntil, formatDateGB } from '@/lib/mockData';
 import type { ComplianceItem } from '@/lib/mockData';
 import StatusBadge from '@/components/ui/StatusBadge';
@@ -11,7 +11,7 @@ import { api } from '@/lib/api';
 import { useAuth } from '@/lib/authContext';
 import { toast } from 'sonner';
 import PageCMSEditButton from '@/components/cms/PageCMSEditButton';
-import { useDeepPageCms } from '@/lib/deepPageCms';
+import { useDeepPageCms, DEFAULT_COMPLIANCE_CATEGORIES, addDropdownOption, removeDropdownOptionByName } from '@/lib/deepPageCms';
 import LoadingPagination from '@/components/ui/LoadingPagination';
 import { useLoadingPagination } from '@/hooks/useLoadingPagination';
 
@@ -22,7 +22,108 @@ export default function ComplianceTrackerClient() {
     subtitle: cmsSubtitle,
     searchPlaceholder: cmsSearchPlaceholder,
     primaryActionLabel: cmsPrimaryActionLabel,
-  } = useDeepPageCms('compliancetracker');
+    dropdowns: cmsDropdowns,
+  } = useDeepPageCms('compliance');
+
+  // Dynamic custom categories synced with deepPageCms and localStorage
+  const [customCategories, setCustomCategories] = useState<string[]>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = localStorage.getItem('samko_compliance_categories');
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (Array.isArray(parsed)) return parsed;
+        }
+      } catch {}
+    }
+    return [];
+  });
+
+  const categoryDropdown = (cmsDropdowns || []).find((d) => d.id === 'category');
+  const allCategories = useMemo(() => {
+    const cmsOptions = categoryDropdown?.options || [];
+    const deleted = new Set((categoryDropdown?.deletedOptions || []).map((o) => o.toLowerCase()));
+    const merged = new Set<string>();
+
+    cmsOptions.forEach((o) => {
+      const clean = o.trim();
+      if (clean && !clean.toLowerCase().startsWith('all ') && !deleted.has(clean.toLowerCase())) {
+        merged.add(clean);
+      }
+    });
+
+    DEFAULT_COMPLIANCE_CATEGORIES.forEach((c) => {
+      const clean = c.trim();
+      if (!deleted.has(clean.toLowerCase())) {
+        merged.add(clean);
+      }
+    });
+
+    customCategories.forEach((c) => {
+      const clean = c.trim();
+      if (!deleted.has(clean.toLowerCase())) {
+        merged.add(clean);
+      }
+    });
+
+    return Array.from(merged).sort();
+  }, [categoryDropdown, customCategories]);
+
+  useEffect(() => {
+    const handleCategorySync = () => {
+      if (typeof window !== 'undefined') {
+        try {
+          const saved = localStorage.getItem('samko_compliance_categories');
+          if (saved) {
+            const parsed = JSON.parse(saved);
+            if (Array.isArray(parsed)) setCustomCategories(parsed);
+          }
+        } catch {}
+      }
+    };
+    window.addEventListener('samko:compliance_categories_updated', handleCategorySync);
+    window.addEventListener('samko:deep-cms-updated', handleCategorySync);
+    window.addEventListener('samko:data-changed', handleCategorySync);
+    return () => {
+      window.removeEventListener('samko:compliance_categories_updated', handleCategorySync);
+      window.removeEventListener('samko:deep-cms-updated', handleCategorySync);
+      window.removeEventListener('samko:data-changed', handleCategorySync);
+    };
+  }, []);
+
+  const [showAddCategoryModal, setShowAddCategoryModal] = useState(false);
+  const [newCatName, setNewCatName] = useState('');
+
+  const handleSaveCategory = (e: React.FormEvent) => {
+    e.preventDefault();
+    const c = newCatName.trim();
+    if (!c) return;
+    addDropdownOption('compliance', 'category', c);
+    if (!customCategories.includes(c)) {
+      const updated = [...customCategories, c];
+      setCustomCategories(updated);
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('samko_compliance_categories', JSON.stringify(updated));
+        window.dispatchEvent(new CustomEvent('samko:compliance_categories_updated', { detail: { categories: updated } }));
+        window.dispatchEvent(new CustomEvent('samko:data-changed', { detail: { type: 'compliance_category', name: c } }));
+      }
+    }
+    toast.success('Compliance Category Created', { description: `Added "${c}" to compliance categories` });
+    setNewCatName('');
+  };
+
+  const handleDeleteCategory = (catName: string) => {
+    removeDropdownOptionByName('compliance', 'category', catName);
+    const updated = customCategories.filter((c) => c.toLowerCase() !== catName.toLowerCase());
+    setCustomCategories(updated);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('samko_compliance_categories', JSON.stringify(updated));
+      window.dispatchEvent(new CustomEvent('samko:compliance_categories_updated', { detail: { categories: updated } }));
+      window.dispatchEvent(new CustomEvent('samko:data-changed', { detail: { type: 'compliance_category_deleted', name: catName } }));
+    }
+    setCategoryFilter((prev) => (prev === catName ? 'All' : prev));
+    toast.success(`Removed category "${catName}"`);
+  };
 
   const [complianceList, setComplianceList] = useState<ComplianceItem[]>(COMPLIANCE);
   const [loading, setLoading] = useState(false);
@@ -85,7 +186,12 @@ export default function ComplianceTrackerClient() {
     return () => window.removeEventListener('samko:data-changed', handleDataChanged);
   }, [fetchCompliance]);
 
-  const categoriesList = useMemo(() => ['All', ...Array.from(new Set(complianceList.map((c) => c.category))).sort()], [complianceList]);
+  const categoriesList = useMemo(() => {
+    const set = new Set(['All']);
+    allCategories.forEach((c) => set.add(c));
+    complianceList.forEach((c) => { if (c.category) set.add(c.category); });
+    return Array.from(set);
+  }, [allCategories, complianceList]);
   const sitesList = useMemo(() => ['All Sites', ...Array.from(new Set(complianceList.map((c) => c.site))).sort()], [complianceList]);
 
   const critCount = complianceList.filter((c) => c.status === 'critical').length;
@@ -722,7 +828,7 @@ export default function ComplianceTrackerClient() {
                     className="w-full px-3 py-2 rounded-lg border border-border text-xs outline-none"
                     style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
                   >
-                    {['Fire Safety', 'Electrical', 'Gas Safety', 'Water Hygiene', 'Food Hygiene', 'Building Regulations', 'Licenses', 'H&S', 'Customer Complaints'].map((c) => (
+                    {allCategories.map((c) => (
                       <option key={c} value={c}>{c}</option>
                     ))}
                   </select>

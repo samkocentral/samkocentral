@@ -2,14 +2,14 @@
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { ScrollText, Clock, CheckCircle2, Plus, Search, Download, Eye, Edit2, FileText, Bell, RefreshCw, Handshake, DollarSign, ChevronDown, Loader2, Trash2, AlertTriangle, X, Upload, ExternalLink, Calendar } from 'lucide-react';
+import { ScrollText, Clock, CheckCircle2, Plus, Search, Download, Eye, Edit2, FileText, Bell, RefreshCw, Handshake, DollarSign, ChevronDown, Loader2, Trash2, AlertTriangle, X, Upload, ExternalLink, Calendar, Tag } from 'lucide-react';
 import Icon from '@/components/ui/AppIcon';
 import CustomDropdown from '@/components/ui/CustomDropdown';
 import { api } from '@/lib/api';
 import { useAuth } from '@/lib/authContext';
 import { toast } from 'sonner';
 import { useCMSForm } from '@/lib/cmsConfig';
-import { useDeepPageCms } from '@/lib/deepPageCms';
+import { useDeepPageCms, DEFAULT_CONTRACT_CATEGORIES, addDropdownOption, removeDropdownOptionByName } from '@/lib/deepPageCms';
 import PageCMSEditButton from '@/components/cms/PageCMSEditButton';
 import LoadingPagination from '@/components/ui/LoadingPagination';
 import { useLoadingPagination } from '@/hooks/useLoadingPagination';
@@ -561,6 +561,7 @@ export default function ContractsRegisterClient() {
     primaryActionLabel: cmsPrimaryActionLabel,
     columns: cmsColumns,
     items: cmsItems,
+    dropdowns: cmsDropdowns,
   } = useDeepPageCms('contracts');
 
   const activeColumns = useMemo(() => {
@@ -632,6 +633,82 @@ export default function ContractsRegisterClient() {
   const [filterHotel, setFilterHotel] = useState<string[]>([]);
   const [filterCategory, setFilterCategory] = useState<string[]>([]);
   const [selectedContract, setSelectedContract] = useState<Contract | null>(null);
+  // Dynamic Categories state
+  const [customCategories, setCustomCategories] = useState<string[]>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = localStorage.getItem('samko_contract_categories');
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (Array.isArray(parsed)) return parsed;
+        }
+      } catch {}
+    }
+    return [];
+  });
+
+  const categoryDropdown = (cmsDropdowns || []).find((d) => d.id === 'category');
+  const allCategories = useMemo(() => {
+    const cmsOptions = categoryDropdown?.options || [];
+    const deleted = new Set((categoryDropdown?.deletedOptions || []).map((o) => o.toLowerCase()));
+    const merged = new Set<string>();
+
+    cmsOptions.forEach((c) => {
+      const clean = c.trim();
+      if (clean && !clean.toLowerCase().startsWith('all ') && clean.toLowerCase() !== 'all' && !deleted.has(clean.toLowerCase())) {
+        merged.add(clean);
+      }
+    });
+
+    DEFAULT_CONTRACT_CATEGORIES.forEach((c) => {
+      const clean = c.trim();
+      if (!deleted.has(clean.toLowerCase())) {
+        merged.add(clean);
+      }
+    });
+
+    customCategories.forEach((c) => {
+      const clean = c.trim();
+      if (!deleted.has(clean.toLowerCase())) {
+        merged.add(clean);
+      }
+    });
+
+    return Array.from(merged).sort();
+  }, [categoryDropdown, customCategories]);
+
+  const [showAddCategoryModal, setShowAddCategoryModal] = useState(false);
+  const [newCatName, setNewCatName] = useState('');
+
+  const handleSaveCategory = (e: React.FormEvent) => {
+    e.preventDefault();
+    const c = newCatName.trim();
+    if (!c) return;
+    addDropdownOption('contracts', 'category', c);
+    if (!customCategories.includes(c)) {
+      const updated = [...customCategories, c];
+      setCustomCategories(updated);
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('samko_contract_categories', JSON.stringify(updated));
+        window.dispatchEvent(new CustomEvent('samko:data-changed', { detail: { type: 'contract_category', name: c } }));
+      }
+    }
+    toast.success('Contract Category Created', { description: `Added "${c}" to contract categories` });
+    setNewCatName('');
+  };
+
+  const handleDeleteCategory = (catName: string) => {
+    removeDropdownOptionByName('contracts', 'category', catName);
+    const updated = customCategories.filter((c) => c.toLowerCase() !== catName.toLowerCase());
+    setCustomCategories(updated);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('samko_contract_categories', JSON.stringify(updated));
+      window.dispatchEvent(new CustomEvent('samko:data-changed', { detail: { type: 'contract_category_deleted', name: catName } }));
+    }
+    setFilterCategory((prev) => prev.filter((c) => c !== catName));
+    toast.success(`Removed category "${catName}"`);
+  };
+
   const [showAddModal, setShowAddModal] = useState(false);
   const [saving, setSaving] = useState(false);
 
@@ -725,7 +802,7 @@ export default function ContractsRegisterClient() {
 
   const { getDropdownOptions, getFieldLabel, customFields } = useCMSForm('contracts');
 
-  const cmsCategoryOptions = getDropdownOptions('category', CONTRACT_CATEGORIES.map((c) => ({ value: c, label: c })));
+  const cmsCategoryOptions = allCategories.map((c) => ({ value: c, label: c }));
   const cmsStatusOptions = getDropdownOptions('status', [
     { value: 'active', label: 'Active', color: '#3dd68c' },
     { value: 'expiring-soon', label: 'Expiring Soon', color: '#f59e0b' },
@@ -1000,9 +1077,19 @@ export default function ContractsRegisterClient() {
             <Download size={13} /> Export
           </button>
           {!isViewer && canEdit && (
-            <button onClick={() => setShowAddModal(true)} className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-transform active:scale-95 cursor-pointer" style={{ background: 'var(--primary)', color: '#000' }}>
-              <Plus size={14} /> {(cmsPrimaryActionLabel || 'Add Contract').replace(/^[\+\s]+/, '').trim()}
-            </button>
+            <>
+              <button
+                onClick={() => setShowAddCategoryModal(true)}
+                className="flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-semibold border border-border transition-colors hover:border-primary cursor-pointer"
+                style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
+              >
+                <Tag size={13} style={{ color: 'var(--primary)' }} />
+                Add Category
+              </button>
+              <button onClick={() => setShowAddModal(true)} className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-transform active:scale-95 cursor-pointer" style={{ background: 'var(--primary)', color: '#000' }}>
+                <Plus size={14} /> {(cmsPrimaryActionLabel || 'Add Contract').replace(/^[\+\s]+/, '').trim()}
+              </button>
+            </>
           )}
           {isViewer && (
             <span
@@ -1856,7 +1943,7 @@ export default function ContractsRegisterClient() {
                     className="rounded-lg border border-border px-3 py-2 text-sm outline-none"
                     style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
                   >
-                    {CONTRACT_CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
+                    {allCategories.map((c) => <option key={c} value={c}>{c}</option>)}
                   </select>
                 </div>
                 <div className="flex flex-col gap-1">
@@ -2274,7 +2361,89 @@ export default function ContractsRegisterClient() {
           </div>
         </div>
       )}
-    </div>
+          {/* Add Category Modal */}
+      {showAddCategoryModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(4px)' }}>
+          <div className="w-full max-w-lg rounded-2xl border border-border overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200" style={{ background: 'var(--surface)' }}>
+            <div className="flex items-center justify-between px-6 py-4 border-b border-border" style={{ background: 'var(--surface2)' }}>
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'rgba(232,201,122,0.15)', color: 'var(--primary)' }}>
+                  <Tag size={16} />
+                </div>
+                <div>
+                  <h3 className="font-head font-bold text-base text-foreground">Manage Contract Categories</h3>
+                  <p className="text-xs text-muted-foreground">Add new categories or remove unwanted categories</p>
+                </div>
+              </div>
+              <button onClick={() => setShowAddCategoryModal(false)} className="w-7 h-7 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground cursor-pointer">
+                <X size={16} />
+              </button>
+            </div>
+            <div className="p-6 space-y-4">
+              <form onSubmit={handleSaveCategory} className="space-y-3">
+                <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wide">Add New Category</label>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    className="flex-1 px-3 py-2 rounded-lg border border-border text-xs outline-none focus:border-primary"
+                    style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
+                    placeholder="e.g. Facilities Management, Jyothi Services, Legal Counsel"
+                    value={newCatName}
+                    onChange={(e) => setNewCatName(e.target.value)}
+                    autoFocus
+                  />
+                  <button
+                    type="submit"
+                    disabled={!newCatName.trim()}
+                    className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-semibold bg-primary text-black cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <Plus size={13} /> Add
+                  </button>
+                </div>
+              </form>
+
+              <div className="space-y-2 pt-2 border-t border-border">
+                <div className="flex items-center justify-between">
+                  <label className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
+                    Active Categories ({allCategories.length})
+                  </label>
+                  <span className="text-[10px] text-muted-foreground">Click × to delete</span>
+                </div>
+                <div className="flex flex-wrap gap-1.5 max-h-48 overflow-y-auto custom-scrollbar p-2.5 rounded-xl border border-border/60 bg-black/25">
+                  {allCategories.map((c) => (
+                    <span
+                      key={c}
+                      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs border border-border bg-surface text-foreground font-medium"
+                    >
+                      <span className="truncate max-w-[200px]">{c}</span>
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteCategory(c)}
+                        className="text-muted-foreground hover:text-rose-400 p-0.5 cursor-pointer rounded transition-colors"
+                        title={`Remove "${c}"`}
+                      >
+                        <X size={11} />
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end pt-3 border-t border-border">
+                <button
+                  type="button"
+                  onClick={() => setShowAddCategoryModal(false)}
+                  className="px-4 py-2 rounded-lg text-xs font-semibold border border-border cursor-pointer"
+                  style={{ background: 'var(--surface2)', color: 'var(--text2)' }}
+                >
+                  Done
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+</div>
   );
 }
 

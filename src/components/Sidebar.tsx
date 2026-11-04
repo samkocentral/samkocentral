@@ -1,14 +1,15 @@
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import Link from 'next/link';
+import { usePathname, useSearchParams } from 'next/navigation';
 import {
   LayoutDashboard, ShieldCheck, Settings, ChevronLeft, ChevronRight, AlertTriangle,
   Package, Building2, ChevronDown, BarChart3, Upload, BarChart2, Shield,
   FileCheck, Flame, ScrollText, Users, FileBarChart, Calendar, CheckSquare,
   AlertCircle, RefreshCw, Handshake, Star, Zap, History, Eye, ClipboardList,
   Tag, FolderOpen, ClipboardCheck, QrCode, Globe, SlidersHorizontal, ArrowRightLeft,
-  Copy, Layers, Check, Search, Plus
+  Copy, Layers, Check, Search, Plus, CloudUpload
 } from 'lucide-react';
 import { ALERTS, TASKS } from '@/lib/mockData';
 import { MAINTENANCE_RECORDS } from '@/lib/assetData';
@@ -48,8 +49,33 @@ const SECTION_BADGE_STYLES: Record<TabSectionLocation, { label: string; badgeBg:
 };
 
 export default function Sidebar({ currentPath }: SidebarProps) {
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const activeItemRef = useRef<HTMLAnchorElement | null>(null);
+  const navRef = useRef<HTMLElement | null>(null);
+
+  const activeRoutePath = useMemo(() => {
+    const qs = searchParams?.toString();
+    if (qs) return `${pathname}?${qs}`;
+    if (currentPath && currentPath.includes('?')) return currentPath;
+    return pathname || currentPath || '/';
+  }, [pathname, searchParams, currentPath]);
+
+  // Keep active tab smoothly scrolled into view so it never jumps to the top section
+  useEffect(() => {
+    if (activeItemRef.current) {
+      activeItemRef.current.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    }
+  }, [activeRoutePath]);
+
   const { user, activePortal, setActivePortal, roleBadgeColor, canManageUsers, canAccessSettings, isViewer, isTabEnabled, getTabAccess } = useAuth();
   const isSuperAdmin = user.roleLevel === 'L1';
+  const isSuperAdminOrBot =
+    user.roleLevel === 'L1' ||
+    user.id === 'usr-bot-001' ||
+    user.name?.toLowerCase().includes('digital bot');
+  const canAccessApprovals = isSuperAdminOrBot && isTabEnabled('approvals');
+  const canAccessDocsUpload = user.roleLevel !== 'L4' && isTabEnabled('docs-upload');
   const { propco: cmsPropco, opco: cmsOpco, navigationItems, refresh: refreshCms } = useAppCms();
 
   const navItemsMap = useMemo(() => {
@@ -61,6 +87,9 @@ export default function Sidebar({ currentPath }: SidebarProps) {
   }, [navigationItems]);
 
   const getNavLabel = (id: string, fallback: string) => {
+    if (id === 'recent-logs') return 'Audit Logs';
+    if (id === 'approvals') return navItemsMap['approvals']?.label || 'Approvals';
+    if (id === 'docs-upload') return navItemsMap['docs-upload']?.label || 'Docs Upload';
     return navItemsMap[id]?.label || fallback;
   };
 
@@ -217,6 +246,21 @@ export default function Sidebar({ currentPath }: SidebarProps) {
     MAINTENANCE_RECORDS.filter((m) => m.status === 'due-today').length
   );
   const [pulse, setPulse] = useState(true);
+  const [pendingApprovalsCount, setPendingApprovalsCount] = useState<number>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const cached = sessionStorage.getItem('samko_all_assets') || localStorage.getItem('samko_all_assets');
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          if (Array.isArray(parsed)) {
+            const count = parsed.filter((a: any) => a.approvalStatus === 'pending' || a.approvalStatus === 'hold').length;
+            return count;
+          }
+        }
+      } catch (e) {}
+    }
+    return 3;
+  });
 
   // Dynamic Section Mapping (PropCo vs OpCo vs Both vs Bottom)
   const [sectionMapping, setSectionMapping] = useState<Record<string, TabSectionLocation>>(() =>
@@ -363,8 +407,7 @@ export default function Sidebar({ currentPath }: SidebarProps) {
       (p.startsWith('/asset-management/assets') && !p.includes('type=non-fixed')) ||
       p.startsWith('/insurance-register') ||
       p.startsWith('/contracts-register') ||
-      p.includes('type=contracts') ||
-      p.startsWith('/document-repository')
+      p.includes('type=contracts')
     ) {
       saved.propco = true;
     }
@@ -372,25 +415,15 @@ export default function Sidebar({ currentPath }: SidebarProps) {
   };
 
   const getInitialOpenSubDropdowns = (): Record<string, boolean> => {
-    let saved: Record<string, boolean> = {
+    const saved: Record<string, boolean> = {
       insurance: false,
       contracts: false,
       maintenance: false,
       compliance: false,
       utilities: false,
     };
-    if (typeof window !== 'undefined') {
-      try {
-        const stored = localStorage.getItem('samko:sidebar_open_subdropdowns');
-        if (stored) {
-          const parsed = JSON.parse(stored);
-          Object.keys(saved).forEach((k) => {
-            if (typeof parsed[k] === 'boolean') saved[k] = parsed[k];
-          });
-        }
-      } catch (e) {}
-    }
     const p = typeof window !== 'undefined' ? (window.location.pathname + window.location.search) : (currentPath || '');
+    // Only expand a subdropdown if the user is currently actively viewing one of its child pages!
     if (p.startsWith('/insurance-register')) saved.insurance = true;
     if (p.startsWith('/contracts-register')) saved.contracts = true;
     if (p.startsWith('/asset-management/maintenance')) saved.maintenance = true;
@@ -402,61 +435,54 @@ export default function Sidebar({ currentPath }: SidebarProps) {
   const [openPortals, setOpenPortals] = useState<Record<string, boolean>>(getInitialOpenPortals);
   const [openSubDropdowns, setOpenSubDropdowns] = useState<Record<string, boolean>>(getInitialOpenSubDropdowns);
 
-  // Synchronize open state whenever currentPath changes
+  // Synchronize open state and portal context whenever activeRoutePath changes
   useEffect(() => {
-    if (!currentPath) return;
+    const p = activeRoutePath;
+    if (!p) return;
 
-    const p = currentPath;
-    let openOpCo = false;
-    let openPropCo = false;
+    const isNonFixed = p.includes('type=non-fixed');
+    const isMaintenance = p.startsWith('/asset-management/maintenance') || p.includes('type=maintenance');
+    const isCompliance = p.startsWith('/compliance-register') || p.startsWith('/compliance-tracker');
+    const isOpcoTasks = p.startsWith('/tasks') || p.startsWith('/task-manager');
+    const isUtilities = p.startsWith('/utilities-register');
+    const isOpcoDashboard = p.includes('portal=opco');
+
+    const isOpCoRoute = isNonFixed || isMaintenance || isCompliance || isOpcoTasks || isUtilities || isOpcoDashboard;
+
+    const isProperties = p.startsWith('/asset-management/properties') || p.startsWith('/asset-management/hotels');
+    const isFixedAssets = p.startsWith('/asset-management/assets') && !isNonFixed;
+    const isInsurance = p.startsWith('/insurance-register');
+    const isContracts = p.startsWith('/contracts-register') || p.includes('type=contracts');
+    const isPropcoDashboard = p.includes('portal=propco');
+
+    const isPropCoRoute = isProperties || isFixedAssets || isInsurance || isContracts || isPropcoDashboard;
+
+    if (isOpCoRoute) {
+      // In OpCo route: keep OpCo open and collapse PropCo so OpCo stays at the top and never scrolls off-screen
+      setOpenPortals({ propco: false, opco: true });
+      try {
+        localStorage.setItem('samko:sidebar_open_portals', JSON.stringify({ propco: false, opco: true }));
+      } catch (e) {}
+      if (activePortal !== 'opco' && setActivePortal) {
+        setActivePortal('opco');
+      }
+    } else if (isPropCoRoute) {
+      // In PropCo route: keep PropCo open and collapse OpCo
+      setOpenPortals({ propco: true, opco: false });
+      try {
+        localStorage.setItem('samko:sidebar_open_portals', JSON.stringify({ propco: true, opco: false }));
+      } catch (e) {}
+      if (activePortal !== 'propco' && setActivePortal) {
+        setActivePortal('propco');
+      }
+    }
+
     const openSub: Record<string, boolean> = {};
-
-    if (
-      p.includes('portal=opco') ||
-      p.includes('type=non-fixed') ||
-      p.startsWith('/asset-management/maintenance') ||
-      p.startsWith('/compliance-register') ||
-      p.startsWith('/compliance-tracker') ||
-      p.startsWith('/tasks') ||
-      p.startsWith('/task-manager') ||
-      p.startsWith('/utilities-register') ||
-      p.includes('type=maintenance')
-    ) {
-      openOpCo = true;
-    }
-
-    if (
-      p.includes('portal=propco') ||
-      p.startsWith('/asset-management/properties') ||
-      p.startsWith('/asset-management/hotels') ||
-      (p.startsWith('/asset-management/assets') && !p.includes('type=non-fixed')) ||
-      p.startsWith('/insurance-register') ||
-      p.startsWith('/contracts-register') ||
-      p.includes('type=contracts') ||
-      p.startsWith('/document-repository')
-    ) {
-      openPropCo = true;
-    }
-
     if (p.startsWith('/insurance-register')) openSub.insurance = true;
     if (p.startsWith('/contracts-register')) openSub.contracts = true;
     if (p.startsWith('/asset-management/maintenance')) openSub.maintenance = true;
     if (p.startsWith('/compliance-register') || p.startsWith('/compliance-tracker')) openSub.compliance = true;
     if (p.startsWith('/utilities-register')) openSub.utilities = true;
-
-    if (openOpCo || openPropCo) {
-      setOpenPortals((prev) => {
-        const next = {
-          ...prev,
-          ...(openOpCo ? { opco: true } : {}),
-          ...(openPropCo ? { propco: true } : {}),
-        };
-        try {
-          localStorage.setItem('samko:sidebar_open_portals', JSON.stringify(next));
-        } catch (e) {}
-        return next;
-      });
-    }
 
     if (Object.keys(openSub).length > 0) {
       setOpenSubDropdowns((prev) => {
@@ -467,7 +493,7 @@ export default function Sidebar({ currentPath }: SidebarProps) {
         return next;
       });
     }
-  }, [currentPath]);
+  }, [activeRoutePath, activePortal, setActivePortal]);
 
   const fetchDynamicCounts = async () => {
     try {
@@ -506,15 +532,54 @@ export default function Sidebar({ currentPath }: SidebarProps) {
 
     fetchDynamicCounts();
 
+    const handleApprovalsChange = () => {
+      try {
+        const cached = sessionStorage.getItem('samko_all_assets') || localStorage.getItem('samko_all_assets');
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          if (Array.isArray(parsed)) {
+            const count = parsed.filter((a: any) => a.approvalStatus === 'pending' || a.approvalStatus === 'hold').length;
+            setPendingApprovalsCount(count);
+          }
+        }
+      } catch (e) {}
+    };
+    window.addEventListener('samko:assets-changed', handleApprovalsChange);
+    window.addEventListener('samko:approvals-changed', handleApprovalsChange);
+    window.addEventListener('storage', handleApprovalsChange);
+
     const pulseInterval = setInterval(() => setPulse((p) => !p), 1200);
-    return () => clearInterval(pulseInterval);
+    return () => {
+      clearInterval(pulseInterval);
+      window.removeEventListener('samko:assets-changed', handleApprovalsChange);
+      window.removeEventListener('samko:approvals-changed', handleApprovalsChange);
+      window.removeEventListener('storage', handleApprovalsChange);
+    };
   }, []);
 
   const togglePortal = (portalKey: 'propco' | 'opco') => {
     setOpenPortals((s) => {
-      const next = { ...s, [portalKey]: !s[portalKey] };
+      const nextIsOpen = !s[portalKey];
+      const next = { ...s, [portalKey]: nextIsOpen };
       try {
         localStorage.setItem('samko:sidebar_open_portals', JSON.stringify(next));
+      } catch (e) {}
+      return next;
+    });
+
+    // Requirement: When opening PropCo or OpCo, only show the tabs - do NOT open dropdowns inside PropCo/OpCo directly!
+    setOpenSubDropdowns((prev) => {
+      const next = { ...prev };
+      if (portalKey === 'propco') {
+        if (!activeRoutePath.startsWith('/insurance-register')) next.insurance = false;
+        if (!activeRoutePath.startsWith('/contracts-register')) next.contracts = false;
+      } else if (portalKey === 'opco') {
+        if (!activeRoutePath.startsWith('/asset-management/maintenance')) next.maintenance = false;
+        if (!activeRoutePath.startsWith('/compliance-register') && !activeRoutePath.startsWith('/compliance-tracker')) next.compliance = false;
+        if (!activeRoutePath.startsWith('/utilities-register')) next.utilities = false;
+      }
+      try {
+        localStorage.setItem('samko:sidebar_open_subdropdowns', JSON.stringify(next));
       } catch (e) {}
       return next;
     });
@@ -530,10 +595,8 @@ export default function Sidebar({ currentPath }: SidebarProps) {
     });
   };
 
-  const isActive = (href: string) => {
-    const effectiveCurrent = (typeof window !== 'undefined' && window.location.search)
-      ? (window.location.pathname + window.location.search)
-      : (currentPath || '');
+  const isActive = (href: string, portalContext: 'propco' | 'opco' | 'default' = 'default') => {
+    const effectiveCurrent = activeRoutePath;
 
     if (!effectiveCurrent || !href) return false;
     if (href === '/') {
@@ -550,72 +613,68 @@ export default function Sidebar({ currentPath }: SidebarProps) {
       return true;
     }
 
-    if (href === effectiveCurrent) return true;
+    if (
+      (hPath === '/document-repository' || hPath === '/docs-upload') &&
+      (cPath === '/document-repository' || cPath === '/docs-upload')
+    ) {
+      return true;
+    }
 
     if (hPath === '/asset-management/assets') {
       const isNonFixedHref = (hQuery || '').includes('type=non-fixed');
       const isNonFixedCurrent = (cQuery || '').includes('type=non-fixed');
       if (cPath === '/asset-management/assets') {
+        // Enforce strict portal context boundary
+        if (portalContext === 'opco' && !isNonFixedHref) return false;
+        if (portalContext === 'propco' && isNonFixedHref) return false;
         return isNonFixedHref === isNonFixedCurrent;
       }
       return false;
     }
 
-    // Planned Preventive Maintenance tabs
+    // Planned Preventive Maintenance tabs (strictly single active tab)
     if (cPath === '/asset-management/maintenance' && hPath === '/asset-management/maintenance') {
       const hParams = new URLSearchParams(hQuery || '');
-      const hFilter = hParams.get('filter');
-      if (!hFilter) return true;
+      const hFilter = hParams.get('filter') || 'scheduled';
       const cParams = new URLSearchParams(cQuery || '');
-      const cFilter = cParams.get('filter');
-      if (hFilter === 'scheduled') {
-        return !cFilter || cFilter === 'scheduled';
-      }
-      return cFilter === hFilter;
+      const cFilter = cParams.get('filter') || 'scheduled';
+      return hFilter === cFilter;
     }
 
-    // Insurance Register tabs
+    // Insurance Register tabs (strictly single active tab: 'register', 'claims', or 'renewals')
     if (cPath === '/insurance-register' && hPath === '/insurance-register') {
       const hParams = new URLSearchParams(hQuery || '');
-      const hTab = hParams.get('tab');
-      if (!hTab) return true;
+      const hTab = hParams.get('tab') || 'register';
       const cParams = new URLSearchParams(cQuery || '');
-      const cTab = cParams.get('tab');
-      if (hTab === 'register') return !cTab || cTab === 'register';
-      return cTab === hTab;
+      const cTab = cParams.get('tab') || 'register';
+      return hTab === cTab;
     }
 
-    // Contracts Register tabs
+    // Contracts Register tabs (strictly single active tab: 'register', 'suppliers', 'renewals', 'slas')
     if (cPath === '/contracts-register' && hPath === '/contracts-register') {
       const hParams = new URLSearchParams(hQuery || '');
-      const hTab = hParams.get('tab');
-      if (!hTab) return true;
+      const hTab = hParams.get('tab') || 'register';
       const cParams = new URLSearchParams(cQuery || '');
-      const cTab = cParams.get('tab');
-      if (hTab === 'register') return !cTab || cTab === 'register';
-      return cTab === hTab;
+      const cTab = cParams.get('tab') || 'register';
+      return hTab === cTab;
     }
 
-    // Compliance Register tabs
+    // Compliance Register tabs (strictly single active tab: 'register', 'certifications', 'statutory')
     if (cPath === '/compliance-register' && hPath === '/compliance-register') {
       const hParams = new URLSearchParams(hQuery || '');
-      const hTab = hParams.get('tab');
-      if (!hTab) return true;
+      const hTab = hParams.get('tab') || 'register';
       const cParams = new URLSearchParams(cQuery || '');
-      const cTab = cParams.get('tab');
-      if (hTab === 'register') return !cTab || cTab === 'register';
-      return cTab === hTab;
+      const cTab = cParams.get('tab') || 'register';
+      return hTab === cTab;
     }
 
-    // Utilities Register types
+    // Utilities Register types (strictly single active tab: 'all' vs specific type)
     if (cPath === '/utilities-register' && hPath === '/utilities-register') {
       const hParams = new URLSearchParams(hQuery || '');
-      const hType = hParams.get('type');
-      if (!hType) return true;
+      const hType = hParams.get('type') || 'all';
       const cParams = new URLSearchParams(cQuery || '');
-      const cType = cParams.get('type');
-      if (hType === 'all') return !cType || cType === 'all';
-      return cType === hType;
+      const cType = cParams.get('type') || 'all';
+      return hType === cType;
     }
 
     if (hQuery) {
@@ -654,7 +713,7 @@ export default function Sidebar({ currentPath }: SidebarProps) {
       return null;
     }
 
-    const active = isActive(item.href);
+    const active = isActive(item.href, portalContext);
     const access = getTabAccess(item.id);
     const isReadOnly = access === 'read';
 
@@ -672,14 +731,24 @@ export default function Sidebar({ currentPath }: SidebarProps) {
 
     return (
       <Link
-        key={`nav-${item.id}`}
+        key={`nav-${portalContext}-${item.id}`}
+        ref={active ? activeItemRef : undefined}
         href={item.href}
+        scroll={false}
         title={collapsed ? `${item.label}${isReadOnly ? ' (Read Only)' : ''}` : undefined}
         onClick={() => {
-          if (portalContext === 'propco' && setActivePortal) {
-            setActivePortal('propco');
-          } else if (portalContext === 'opco' && setActivePortal) {
-            setActivePortal('opco');
+          if (portalContext === 'propco') {
+            if (setActivePortal) setActivePortal('propco');
+            setOpenPortals({ propco: true, opco: false });
+            try {
+              localStorage.setItem('samko:sidebar_open_portals', JSON.stringify({ propco: true, opco: false }));
+            } catch (e) {}
+          } else if (portalContext === 'opco') {
+            if (setActivePortal) setActivePortal('opco');
+            setOpenPortals({ propco: false, opco: true });
+            try {
+              localStorage.setItem('samko:sidebar_open_portals', JSON.stringify({ propco: false, opco: true }));
+            } catch (e) {}
           }
         }}
         className="flex items-center gap-2 rounded-lg transition-all duration-150 group relative"
@@ -763,7 +832,7 @@ export default function Sidebar({ currentPath }: SidebarProps) {
     if (visibleSubItems.length === 0) return null;
 
     const isOpen = openSubDropdowns[id];
-    const isChildActive = visibleSubItems.some((item) => isActive(item.href));
+    const isChildActive = visibleSubItems.some((item) => isActive(item.href, portalContext));
 
     const isOpCo = portalContext === 'opco';
     const activeColor = isOpCo ? '#60a5fa' : '#e8c97a';
@@ -1053,6 +1122,24 @@ export default function Sidebar({ currentPath }: SidebarProps) {
         icon: <BarChart3 size={16} />,
       });
     }
+    if (canAccessApprovals && isInBottom('approvals') && isNavVisible('approvals')) {
+      items.push({
+        id: 'approvals',
+        label: getNavLabel('approvals', 'Approvals'),
+        href: '/approvals',
+        icon: <ClipboardCheck size={16} />,
+        badgeCount: pendingApprovalsCount > 0 ? pendingApprovalsCount : undefined,
+        badgeVariant: 'warning',
+      });
+    }
+    if (canAccessDocsUpload && (isInBottom('docs-upload') || isInBottom('documents')) && (isNavVisible('docs-upload') || isNavVisible('documents'))) {
+      items.push({
+        id: 'docs-upload',
+        label: getNavLabel('docs-upload', getNavLabel('documents', 'Docs Upload')),
+        href: '/document-repository',
+        icon: <CloudUpload size={16} />,
+      });
+    }
     if (isInBottom('recent-logs') && isNavVisible('recent-logs')) {
       items.push({
         id: 'recent-logs',
@@ -1096,8 +1183,11 @@ export default function Sidebar({ currentPath }: SidebarProps) {
     dueTodayCount,
     criticalCount,
     openTaskCount,
+    pendingApprovalsCount,
     canManageUsers,
     canAccessSettings,
+    canAccessApprovals,
+    canAccessDocsUpload,
   ]);
 
   // Filter tabs for the Super Admin Section Organizer Modal
@@ -1172,7 +1262,7 @@ export default function Sidebar({ currentPath }: SidebarProps) {
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 overflow-y-auto" style={{ padding: '10px 8px 8px' }}>
+      <nav ref={navRef} className="flex-1 overflow-y-auto" style={{ padding: '10px 8px 8px' }}>
         {/* Top: Dashboard */}
         {isNavVisible('dashboard') && (
           <div className="flex flex-col gap-0.5 mb-1">
@@ -1324,6 +1414,26 @@ export default function Sidebar({ currentPath }: SidebarProps) {
                 label: getTabLabel('propco', 'reports', 'Reports'),
                 href: getTabPath('propco', 'reports', '/asset-management/reports?type=contracts'),
                 icon: <BarChart3 size={15} />,
+              })}
+
+            {/* Approvals (when moved to PropCo - Restricted to Super Admin & Digital Bot) */}
+            {canAccessApprovals && isInPropCo('approvals') && isNavVisible('approvals') &&
+              renderPropCoNavItem({
+                id: 'approvals',
+                label: getNavLabel('approvals', 'Approvals'),
+                href: '/approvals',
+                icon: <ClipboardCheck size={15} />,
+                badgeCount: pendingApprovalsCount > 0 ? pendingApprovalsCount : undefined,
+                badgeVariant: 'warning',
+              })}
+
+            {/* Docs Upload (when moved to PropCo - Accessible to L1, L2, L3) */}
+            {canAccessDocsUpload && (isInPropCo('docs-upload') || isInPropCo('documents')) && isNavVisible('docs-upload') &&
+              renderPropCoNavItem({
+                id: 'docs-upload',
+                label: getNavLabel('docs-upload', getNavLabel('documents', 'Docs Upload')),
+                href: '/document-repository',
+                icon: <CloudUpload size={15} />,
               })}
 
             {/* Recent Logs (when moved to PropCo) */}
@@ -1527,6 +1637,26 @@ export default function Sidebar({ currentPath }: SidebarProps) {
                   { id: 'utilities-energy', label: 'Energy & Water Accounts', href: '/utilities-register?type=electricity', icon: <Zap size={13} /> },
                 ])
               )}
+
+            {/* Approvals (when moved to OpCo - Restricted to Super Admin & Digital Bot) */}
+            {canAccessApprovals && isInOpCo('approvals') && isNavVisible('approvals') &&
+              renderOpCoNavItem({
+                id: 'approvals',
+                label: getNavLabel('approvals', 'Approvals'),
+                href: '/approvals',
+                icon: <ClipboardCheck size={15} />,
+                badgeCount: pendingApprovalsCount > 0 ? pendingApprovalsCount : undefined,
+                badgeVariant: 'warning',
+              })}
+
+            {/* Docs Upload (when moved to OpCo - Accessible to L1, L2, L3) */}
+            {canAccessDocsUpload && (isInOpCo('docs-upload') || isInOpCo('documents')) && isNavVisible('docs-upload') &&
+              renderOpCoNavItem({
+                id: 'docs-upload',
+                label: getNavLabel('docs-upload', getNavLabel('documents', 'Docs Upload')),
+                href: '/document-repository',
+                icon: <CloudUpload size={15} />,
+              })}
 
             {/* Recent Logs (when moved to OpCo) */}
             {isInOpCo('recent-logs') && isNavVisible('recent-logs') &&

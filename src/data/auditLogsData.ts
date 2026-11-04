@@ -6,10 +6,25 @@ import {
   exportAuditLogsToCSV,
   recordAuditLog,
   isBotLog,
+  canUserViewAuditLog,
+  isPropertyAllowed,
+  isPortalAllowed,
+  resetAuditLogs,
+  isDummyOrMockLog,
 } from '@/lib/auditLogger';
 
 export type { AuditLogEntry, AuditDiff };
-export { exportAuditLogsToCSV, recordAuditLog, isBotLog };
+export {
+  getRealAuditLogs,
+  exportAuditLogsToCSV,
+  recordAuditLog,
+  isBotLog,
+  canUserViewAuditLog,
+  isPropertyAllowed,
+  isPortalAllowed,
+  resetAuditLogs,
+  isDummyOrMockLog,
+};
 
 export interface FilterUserOption {
   email: string;
@@ -126,7 +141,7 @@ export function getRecentLogs(currentUser?: any): AuditLogEntry[] {
   return getRealAuditLogs(currentUser);
 }
 
-export const INITIAL_AUDIT_LOGS = getRecentLogs();
+export const INITIAL_AUDIT_LOGS: AuditLogEntry[] = [];
 
 /**
  * Returns Digital Bot logs ONLY if the current authenticated user is Digital Bot.

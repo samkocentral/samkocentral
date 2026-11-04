@@ -9,6 +9,9 @@ import {
   ACTION_STYLES,
   STATUS_STYLES,
   exportAuditLogsToCSV,
+  canUserViewAuditLog,
+  isPropertyAllowed,
+  isDummyOrMockLog,
 } from '@/data/auditLogsData';
 import {
   History,
@@ -104,6 +107,19 @@ export default function RecentLogsClient() {
   }, [user]);
 
   useEffect(() => {
+    // Purge any legacy mock or dummy entries on startup
+    if (typeof window !== 'undefined') {
+      try {
+        const raw = localStorage.getItem('samko_real_audit_logs');
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed) && parsed.some((l: any) => isDummyOrMockLog(l))) {
+            const clean = parsed.filter((l: any) => !isDummyOrMockLog(l));
+            localStorage.setItem('samko_real_audit_logs', JSON.stringify(clean));
+          }
+        }
+      } catch {}
+    }
     refreshLogs();
     const handleLogEvent = () => refreshLogs();
     window.addEventListener('samko:audit-log-created', handleLogEvent);
@@ -133,6 +149,45 @@ export default function RecentLogsClient() {
   const [selectedCategory, setSelectedCategory] = useState<string>('ALL');
   const [selectedStatus, setSelectedStatus] = useState<string>('ALL');
   const [searchQuery, setSearchQuery] = useState<string>('');
+
+  // Role clearance: calculate permitted users for "Who Made The Logs" dropdown
+  const visibleAuditUsers = useMemo(() => {
+    const currentRole = user?.roleLevel || 'L4';
+    return AUDIT_USERS.filter((u) => {
+      // Never expose Digital Bot to non-bot
+      if (!isStrictDigitalBot) {
+        const email = (u.email || '').toLowerCase();
+        const name = (u.name || '').toLowerCase();
+        if (email.includes('digitalbot') || name.includes('digital bot')) {
+          return false;
+        }
+      }
+      // L4 Viewer can only filter by L4 or operational L3 assigned to their sites (NEVER L1 Super Admin or L2 Admin)
+      if (currentRole === 'L4') {
+        return u.roleLevel === 'L4' || (u.roleLevel === 'L3' && isPropertyAllowed(user, (u as any).hotel));
+      }
+      // L3 Uploader can only filter by L3 and L4 (NEVER L1 or L2)
+      if (currentRole === 'L3') {
+        return u.roleLevel === 'L3' || u.roleLevel === 'L4';
+      }
+      // L2 Admin can only filter by L2, L3, L4 (NEVER L1 Super Admin)
+      if (currentRole === 'L2') {
+        return u.roleLevel !== 'L1';
+      }
+      // L1 Super Admin can view all operators
+      return true;
+    });
+  }, [user, isStrictDigitalBot]);
+
+  // Safety: auto-reset selectedUser to 'ALL' if the active selection is outside user clearance
+  useEffect(() => {
+    if (selectedUser !== 'ALL') {
+      const isAllowed = visibleAuditUsers.some((u) => u.email === selectedUser);
+      if (!isAllowed) {
+        setSelectedUser('ALL');
+      }
+    }
+  }, [selectedUser, visibleAuditUsers]);
 
   // Selected log for inspection modal
   const [selectedLog, setSelectedLog] = useState<AuditLogEntry | null>(null);
@@ -215,7 +270,13 @@ export default function RecentLogsClient() {
   // Filter logs based on date, user, category, status, and search query
   const filteredLogs = useMemo(() => {
     return logs.filter((log) => {
-      // 0. DIGITAL BOT AUDIT LOG ACCESS (Strictly hidden from all standard users and admins):
+      // 0. Enterprise RBAC & Confidentiality Clearance:
+      // Strictly seals Super Admin session logs, role impersonations, and higher-tier audits
+      if (!canUserViewAuditLog(user, log)) {
+        return false;
+      }
+
+      // 0b. Strict Digital Bot Privacy
       const isBot = isBotLog(log);
       if (!isStrictDigitalBot) {
         if (isBot) return false;
@@ -425,7 +486,7 @@ export default function RecentLogsClient() {
         }}
       >
         {/* Row 1: Date Range Presets & Custom Pickers */}
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b pb-4" style={{ borderColor: 'var(--border)' }}>
+        <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-3.5 border-b pb-4" style={{ borderColor: 'var(--border)' }}>
           {/* Quick Preset Buttons */}
           <div className="flex items-center flex-wrap gap-1.5">
             <span className="text-xs font-semibold text-muted-foreground mr-1 flex items-center gap-1.5">
@@ -437,7 +498,7 @@ export default function RecentLogsClient() {
             <button
               type="button"
               onClick={() => handlePresetChange('today')}
-              className="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5"
+              className="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer"
               style={{
                 background: preset === 'today' ? 'rgba(232,201,122,0.18)' : 'var(--surface2)',
                 color: preset === 'today' ? 'var(--primary)' : 'var(--text2)',
@@ -453,7 +514,7 @@ export default function RecentLogsClient() {
             <button
               type="button"
               onClick={() => handlePresetChange('1week')}
-              className="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all"
+              className="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer"
               style={{
                 background: preset === '1week' ? 'rgba(232,201,122,0.18)' : 'var(--surface2)',
                 color: preset === '1week' ? 'var(--primary)' : 'var(--text2)',
@@ -468,7 +529,7 @@ export default function RecentLogsClient() {
             <button
               type="button"
               onClick={() => handlePresetChange('30days')}
-              className="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all"
+              className="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer"
               style={{
                 background: preset === '30days' ? 'rgba(232,201,122,0.18)' : 'var(--surface2)',
                 color: preset === '30days' ? 'var(--primary)' : 'var(--text2)',
@@ -483,7 +544,7 @@ export default function RecentLogsClient() {
             <button
               type="button"
               onClick={() => handlePresetChange('45days')}
-              className="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all"
+              className="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer"
               style={{
                 background: preset === '45days' ? 'rgba(232,201,122,0.18)' : 'var(--surface2)',
                 color: preset === '45days' ? 'var(--primary)' : 'var(--text2)',
@@ -498,7 +559,7 @@ export default function RecentLogsClient() {
             <button
               type="button"
               onClick={() => handlePresetChange('90days')}
-              className="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all"
+              className="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer"
               style={{
                 background: preset === '90days' ? 'rgba(232,201,122,0.18)' : 'var(--surface2)',
                 color: preset === '90days' ? 'var(--primary)' : 'var(--text2)',
@@ -513,7 +574,7 @@ export default function RecentLogsClient() {
             <button
               type="button"
               onClick={() => handlePresetChange('all')}
-              className="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all"
+              className="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer"
               style={{
                 background: preset === 'all' ? 'rgba(232,201,122,0.18)' : 'var(--surface2)',
                 color: preset === 'all' ? 'var(--primary)' : 'var(--text2)',
@@ -525,132 +586,121 @@ export default function RecentLogsClient() {
             </button>
           </div>
 
-          {/* Custom Date Pickers: "From Date" and "To Date" */}
-          <div className="flex items-center flex-wrap gap-2.5">
-            <div className="flex items-center gap-1.5 text-xs text-muted-foreground bg-surface2 px-2.5 py-1.5 rounded-lg border border-border">
-              <span className="font-medium text-foreground">From:</span>
-              <input
-                type="date"
-                value={fromDate}
-                onChange={(e) => handleCustomDateChange(e.target.value, toDate)}
-                className="bg-transparent text-xs text-foreground outline-none cursor-pointer"
-                style={{ colorScheme: 'dark' }}
-              />
+          {/* Custom Date Pickers & Actions */}
+          <div className="flex items-center flex-wrap gap-2.5 justify-between xl:justify-end">
+            <div className="flex items-center gap-1.5">
+              <div className="flex items-center gap-1.5 text-xs text-muted-foreground bg-surface2 px-2.5 py-1.5 rounded-lg border border-border">
+                <span className="font-medium text-foreground">From:</span>
+                <input
+                  type="date"
+                  value={fromDate}
+                  onChange={(e) => handleCustomDateChange(e.target.value, toDate)}
+                  className="bg-transparent text-xs text-foreground outline-none cursor-pointer"
+                  style={{ colorScheme: 'dark' }}
+                />
+              </div>
+
+              <div className="flex items-center gap-1.5 text-xs text-muted-foreground bg-surface2 px-2.5 py-1.5 rounded-lg border border-border">
+                <span className="font-medium text-foreground">To:</span>
+                <input
+                  type="date"
+                  value={toDate}
+                  onChange={(e) => handleCustomDateChange(fromDate, e.target.value)}
+                  className="bg-transparent text-xs text-foreground outline-none cursor-pointer"
+                  style={{ colorScheme: 'dark' }}
+                />
+              </div>
             </div>
 
-            <div className="flex items-center gap-1.5 text-xs text-muted-foreground bg-surface2 px-2.5 py-1.5 rounded-lg border border-border">
-              <span className="font-medium text-foreground">To:</span>
-              <input
-                type="date"
-                value={toDate}
-                onChange={(e) => handleCustomDateChange(fromDate, e.target.value)}
-                className="bg-transparent text-xs text-foreground outline-none cursor-pointer"
-                style={{ colorScheme: 'dark' }}
-              />
+            <div className="flex items-center gap-2">
+              {/* Digital Bot Audit Logs Filter Button - ONLY visible to strict Digital Bot, 100% hidden from all admins and users */}
+              {isStrictDigitalBot && (
+                <button
+                  type="button"
+                  onClick={() => setBotOnlyFilter((prev) => !prev)}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                    botOnlyFilter
+                      ? 'bg-[#38bdf8] text-black shadow-md ring-1 ring-[#38bdf8]'
+                      : 'bg-[#38bdf8]/10 text-[#38bdf8] border border-[#38bdf8]/40 hover:bg-[#38bdf8]/20'
+                  }`}
+                  title="Toggle Digital Bot internal audit events"
+                >
+                  <Bot size={13} />
+                  <span>{botOnlyFilter ? 'Showing Digital Bot Logs' : 'Digital Bot Logs'}</span>
+                  <span className="text-[10px] px-1 py-0.2 rounded font-mono bg-black/20 text-current font-bold">
+                    BOT
+                  </span>
+                </button>
+              )}
+
+              {/* Export CSV Button */}
+              {cmsRecentLogs?.allowExport !== false && (
+                <button
+                  type="button"
+                  onClick={handleExportCSV}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-foreground transition-all hover:bg-surface3 cursor-pointer"
+                  style={{
+                    background: 'var(--surface2)',
+                    border: '1px solid var(--border)',
+                  }}
+                  title="Export currently filtered audit logs to CSV"
+                >
+                  <Download size={13} className="text-primary" />
+                  <span>Export CSV</span>
+                </button>
+              )}
+
+              <PageCMSEditButton pageId="recentlogs" pageName="Audit Logs" />
+
+              {/* Reset Filter Button */}
+              <button
+                type="button"
+                onClick={handleResetFilters}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-surface2 transition-all border border-transparent hover:border-border cursor-pointer"
+                title="Reset to Today's logs and clear all filters"
+              >
+                <RotateCcw size={12} />
+                <span>Reset</span>
+              </button>
             </div>
-
-            {/* Digital Bot Audit Logs Filter Button - ONLY visible to strict Digital Bot, 100% hidden from all admins and users */}
-            {isStrictDigitalBot && (
-              <button
-                type="button"
-                onClick={() => setBotOnlyFilter((prev) => !prev)}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                  botOnlyFilter
-                    ? 'bg-[#38bdf8] text-black shadow-md ring-1 ring-[#38bdf8]'
-                    : 'bg-[#38bdf8]/10 text-[#38bdf8] border border-[#38bdf8]/40 hover:bg-[#38bdf8]/20'
-                }`}
-                title="Toggle Digital Bot internal audit events"
-              >
-                <Bot size={13} />
-                <span>{botOnlyFilter ? 'Showing Digital Bot Logs' : 'Digital Bot Logs'}</span>
-                <span className="text-[10px] px-1 py-0.2 rounded font-mono bg-black/20 text-current font-bold">
-                  BOT
-                </span>
-              </button>
-            )}
-
-            {/* Export CSV Button */}
-            {cmsRecentLogs?.allowExport !== false && (
-              <button
-                type="button"
-                onClick={handleExportCSV}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-foreground transition-all hover:bg-surface3"
-                style={{
-                  background: 'var(--surface2)',
-                  border: '1px solid var(--border)',
-                }}
-                title="Export currently filtered audit logs to CSV"
-              >
-                <Download size={13} className="text-primary" />
-                <span>Export CSV</span>
-              </button>
-            )}
-
-            <PageCMSEditButton pageId="recentlogs" pageName="Audit Logs" />
-
-            {/* Reset Filter Button */}
-            <button
-              type="button"
-              onClick={handleResetFilters}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-surface2 transition-all border border-transparent hover:border-border"
-              title="Reset to Today's logs and clear all filters"
-            >
-              <RotateCcw size={12} />
-              <span>Reset</span>
-            </button>
           </div>
         </div>
 
         {/* Row 2: "Who Made The Logs" Dropdown + Category + Status + Search */}
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-center">
-          {/* User Selector Dropdown: "Who Made The Logs" */}
-          <div className="md:col-span-4">
-            <label className="block text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
-              <User size={12} className="text-primary" />
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-3.5 items-end">
+          {/* User Selector Dropdown: "Who Made The Logs" (3 cols on desktop) */}
+          <div className="col-span-1 sm:col-span-1 lg:col-span-3">
+            <label className="block text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 flex items-center gap-1.5 truncate">
+              <User size={13} className="text-primary flex-shrink-0" />
               <span>Who Made The Logs:</span>
               {selectedUser !== 'ALL' && (
-                <span className="text-[10px] text-amber-400 font-normal lowercase">(active filter)</span>
+                <span className="text-[10px] text-amber-400 font-normal lowercase">(active)</span>
               )}
             </label>
             <CustomDropdown
               value={selectedUser}
               width="100%"
               options={[
-                { value: 'ALL', label: isStrictDigitalBot ? 'All Users & System Actors' : 'All Users' },
-                ...AUDIT_USERS
-                  .filter((u) => {
-                    if (!isStrictDigitalBot) {
-                      const email = (u.email || '').toLowerCase();
-                      const name = (u.name || '').toLowerCase();
-                      if (
-                        email.includes('digitalbot') ||
-                        email.includes('system.security') ||
-                        name.includes('digital bot') ||
-                        name.includes('security daemon') ||
-                        name.includes('automated bot')
-                      ) {
-                        return false;
-                      }
-                    }
-                    return true;
-                  })
-                  .map((u) => ({
-                    value: u.email,
-                    label: `${u.name} (${u.roleTitle} · ${u.roleLevel})`,
-                  })),
+                { value: 'ALL', label: isStrictDigitalBot ? 'All Users & System Actors' : 'All Permitted Users' },
+                ...visibleAuditUsers.map((u) => ({
+                  value: u.email,
+                  label: `${u.name} (${u.roleTitle} · ${u.roleLevel})`,
+                })),
               ]}
               onChange={(val) => {
                 setSelectedUser(val);
-
               }}
             />
           </div>
 
-          {/* Module / Category Filter */}
-          <div className="md:col-span-2.5">
-            <label className="block text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
-              <Layers size={12} />
+          {/* Module / Category Filter (2 cols on desktop) */}
+          <div className="col-span-1 sm:col-span-1 lg:col-span-2">
+            <label className="block text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 flex items-center gap-1.5 truncate">
+              <Layers size={13} className="text-primary flex-shrink-0" />
               <span>Module:</span>
+              {selectedCategory !== 'ALL' && (
+                <span className="text-[10px] text-amber-400 font-normal lowercase">(active)</span>
+              )}
             </label>
             <CustomDropdown
               value={selectedCategory}
@@ -668,11 +718,14 @@ export default function RecentLogsClient() {
             />
           </div>
 
-          {/* Status Filter */}
-          <div className="md:col-span-2">
-            <label className="block text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
-              <CheckCircle2 size={12} />
+          {/* Status Filter (2 cols on desktop) */}
+          <div className="col-span-1 sm:col-span-1 lg:col-span-2">
+            <label className="block text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 flex items-center gap-1.5 truncate">
+              <CheckCircle2 size={13} className="text-primary flex-shrink-0" />
               <span>Status:</span>
+              {selectedStatus !== 'ALL' && (
+                <span className="text-[10px] text-amber-400 font-normal lowercase">(active)</span>
+              )}
             </label>
             <CustomDropdown
               value={selectedStatus}
@@ -688,35 +741,42 @@ export default function RecentLogsClient() {
             />
           </div>
 
-          {/* Search Query */}
-          <div className="md:col-span-3.5">
-            <label className="block text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
-              <Search size={12} />
-              <span>Search Logs:</span>
+          {/* Search Query - Large and expansive (5 cols on desktop: 3 + 2 + 2 + 5 = 12) */}
+          <div className="col-span-1 sm:col-span-2 lg:col-span-5">
+            <label className="block text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 flex items-center justify-between">
+              <span className="flex items-center gap-1.5 truncate">
+                <Search size={13} className="text-primary flex-shrink-0" />
+                <span>Search Logs:</span>
+              </span>
+              {searchQuery && (
+                <span className="text-[10px] text-amber-400 font-mono font-normal">Active query</span>
+              )}
             </label>
-            <div className="relative">
+            <div className="relative w-full">
               <input
                 type="text"
-                placeholder="Search action, asset, keyword..."
+                placeholder="Search by action, user, property, resource, or IP..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full text-xs rounded-lg pl-8 pr-3 py-2 text-foreground outline-none border transition-all placeholder:text-muted-foreground"
+                className="w-full text-xs sm:text-[13px] rounded-xl pl-9 pr-9 h-[38px] text-foreground outline-none border transition-all placeholder:text-muted-foreground/75 focus:border-primary focus:ring-1 focus:ring-primary/30"
                 style={{
                   background: 'var(--surface2)',
-                  borderColor: searchQuery ? 'rgba(232,201,122,0.5)' : 'var(--border)',
+                  borderColor: searchQuery ? 'rgba(232,201,122,0.6)' : 'var(--border)',
+                  boxShadow: searchQuery ? '0 0 12px rgba(232,201,122,0.12)' : 'none',
                 }}
               />
               <Search
-                size={13}
-                className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground"
+                size={14}
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none"
               />
               {searchQuery && (
                 <button
                   type="button"
                   onClick={() => setSearchQuery('')}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground p-1 rounded-md hover:bg-surface3 transition-colors cursor-pointer"
+                  title="Clear search"
                 >
-                  <X size={12} />
+                  <X size={13} />
                 </button>
               )}
             </div>
@@ -819,26 +879,44 @@ export default function RecentLogsClient() {
             <tbody className="divide-y divide-border">
               {filteredLogs.length === 0 ? (
                 <tr>
-                  <td colSpan={activeColumns.length} className="py-12 text-center text-muted-foreground">
-                    <div className="flex flex-col items-center justify-center space-y-2">
-                      <div className="w-12 h-12 rounded-full bg-surface2 flex items-center justify-center text-muted-foreground mb-1">
-                        <History size={24} />
+                  <td colSpan={activeColumns.length} className="py-14 text-center text-muted-foreground">
+                    {logs.length === 0 ? (
+                      <div className="flex flex-col items-center justify-center space-y-2.5 max-w-md mx-auto px-4">
+                        <div className="w-12 h-12 rounded-2xl bg-primary/10 border border-primary/25 flex items-center justify-center text-primary mb-1 shadow-inner">
+                          <Shield size={24} />
+                        </div>
+                        <div className="text-sm font-bold text-foreground">
+                          Live Audit Trail Initialized
+                        </div>
+                        <div className="text-xs text-muted-foreground leading-relaxed">
+                          Platform audit logging is active and listening. Real user sign-ins, role switches, asset updates, and statutory compliance checks will appear here live as they occur.
+                        </div>
+                        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-[11px] font-mono text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 mt-1">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                          <span>Tamper-evident real-time operational stream</span>
+                        </div>
                       </div>
-                      <div className="text-sm font-semibold text-foreground">
-                        No logs match your filter criteria
+                    ) : (
+                      <div className="flex flex-col items-center justify-center space-y-2">
+                        <div className="w-12 h-12 rounded-full bg-surface2 flex items-center justify-center text-muted-foreground mb-1">
+                          <History size={24} />
+                        </div>
+                        <div className="text-sm font-semibold text-foreground">
+                          No logs match your filter criteria
+                        </div>
+                        <div className="text-xs text-muted-foreground max-w-sm">
+                          Try switching to a wider preset (e.g. 1 Week or 30 Days) or clearing the user filter.
+                        </div>
+                        <button
+                          type="button"
+                          onClick={handleResetFilters}
+                          className="mt-3 px-3.5 py-1.5 rounded-lg text-xs font-semibold text-primary transition-all hover:bg-surface2 cursor-pointer"
+                          style={{ border: '1px solid rgba(232,201,122,0.4)' }}
+                        >
+                          Reset to Today's Logs
+                        </button>
                       </div>
-                      <div className="text-xs text-muted-foreground max-w-sm">
-                        Try switching to a wider preset (e.g. 1 Week or 30 Days) or clearing the user filter.
-                      </div>
-                      <button
-                        type="button"
-                        onClick={handleResetFilters}
-                        className="mt-3 px-3.5 py-1.5 rounded-lg text-xs font-semibold text-primary transition-all hover:bg-surface2"
-                        style={{ border: '1px solid rgba(232,201,122,0.4)' }}
-                      >
-                        Reset to Today's Logs
-                      </button>
-                    </div>
+                    )}
                   </td>
                 </tr>
               ) : (

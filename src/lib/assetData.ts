@@ -65,6 +65,9 @@ export interface Asset {
   riskLevel: RiskLevel;
   isFixed: boolean;
   notes?: string;
+  approvalStatus?: 'approved' | 'pending' | 'hold';
+  submittedBy?: string;
+  submittedDate?: string;
   createdAt: string;
   updatedAt: string;
 }
