@@ -293,17 +293,6 @@ export const DEFAULT_APP_CMS: AppCmsConfig = {
         order: 5,
       },
       {
-        id: 'task-manager',
-        name: 'Task Module',
-        path: '/task-manager',
-        iconName: 'ClipboardList',
-        description: 'Agile Kanban board for operational workflow tracking & ticket sprints',
-        group: 'Core & Portfolio',
-        section: 'opco',
-        enabled: true,
-        order: 6,
-      },
-      {
         id: 'utilities',
         name: 'Utility',
         path: '/utilities-register',

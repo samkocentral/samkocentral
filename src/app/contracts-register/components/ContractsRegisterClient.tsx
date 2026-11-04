@@ -674,11 +674,20 @@ export default function ContractsRegisterClient() {
       }
     });
 
+    contracts.forEach((c) => {
+      const clean = (c.category || '').trim();
+      if (clean && !deleted.has(clean.toLowerCase())) {
+        merged.add(clean);
+      }
+    });
+
     return Array.from(merged).sort();
-  }, [categoryDropdown, customCategories]);
+  }, [categoryDropdown, customCategories, contracts]);
 
   const [showAddCategoryModal, setShowAddCategoryModal] = useState(false);
   const [newCatName, setNewCatName] = useState('');
+  const [catToDelete, setCatToDelete] = useState<string | null>(null);
+  const [editingCat, setEditingCat] = useState<{ oldName: string; newName: string } | null>(null);
 
   const handleSaveCategory = (e: React.FormEvent) => {
     e.preventDefault();
@@ -707,6 +716,58 @@ export default function ContractsRegisterClient() {
     }
     setFilterCategory((prev) => prev.filter((c) => c !== catName));
     toast.success(`Removed category "${catName}"`);
+  };
+
+  const handleViewCategoryRecords = (catName: string) => {
+    setFilterCategory([catName]);
+    setShowAddCategoryModal(false);
+    const count = contracts.filter((c) => c.category === catName).length;
+    toast.info(`Filtered to ${catName}`, {
+      description: `Showing ${count} contract(s) matching category "${catName}"`,
+    });
+  };
+
+  const handleSaveEditCategory = () => {
+    if (!editingCat) return;
+    const oldName = editingCat.oldName.trim();
+    const newName = editingCat.newName.trim();
+    if (!newName || oldName === newName) {
+      setEditingCat(null);
+      return;
+    }
+    const updatedCustom = customCategories.map((c) => (c.toLowerCase() === oldName.toLowerCase() ? newName : c));
+    if (!updatedCustom.includes(newName)) {
+      updatedCustom.push(newName);
+    }
+    setCustomCategories(updatedCustom);
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.setItem('samko_contract_categories', JSON.stringify(updatedCustom));
+      } catch {}
+    }
+    removeDropdownOptionByName('contracts', 'category', oldName);
+    addDropdownOption('contracts', 'category', newName);
+
+    const updatedContracts = contracts.map((c) => {
+      if (c.category === oldName) {
+        return { ...c, category: newName };
+      }
+      return c;
+    });
+    setContracts(updatedContracts);
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.setItem('samko_contracts_data', JSON.stringify(updatedContracts));
+      } catch {}
+    }
+    setEditingCat(null);
+    toast.success(`Renamed category "${oldName}" to "${newName}"`);
+  };
+
+  const handleConfirmDeleteCategory = () => {
+    if (!catToDelete) return;
+    handleDeleteCategory(catToDelete);
+    setCatToDelete(null);
   };
 
   const [showAddModal, setShowAddModal] = useState(false);
@@ -796,9 +857,13 @@ export default function ContractsRegisterClient() {
     return () => window.removeEventListener('samko:data-changed', handleDataChanged);
   }, [fetchContractsData]);
 
-  const propertyOptions = properties.length > 0
-    ? Array.from(new Set([...properties.map((p) => p.name), ...HOTELS]))
-    : HOTELS;
+  const propertyOptions = useMemo(() => {
+    return Array.from(new Set([
+      ...properties.map((p) => p.name),
+      ...contracts.map((c) => c.hotel).filter(Boolean),
+      ...HOTELS,
+    ])).sort();
+  }, [properties, contracts]);
 
   const { getDropdownOptions, getFieldLabel, customFields } = useCMSForm('contracts');
 
@@ -1007,10 +1072,15 @@ export default function ContractsRegisterClient() {
     : `£${totalValue.toLocaleString()}`;
 
   const filtered = contracts.filter((c) => {
-    const matchSearch = !search || c.contractId.toLowerCase().includes(search.toLowerCase()) || c.supplierName.toLowerCase().includes(search.toLowerCase()) || c.contractName.toLowerCase().includes(search.toLowerCase());
-    const matchStatus = filterStatus.length === 0 || filterStatus.includes(c.status);
-    const matchHotel = filterHotel.length === 0 || filterHotel.includes(c.hotel);
-    const matchCat = filterCategory.length === 0 || filterCategory.includes(c.category);
+    const matchSearch = !search ||
+      (c.contractId || '').toLowerCase().includes(search.toLowerCase()) ||
+      (c.supplierName || '').toLowerCase().includes(search.toLowerCase()) ||
+      (c.contractName || '').toLowerCase().includes(search.toLowerCase()) ||
+      (c.category || '').toLowerCase().includes(search.toLowerCase()) ||
+      (c.hotel || '').toLowerCase().includes(search.toLowerCase());
+    const matchStatus = filterStatus.length === 0 || filterStatus.some((s) => s.trim().toLowerCase() === (c.status || '').trim().toLowerCase());
+    const matchHotel = filterHotel.length === 0 || filterHotel.some((h) => h.trim().toLowerCase() === (c.hotel || '').trim().toLowerCase());
+    const matchCat = filterCategory.length === 0 || filterCategory.some((cat) => cat.trim().toLowerCase() === (c.category || '').trim().toLowerCase());
     return matchSearch && matchStatus && matchHotel && matchCat;
   });
 
@@ -1146,7 +1216,7 @@ export default function ContractsRegisterClient() {
                 onChange={setFilterHotel}
               />
               <CustomDropdown
-                label={`All ${getFieldLabel('category', 'Categories')}`}
+                label={`All ${getFieldLabel('category', 'Contract Types')}`}
                 value={filterCategory}
                 multiple
                 options={cmsCategoryOptions}
@@ -2372,7 +2442,7 @@ export default function ContractsRegisterClient() {
                 </div>
                 <div>
                   <h3 className="font-head font-bold text-base text-foreground">Manage Contract Categories</h3>
-                  <p className="text-xs text-muted-foreground">Add new categories or remove unwanted categories</p>
+                  <p className="text-xs text-muted-foreground">Add new categories, view assigned contracts, rename or delete</p>
                 </div>
               </div>
               <button onClick={() => setShowAddCategoryModal(false)} className="w-7 h-7 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground cursor-pointer">
@@ -2395,7 +2465,7 @@ export default function ContractsRegisterClient() {
                   <button
                     type="submit"
                     disabled={!newCatName.trim()}
-                    className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-semibold bg-primary text-black cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-semibold bg-primary text-black cursor-pointer disabled:opacity-50"
                   >
                     <Plus size={13} /> Add
                   </button>
@@ -2407,25 +2477,91 @@ export default function ContractsRegisterClient() {
                   <label className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
                     Active Categories ({allCategories.length})
                   </label>
-                  <span className="text-[10px] text-muted-foreground">Click × to delete</span>
+                  <span className="text-[10px] text-muted-foreground">Eye to view · Pencil to edit · Trash to delete</span>
                 </div>
-                <div className="flex flex-wrap gap-1.5 max-h-48 overflow-y-auto custom-scrollbar p-2.5 rounded-xl border border-border/60 bg-black/25">
-                  {allCategories.map((c) => (
-                    <span
-                      key={c}
-                      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs border border-border bg-surface text-foreground font-medium"
-                    >
-                      <span className="truncate max-w-[200px]">{c}</span>
-                      <button
-                        type="button"
-                        onClick={() => handleDeleteCategory(c)}
-                        className="text-muted-foreground hover:text-rose-400 p-0.5 cursor-pointer rounded transition-colors"
-                        title={`Remove "${c}"`}
+                <div className="space-y-1.5 max-h-60 overflow-y-auto custom-scrollbar pr-1">
+                  {allCategories.map((c) => {
+                    const count = contracts.filter((x) => x.category === c).length;
+                    const isEditing = editingCat?.oldName === c;
+                    return (
+                      <div
+                        key={c}
+                        className="flex items-center justify-between p-2.5 rounded-xl border border-border/70 hover:border-border transition-all"
+                        style={{ background: 'var(--surface2)' }}
                       >
-                        <X size={11} />
-                      </button>
-                    </span>
-                  ))}
+                        {isEditing ? (
+                          <div className="flex items-center gap-2 flex-1 mr-2">
+                            <input
+                              type="text"
+                              value={editingCat.newName}
+                              onChange={(e) => setEditingCat({ ...editingCat, newName: e.target.value })}
+                              className="flex-1 px-2.5 py-1 rounded-lg border border-primary text-xs outline-none bg-surface text-foreground"
+                              autoFocus
+                            />
+                            <button
+                              type="button"
+                              onClick={handleSaveEditCategory}
+                              className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-primary text-black cursor-pointer"
+                            >
+                              Save
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setEditingCat(null)}
+                              className="p-1 rounded-lg text-muted-foreground hover:text-foreground cursor-pointer"
+                            >
+                              <X size={14} />
+                            </button>
+                          </div>
+                        ) : (
+                          <>
+                            <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                              <div
+                                className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
+                                style={{ background: 'rgba(232,201,122,0.15)', color: 'var(--primary)' }}
+                              >
+                                <Tag size={14} />
+                              </div>
+                              <div className="min-w-0">
+                                <p className="text-xs font-semibold text-foreground truncate">{c}</p>
+                                <p className="text-[11px] text-muted-foreground">
+                                  {count} {count === 1 ? 'contract' : 'contracts'}
+                                </p>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-1.5 flex-shrink-0">
+                              <button
+                                type="button"
+                                onClick={() => handleViewCategoryRecords(c)}
+                                className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium border border-border hover:bg-surface transition-colors cursor-pointer"
+                                style={{ color: 'var(--primary)', borderColor: 'rgba(232,201,122,0.25)', background: 'rgba(232,201,122,0.08)' }}
+                                title={`See records for ${c}`}
+                              >
+                                <Eye size={12} />
+                                <span className="hidden sm:inline">Records</span>
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setEditingCat({ oldName: c, newName: c })}
+                                className="p-1.5 rounded-lg border border-border hover:bg-surface text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                                title="Rename category"
+                              >
+                                <Edit2 size={13} />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setCatToDelete(c)}
+                                className="p-1.5 rounded-lg border border-border hover:bg-rose-500/10 text-muted-foreground hover:text-rose-400 transition-colors cursor-pointer"
+                                title="Delete category"
+                              >
+                                <Trash2 size={13} />
+                              </button>
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
 
@@ -2443,7 +2579,48 @@ export default function ContractsRegisterClient() {
           </div>
         </div>
       )}
-</div>
+
+      {/* Category Delete Confirmation Dialog */}
+      {catToDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(4px)' }}>
+          <div className="w-full max-w-md rounded-2xl border border-rose-500/30 p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-150" style={{ background: 'var(--surface)' }}>
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-rose-500/20 text-rose-400">
+                <AlertTriangle size={20} />
+              </div>
+              <div>
+                <h3 className="font-head font-bold text-base text-foreground">Delete Contract Category</h3>
+                <p className="text-xs text-muted-foreground">{catToDelete}</p>
+              </div>
+            </div>
+            <p className="text-xs leading-relaxed text-muted-foreground mb-5">
+              Are you sure you want to remove <strong className="text-foreground">{catToDelete}</strong> from contract categories?
+              {contracts.filter((c) => c.category === catToDelete).length > 0 && (
+                <span className="block mt-2 text-rose-400">
+                  Warning: {contracts.filter((c) => c.category === catToDelete).length} contract record(s) currently use this category.
+                </span>
+              )}
+            </p>
+            <div className="flex items-center justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => setCatToDelete(null)}
+                className="px-4 py-2 rounded-lg text-xs font-semibold border border-border hover:bg-surface2 transition-colors cursor-pointer"
+                style={{ background: 'var(--surface2)', color: 'var(--text2)' }}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmDeleteCategory}
+                className="flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-semibold bg-rose-600 hover:bg-rose-500 text-white transition-colors cursor-pointer"
+              >
+                <Trash2 size={13} /> Delete Category
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
-

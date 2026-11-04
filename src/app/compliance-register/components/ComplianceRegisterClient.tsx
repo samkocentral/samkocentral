@@ -202,35 +202,7 @@ export default function ComplianceRegisterClient() {
     return [];
   });
 
-  const categoryDropdown = (cmsDropdowns || []).find((d) => d.id === 'category');
-  const allCategories = useMemo(() => {
-    const cmsOptions = categoryDropdown?.options || [];
-    const deleted = new Set((categoryDropdown?.deletedOptions || []).map((o) => o.toLowerCase()));
-    const merged = new Set<string>();
-
-    cmsOptions.forEach((o) => {
-      const clean = o.trim();
-      if (clean && !clean.toLowerCase().startsWith('all ') && !deleted.has(clean.toLowerCase())) {
-        merged.add(clean);
-      }
-    });
-
-    DEFAULT_COMPLIANCE_CATEGORIES.forEach((c) => {
-      const clean = c.trim();
-      if (!deleted.has(clean.toLowerCase())) {
-        merged.add(clean);
-      }
-    });
-
-    customCategories.forEach((c) => {
-      const clean = c.trim();
-      if (!deleted.has(clean.toLowerCase())) {
-        merged.add(clean);
-      }
-    });
-
-    return Array.from(merged).sort();
-  }, [categoryDropdown, customCategories]);
+  
 
   useEffect(() => {
     const handleCategorySync = () => {
@@ -256,6 +228,8 @@ export default function ComplianceRegisterClient() {
 
   const [showAddCategoryModal, setShowAddCategoryModal] = useState(false);
   const [newCatName, setNewCatName] = useState('');
+  const [catToDelete, setCatToDelete] = useState<string | null>(null);
+  const [editingCat, setEditingCat] = useState<{ oldName: string; newName: string } | null>(null);
 
   const handleSaveCategory = (e: React.FormEvent) => {
     e.preventDefault();
@@ -286,6 +260,58 @@ export default function ComplianceRegisterClient() {
     }
     setFilterCategory((prev) => prev.filter((c) => c !== catName));
     toast.success(`Removed category "${catName}"`);
+  };
+
+  const handleViewCategoryRecords = (catName: string) => {
+    setFilterCategory([catName]);
+    setShowAddCategoryModal(false);
+    const count = items.filter((c) => c.category === catName).length;
+    toast.info(`Filtered to ${catName}`, {
+      description: `Showing ${count} item(s) matching category "${catName}"`,
+    });
+  };
+
+  const handleSaveEditCategory = () => {
+    if (!editingCat) return;
+    const oldName = editingCat.oldName.trim();
+    const newName = editingCat.newName.trim();
+    if (!newName || oldName === newName) {
+      setEditingCat(null);
+      return;
+    }
+    const updatedCustom = customCategories.map((c) => (c.toLowerCase() === oldName.toLowerCase() ? newName : c));
+    if (!updatedCustom.includes(newName)) {
+      updatedCustom.push(newName);
+    }
+    setCustomCategories(updatedCustom);
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.setItem('samko_compliance_categories', JSON.stringify(updatedCustom));
+      } catch {}
+    }
+    removeDropdownOptionByName('compliance', 'category', oldName);
+    addDropdownOption('compliance', 'category', newName);
+
+    const updatedItems = items.map((c) => {
+      if (c.category === oldName) {
+        return { ...c, category: newName };
+      }
+      return c;
+    });
+    setItems(updatedItems);
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.setItem('samko_compliance_items', JSON.stringify(updatedItems));
+      } catch {}
+    }
+    setEditingCat(null);
+    toast.success(`Renamed category "${oldName}" to "${newName}"`);
+  };
+
+  const handleConfirmDeleteCategory = () => {
+    if (!catToDelete) return;
+    handleDeleteCategory(catToDelete);
+    setCatToDelete(null);
   };
 
   const activeColumns = useMemo(() => {
@@ -355,6 +381,61 @@ export default function ComplianceRegisterClient() {
   const [filterStatus, setFilterStatus] = useState<string[]>([]);
   const [filterHotel, setFilterHotel] = useState<string[]>([]);
   const [filterCategory, setFilterCategory] = useState<string[]>([]);
+  const [filterType, setFilterType] = useState<string[]>([]);
+
+  const allTypes = useMemo(() => {
+    const types = new Set<string>(['Statutory', 'Internal', 'Mandatory', 'Operational', 'Brand Standard']);
+    items.forEach((i) => {
+      if (i.type) types.add(i.type.trim());
+    });
+    return Array.from(types).sort();
+  }, [items]);
+
+  const propertyOptions = useMemo(() => {
+    return Array.from(new Set([
+      ...propertyList,
+      ...items.map((i) => i.hotel).filter(Boolean),
+      ...DEFAULT_HOTELS,
+    ])).sort();
+  }, [propertyList, items]);
+
+  const categoryDropdown = (cmsDropdowns || []).find((d) => d.id === 'category');
+  const allCategories = useMemo(() => {
+    const cmsOptions = categoryDropdown?.options || [];
+    const deleted = new Set((categoryDropdown?.deletedOptions || []).map((o) => o.toLowerCase()));
+    const merged = new Set<string>();
+
+    cmsOptions.forEach((o) => {
+      const clean = o.trim();
+      if (clean && !clean.toLowerCase().startsWith('all ') && !deleted.has(clean.toLowerCase())) {
+        merged.add(clean);
+      }
+    });
+
+    DEFAULT_COMPLIANCE_CATEGORIES.forEach((c) => {
+      const clean = c.trim();
+      if (!deleted.has(clean.toLowerCase())) {
+        merged.add(clean);
+      }
+    });
+
+    customCategories.forEach((c) => {
+      const clean = c.trim();
+      if (!deleted.has(clean.toLowerCase())) {
+        merged.add(clean);
+      }
+    });
+
+    items.forEach((i) => {
+      const clean = (i.category || '').trim();
+      if (clean && !deleted.has(clean.toLowerCase())) {
+        merged.add(clean);
+      }
+    });
+
+    return Array.from(merged).sort();
+  }, [categoryDropdown, customCategories, items]);
+
   const [showAddModal, setShowAddModal] = useState(false);
   const [selectedItem, setSelectedItem] = useState<ComplianceItem | null>(null);
 
@@ -522,11 +603,17 @@ export default function ComplianceRegisterClient() {
   const highRisk = items.filter((c) => c.riskRating === 'high' || c.riskRating === 'critical').length;
 
   const filtered = items.filter((c) => {
-    const matchSearch = !search || c.name.toLowerCase().includes(search.toLowerCase()) || c.hotel.toLowerCase().includes(search.toLowerCase()) || c.complianceId.toLowerCase().includes(search.toLowerCase());
-    const matchStatus = filterStatus.length === 0 || filterStatus.includes(c.status);
-    const matchHotel = filterHotel.length === 0 || filterHotel.includes(c.hotel);
-    const matchCat = filterCategory.length === 0 || filterCategory.includes(c.category);
-    return matchSearch && matchStatus && matchHotel && matchCat;
+    const matchSearch = !search ||
+      (c.name || '').toLowerCase().includes(search.toLowerCase()) ||
+      (c.hotel || '').toLowerCase().includes(search.toLowerCase()) ||
+      (c.category || '').toLowerCase().includes(search.toLowerCase()) ||
+      (c.type || '').toLowerCase().includes(search.toLowerCase()) ||
+      (c.complianceId || '').toLowerCase().includes(search.toLowerCase());
+    const matchStatus = filterStatus.length === 0 || filterStatus.some((s) => s.trim().toLowerCase() === (c.status || '').trim().toLowerCase());
+    const matchHotel = filterHotel.length === 0 || filterHotel.some((h) => h.trim().toLowerCase() === (c.hotel || '').trim().toLowerCase());
+    const matchCat = filterCategory.length === 0 || filterCategory.some((cat) => cat.trim().toLowerCase() === (c.category || '').trim().toLowerCase());
+    const matchType = filterType.length === 0 || filterType.some((t) => t.trim().toLowerCase() === (c.type || '').trim().toLowerCase());
+    return matchSearch && matchStatus && matchHotel && matchCat && matchType;
   });
 
   const tabs = [
@@ -666,12 +753,33 @@ export default function ComplianceRegisterClient() {
           <Search size={13} className="text-muted-foreground flex-shrink-0" />
           <input
             className="bg-transparent text-xs outline-none flex-1"
-            placeholder="Search compliance, property, authority..."
+            placeholder={cmsSearchPlaceholder || 'Search compliance, property, authority...'}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             style={{ color: 'var(--foreground)' }}
           />
         </div>
+        <CustomDropdown
+          label="All Categories"
+          value={filterCategory}
+          multiple
+          options={allCategories.map((c) => ({ value: c, label: c }))}
+          onChange={setFilterCategory}
+        />
+        <CustomDropdown
+          label="All Properties"
+          value={filterHotel}
+          multiple
+          options={propertyOptions.map((h) => ({ value: h, label: h }))}
+          onChange={setFilterHotel}
+        />
+        <CustomDropdown
+          label="All Types"
+          value={filterType}
+          multiple
+          options={allTypes.map((t) => ({ value: t, label: t }))}
+          onChange={setFilterType}
+        />
         <CustomDropdown
           label="All Statuses"
           value={filterStatus}
@@ -684,21 +792,7 @@ export default function ComplianceRegisterClient() {
           ]}
           onChange={setFilterStatus}
         />
-        <CustomDropdown
-          label="All Properties"
-          value={filterHotel}
-          multiple
-          options={propertyList.map((h) => ({ value: h, label: h }))}
-          onChange={setFilterHotel}
-        />
-        <CustomDropdown
-          label="All Categories"
-          value={filterCategory}
-          multiple
-          align="right"
-          options={allCategories.map((c) => ({ value: c, label: c }))}
-          onChange={setFilterCategory}
-        />
+        <span className="text-xs text-muted-foreground ml-auto">{filtered.length} items</span>
       </div>
 
       {/* Table */}
@@ -1331,7 +1425,7 @@ export default function ComplianceRegisterClient() {
                 </div>
                 <div>
                   <h3 className="font-head font-bold text-base text-foreground">Manage Compliance Categories</h3>
-                  <p className="text-xs text-muted-foreground">Add new categories or remove unwanted categories</p>
+                  <p className="text-xs text-muted-foreground">Add new categories, view assigned records, rename or delete</p>
                 </div>
               </div>
               <button onClick={() => setShowAddCategoryModal(false)} className="w-7 h-7 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground cursor-pointer">
@@ -1366,25 +1460,91 @@ export default function ComplianceRegisterClient() {
                   <label className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
                     Active Categories ({allCategories.length})
                   </label>
-                  <span className="text-[10px] text-muted-foreground">Click × to delete</span>
+                  <span className="text-[10px] text-muted-foreground">Eye to view · Pencil to edit · Trash to delete</span>
                 </div>
-                <div className="flex flex-wrap gap-1.5 max-h-48 overflow-y-auto custom-scrollbar p-2.5 rounded-xl border border-border/60 bg-black/25">
-                  {allCategories.map((c) => (
-                    <span
-                      key={c}
-                      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs border border-border bg-surface text-foreground font-medium"
-                    >
-                      <span className="truncate max-w-[200px]">{c}</span>
-                      <button
-                        type="button"
-                        onClick={() => handleDeleteCategory(c)}
-                        className="text-muted-foreground hover:text-rose-400 p-0.5 cursor-pointer rounded transition-colors"
-                        title={`Remove "${c}"`}
+                <div className="space-y-1.5 max-h-60 overflow-y-auto custom-scrollbar pr-1">
+                  {allCategories.map((c) => {
+                    const count = items.filter((x) => x.category === c).length;
+                    const isEditing = editingCat?.oldName === c;
+                    return (
+                      <div
+                        key={c}
+                        className="flex items-center justify-between p-2.5 rounded-xl border border-border/70 hover:border-border transition-all"
+                        style={{ background: 'var(--surface2)' }}
                       >
-                        <X size={11} />
-                      </button>
-                    </span>
-                  ))}
+                        {isEditing ? (
+                          <div className="flex items-center gap-2 flex-1 mr-2">
+                            <input
+                              type="text"
+                              value={editingCat.newName}
+                              onChange={(e) => setEditingCat({ ...editingCat, newName: e.target.value })}
+                              className="flex-1 px-2.5 py-1 rounded-lg border border-primary text-xs outline-none bg-surface text-foreground"
+                              autoFocus
+                            />
+                            <button
+                              type="button"
+                              onClick={handleSaveEditCategory}
+                              className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-primary text-black cursor-pointer"
+                            >
+                              Save
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setEditingCat(null)}
+                              className="p-1 rounded-lg text-muted-foreground hover:text-foreground cursor-pointer"
+                            >
+                              <X size={14} />
+                            </button>
+                          </div>
+                        ) : (
+                          <>
+                            <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                              <div
+                                className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
+                                style={{ background: 'rgba(232,201,122,0.15)', color: 'var(--primary)' }}
+                              >
+                                <Tag size={14} />
+                              </div>
+                              <div className="min-w-0">
+                                <p className="text-xs font-semibold text-foreground truncate">{c}</p>
+                                <p className="text-[11px] text-muted-foreground">
+                                  {count} {count === 1 ? 'item' : 'items'}
+                                </p>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-1.5 flex-shrink-0">
+                              <button
+                                type="button"
+                                onClick={() => handleViewCategoryRecords(c)}
+                                className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium border border-border hover:bg-surface transition-colors cursor-pointer"
+                                style={{ color: 'var(--primary)', borderColor: 'rgba(232,201,122,0.25)', background: 'rgba(232,201,122,0.08)' }}
+                                title={`See records for ${c}`}
+                              >
+                                <Eye size={12} />
+                                <span className="hidden sm:inline">Records</span>
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setEditingCat({ oldName: c, newName: c })}
+                                className="p-1.5 rounded-lg border border-border hover:bg-surface text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                                title="Rename category"
+                              >
+                                <Edit2 size={13} />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setCatToDelete(c)}
+                                className="p-1.5 rounded-lg border border-border hover:bg-rose-500/10 text-muted-foreground hover:text-rose-400 transition-colors cursor-pointer"
+                                title="Delete category"
+                              >
+                                <Trash2 size={13} />
+                              </button>
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
 
@@ -1398,6 +1558,48 @@ export default function ComplianceRegisterClient() {
                   Done
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Category Delete Confirmation Dialog */}
+      {catToDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(4px)' }}>
+          <div className="w-full max-w-md rounded-2xl border border-rose-500/30 p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-150" style={{ background: 'var(--surface)' }}>
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-rose-500/20 text-rose-400">
+                <AlertTriangle size={20} />
+              </div>
+              <div>
+                <h3 className="font-head font-bold text-base text-foreground">Delete Compliance Category</h3>
+                <p className="text-xs text-muted-foreground">{catToDelete}</p>
+              </div>
+            </div>
+            <p className="text-xs leading-relaxed text-muted-foreground mb-5">
+              Are you sure you want to remove <strong className="text-foreground">{catToDelete}</strong> from compliance categories?
+              {items.filter((c) => c.category === catToDelete).length > 0 && (
+                <span className="block mt-2 text-rose-400">
+                  Warning: {items.filter((c) => c.category === catToDelete).length} compliance record(s) currently use this category.
+                </span>
+              )}
+            </p>
+            <div className="flex items-center justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => setCatToDelete(null)}
+                className="px-4 py-2 rounded-lg text-xs font-semibold border border-border hover:bg-surface2 transition-colors cursor-pointer"
+                style={{ background: 'var(--surface2)', color: 'var(--text2)' }}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmDeleteCategory}
+                className="flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-semibold bg-rose-600 hover:bg-rose-500 text-white transition-colors cursor-pointer"
+              >
+                <Trash2 size={13} /> Delete Category
+              </button>
             </div>
           </div>
         </div>

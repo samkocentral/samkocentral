@@ -103,7 +103,6 @@ export default function Sidebar({ currentPath }: SidebarProps) {
       (t) =>
         t.id === tabId ||
         (tabId === 'all-assets' && t.id === 'fixed-assets') ||
-        (tabId === 'task-module' && (t.id === 'task-manager' || t.id === 'tasks')) ||
         (tabId === 'reports' && t.id === 'maintenance-reports')
     );
     if (tabId === 'propco-dashboard' && (!tab?.name || tab?.name === 'Dashboard')) {
@@ -138,7 +137,6 @@ export default function Sidebar({ currentPath }: SidebarProps) {
       (t) =>
         t.id === tabId ||
         (tabId === 'all-assets' && t.id === 'fixed-assets') ||
-        (tabId === 'task-module' && (t.id === 'task-manager' || t.id === 'tasks')) ||
         (tabId === 'reports' && t.id === 'maintenance-reports')
     );
     if (!tab) return true;
@@ -151,7 +149,6 @@ export default function Sidebar({ currentPath }: SidebarProps) {
       (t) =>
         t.id === tabId ||
         (tabId === 'all-assets' && t.id === 'fixed-assets') ||
-        (tabId === 'task-module' && (t.id === 'task-manager' || t.id === 'tasks')) ||
         (tabId === 'reports' && t.id === 'maintenance-reports')
     );
     if (tab?.path) return tab.path;
@@ -180,7 +177,6 @@ export default function Sidebar({ currentPath }: SidebarProps) {
       (t) =>
         t.id === tabId ||
         (tabId === 'all-assets' && t.id === 'fixed-assets') ||
-        (tabId === 'task-module' && (t.id === 'task-manager' || t.id === 'tasks')) ||
         (tabId === 'reports' && t.id === 'maintenance-reports')
     );
 
@@ -353,24 +349,27 @@ export default function Sidebar({ currentPath }: SidebarProps) {
     if (!s && (tabId === 'reports' || tabId === 'contract-reports' || tabId === 'maintenance-reports')) {
       s = sectionMapping['reports'] || sectionMapping['contract-reports'] || sectionMapping['maintenance-reports'];
     }
-    if (!s && (tabId === 'tasks' || tabId === 'task-module')) {
-      s = sectionMapping['tasks'] || sectionMapping['task-module'];
+    if (!s && tabId === 'tasks') {
+      s = sectionMapping['tasks'];
     }
     return s || DEFAULT_TAB_SECTIONS[tabId] || 'propco';
   };
 
   const isInPropCo = (tabId: string) => {
+    if (tabId === 'docs-upload' || tabId === 'documents') return false;
     const s = getSectionForTab(tabId);
     return s === 'propco' || s === 'both';
   };
 
   const isInOpCo = (tabId: string) => {
+    if (tabId === 'task-module' || tabId === 'task-manager') return false;
     const s = getSectionForTab(tabId);
     return s === 'opco' || s === 'both';
   };
 
   const isInBottom = (tabId: string) => {
     if (tabId === 'dashboard') return false;
+    if (tabId === 'docs-upload' || tabId === 'documents') return true;
     const s = getSectionForTab(tabId);
     return s === 'bottom';
   };
@@ -1427,14 +1426,7 @@ export default function Sidebar({ currentPath }: SidebarProps) {
                 badgeVariant: 'warning',
               })}
 
-            {/* Docs Upload (when moved to PropCo - Accessible to L1, L2, L3) */}
-            {canAccessDocsUpload && (isInPropCo('docs-upload') || isInPropCo('documents')) && isNavVisible('docs-upload') &&
-              renderPropCoNavItem({
-                id: 'docs-upload',
-                label: getNavLabel('docs-upload', getNavLabel('documents', 'Docs Upload')),
-                href: '/document-repository',
-                icon: <CloudUpload size={15} />,
-              })}
+
 
             {/* Recent Logs (when moved to PropCo) */}
             {isInPropCo('recent-logs') && isNavVisible('recent-logs') &&
@@ -1615,15 +1607,6 @@ export default function Sidebar({ currentPath }: SidebarProps) {
                 label: getTabLabel('opco', 'reports', 'Reports'),
                 href: getTabPath('opco', 'reports', '/asset-management/reports?type=maintenance'),
                 icon: <BarChart2 size={15} />,
-              })}
-
-            {/* 6. Task Module */}
-            {isInOpCo('task-module') && isTabVisibleInCms('opco', 'task-module') &&
-              renderOpCoNavItem({
-                id: 'task-module',
-                label: getTabLabel('opco', 'task-module', 'Task Module'),
-                href: getTabPath('opco', 'task-module', '/task-manager'),
-                icon: <ClipboardList size={15} />,
               })}
 
             {/* 7. Utility Dropdown */}

@@ -4190,6 +4190,20 @@
         "order": 7,
         "label": "Annual Cost",
         "visible": true
+      },
+      {
+        "id": "status",
+        "label": "Status",
+        "originalLabel": "Status",
+        "order": 8,
+        "visible": true
+      },
+      {
+        "id": "actions",
+        "label": "Actions",
+        "originalLabel": "Actions",
+        "order": 9,
+        "visible": true
       }
     ],
     "items": [

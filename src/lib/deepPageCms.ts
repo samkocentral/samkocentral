@@ -827,6 +827,8 @@ export const DEFAULT_DEEP_CMS: DeepAppCMSStore = {
       { id: 'meterReference', label: 'Meter Reference', originalLabel: 'Meter Reference', visible: true, order: 5 },
       { id: 'contractEnd', label: 'Contract End', originalLabel: 'Contract End', visible: true, order: 6 },
       { id: 'annualCost', label: 'Annual Cost', originalLabel: 'Annual Cost', visible: true, order: 7 },
+      { id: 'status', label: 'Status', originalLabel: 'Status', visible: true, order: 8 },
+      { id: 'actions', label: 'Actions', originalLabel: 'Actions', visible: true, order: 9 },
     ],
     items: UTILITIES.map((u) => ({
       id: u.id,
