@@ -33,6 +33,7 @@ import { toast } from 'sonner';
 import { useAuth } from '@/lib/authContext';
 import { DOCUMENTS, daysUntil, formatDateGB, type Document, type DocStatus } from '@/lib/mockData';
 import { HOTELS, DEPARTMENTS } from '@/lib/assetData';
+import { useLiveProperties } from '@/hooks/useLiveProperties';
 import CustomDropdown from '@/components/ui/CustomDropdown';
 import Modal from '@/components/ui/Modal';
 import ConfirmDeleteModal from '@/components/modals/ConfirmDeleteModal';
@@ -523,6 +524,29 @@ export default function ApprovalsClient() {
   const [docToDelete, setDocToDelete] = useState<DocumentSubmission | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
+  // Dynamic live properties from DB / cache
+  const { properties: liveProperties } = useLiveProperties();
+
+  // Dynamic property options computed from liveProperties + document properties
+  const propertyOptions = useMemo(() => {
+    const map = new Map<string, string>();
+    liveProperties.forEach((h: any) => {
+      const name = h.name || h.propertyName;
+      if (name && isPropertyAccessible(name || h.id)) {
+        map.set(name.toLowerCase(), name);
+      }
+    });
+    documents.forEach((d) => {
+      const s = d.site || (d as any).property || (d as any).hotel;
+      if (s && isPropertyAccessible(s)) {
+        if (!map.has(s.toLowerCase())) {
+          map.set(s.toLowerCase(), s);
+        }
+      }
+    });
+    return Array.from(map.values()).sort((a, b) => a.localeCompare(b));
+  }, [liveProperties, documents, isPropertyAccessible]);
+
   // New Document Upload for Approval Modal
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [uploadName, setUploadName] = useState('');
@@ -993,8 +1017,8 @@ export default function ApprovalsClient() {
             value={propertyFilter}
             onChange={(val) => setPropertyFilter(val)}
             options={[
-              { value: 'all', label: 'All Properties' },
-              ...HOTELS.filter((h) => isPropertyAccessible(h.name || h.id)).map((h) => ({ value: h.name, label: h.name })),
+              { value: 'all', label: `All Properties (${propertyOptions.length})` },
+              ...propertyOptions.map((name) => ({ value: name, label: name })),
             ]}
           />
 
@@ -1550,7 +1574,7 @@ export default function ApprovalsClient() {
                     width="100%"
                     value={uploadSite}
                     onChange={(val) => setUploadSite(val)}
-                    options={HOTELS.map((h) => ({ value: h.name, label: h.name }))}
+                    options={propertyOptions.map((name) => ({ value: name, label: name }))}
                   />
                 </div>
 
@@ -1665,7 +1689,7 @@ export default function ApprovalsClient() {
                   width="100%"
                   value={editSite}
                   onChange={(val) => setEditSite(val)}
-                  options={HOTELS.map((h) => ({ value: h.name, label: h.name }))}
+                  options={propertyOptions.map((name) => ({ value: name, label: name }))}
                 />
               </div>
 

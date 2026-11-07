@@ -5,6 +5,7 @@ import { useForm } from 'react-hook-form';
 import { Plus, Search, X, ClipboardList, Loader2, RefreshCw } from 'lucide-react';
 import { TASKS, daysUntil, formatDateGB } from '@/lib/mockData';
 import type { Task, TaskPriority, TaskStatus } from '@/lib/mockData';
+import { getLiveProperties } from '@/hooks/useLiveProperties';
 import { api } from '@/lib/api';
 import { useAuth } from '@/lib/authContext';
 
@@ -80,13 +81,9 @@ export default function TaskManagerClient() {
     }
     return TASKS;
   });
-  const [propertyList, setPropertyList] = useState<string[]>([
-    'Crowne Plaza Kingston-south',
-    'Stanhill Court',
-    'Hampton 1 & 2',
-    'Ravents Ait Island',
-    'River Club',
-  ]);
+  const [propertyList, setPropertyList] = useState<string[]>(() => {
+    return getLiveProperties().map((p) => p.name).filter(Boolean);
+  });
   const [loading, setLoading] = useState(false);
   const [priorityFilter, setPriorityFilter] = useState<typeof PRIORITY_FILTERS[number]>('All');
   const [statusFilter, setStatusFilter] = useState<typeof STATUS_FILTERS_TASK[number]>('All');
@@ -158,12 +155,12 @@ export default function TaskManagerClient() {
     if (priorityFilter !== 'All') result = result.filter((t) => t.priority === priorityFilter);
     if (statusFilter !== 'All') result = result.filter((t) => getTaskStatus(t) === statusFilter);
     if (search) {
-      const q = search.toLowerCase();
+      const q = search.toLowerCase().trim();
       result = result.filter(
         (t) =>
-          t.title.toLowerCase().includes(q) ||
-          t.site.toLowerCase().includes(q) ||
-          t.assignee.toLowerCase().includes(q)
+          (t.title || '').toLowerCase().includes(q) ||
+          (t.site || (t as any).property || (t as any).hotel || '').toLowerCase().includes(q) ||
+          (t.assignee || '').toLowerCase().includes(q)
       );
     }
     // Sort by priority then due date

@@ -16,6 +16,7 @@ import { useLoadingPagination } from '@/hooks/useLoadingPagination';
 import TableCheckbox from '@/components/ui/TableCheckbox';
 import BulkActionBar from '@/components/ui/BulkActionBar';
 import ConfirmDeleteModal from '@/components/modals/ConfirmDeleteModal';
+import { getLivePropertyNames } from '@/hooks/useLiveProperties';
 
 type ComplianceStatus = 'compliant' | 'expiring-soon' | 'overdue' | 'pending';
 type RiskRating = 'low' | 'medium' | 'high' | 'critical';
@@ -356,7 +357,7 @@ export default function ComplianceRegisterClient() {
       setItems(cmsItems as any);
     }
   }, [cmsItems]);
-  const [propertyList, setPropertyList] = useState<string[]>(DEFAULT_HOTELS);
+  const [propertyList, setPropertyList] = useState<string[]>(() => getLivePropertyNames());
   const [loading, setLoading] = useState(false);
 
   const searchParams = useSearchParams();
@@ -1744,7 +1745,7 @@ export default function ComplianceRegisterClient() {
 
       {/* Category Delete Confirmation Dialog */}
       {catToDelete && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(4px)' }}>
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(4px)' }}>
           <div className="w-full max-w-md rounded-2xl border border-rose-500/30 p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-150" style={{ background: 'var(--surface)' }}>
             <div className="flex items-center gap-3 mb-4">
               <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-rose-500/20 text-rose-400">

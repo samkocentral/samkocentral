@@ -89,6 +89,7 @@ import {
   type DeepChartDataPoint,
 } from '@/lib/deepPageCms';
 import { HOTELS, ASSET_CATEGORIES } from '@/lib/assetData';
+import { getLiveProperties } from '@/hooks/useLiveProperties';
 import { toast } from 'sonner';
 import CustomDropdown from '@/components/ui/CustomDropdown';
 
@@ -224,6 +225,7 @@ export default function DeepPageCMSEditor({
   const [newDropdownOptionInput, setNewDropdownOptionInput] = useState('');
   const [newDropdownOptionsList, setNewDropdownOptionsList] = useState<string[]>([]);
   const [dropdownToDelete, setDropdownToDelete] = useState<DeepPageDropdown | null>(null);
+  const [optionToDelete, setOptionToDelete] = useState<{ dropdownId: string; optIdx: number; optionName: string; dropdownLabel: string } | null>(null);
 
   // Column CMS states (Add, Move, Delete with Confirmation)
   const [showAddColModal, setShowAddColModal] = useState(false);
@@ -1627,7 +1629,7 @@ export default function DeepPageCMSEditor({
                             <span className="truncate">{opt}</span>
                             <button
                               type="button"
-                              onClick={() => handleRemoveDropdownOption(dropdown.id, optIdx)}
+                              onClick={() => setOptionToDelete({ dropdownId: dropdown.id, optIdx, optionName: opt, dropdownLabel: dropdown.label })}
                               className="text-muted-foreground hover:text-rose-400 p-0.5 cursor-pointer rounded transition-colors"
                               title={`Remove "${opt}"`}
                             >
@@ -2044,7 +2046,7 @@ export default function DeepPageCMSEditor({
                 setAssetHotelFilter(val);
                 setAssetPage(1);
               }}
-              options={HOTELS.map((hotel) => ({ value: hotel.name, label: hotel.name }))}
+              options={getLiveProperties().map((hotel) => ({ value: hotel.name, label: hotel.name }))}
               placeholder="All Properties"
               allLabel="All Properties"
               size="sm"
@@ -2716,7 +2718,7 @@ export default function DeepPageCMSEditor({
                   <CustomDropdown
                     value={editingAsset.hotelName}
                     onChange={(val) => setEditingAsset({ ...editingAsset, hotelName: val })}
-                    options={HOTELS.map((h) => ({ value: h.name, label: h.name }))}
+                    options={getLiveProperties().map((h) => ({ value: h.name, label: h.name }))}
                     placeholder="Select Property"
                     variant="form"
                     width="100%"
@@ -2929,7 +2931,7 @@ export default function DeepPageCMSEditor({
                   <CustomDropdown
                     value={newAssetForm.hotelName}
                     onChange={(val) => setNewAssetForm({ ...newAssetForm, hotelName: val })}
-                    options={HOTELS.map((h) => ({ value: h.name, label: h.name }))}
+                    options={getLiveProperties().map((h) => ({ value: h.name, label: h.name }))}
                     placeholder="Select Property"
                     variant="form"
                     width="100%"
@@ -3353,6 +3355,65 @@ export default function DeepPageCMSEditor({
               >
                 <Trash2 size={13} />
                 Delete Dropdown
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── DELETE DROPDOWN OPTION CONFIRMATION MODAL ─── */}
+      {optionToDelete && (
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-in fade-in duration-150"
+          onClick={() => setOptionToDelete(null)}
+        >
+          <div
+            className="w-full max-w-md rounded-2xl border border-rose-500/30 p-6 shadow-2xl flex flex-col gap-4 animate-in zoom-in-95 duration-150"
+            style={{ background: 'var(--surface)' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-rose-500/20 text-rose-400 flex-shrink-0">
+                <AlertTriangle size={20} />
+              </div>
+              <div className="flex-1 min-w-0">
+                <h3 className="font-head font-bold text-base text-foreground">Remove Option</h3>
+                <p className="text-xs text-muted-foreground truncate">{optionToDelete.dropdownLabel}</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setOptionToDelete(null)}
+                className="p-1 rounded-lg text-muted-foreground hover:text-foreground hover:bg-surface2 transition-colors cursor-pointer"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            <div className="text-xs leading-relaxed text-muted-foreground">
+              Are you sure you want to remove <strong className="text-foreground font-semibold">"{optionToDelete.optionName}"</strong> from the <strong className="text-foreground">{optionToDelete.dropdownLabel}</strong> dropdown?
+              <span className="block mt-2 text-emerald-400 font-medium">
+                Note: All existing records assigned to this category will safely stay in the database. Only this option will be removed from the dropdown list.
+              </span>
+            </div>
+
+            <div className="flex items-center justify-end gap-2.5 pt-2 border-t border-border">
+              <button
+                type="button"
+                onClick={() => setOptionToDelete(null)}
+                className="px-4 py-2 rounded-lg text-xs font-semibold border border-border hover:bg-surface2 transition-colors cursor-pointer text-foreground"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  handleRemoveDropdownOption(optionToDelete.dropdownId, optionToDelete.optIdx);
+                  setOptionToDelete(null);
+                }}
+                className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-bold bg-rose-600 hover:bg-rose-500 text-white transition-all shadow-sm active:scale-95 cursor-pointer"
+              >
+                <Trash2 size={13} />
+                Delete Option
               </button>
             </div>
           </div>

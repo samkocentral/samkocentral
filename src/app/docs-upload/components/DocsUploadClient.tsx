@@ -27,6 +27,9 @@ import { toast } from 'sonner';
 import { useAuth } from '@/lib/authContext';
 import { DOCUMENTS, type Document, type DocStatus } from '@/lib/mockData';
 import { HOTELS } from '@/lib/assetData';
+import { useLiveProperties } from '@/hooks/useLiveProperties';
+import LoadingPagination from '@/components/ui/LoadingPagination';
+import { useLoadingPagination } from '@/hooks/useLoadingPagination';
 import {
   useDeepPageCms,
   DEFAULT_DOCUMENT_CATEGORIES,
@@ -195,6 +198,29 @@ export default function DocsUploadClient() {
     toast.success(`Category "${catName}" removed`);
   };
 
+  // Live dynamic properties from DB
+  const { properties: liveProperties } = useLiveProperties();
+
+  // Dynamic property options computed from liveProperties + document properties
+  const propertyOptions = useMemo(() => {
+    const map = new Map<string, string>();
+    liveProperties.forEach((h: any) => {
+      const name = h.name || (h as any).propertyName;
+      if (name && isPropertyAccessible(name || h.id)) {
+        map.set(name.toLowerCase(), name);
+      }
+    });
+    documents.forEach((d) => {
+      const s = d.site || (d as any).property || (d as any).hotel;
+      if (s && isPropertyAccessible(s)) {
+        if (!map.has(s.toLowerCase())) {
+          map.set(s.toLowerCase(), s);
+        }
+      }
+    });
+    return Array.from(map.values()).sort((a, b) => a.localeCompare(b));
+  }, [liveProperties, documents, isPropertyAccessible]);
+
   // Scoped documents by assigned property
   const accessibleDocuments = useMemo(() => {
     return documents.filter((doc) => isPropertyAccessible(doc.site));
@@ -220,6 +246,17 @@ export default function DocsUploadClient() {
       return true;
     });
   }, [accessibleDocuments, filterStatus, filterCategory, filterProperty, search]);
+
+  // Pagination for documents table
+  const {
+    currentPage: docsCurrentPage,
+    pageSize: docsPageSize,
+    totalRecords: docsTotalRecords,
+    paginatedItems: paginatedDocuments,
+    isPageLoading: isDocsLoading,
+    changePage: changeDocsPage,
+    changePageSize: changeDocsPageSize,
+  } = useLoadingPagination(filteredDocuments, 10);
 
   // Stats calculation
   const compliantCount = useMemo(() => accessibleDocuments.filter((d) => d.status === 'ok').length, [accessibleDocuments]);
@@ -413,7 +450,7 @@ export default function DocsUploadClient() {
               Total Real Documents
             </span>
             <div className="text-2xl font-bold font-head text-foreground mt-1">{documents.length}</div>
-            <span className="text-[11px] text-muted-foreground">Across All 8 Sites</span>
+            <span className="text-[11px] text-muted-foreground">Across All {liveProperties.length} Sites</span>
           </div>
           <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-white/[0.05] text-primary">
             <FolderOpen size={20} />
@@ -451,7 +488,7 @@ export default function DocsUploadClient() {
             <CustomDropdown
               value={filterProperty}
               onChange={setFilterProperty}
-              options={HOTELS.filter((h) => isPropertyAccessible(h.name || h.id)).map((h) => ({ value: h.name, label: h.name }))}
+              options={propertyOptions.map((name) => ({ value: name, label: name }))}
               placeholder="All Properties"
               allLabel="All Properties"
               size="sm"
@@ -547,7 +584,7 @@ export default function DocsUploadClient() {
                   </td>
                 </tr>
               ) : (
-                filteredDocuments.map((doc) => {
+                paginatedDocuments.map((doc) => {
                   const isCompliant = doc.status === 'ok';
                   const isDueSoon = doc.status === 'warning';
                   const isOverdue = doc.status === 'critical';
@@ -685,6 +722,17 @@ export default function DocsUploadClient() {
             </tbody>
           </table>
         </div>
+
+        {/* Dynamic Loading Pagination Bar */}
+        <LoadingPagination
+          currentPage={docsCurrentPage}
+          totalRecords={docsTotalRecords}
+          pageSize={docsPageSize}
+          onPageChange={changeDocsPage}
+          onPageSizeChange={changeDocsPageSize}
+          isLoading={isDocsLoading}
+          recordName="documents"
+        />
       </div>
 
       {/* ── LIVE DOCUMENT PREVIEW MODAL ── */}
@@ -944,7 +992,7 @@ export default function DocsUploadClient() {
                   <CustomDropdown
                     value={uploadForm.property}
                     onChange={(val) => setUploadForm({ ...uploadForm, property: val })}
-                    options={HOTELS.filter((h) => isPropertyAccessible(h.name || h.id)).map((h) => ({ value: h.name, label: h.name }))}
+                    options={propertyOptions.map((name) => ({ value: name, label: name }))}
                     placeholder="Select Property"
                     variant="form"
                     width="100%"

@@ -5,6 +5,7 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Search, ChevronDown, X, ExternalLink, Loader2, FileSpreadsheet, Plus, Tag, Edit2, Trash2, AlertTriangle, Check, Eye } from 'lucide-react';
 import { ASSETS, HOTELS, ASSET_CATEGORIES, DEPARTMENTS, type Asset, isAssetFixed } from '@/lib/assetData';
+import { getLiveProperties } from '@/hooks/useLiveProperties';
 import { api } from '@/lib/api';
 import { useAuth } from '@/lib/authContext';
 import { toast } from 'sonner';
@@ -210,8 +211,8 @@ export default function AssetsClient() {
     }
   }, [cmsAssets]);
 
-  const [properties, setProperties] = useState<{ value: string; label: string }[]>(
-    HOTELS.map((h) => ({ value: h.id, label: h.name }))
+  const [properties, setProperties] = useState<{ value: string; label: string }[]>(() =>
+    getLiveProperties().map((h) => ({ value: h.id, label: h.name }))
   );
   const [categories, setCategories] = useState<string[]>(ASSET_CATEGORIES.map((c) => c.name));
   const [loading, setLoading] = useState(false);

@@ -1,8 +1,9 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { X, UploadCloud, FileText, CheckCircle2, Building2, Tag } from 'lucide-react';
 import { TASK_PROPERTIES } from '@/data/tasksData';
+import { useLiveProperties } from '@/hooks/useLiveProperties';
 import { toast } from 'sonner';
 import CustomDropdown from '@/components/ui/CustomDropdown';
 
@@ -17,6 +18,13 @@ export default function UploadDocumentModal({
   onClose,
   defaultProperty,
 }: UploadDocumentModalProps) {
+  const { properties: liveProperties } = useLiveProperties();
+  const propertyOptions = useMemo(() => {
+    const liveNames = liveProperties.map((p) => p.name).filter(Boolean);
+    const combined = Array.from(new Set([...liveNames, ...TASK_PROPERTIES])).sort();
+    return combined;
+  }, [liveProperties]);
+
   const [property, setProperty] = useState(
     defaultProperty && defaultProperty !== 'ALL' ? defaultProperty : 'Crowne Plaza Kingston-South'
   );
@@ -114,7 +122,7 @@ export default function UploadDocumentModal({
               <CustomDropdown
                 value={property}
                 onChange={(val) => setProperty(val)}
-                options={TASK_PROPERTIES.map((prop) => ({ value: prop, label: prop }))}
+                options={propertyOptions.map((prop: string) => ({ value: prop, label: prop }))}
                 placeholder="Select Property"
                 variant="form"
                 width="100%"

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   X,
   Plus,
@@ -21,6 +21,7 @@ import {
   TASK_ASSIGNEES,
   getDateWithOffset,
 } from '@/data/tasksData';
+import { useLiveProperties } from '@/hooks/useLiveProperties';
 import { toast } from 'sonner';
 import CustomDropdown from '@/components/ui/CustomDropdown';
 
@@ -37,6 +38,13 @@ export default function AddItemModal({
   onTaskCreated,
   defaultProperty,
 }: AddItemModalProps) {
+  const { properties: liveProperties } = useLiveProperties();
+  const propertyOptions = useMemo(() => {
+    const liveNames = liveProperties.map((p) => p.name).filter(Boolean);
+    const combined = Array.from(new Set([...liveNames, ...TASK_PROPERTIES])).sort();
+    return combined;
+  }, [liveProperties]);
+
   const [type, setType] = useState<TaskType>('Task');
   const [title, setTitle] = useState('');
   const [property, setProperty] = useState<string>(
@@ -210,7 +218,7 @@ export default function AddItemModal({
               <CustomDropdown
                 value={property}
                 onChange={(val) => setProperty(val)}
-                options={TASK_PROPERTIES.map((prop) => ({ value: prop, label: prop }))}
+                options={propertyOptions.map((prop: string) => ({ value: prop, label: prop }))}
                 placeholder="Select Property"
                 variant="form"
                 width="100%"

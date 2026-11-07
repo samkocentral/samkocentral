@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { Building2, Package, AlertTriangle, CheckCircle2, Clock, TrendingUp, BarChart3, Activity, ChevronRight, ArrowUpRight } from 'lucide-react';
 import { HOTELS, ASSETS, MAINTENANCE_RECORDS, ASSET_CATEGORIES, DEPARTMENTS, getAssetStats } from '@/lib/assetData';
+import { useLiveProperties } from '@/hooks/useLiveProperties';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import Icon from '@/components/ui/AppIcon';
 import { useDeepPageCms } from '@/lib/deepPageCms';
@@ -85,10 +86,11 @@ function MaintenanceBadge({ status }: { status: string }) {
 export default function AssetDashboardClient() {
   const cms = useDeepPageCms('assetdashboard');
   const { isPropertyAccessible } = useAuth();
+  const { properties: liveProperties } = useLiveProperties();
 
   const accessibleHotels = React.useMemo(() => {
-    return HOTELS.filter((h) => isPropertyAccessible(h.name || h.id));
-  }, [isPropertyAccessible]);
+    return liveProperties.filter((h) => isPropertyAccessible(h.name || h.id));
+  }, [liveProperties, isPropertyAccessible]);
 
   const accessibleAssets = React.useMemo(() => {
     return ASSETS.filter((a) => isPropertyAccessible(a.hotelName || a.hotelId || (a as any).property));
@@ -216,7 +218,7 @@ export default function AssetDashboardClient() {
             color="#3dd68c"
             icon={CheckCircle2}
           />
-          <StatCard label="Properties Managed" value={HOTELS.length} sub="Active properties" color="#34d399" icon={Building2} />
+          <StatCard label="Properties Managed" value={liveProperties.length} sub="Active properties" color="#34d399" icon={Building2} />
         </div>
 
         {/* Charts Row */}

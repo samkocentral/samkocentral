@@ -47,15 +47,21 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    if (!body.name) {
+    const docName = body.name || body.documentName || body.title;
+    if (!docName) {
       return NextResponse.json({ success: false, error: 'Document name is required' }, { status: 400 });
     }
 
+    const propName = body.site || body.property || body.hotel || 'Crowne Plaza Kingston-south';
     const newDoc = await createDocument('documents', {
       ...body,
+      name: docName,
+      title: docName,
       id: body.id || `doc-${Date.now()}`,
       status: body.status || 'ok',
-      site: body.site || body.property || 'Crowne Plaza Kingston-south',
+      site: propName,
+      property: propName,
+      hotel: propName,
       uploadedAt: new Date().toISOString().split('T')[0],
       size: body.size || '1.2 MB',
       type: body.type || 'PDF',

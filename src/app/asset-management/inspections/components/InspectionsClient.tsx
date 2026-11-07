@@ -3,6 +3,7 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { ClipboardCheck, Clock, CheckCircle2, AlertTriangle, Search, ChevronDown, Calendar, User, ThumbsUp, ThumbsDown, Minus, Plus, Loader2, X, Eye } from 'lucide-react';
 import { MAINTENANCE_RECORDS, ASSETS, HOTELS } from '@/lib/assetData';
+import { getLiveProperties } from '@/hooks/useLiveProperties';
 import { api } from '@/lib/api';
 import { useAuth } from '@/lib/authContext';
 import PageCMSEditButton from '@/components/cms/PageCMSEditButton';
@@ -89,7 +90,7 @@ export default function InspectionsClient() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [maintenanceRecords, setMaintenanceRecords] = useState<any[]>(MAINTENANCE_RECORDS);
   const [assets, setAssets] = useState<any[]>(ASSETS);
-  const [properties, setProperties] = useState<any[]>([]);
+  const [properties, setProperties] = useState<any[]>(() => getLiveProperties());
   const [loading, setLoading] = useState(false);
   const [showNewModal, setShowNewModal] = useState(false);
 

@@ -14,6 +14,9 @@ import { toast } from 'sonner';
 import Modal from '@/components/ui/Modal';
 import CustomDropdown from '@/components/ui/CustomDropdown';
 import ConfirmDeleteModal from '@/components/modals/ConfirmDeleteModal';
+import LoadingPagination from '@/components/ui/LoadingPagination';
+import { useLoadingPagination } from '@/hooks/useLoadingPagination';
+import { getLiveProperties, saveLivePropertiesToCache } from '@/hooks/useLiveProperties';
 import { useAuth } from '@/lib/authContext';
 
 interface PropertyItem {
@@ -529,12 +532,26 @@ const MODULES: ModuleConfig[] = [
 
 export default function PropertyOnboardingHub() {
   const { isDigitalBot } = useAuth();
-  const [properties, setProperties] = useState<PropertyItem[]>([]);
-  const [selectedPropertyId, setSelectedPropertyId] = useState<string>('');
+  const [properties, setProperties] = useState<PropertyItem[]>(() => getLiveProperties() as any);
+  const [selectedPropertyId, setSelectedPropertyId] = useState<string>(() => {
+    const live = getLiveProperties();
+    return live[0]?.id || live[0]?.name || '';
+  });
   const [activeModule, setActiveModule] = useState<ModuleKey>('fixed-assets');
   const [loadingProps, setLoadingProps] = useState(false);
   const [moduleRecords, setModuleRecords] = useState<any[]>([]);
   const [loadingRecords, setLoadingRecords] = useState(false);
+
+  // Pagination for module records table
+  const {
+    currentPage: recordsPage,
+    pageSize: recordsPageSize,
+    totalRecords: totalModuleRecords,
+    paginatedItems: paginatedModuleRecords,
+    isPageLoading: isRecordsPageLoading,
+    changePage: changeRecordsPage,
+    changePageSize: changeRecordsPageSize,
+  } = useLoadingPagination(moduleRecords, 10);
 
   // Dynamic live categories from DB
   const [liveDbCategories, setLiveDbCategories] = useState<string[]>([]);
@@ -640,35 +657,54 @@ export default function PropertyOnboardingHub() {
       setLoadingProps(true);
       const res = await api.properties.getAll();
       if (res.success && Array.isArray(res.data)) {
-        setProperties(res.data);
-        if (res.data.length > 0 && !selectedPropertyId) {
-          setSelectedPropertyId(res.data[0].id || res.data[0].name);
-        }
+        setProperties((prev) => {
+          if (
+            prev.length === res.data.length &&
+            prev.every((p, i) => p.id === res.data[i]?.id && p.name === res.data[i]?.name)
+          ) {
+            return prev;
+          }
+          return res.data;
+        });
+        saveLivePropertiesToCache(res.data as any);
+        setSelectedPropertyId((current) => {
+          if (!current && res.data.length > 0) {
+            return res.data[0].id || res.data[0].name;
+          }
+          return current;
+        });
       }
     } catch (e) {
       console.warn('Failed to load properties for onboarding hub:', e);
     } finally {
       setLoadingProps(false);
     }
-  }, [selectedPropertyId]);
+  }, []);
 
   useEffect(() => {
     loadProperties();
     loadCategories();
-    const handleDataChanged = () => {
-      loadProperties();
-      loadCategories();
+    const handleDataChanged = (e: any) => {
+      if (e?.detail?.type === 'properties' || e?.detail?.type === 'property-created' || e?.detail?.type === 'property-deleted') {
+        loadProperties();
+      }
     };
     window.addEventListener('samko:data-changed', handleDataChanged);
     return () => window.removeEventListener('samko:data-changed', handleDataChanged);
   }, [loadProperties, loadCategories]);
 
+  // Stable primitives for loading module records
+  const activePropertyId = selectedProperty?.id || selectedPropertyId;
+  const activePropertyName = selectedProperty?.name || '';
+  const activeModuleId = currentModuleConfig.id;
+  const activeModuleCol = currentModuleConfig.collection;
+
   // Load records dynamically for active module and selected property
   const loadModuleRecords = useCallback(async () => {
-    if (!selectedProperty) return;
+    if (!activePropertyId && !activePropertyName) return;
     try {
       setLoadingRecords(true);
-      const col = currentModuleConfig.collection;
+      const col = activeModuleCol;
       let allRecords: any[] = [];
 
       if ((api as any)[col]?.getAll) {
@@ -679,8 +715,8 @@ export default function PropertyOnboardingHub() {
       }
 
       // Filter dynamically to records belonging to selected property
-      const pName = selectedProperty.name?.toLowerCase().trim();
-      const pId = selectedProperty.id?.toLowerCase().trim();
+      const pName = activePropertyName.toLowerCase().trim();
+      const pId = activePropertyId.toLowerCase().trim();
 
       const filtered = allRecords.filter((rec: any) => {
         // Strict fixed vs non-fixed check
@@ -690,13 +726,13 @@ export default function PropertyOnboardingHub() {
           String(rec.id || '').toUpperCase().startsWith('NON-') ||
           String(rec.id || '').toUpperCase().startsWith('NFX-');
 
-        if (currentModuleConfig.id === 'fixed-assets') {
+        if (activeModuleId === 'fixed-assets') {
           if (isNonFixed) return false;
-        } else if (currentModuleConfig.id === 'non-fixed-assets') {
+        } else if (activeModuleId === 'non-fixed-assets') {
           if (!isNonFixed) return false;
         }
 
-        if (currentModuleConfig.id === 'categories') {
+        if (activeModuleId === 'categories') {
           if (!rec.property && !rec.site && !rec.hotel) return true;
         }
 
@@ -712,7 +748,15 @@ export default function PropertyOnboardingHub() {
         );
       });
 
-      setModuleRecords(filtered);
+      const normalizedRecords = filtered.map((rec: any) => ({
+        ...rec,
+        title: rec.title || rec.contractName || rec.item || rec.assetName || rec.meterNumber || rec.name || '',
+        name: rec.name || rec.title || rec.contractName || rec.item || rec.assetName || '',
+        supplier: rec.supplier || rec.supplierName || rec.provider || '',
+        supplierName: rec.supplierName || rec.supplier || rec.provider || '',
+      }));
+
+      setModuleRecords(normalizedRecords);
       setSelectedRecordIds([]);
     } catch (err) {
       console.warn('Failed to load module records for property hub:', err);
@@ -720,7 +764,7 @@ export default function PropertyOnboardingHub() {
     } finally {
       setLoadingRecords(false);
     }
-  }, [selectedProperty, currentModuleConfig]);
+  }, [activePropertyId, activePropertyName, activeModuleId, activeModuleCol]);
 
   useEffect(() => {
     loadModuleRecords();
@@ -937,6 +981,31 @@ export default function PropertyOnboardingHub() {
           payload.assetType = 'non-fixed';
           payload.isFixed = false;
           payload.assetId = raw.assetId || `NFX-${Date.now().toString().slice(-6)}`;
+        } else if (currentModuleConfig.id === 'contracts') {
+          const cName = raw.title || raw.contractName || raw.name || 'Commercial Agreement';
+          const sName = raw.supplier || raw.supplierName || 'Contractor';
+          payload.contractName = cName;
+          payload.title = cName;
+          payload.name = cName;
+          payload.supplierName = sName;
+          payload.supplier = sName;
+          payload.contractId = raw.contractId || `CON-${Date.now().toString().slice(-4)}-${idx + 1}`;
+        } else if (currentModuleConfig.id === 'insurance') {
+          payload.policyNumber = raw.policyNumber || raw.name || raw.title || `POL-${Date.now().toString().slice(-4)}-${idx + 1}`;
+          payload.insuranceType = raw.type || raw.insuranceType || 'Buildings & Plant';
+          payload.provider = raw.provider || 'Aviva Commercial UK';
+        } else if (currentModuleConfig.id === 'compliance') {
+          payload.item = raw.title || raw.item || raw.name || 'Compliance Inspection';
+          payload.name = payload.item;
+        } else if (currentModuleConfig.id === 'maintenance') {
+          payload.assetName = raw.assetName || raw.title || raw.name || 'General Equipment';
+          payload.title = raw.title || payload.assetName;
+          payload.assetId = raw.assetId || `AST-${Date.now().toString().slice(-4)}-${idx + 1}`;
+        } else if (currentModuleConfig.id === 'utilities') {
+          payload.accountNo = raw.accountNumber || raw.accountNo || raw.meterNumber || `ACC-${Date.now().toString().slice(-4)}`;
+          payload.accountNumber = payload.accountNo;
+          payload.meterNumber = raw.meterNumber || payload.accountNo;
+          payload.utilityType = raw.utilityType || raw.type || 'Electricity';
         }
 
         return payload;
@@ -1004,6 +1073,31 @@ export default function PropertyOnboardingHub() {
       payload.assetType = 'non-fixed';
       payload.isFixed = false;
       payload.assetId = quickFormData.assetId || `NFX-${Date.now().toString().slice(-6)}`;
+    } else if (currentModuleConfig.id === 'contracts') {
+      const cName = quickFormData.title || quickFormData.contractName || quickFormData.name || 'Commercial Agreement';
+      const sName = quickFormData.supplier || quickFormData.supplierName || 'Contractor';
+      payload.contractName = cName;
+      payload.title = cName;
+      payload.name = cName;
+      payload.supplierName = sName;
+      payload.supplier = sName;
+      payload.contractId = quickFormData.contractId || `CON-${Date.now().toString().slice(-4)}`;
+    } else if (currentModuleConfig.id === 'insurance') {
+      payload.policyNumber = quickFormData.policyNumber || quickFormData.name || quickFormData.title || `POL-${Date.now().toString().slice(-4)}`;
+      payload.insuranceType = quickFormData.type || quickFormData.insuranceType || 'Buildings & Plant';
+      payload.provider = quickFormData.provider || 'Aviva Commercial UK';
+    } else if (currentModuleConfig.id === 'compliance') {
+      payload.item = quickFormData.title || quickFormData.item || quickFormData.name || 'Compliance Inspection';
+      payload.name = payload.item;
+    } else if (currentModuleConfig.id === 'maintenance') {
+      payload.assetName = quickFormData.assetName || quickFormData.title || quickFormData.name || 'General Equipment';
+      payload.title = quickFormData.title || payload.assetName;
+      payload.assetId = quickFormData.assetId || `AST-${Date.now().toString().slice(-4)}`;
+    } else if (currentModuleConfig.id === 'utilities') {
+      payload.accountNo = quickFormData.accountNumber || quickFormData.accountNo || quickFormData.meterNumber || `ACC-${Date.now().toString().slice(-4)}`;
+      payload.accountNumber = payload.accountNo;
+      payload.meterNumber = quickFormData.meterNumber || payload.accountNo;
+      payload.utilityType = quickFormData.utilityType || quickFormData.type || 'Electricity';
     }
 
     try {
@@ -1011,7 +1105,7 @@ export default function PropertyOnboardingHub() {
         const res = await (api as any)[col].create(payload);
         if (res.success) {
           toast.success(`Added ${currentModuleConfig.label} item to ${selectedProperty.name}`, {
-            description: payload.name || payload.title || payload.policyNumber || payload.meterNumber || 'Record saved to DB',
+            description: payload.name || payload.title || payload.contractName || payload.policyNumber || payload.meterNumber || 'Record saved to DB',
           });
           setModuleRecords((prev) => [payload, ...prev]);
           setShowAddSection(false);
@@ -1029,11 +1123,15 @@ export default function PropertyOnboardingHub() {
           if (typeof window !== 'undefined') {
             window.dispatchEvent(new CustomEvent('samko:data-changed', { detail: { type: col } }));
           }
+        } else {
+          toast.error(res?.error || 'Failed to save record to database');
         }
+      } else {
+        toast.error(`API create handler not found for ${col}`);
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error saving record:', err);
-      toast.error('Failed to save record to database');
+      toast.error(err?.message || 'Failed to save record to database');
     } finally {
       setIsSubmittingQuickForm(false);
     }
@@ -1071,7 +1169,11 @@ export default function PropertyOnboardingHub() {
         toast.success(`Property "${cleanName}" created in database!`, {
           description: 'All 11 sidebar modules are ready for this property.',
         });
-        setProperties((prev) => [savedProp, ...prev.filter((p) => p.id !== savedProp.id)]);
+        setProperties((prev) => {
+          const next = [savedProp, ...prev.filter((p) => p.id !== savedProp.id)];
+          saveLivePropertiesToCache(next as any);
+          return next;
+        });
         setSelectedPropertyId(savedProp.id || savedProp.name);
         setShowAddPropertyModal(false);
         setNewPropForm({
@@ -1471,7 +1573,15 @@ export default function PropertyOnboardingHub() {
               className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-bold text-black transition-all cursor-pointer shadow-sm"
               style={{ background: currentModuleConfig.color }}
             >
-              <Plus size={13} /> {showAddSection ? 'Close' : `+ Add ${currentModuleConfig.label} Record`}
+              {showAddSection ? (
+                <>
+                  <X size={13} /> Close Form
+                </>
+              ) : (
+                <>
+                  <Plus size={13} /> Add {currentModuleConfig.label} Record
+                </>
+              )}
             </button>
           </div>
         </div>
@@ -1883,8 +1993,9 @@ export default function PropertyOnboardingHub() {
               </div>
             </div>
           ) : (
-            <div className="overflow-x-auto rounded-xl border border-border">
-              <table className="w-full text-left text-xs">
+            <div className="rounded-xl border border-border overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs">
                 <thead>
                   <tr className="border-b border-border bg-white/[0.02] text-muted-foreground">
                     <th className="px-3 py-2.5 w-8">
@@ -1906,7 +2017,7 @@ export default function PropertyOnboardingHub() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border/60">
-                  {moduleRecords.map((rec) => {
+                  {paginatedModuleRecords.map((rec) => {
                     const title = rec.name || rec.title || rec.policyNumber || rec.meterNumber || rec.claimNumber || rec.id;
                     const isChecked = selectedRecordIds.includes(rec.id);
 
@@ -2031,6 +2142,18 @@ export default function PropertyOnboardingHub() {
                 </tbody>
               </table>
             </div>
+
+            {/* Pagination Controls */}
+            <LoadingPagination
+              currentPage={recordsPage}
+              totalRecords={totalModuleRecords}
+              pageSize={recordsPageSize}
+              onPageChange={changeRecordsPage}
+              onPageSizeChange={changeRecordsPageSize}
+              isLoading={isRecordsPageLoading || loadingRecords}
+              recordName={`${currentModuleConfig.label.toLowerCase()} records`}
+            />
+          </div>
           )}
         </div>
       </div>

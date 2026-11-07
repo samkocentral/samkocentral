@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import Link from 'next/link';
 import { Building2, MapPin, Phone, User, Package, ChevronRight, ChevronDown, Search, Plus, X, Loader2, Edit2, Trash2, Sparkles } from 'lucide-react';
 import { HOTELS, MAINTENANCE_RECORDS, ASSETS, getAssetStats, type Hotel } from '@/lib/assetData';
+import { getLiveProperties, saveLivePropertiesToCache } from '@/hooks/useLiveProperties';
 import { api } from '@/lib/api';
 import { useAuth } from '@/lib/authContext';
 import { toast } from 'sonner';
@@ -31,7 +32,7 @@ export default function PropertiesClient() {
   } = useDeepPageCms('properties');
 
   const [selectedFilters, setSelectedFilters] = useState<Record<string, string[]>>({});
-  const [properties, setProperties] = useState<Hotel[]>(HOTELS);
+  const [properties, setProperties] = useState<Hotel[]>(() => getLiveProperties());
   const [maintenance, setMaintenance] = useState<any[]>(MAINTENANCE_RECORDS);
   const [assets, setAssets] = useState<any[]>(ASSETS);
   const [search, setSearch] = useState('');
@@ -89,9 +90,11 @@ export default function PropertiesClient() {
     updatePageItem('properties', propertyId, editForm);
 
     // 2. Update local state
-    setProperties((prev) =>
-      prev.map((p) => (p.id === propertyId ? { ...p, ...editForm } : p))
-    );
+    setProperties((prev) => {
+      const next = prev.map((p) => (p.id === propertyId ? { ...p, ...editForm } : p));
+      saveLivePropertiesToCache(next);
+      return next;
+    });
 
     // 3. Persist to API/Firestore
     try {
@@ -120,7 +123,11 @@ export default function PropertiesClient() {
     setIsDeletingProperty(true);
 
     deletePageItem('properties', propertyId);
-    setProperties((prev) => prev.filter((p) => p.id !== propertyId));
+    setProperties((prev) => {
+      const next = prev.filter((p) => p.id !== propertyId);
+      saveLivePropertiesToCache(next);
+      return next;
+    });
 
     try {
       await api.properties.delete(propertyId);
@@ -149,6 +156,7 @@ export default function PropertiesClient() {
 
       if (propsRes.status === 'fulfilled' && propsRes.value.success && propsRes.value.data && propsRes.value.data.length > 0) {
         setProperties(propsRes.value.data);
+        saveLivePropertiesToCache(propsRes.value.data);
       }
       if (mRes.status === 'fulfilled' && mRes.value.success && mRes.value.data && mRes.value.data.length > 0) {
         setMaintenance(mRes.value.data);
@@ -205,7 +213,11 @@ export default function PropertiesClient() {
       });
 
       if (res.success && res.data) {
-        setProperties((prev) => [res.data, ...prev]);
+        setProperties((prev) => {
+          const next = [res.data, ...prev];
+          saveLivePropertiesToCache(next);
+          return next;
+        });
         setShowAddModal(false);
         if (typeof window !== 'undefined') {
           window.dispatchEvent(new CustomEvent('samko:data-changed', { detail: { type: 'property' } }));
@@ -414,7 +426,9 @@ export default function PropertiesClient() {
           <p className="text-xs text-muted-foreground mt-0.5">
             {userAssignedProperties && userAssignedProperties.length > 0 && !userAssignedProperties.includes('all')
               ? `${filtered?.length} assigned ${filtered?.length === 1 ? 'property' : 'properties'} managed across portfolio`
-              : (cmsSubtitle || `${filtered?.length} ${filtered?.length === 1 ? 'property' : 'properties'} managed ${loading ? ' (syncing...)' : ''}`)}
+              : cmsSubtitle && !/\b\d+\s+properties\b/i.test(cmsSubtitle)
+                ? cmsSubtitle
+                : `${filtered?.length} ${filtered?.length === 1 ? 'property' : 'properties'} managed across England & South East portfolio`}
           </p>
         </div>
         <div className="flex items-center gap-3">

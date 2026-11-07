@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { HOTELS } from '@/lib/assetData';
+import { getLiveProperties } from '@/hooks/useLiveProperties';
 import { api } from '@/lib/api';
 import { useAuth } from '@/lib/authContext';
 import { toast } from 'sonner';
@@ -879,8 +880,8 @@ export default function ImportClient() {
   const [step, setStep] = useState<Step>(1);
   const [selectedDestinationId, setSelectedDestinationId] = useState<string>('fixed-assets');
   const [selectedProperty, setSelectedProperty] = useState('');
-  const [properties, setProperties] = useState<{ id: string; name: string }[]>(
-    HOTELS.map((h) => ({ id: h.id, name: h.name }))
+  const [properties, setProperties] = useState<{ id: string; name: string }[]>(() =>
+    getLiveProperties().map((h) => ({ id: h.id, name: h.name }))
   );
 
   // File & Multi-Sheet State

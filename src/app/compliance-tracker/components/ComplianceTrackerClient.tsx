@@ -15,9 +15,11 @@ import { useDeepPageCms, DEFAULT_COMPLIANCE_CATEGORIES, addDropdownOption, remov
 import LoadingPagination from '@/components/ui/LoadingPagination';
 import { useLoadingPagination } from '@/hooks/useLoadingPagination';
 import CustomDropdown from '@/components/ui/CustomDropdown';
+import { useLiveProperties } from '@/hooks/useLiveProperties';
 
 export default function ComplianceTrackerClient() {
   const { isViewer, canEdit, isPropertyAccessible } = useAuth();
+  const { properties: liveProperties } = useLiveProperties();
   const {
     title: cmsTitle,
     subtitle: cmsSubtitle,
@@ -197,10 +199,13 @@ export default function ComplianceTrackerClient() {
     return complianceList.filter((c) => isPropertyAccessible(c.site || (c as any).hotel || (c as any).property));
   }, [complianceList, isPropertyAccessible]);
 
-  const sitesList = useMemo(
-    () => ['All Sites', ...Array.from(new Set(accessibleComplianceList.map((c) => c.site))).sort()],
-    [accessibleComplianceList]
-  );
+  const sitesList = useMemo(() => {
+    const liveNames = liveProperties.map((p) => p.name).filter(Boolean);
+    const existingSites = accessibleComplianceList.map((c) => c.site || (c as any).hotel || (c as any).property).filter(Boolean);
+    const combined = Array.from(new Set([...liveNames, ...existingSites])).sort();
+    const filteredSites = combined.filter((s) => isPropertyAccessible(s));
+    return ['All Sites', ...filteredSites];
+  }, [liveProperties, accessibleComplianceList, isPropertyAccessible]);
 
   const critCount = accessibleComplianceList.filter((c) => c.status === 'critical').length;
   const warnCount = accessibleComplianceList.filter((c) => c.status === 'warning').length;

@@ -41,12 +41,20 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    if (!body.assetName && !body.assetId) {
-      return NextResponse.json({ success: false, error: 'Asset information is required' }, { status: 400 });
-    }
+    const assetName = body.assetName || body.title || body.name || 'General Equipment';
+    const assetId = body.assetId || `AST-${Date.now().toString().slice(-4)}`;
+    const propName = body.property || body.hotel || body.site || body.hotelName || 'Crowne Plaza Kingston-south';
 
     const newRecord = await createDocument('maintenance', {
       ...body,
+      assetName,
+      title: body.title || assetName,
+      name: body.name || assetName,
+      assetId,
+      property: propName,
+      hotel: propName,
+      site: propName,
+      hotelName: propName,
       status: body.status || 'scheduled',
       scheduledDate: body.scheduledDate || new Date().toISOString().slice(0, 10),
       frequency: body.frequency || 'yearly',

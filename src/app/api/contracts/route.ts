@@ -14,14 +14,21 @@ export async function GET(req: NextRequest) {
     items = items.filter(
       (c: any) =>
         c.contractName?.toLowerCase().includes(search) ||
+        c.title?.toLowerCase().includes(search) ||
+        c.name?.toLowerCase().includes(search) ||
         c.supplierName?.toLowerCase().includes(search) ||
+        c.supplier?.toLowerCase().includes(search) ||
         c.contractId?.toLowerCase().includes(search)
     );
   }
 
   if (property && property !== 'all') {
     items = items.filter(
-      (c: any) => c.property?.toLowerCase() === property || c.hotel?.toLowerCase() === property
+      (c: any) =>
+        c.property?.toLowerCase() === property ||
+        c.hotel?.toLowerCase() === property ||
+        c.site?.toLowerCase() === property ||
+        c.hotelName?.toLowerCase() === property
     );
   }
 
@@ -43,14 +50,26 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    if (!body.contractName && !body.supplierName) {
+    const contractName = body.contractName || body.title || body.name || '';
+    const supplierName = body.supplierName || body.supplier || '';
+    if (!contractName && !supplierName) {
       return NextResponse.json({ success: false, error: 'Contract details are required' }, { status: 400 });
     }
 
     const contractId = body.contractId || `CON-${Date.now().toString().slice(-4)}`;
+    const propName = body.property || body.hotel || body.site || 'Crowne Plaza Kingston-south';
     const newItem = await createDocument('contracts', {
       ...body,
       contractId,
+      contractName: contractName || supplierName,
+      title: contractName || supplierName,
+      name: contractName || supplierName,
+      supplierName: supplierName || contractName,
+      supplier: supplierName || contractName,
+      property: propName,
+      hotel: propName,
+      site: propName,
+      hotelName: propName,
       status: body.status || 'active',
     });
 

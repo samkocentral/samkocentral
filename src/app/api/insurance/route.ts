@@ -38,12 +38,21 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    if (!body.policyNumber && !body.insuranceType) {
-      return NextResponse.json({ success: false, error: 'Policy details are required' }, { status: 400 });
-    }
+    const policyNumber = body.policyNumber || body.name || body.title || `POL-${Date.now().toString().slice(-6)}`;
+    const insuranceType = body.insuranceType || body.type || body.category || 'General Cover';
+    const propName = body.property || body.hotel || body.site || 'Crowne Plaza Kingston-south';
 
     const newItem = await createDocument('insurance', {
       ...body,
+      policyNumber,
+      insuranceType,
+      type: insuranceType,
+      title: policyNumber,
+      name: policyNumber,
+      property: propName,
+      hotel: propName,
+      site: propName,
+      hotelName: propName,
       status: body.status || 'active',
     });
 

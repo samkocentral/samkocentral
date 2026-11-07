@@ -41,12 +41,20 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    if (!body.accountNo && !body.utilityType) {
-      return NextResponse.json({ success: false, error: 'Account number and utility type are required' }, { status: 400 });
-    }
+    const accountNo = body.accountNo || body.accountNumber || body.meterNumber || `ACC-${Date.now().toString().slice(-4)}`;
+    const utilityType = body.utilityType || body.type || 'Electricity';
+    const propName = body.property || body.hotel || body.site || 'Crowne Plaza Kingston-south';
 
     const newItem = await createDocument('utilities', {
       ...body,
+      accountNo,
+      accountNumber: accountNo,
+      meterNumber: body.meterNumber || accountNo,
+      utilityType,
+      property: propName,
+      hotel: propName,
+      site: propName,
+      hotelName: propName,
       status: body.status || 'active',
     });
 

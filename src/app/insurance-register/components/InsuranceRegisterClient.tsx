@@ -19,6 +19,7 @@ import { useLoadingPagination } from '@/hooks/useLoadingPagination';
 import TableCheckbox from '@/components/ui/TableCheckbox';
 import BulkActionBar from '@/components/ui/BulkActionBar';
 import ConfirmDeleteModal from '@/components/modals/ConfirmDeleteModal';
+import { getLivePropertyNames } from '@/hooks/useLiveProperties';
 
 type PolicyStatus = 'active' | 'expiring-soon' | 'expired' | 'pending-renewal';
 
@@ -250,7 +251,7 @@ export default function InsuranceRegisterClient() {
     }
     return MOCK_POLICIES.map(normalizePolicy);
   });
-  const [propertyList, setPropertyList] = useState<string[]>(DEFAULT_HOTELS);
+  const [propertyList, setPropertyList] = useState<string[]>(() => getLivePropertyNames());
   const [claims, setClaims] = useState<Claim[]>(MOCK_CLAIMS);
   const [loading, setLoading] = useState(false);
 

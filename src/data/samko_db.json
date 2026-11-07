@@ -1,6 +1,21 @@
 {
   "properties": [
     {
+      "id": "hotel-2657",
+      "name": "Gow",
+      "city": "London",
+      "address": "Gowtham",
+      "manager": "Marcus Webb",
+      "phone": "+44 20 8576967957",
+      "rooms": 120,
+      "portal": "both",
+      "status": "active",
+      "type": "Hotel & Estate",
+      "createdAt": "2026-11-07T10:54:42.657Z",
+      "totalAssets": 0,
+      "updatedAt": "2026-11-07T10:54:42.739Z"
+    },
+    {
       "id": "hotel-2486",
       "name": "Jyothi",
       "city": "London",

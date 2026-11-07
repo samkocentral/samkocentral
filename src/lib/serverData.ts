@@ -165,12 +165,21 @@ if (!loadFromDisk(true)) {
 function matchesId(item: any, id: string): boolean {
   if (!item || !id) return false;
   const target = String(id).toLowerCase().trim();
+  const itemId = String(item.id || '').toLowerCase().trim();
+  const itemName = String(item.name || '').toLowerCase().trim();
+  const itemEmail = String(item.email || '').toLowerCase().trim();
+  const itemEmailPrefix = itemEmail.includes('@') ? itemEmail.split('@')[0] : '';
+  const itemUserTag = itemEmailPrefix ? `usr-${itemEmailPrefix}` : '';
+  const itemNameTag = itemName ? `usr-${itemName.replace(/\s+/g, '')}` : '';
+
   return (
-    String(item.id || '').toLowerCase().trim() === target ||
-    String(item.name || '').toLowerCase().trim() === target ||
+    itemId === target ||
+    itemEmail === target ||
+    (itemUserTag && itemUserTag === target) ||
+    (itemNameTag && itemNameTag === target) ||
+    itemName === target ||
     String(item.propertyName || '').toLowerCase().trim() === target ||
     String(item.hotelName || '').toLowerCase().trim() === target ||
-    String(item.email || '').toLowerCase().trim() === target ||
     String(item.assetId || '').toLowerCase().trim() === target ||
     String(item.propertyId || '').toLowerCase().trim() === target ||
     String(item.hotelId || '').toLowerCase().trim() === target ||
@@ -185,7 +194,7 @@ function matchesId(item: any, id: string): boolean {
   );
 }
 
-async function withTimeout<T>(promise: Promise<T>, ms = 3000): Promise<T> {
+async function withTimeout<T>(promise: Promise<T>, ms = 1200): Promise<T> {
   return Promise.race([
     promise,
     new Promise<T>((_, reject) =>

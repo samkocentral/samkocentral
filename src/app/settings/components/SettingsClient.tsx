@@ -138,12 +138,10 @@ export default function SettingsClient() {
       if ((tabParam.startsWith('cms-') || tabParam === 'data') && !isDigitalBot) {
         setActiveTab('general');
       } else {
-        setActiveTab(tabParam);
+        setActiveTab((prev) => (prev !== tabParam ? tabParam : prev));
       }
-    } else if ((activeTab.startsWith('cms-') || activeTab === 'data') && !isDigitalBot) {
-      setActiveTab('general');
     }
-  }, [searchParams, isDigitalBot, activeTab]);
+  }, [searchParams, isDigitalBot]);
 
   // Automatically close the main sidebar when opening this page
   useEffect(() => {

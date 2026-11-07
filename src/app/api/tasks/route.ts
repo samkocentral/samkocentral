@@ -10,10 +10,26 @@ export async function GET(req: NextRequest) {
 
   let tasks = await getCollectionData('tasks');
 
+  tasks = tasks.map((t: any) => {
+    const propName = t.property || t.site || t.hotel || 'Crowne Plaza Kingston-South';
+    return {
+      ...t,
+      property: propName,
+      site: propName,
+      hotel: propName,
+      title: t.title || t.name || 'Untitled Task',
+      assignee: t.assignee || 'Unassigned',
+      priority: t.priority || 'medium',
+      status: t.status || 'open',
+    };
+  });
+
   if (search) {
     tasks = tasks.filter(
       (t: any) =>
         t.title?.toLowerCase().includes(search) ||
+        t.property?.toLowerCase().includes(search) ||
+        t.site?.toLowerCase().includes(search) ||
         t.assignee?.toLowerCase().includes(search) ||
         t.category?.toLowerCase().includes(search) ||
         t.description?.toLowerCase().includes(search)
@@ -47,16 +63,18 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    if (!body.title) {
-      return NextResponse.json({ success: false, error: 'Task title is required' }, { status: 400 });
-    }
+    const title = body.title || body.name || 'Untitled Task';
 
+    const propName = body.property || body.site || body.hotel || 'Crowne Plaza Kingston-South';
     const newTask = await createDocument('tasks', {
       ...body,
       id: body.id || `task-${Date.now()}`,
+      title,
       status: body.status || 'open',
       priority: body.priority || 'medium',
-      site: body.site || body.property || 'Crowne Plaza Kingston-south',
+      property: propName,
+      site: propName,
+      hotel: propName,
     });
 
     return NextResponse.json({ success: true, data: newTask }, { status: 201 });

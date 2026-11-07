@@ -7,6 +7,7 @@ import {
   TASK_PROPERTIES,
   TASK_ASSIGNEES,
 } from '@/data/tasksData';
+import { useLiveProperties } from '@/hooks/useLiveProperties';
 import AddItemModal from './AddItemModal';
 import UploadDocumentModal from './UploadDocumentModal';
 import PageCMSEditButton from '@/components/cms/PageCMSEditButton';
@@ -43,11 +44,33 @@ import { useDeepPageCms } from '@/lib/deepPageCms';
 
 type StatusTab = 'all' | 'open' | 'urgent' | 'completed';
 
+function normalizeTaskItem(t: any): TaskItem {
+  const prop = t.property || t.site || t.hotel || 'Crowne Plaza Kingston-South';
+  return {
+    ...t,
+    id: String(t.id || `task-${Date.now()}`),
+    title: String(t.title || t.name || 'Untitled Task'),
+    type: (t.type || 'Task') as any,
+    property: prop,
+    priority: (t.priority || 'medium') as any,
+    dueInDays: typeof t.dueInDays === 'number' ? t.dueInDays : 0,
+    dueDate: t.dueDate || new Date().toISOString().slice(0, 10),
+    status: (t.status || 'open') as any,
+    assignee: String(t.assignee || 'Jamie Clarke'),
+    assigneeRole: String(t.assigneeRole || 'Maintenance Lead'),
+    assigneeInitials: String(t.assigneeInitials || 'JC'),
+    assigneeColor: String(t.assigneeColor || '#38bdf8'),
+    description: t.description || '',
+    createdAt: t.createdAt || new Date().toISOString(),
+  };
+}
+
 export default function TasksClient() {
   const cms = useDeepPageCms('tasks');
   const { canWriteTab, isPropertyAccessible, canDelete, isViewer } = useAuth();
   const canWrite = !isViewer && canWriteTab('tasks');
   const hasDeleteAccess = !isViewer && canDelete && canWriteTab('tasks');
+  const { properties: liveProperties } = useLiveProperties();
 
   const [tasks, setTasks] = useState<TaskItem[]>(() => {
     if (typeof window !== 'undefined') {
@@ -55,20 +78,21 @@ export default function TasksClient() {
         const cached = sessionStorage.getItem('samko_cache_tasks');
         if (cached) {
           const parsed = JSON.parse(cached);
-          if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+          if (Array.isArray(parsed) && parsed.length > 0) return parsed.map(normalizeTaskItem);
         }
       } catch {}
     }
-    return getInitialTasks();
+    return getInitialTasks().map(normalizeTaskItem);
   });
 
   const fetchTasks = React.useCallback(async () => {
     try {
       const res = await api.tasks.getAll();
       if (res.success && res.data && res.data.length > 0) {
-        setTasks(res.data);
+        const normalized = res.data.map(normalizeTaskItem);
+        setTasks(normalized);
         try {
-          sessionStorage.setItem('samko_cache_tasks', JSON.stringify(res.data));
+          sessionStorage.setItem('samko_cache_tasks', JSON.stringify(normalized));
         } catch {}
       }
     } catch (e) {
@@ -183,20 +207,29 @@ export default function TasksClient() {
   }, [tasks, isPropertyAccessible]);
 
   const accessibleTaskProperties = useMemo(() => {
-    return TASK_PROPERTIES.filter((p) => isPropertyAccessible(p));
-  }, [isPropertyAccessible]);
+    const liveNames = liveProperties.map((p) => p.name).filter(Boolean);
+    const taskNames = tasks.map((t) => t.property || (t as any).hotel || (t as any).site).filter(Boolean);
+    const combined = Array.from(new Set([...liveNames, ...taskNames])).sort();
+    return combined.filter((p) => isPropertyAccessible(p));
+  }, [liveProperties, tasks, isPropertyAccessible]);
 
   // Filter tasks based on property, assignee, status tab, and search
   const filteredTasks = useMemo(() => {
     return accessibleTasks.filter((t) => {
       // Property filter
-      if (selectedProperty !== 'ALL' && t.property !== selectedProperty) {
-        return false;
+      if (selectedProperty !== 'ALL') {
+        const prop = (t.property || (t as any).hotel || (t as any).site || '').toLowerCase().trim();
+        if (prop !== selectedProperty.toLowerCase().trim()) {
+          return false;
+        }
       }
 
       // Assignee filter
-      if (selectedAssignee !== 'ALL' && t.assignee !== selectedAssignee) {
-        return false;
+      if (selectedAssignee !== 'ALL') {
+        const ass = (t.assignee || '').toLowerCase().trim();
+        if (ass !== selectedAssignee.toLowerCase().trim()) {
+          return false;
+        }
       }
 
       // Status Tab filter
@@ -208,11 +241,11 @@ export default function TasksClient() {
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase().trim();
         const matches =
-          t.title.toLowerCase().includes(q) ||
-          t.property.toLowerCase().includes(q) ||
-          t.assignee.toLowerCase().includes(q) ||
-          t.type.toLowerCase().includes(q) ||
-          (t.description && t.description.toLowerCase().includes(q));
+          (t.title || '').toLowerCase().includes(q) ||
+          (t.property || (t as any).hotel || (t as any).site || '').toLowerCase().includes(q) ||
+          (t.assignee || '').toLowerCase().includes(q) ||
+          (t.type || '').toLowerCase().includes(q) ||
+          Boolean(t.description && t.description.toLowerCase().includes(q));
         if (!matches) return false;
       }
 
@@ -233,7 +266,10 @@ export default function TasksClient() {
   // Summary Metrics calculations (across selected properties)
   const scopedTasks = useMemo(() => {
     if (selectedProperty === 'ALL') return accessibleTasks;
-    return accessibleTasks.filter((t) => t.property === selectedProperty);
+    return accessibleTasks.filter((t) => {
+      const prop = (t.property || (t as any).hotel || (t as any).site || '').toLowerCase().trim();
+      return prop === selectedProperty.toLowerCase().trim();
+    });
   }, [accessibleTasks, selectedProperty]);
 
   const openCount = scopedTasks.filter((t) => t.status !== 'completed').length;
@@ -251,10 +287,11 @@ export default function TasksClient() {
   const tasksByProperty = useMemo(() => {
     const groups: Record<string, TaskItem[]> = {};
     filteredTasks.forEach((task) => {
-      if (!groups[task.property]) {
-        groups[task.property] = [];
+      const propKey = task.property || (task as any).hotel || (task as any).site || 'Other Property';
+      if (!groups[propKey]) {
+        groups[propKey] = [];
       }
-      groups[task.property].push(task);
+      groups[propKey].push(task);
     });
     return groups;
   }, [filteredTasks]);
@@ -596,7 +633,11 @@ export default function TasksClient() {
               </span>
               <div className="space-y-2">
                 {accessibleTaskProperties.slice(0, 3).map((prop) => {
-                  const propTasks = accessibleTasks.filter((t) => t.property === prop && t.status !== 'completed');
+                  const propTasks = accessibleTasks.filter(
+                    (t) =>
+                      (t.property || (t as any).site || (t as any).hotel || '').toLowerCase() === prop.toLowerCase() &&
+                      t.status !== 'completed'
+                  );
                   return (
                     <div key={prop} className="text-xs">
                       <div className="flex justify-between mb-1">

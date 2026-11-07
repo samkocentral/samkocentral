@@ -3,6 +3,7 @@ import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Wrench, AlertTriangle, Clock, CheckCircle2, Calendar, Search, ChevronDown, Loader2, Plus, X, Building2, Edit2, Trash2, Eye, Tag } from 'lucide-react';
 import { MAINTENANCE_RECORDS, HOTELS, ASSETS, type MaintenanceRecord, type Hotel } from '@/lib/assetData';
+import { getLiveProperties } from '@/hooks/useLiveProperties';
 import { api } from '@/lib/api';
 import { useAuth } from '@/lib/authContext';
 import { toast } from 'sonner';
@@ -139,7 +140,7 @@ export default function MaintenanceClient() {
       setRecords(cmsItems as any);
     }
   }, [cmsItems]);
-  const [properties, setProperties] = useState<Hotel[]>(HOTELS);
+  const [properties, setProperties] = useState<Hotel[]>(() => getLiveProperties());
   const [liveAssets, setLiveAssets] = useState<any[]>(ASSETS);
   const [activeTab, setActiveTab] = useState<TabId>(initialTab);
   useEffect(() => {
@@ -1622,7 +1623,7 @@ export default function MaintenanceClient() {
       )}
       {/* Category Delete Confirmation Dialog */}
       {catToDelete && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(4px)' }}>
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(4px)' }}>
           <div className="w-full max-w-md rounded-2xl border border-rose-500/30 p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-150" style={{ background: 'var(--surface)' }}>
             <div className="flex items-center gap-3 mb-4">
               <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-rose-500/20 text-rose-400">

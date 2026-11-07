@@ -13,6 +13,7 @@ import {
 import * as XLSX from 'xlsx';
 import { toast } from 'sonner';
 import { ASSETS, HOTELS, ASSET_CATEGORIES, MAINTENANCE_RECORDS, DEPARTMENTS, getAssetStats } from '@/lib/assetData';
+import { getLiveProperties } from '@/hooks/useLiveProperties';
 import Icon from '@/components/ui/AppIcon';
 import { api } from '@/lib/api';
 import PageCMSEditButton from '@/components/cms/PageCMSEditButton';
@@ -1829,7 +1830,7 @@ function AssetReport() {
   const cms = useDeepPageCms('reports');
   const [activeSection, setActiveSection] = useState<'overview' | 'charts' | 'export'>('overview');
   const [assets, setAssets] = useState<any[]>(ASSETS);
-  const [properties, setProperties] = useState<any[]>(HOTELS);
+  const [properties, setProperties] = useState<any[]>(() => getLiveProperties());
   const [maintenance, setMaintenance] = useState<any[]>(MAINTENANCE_RECORDS);
 
   useEffect(() => {

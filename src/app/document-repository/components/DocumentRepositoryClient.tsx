@@ -18,6 +18,7 @@ import { useLoadingPagination } from '@/hooks/useLoadingPagination';
 import CustomDropdown from '@/components/ui/CustomDropdown';
 import TableCheckbox from '@/components/ui/TableCheckbox';
 import BulkActionBar from '@/components/ui/BulkActionBar';
+import { useLiveProperties, getLiveProperties } from '@/hooks/useLiveProperties';
 
 const DEFAULT_CATEGORIES = ['All', ...Array.from(new Set(DOCUMENTS.map((d) => d.category))).sort()];
 const DEFAULT_SITES = ['All Sites', ...Array.from(new Set(DOCUMENTS.map((d) => d.site))).sort()];
@@ -121,7 +122,8 @@ export default function DocumentRepositoryClient() {
     }
     return DOCUMENTS;
   });
-  const [properties, setProperties] = useState<any[]>([]);
+  const { properties: liveProperties } = useLiveProperties();
+  const [properties, setProperties] = useState<any[]>(() => getLiveProperties());
   const [search, setSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('All');
   const [departmentFilter, setDepartmentFilter] = useState('All Departments');
@@ -223,6 +225,7 @@ export default function DocumentRepositoryClient() {
     }
     return [];
   });
+  const [deletedCategoryNames, setDeletedCategoryNames] = useState<string[]>([]);
 
   const categoryDropdown = (cmsDropdowns || []).find((d) => d.id === 'category');
   const allCategories = useMemo(() => {
@@ -230,29 +233,34 @@ export default function DocumentRepositoryClient() {
     const deleted = new Set((categoryDropdown?.deletedOptions || []).map((o) => o.toLowerCase()));
     const merged = new Set<string>();
 
+    const isExcluded = (name: string) => {
+      const lower = name.trim().toLowerCase();
+      return deleted.has(lower) || deletedCategoryNames.includes(lower);
+    };
+
     cmsOptions.forEach((c) => {
       const clean = c.trim();
-      if (clean && !clean.toLowerCase().startsWith('all ') && clean.toLowerCase() !== 'all' && !deleted.has(clean.toLowerCase())) {
+      if (clean && !clean.toLowerCase().startsWith('all ') && clean.toLowerCase() !== 'all' && !isExcluded(clean)) {
         merged.add(clean);
       }
     });
 
     DEFAULT_DOCUMENT_CATEGORIES.forEach((c) => {
       const clean = c.trim();
-      if (!deleted.has(clean.toLowerCase())) {
+      if (!isExcluded(clean)) {
         merged.add(clean);
       }
     });
 
     customCategories.forEach((c) => {
       const clean = c.trim();
-      if (!deleted.has(clean.toLowerCase())) {
+      if (!isExcluded(clean)) {
         merged.add(clean);
       }
     });
 
     return Array.from(merged).sort();
-  }, [categoryDropdown, customCategories]);
+  }, [categoryDropdown, customCategories, deletedCategoryNames]);
 
   const filterCategories = useMemo(() => {
     return ['All', ...allCategories];
@@ -283,15 +291,18 @@ export default function DocumentRepositoryClient() {
   };
 
   const handleDeleteCategory = (catName: string) => {
-    removeDropdownOptionByName('documents', 'category', catName);
-    const updated = customCategories.filter((c) => c.toLowerCase() !== catName.toLowerCase());
+    const clean = catName.trim();
+    setDeletedCategoryNames((prev) => [...prev, clean.toLowerCase()]);
+    removeDropdownOptionByName('documents', 'category', clean);
+    const updated = customCategories.filter((c) => c.toLowerCase() !== clean.toLowerCase());
     setCustomCategories(updated);
     if (typeof window !== 'undefined') {
       localStorage.setItem('samko_document_categories', JSON.stringify(updated));
-      window.dispatchEvent(new CustomEvent('samko:data-changed', { detail: { type: 'document_category_deleted', name: catName } }));
+      window.dispatchEvent(new CustomEvent('samko:data-changed', { detail: { type: 'document_category_deleted', name: clean } }));
+      window.dispatchEvent(new CustomEvent('samko:deep-page-cms-updated'));
     }
-    if (categoryFilter === catName) setCategoryFilter('All');
-    toast.success(`Removed category "${catName}"`);
+    if (categoryFilter === clean) setCategoryFilter('All');
+    toast.success(`Removed category "${clean}"`);
   };
 
   const handleReplaceFile = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -350,19 +361,18 @@ export default function DocumentRepositoryClient() {
         api.properties.getAll(),
       ]);
       if (docRes.status === 'fulfilled' && docRes.value.success && docRes.value.data?.length > 0) {
+        let docsToSet = docRes.value.data;
         if (typeof window !== 'undefined') {
           try {
             const saved = localStorage.getItem('samko_repository_documents');
             if (saved) {
               const parsed = JSON.parse(saved);
               const customOnly = parsed.filter((p: any) => p.fileUrl || p.id?.startsWith('doc-17'));
-              const merged = [...customOnly, ...docRes.value.data.filter((d: any) => !customOnly.some((c: any) => c.id === d.id))];
-              setDocuments(merged);
-              return;
+              docsToSet = [...customOnly, ...docRes.value.data.filter((d: any) => !customOnly.some((c: any) => c.id === d.id))];
             }
           } catch { }
         }
-        setDocuments(docRes.value.data);
+        setDocuments(docsToSet);
       }
       if (propRes.status === 'fulfilled' && propRes.value.success && propRes.value.data?.length > 0) {
         setProperties(propRes.value.data);
@@ -380,9 +390,12 @@ export default function DocumentRepositoryClient() {
   }, [fetchDocuments]);
 
   const sitesList = useMemo(() => {
-    const raw = properties.length === 0 ? DEFAULT_SITES : ['All Sites', ...Array.from(new Set([...properties.map((p) => p.name), ...DEFAULT_SITES.filter(s => s !== 'All Sites')]))];
-    return raw.filter((s) => s === 'All Sites' || isPropertyAccessible(s));
-  }, [properties, isPropertyAccessible]);
+    const propNames = (properties.length > 0 ? properties : liveProperties).map((p: any) => p.name).filter(Boolean);
+    const docSites = documents.map((d) => d.site || (d as any).property || (d as any).hotel).filter(Boolean);
+    const combined = Array.from(new Set([...propNames, ...docSites, ...DEFAULT_SITES.filter((s) => s !== 'All Sites')])).sort();
+    const filteredSites = combined.filter((s) => isPropertyAccessible(s));
+    return ['All Sites', ...filteredSites];
+  }, [properties, liveProperties, documents, isPropertyAccessible]);
 
   const accessibleDocuments = useMemo(() => {
     return documents.filter((d) => isPropertyAccessible(d.site || (d as any).property || (d as any).hotel));
@@ -1665,209 +1678,209 @@ export default function DocumentRepositoryClient() {
                 </>
               )}
             </button>
-
-            {/* Edit Document Modal */}
-            {editingDoc && (
-              <Modal
-                open={Boolean(editingDoc)}
-                onClose={() => setEditingDoc(null)}
-                title={`Edit Document: ${editingDoc.name}`}
-                subtitle={`REF: ${editingDoc.id.toUpperCase()} · Update document metadata and settings`}
-                width={650}
-              >
-                <form onSubmit={handleSaveEditDoc} className="space-y-4">
-                  <div>
-                    <label className="samko-label" htmlFor="edit-doc-name">
-                      Document Title *
-                    </label>
-                    <input
-                      id="edit-doc-name"
-                      type="text"
-                      required
-                      value={editName}
-                      onChange={(e) => setEditName(e.target.value)}
-                      className="samko-input"
-                    />
-                  </div>
-
-                  <div className="grid gap-3" style={{ gridTemplateColumns: '1fr 1fr' }}>
-                    <div>
-                      <label className="samko-label" htmlFor="edit-doc-site">
-                        Property / Site *
-                      </label>
-                      <CustomDropdown
-                        id="edit-doc-site"
-                        variant="form"
-                        width="100%"
-                        value={editSite}
-                        onChange={(val) => setEditSite(val)}
-                        options={sitesList.filter((s) => s !== 'All Sites').map((s) => ({ value: s, label: s }))}
-                      />
-                    </div>
-
-                    <div>
-                      <label className="samko-label" htmlFor="edit-doc-dept">
-                        Target Department *
-                      </label>
-                      <CustomDropdown
-                        id="edit-doc-dept"
-                        variant="form"
-                        width="100%"
-                        value={editDept}
-                        onChange={(val) => setEditDept(val)}
-                        options={['Kitchen', 'Maintenance', 'Housekeeping', 'Front Office', 'F&B', 'Finance', 'Engineering', 'HR & People', 'Legal & Compliance', 'Operations', 'Plant Room', 'Reception', 'Public Areas'].map((dept) => ({ value: dept, label: dept }))}
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid gap-3" style={{ gridTemplateColumns: '1fr 1fr' }}>
-                    <div>
-                      <label className="samko-label" htmlFor="edit-doc-cat">
-                        Category *
-                      </label>
-                      <CustomDropdown
-                        id="edit-doc-cat"
-                        variant="form"
-                        width="100%"
-                        value={editCategory}
-                        onChange={(val) => setEditCategory(val)}
-                        options={allCategories.map((c) => ({ value: c, label: c }))}
-                      />
-                    </div>
-
-                    <div>
-                      <label className="samko-label" htmlFor="edit-doc-expiry">
-                        Expiry Date
-                      </label>
-                      <input
-                        id="edit-doc-expiry"
-                        type="date"
-                        value={editExpiry}
-                        onChange={(e) => setEditExpiry(e.target.value)}
-                        className="samko-input"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid gap-3" style={{ gridTemplateColumns: '1fr 1fr' }}>
-                    <div>
-                      <label className="samko-label" htmlFor="edit-doc-ver">
-                        Version
-                      </label>
-                      <input
-                        id="edit-doc-ver"
-                        type="text"
-                        value={editVersion}
-                        onChange={(e) => setEditVersion(e.target.value)}
-                        placeholder="e.g. v1.0"
-                        className="samko-input"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="samko-label" htmlFor="edit-doc-approval">
-                        Approval Status
-                      </label>
-                      <CustomDropdown
-                        id="edit-doc-approval"
-                        variant="form"
-                        width="100%"
-                        value={editApprovalStatus}
-                        onChange={(val) => setEditApprovalStatus(val as any)}
-                        options={[
-                          { value: 'pending', label: 'Pending Approval', color: '#f59e0b' },
-                          { value: 'hold', label: 'On Hold', color: '#ef4444' },
-                          { value: 'approved', label: 'Approved', color: '#10b981' },
-                        ]}
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="samko-label" htmlFor="edit-doc-notes">
-                      Notes
-                    </label>
-                    <textarea
-                      id="edit-doc-notes"
-                      rows={2}
-                      value={editNotes}
-                      onChange={(e) => setEditNotes(e.target.value)}
-                      className="samko-input"
-                      style={{ resize: 'vertical' }}
-                    />
-                  </div>
-
-                  <div className="flex items-center justify-end gap-3 pt-3 border-t border-border">
-                    <button
-                      type="button"
-                      onClick={() => setEditingDoc(null)}
-                      className="samko-btn-ghost"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      type="submit"
-                      className="samko-btn-primary flex items-center gap-2"
-                    >
-                      Save Changes
-                    </button>
-                  </div>
-                </form>
-              </Modal>
-            )}
-
-            {/* Universal Delete Confirmation Modal */}
-            <ConfirmDeleteModal
-              isOpen={Boolean(docToDelete)}
-              onClose={() => setDocToDelete(null)}
-              onConfirm={async () => {
-                if (!docToDelete) return;
-                setIsDeletingDoc(true);
-                try {
-                  await handleDelete(docToDelete.id, docToDelete.name);
-                } finally {
-                  setIsDeletingDoc(false);
-                  setDocToDelete(null);
-                }
-              }}
-              title="Confirm Deletion"
-              itemIdentifier={docToDelete?.id}
-              itemName={docToDelete?.name || 'Document'}
-              registerName="document repository"
-              isDeleting={isDeletingDoc}
-            />
-
-            {/* Bulk Delete Confirmation Modal */}
-            <ConfirmDeleteModal
-              isOpen={showBulkDeleteDocsModal}
-              onClose={() => setShowBulkDeleteDocsModal(false)}
-              onConfirm={handleConfirmBulkDeleteDocs}
-              title="Confirm Bulk Deletion"
-              itemName={`${selectedDocIds.length} Selected Documents`}
-              registerName="document repository"
-              customWarning={`Are you sure you want to permanently delete these ${selectedDocIds.length} selected documents? This action cannot be undone.`}
-              confirmButtonText={`Delete ${selectedDocIds.length} Documents`}
-              isDeleting={isBulkDeletingDocs}
-            />
-
-            {/* Category Delete Confirmation Modal */}
-            <ConfirmDeleteModal
-              isOpen={Boolean(catToDelete)}
-              onClose={() => setCatToDelete(null)}
-              onConfirm={() => {
-                if (!catToDelete) return;
-                handleDeleteCategory(catToDelete);
-                setCatToDelete(null);
-              }}
-              title="Delete Category"
-              itemName={catToDelete || 'Category'}
-              registerName="document categories"
-              confirmButtonText="Delete Category"
-              customWarning={`Are you sure you want to delete the category "${catToDelete}"? All existing documents with this category will safely stay in the database. Only this category option will be removed from the dropdown list.`}
-            />
           </div>
         </form>
       </Modal>
+
+      {/* Edit Document Modal */}
+      {editingDoc && (
+        <Modal
+          open={Boolean(editingDoc)}
+          onClose={() => setEditingDoc(null)}
+          title={`Edit Document: ${editingDoc.name}`}
+          subtitle={`REF: ${editingDoc.id.toUpperCase()} · Update document metadata and settings`}
+          width={650}
+        >
+          <form onSubmit={handleSaveEditDoc} className="space-y-4">
+            <div>
+              <label className="samko-label" htmlFor="edit-doc-name">
+                Document Title *
+              </label>
+              <input
+                id="edit-doc-name"
+                type="text"
+                required
+                value={editName}
+                onChange={(e) => setEditName(e.target.value)}
+                className="samko-input"
+              />
+            </div>
+
+            <div className="grid gap-3" style={{ gridTemplateColumns: '1fr 1fr' }}>
+              <div>
+                <label className="samko-label" htmlFor="edit-doc-site">
+                  Property / Site *
+                </label>
+                <CustomDropdown
+                  id="edit-doc-site"
+                  variant="form"
+                  width="100%"
+                  value={editSite}
+                  onChange={(val) => setEditSite(val)}
+                  options={sitesList.filter((s) => s !== 'All Sites').map((s) => ({ value: s, label: s }))}
+                />
+              </div>
+
+              <div>
+                <label className="samko-label" htmlFor="edit-doc-dept">
+                  Target Department *
+                </label>
+                <CustomDropdown
+                  id="edit-doc-dept"
+                  variant="form"
+                  width="100%"
+                  value={editDept}
+                  onChange={(val) => setEditDept(val)}
+                  options={['Kitchen', 'Maintenance', 'Housekeeping', 'Front Office', 'F&B', 'Finance', 'Engineering', 'HR & People', 'Legal & Compliance', 'Operations', 'Plant Room', 'Reception', 'Public Areas'].map((dept) => ({ value: dept, label: dept }))}
+                />
+              </div>
+            </div>
+
+            <div className="grid gap-3" style={{ gridTemplateColumns: '1fr 1fr' }}>
+              <div>
+                <label className="samko-label" htmlFor="edit-doc-cat">
+                  Category *
+                </label>
+                <CustomDropdown
+                  id="edit-doc-cat"
+                  variant="form"
+                  width="100%"
+                  value={editCategory}
+                  onChange={(val) => setEditCategory(val)}
+                  options={allCategories.map((c) => ({ value: c, label: c }))}
+                />
+              </div>
+
+              <div>
+                <label className="samko-label" htmlFor="edit-doc-expiry">
+                  Expiry Date
+                </label>
+                <input
+                  id="edit-doc-expiry"
+                  type="date"
+                  value={editExpiry}
+                  onChange={(e) => setEditExpiry(e.target.value)}
+                  className="samko-input"
+                />
+              </div>
+            </div>
+
+            <div className="grid gap-3" style={{ gridTemplateColumns: '1fr 1fr' }}>
+              <div>
+                <label className="samko-label" htmlFor="edit-doc-ver">
+                  Version
+                </label>
+                <input
+                  id="edit-doc-ver"
+                  type="text"
+                  value={editVersion}
+                  onChange={(e) => setEditVersion(e.target.value)}
+                  placeholder="e.g. v1.0"
+                  className="samko-input"
+                />
+              </div>
+
+              <div>
+                <label className="samko-label" htmlFor="edit-doc-approval">
+                  Approval Status
+                </label>
+                <CustomDropdown
+                  id="edit-doc-approval"
+                  variant="form"
+                  width="100%"
+                  value={editApprovalStatus}
+                  onChange={(val) => setEditApprovalStatus(val as any)}
+                  options={[
+                    { value: 'pending', label: 'Pending Approval', color: '#f59e0b' },
+                    { value: 'hold', label: 'On Hold', color: '#ef4444' },
+                    { value: 'approved', label: 'Approved', color: '#10b981' },
+                  ]}
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="samko-label" htmlFor="edit-doc-notes">
+                Notes
+              </label>
+              <textarea
+                id="edit-doc-notes"
+                rows={2}
+                value={editNotes}
+                onChange={(e) => setEditNotes(e.target.value)}
+                className="samko-input"
+                style={{ resize: 'vertical' }}
+              />
+            </div>
+
+            <div className="flex items-center justify-end gap-3 pt-3 border-t border-border">
+              <button
+                type="button"
+                onClick={() => setEditingDoc(null)}
+                className="samko-btn-ghost cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className="samko-btn-primary flex items-center gap-2 cursor-pointer"
+              >
+                Save Changes
+              </button>
+            </div>
+          </form>
+        </Modal>
+      )}
+
+      {/* Universal Delete Confirmation Modal */}
+      <ConfirmDeleteModal
+        isOpen={Boolean(docToDelete)}
+        onClose={() => setDocToDelete(null)}
+        onConfirm={async () => {
+          if (!docToDelete) return;
+          setIsDeletingDoc(true);
+          try {
+            await handleDelete(docToDelete.id, docToDelete.name);
+          } finally {
+            setIsDeletingDoc(false);
+            setDocToDelete(null);
+          }
+        }}
+        title="Confirm Deletion"
+        itemIdentifier={docToDelete?.id}
+        itemName={docToDelete?.name || 'Document'}
+        registerName="document repository"
+        isDeleting={isDeletingDoc}
+      />
+
+      {/* Bulk Delete Confirmation Modal */}
+      <ConfirmDeleteModal
+        isOpen={showBulkDeleteDocsModal}
+        onClose={() => setShowBulkDeleteDocsModal(false)}
+        onConfirm={handleConfirmBulkDeleteDocs}
+        title="Confirm Bulk Deletion"
+        itemName={`${selectedDocIds.length} Selected Documents`}
+        registerName="document repository"
+        customWarning={`Are you sure you want to permanently delete these ${selectedDocIds.length} selected documents? This action cannot be undone.`}
+        confirmButtonText={`Delete ${selectedDocIds.length} Documents`}
+        isDeleting={isBulkDeletingDocs}
+      />
+
+      {/* Category Delete Confirmation Modal */}
+      <ConfirmDeleteModal
+        isOpen={Boolean(catToDelete)}
+        onClose={() => setCatToDelete(null)}
+        onConfirm={() => {
+          if (!catToDelete) return;
+          handleDeleteCategory(catToDelete);
+          setCatToDelete(null);
+        }}
+        title="Delete Category"
+        itemName={catToDelete || 'Category'}
+        registerName="document categories"
+        confirmButtonText="Delete Category"
+        customWarning={`Are you sure you want to delete the category "${catToDelete}"? All existing documents with this category will safely stay in the database. Only this category option will be removed from the dropdown list.`}
+      />
       {/* Hidden File Input for Replace Document */}
       <input
         type="file"

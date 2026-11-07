@@ -45,15 +45,18 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const itemName = body.item || body.name;
-    if (!itemName) {
-      return NextResponse.json({ success: false, error: 'Compliance item name is required' }, { status: 400 });
-    }
+    const itemName = body.item || body.name || body.title || 'Compliance Inspection';
+    const propName = body.property || body.hotel || body.site || 'Crowne Plaza Kingston-south';
 
     const newItem = await createDocument('compliance', {
       ...body,
       item: itemName,
       name: itemName,
+      title: itemName,
+      property: propName,
+      hotel: propName,
+      site: propName,
+      hotelName: propName,
       status: body.status || 'ok',
       dueDate: body.dueDate || body.expiryDate || new Date().toISOString().slice(0, 10),
       lastReviewed: body.lastReviewed || body.issueDate || new Date().toISOString().slice(0, 10),

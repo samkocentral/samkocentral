@@ -48,6 +48,7 @@ import { useDeepPageCms } from '@/lib/deepPageCms';
 import PageCMSEditButton from '@/components/cms/PageCMSEditButton';
 import LoadingPagination from '@/components/ui/LoadingPagination';
 import ConfirmDeleteModal from '@/components/modals/ConfirmDeleteModal';
+import { getLivePropertyNames } from '@/hooks/useLiveProperties';
 import TableCheckbox from '@/components/ui/TableCheckbox';
 import BulkActionBar from '@/components/ui/BulkActionBar';
 import { useLoadingPagination } from '@/hooks/useLoadingPagination';
@@ -249,7 +250,7 @@ export default function UsersClient() {
   const [newAddCustomPropertyInput, setNewAddCustomPropertyInput] = useState('');
   const [savingUserProperties, setSavingUserProperties] = useState(false);
   const recentlyUpdatedUsers = useRef<Map<string, { user: UserRecord; timestamp: number }>>(new Map());
-  const [systemProperties, setSystemProperties] = useState<string[]>([]);
+  const [systemProperties, setSystemProperties] = useState<string[]>(() => getLivePropertyNames());
   const [customProperties, setCustomProperties] = useState<string[]>(() => {
     if (typeof window !== 'undefined') {
       try {
