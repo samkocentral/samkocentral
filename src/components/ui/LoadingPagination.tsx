@@ -8,6 +8,7 @@ import {
   ChevronsRight,
   Loader2,
 } from 'lucide-react';
+import CustomDropdown from '@/components/ui/CustomDropdown';
 
 export interface LoadingPaginationProps {
   currentPage: number;
@@ -85,22 +86,14 @@ export default function LoadingPagination({
           <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
             <span className="hidden sm:inline">Rows per page:</span>
             <span className="sm:hidden">Rows:</span>
-            <div className="relative">
-              <select
-                aria-label="Rows per page"
-                value={pageSize}
-                onChange={(e) => onPageSizeChange(Number(e.target.value))}
-                disabled={isLoading}
-                className="bg-surface2 text-foreground font-semibold text-xs rounded-lg px-2.5 py-1 border border-border hover:border-border-strong focus:outline-none focus:border-primary transition-all cursor-pointer disabled:opacity-50"
-                style={{ background: 'var(--surface2)', borderColor: 'var(--border)' }}
-              >
-                {pageSizeOptions.map((opt) => (
-                  <option key={opt} value={opt}>
-                    {opt}
-                  </option>
-                ))}
-              </select>
-            </div>
+            <CustomDropdown
+              size="sm"
+              variant="surface"
+              disabled={isLoading}
+              value={String(pageSize)}
+              onChange={(val) => onPageSizeChange(Number(val))}
+              options={pageSizeOptions.map((opt) => ({ value: String(opt), label: String(opt) }))}
+            />
           </div>
         )}
       </div>

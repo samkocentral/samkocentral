@@ -7,10 +7,12 @@ import StatusBadge from '@/components/ui/StatusBadge';
 import Link from 'next/link';
 import { api } from '@/lib/api';
 import { useDeepPageCms } from '@/lib/deepPageCms';
+import { useAuth } from '@/lib/authContext';
 import { useLoadingPagination } from '@/hooks/useLoadingPagination';
 import LoadingPagination from '@/components/ui/LoadingPagination';
 
 export default function DashboardSiteTable() {
+  const { isPropertyAccessible } = useAuth();
   const cms = useDeepPageCms('overview');
   const [properties, setProperties] = useState<any[]>(SITES);
   const [assets, setAssets] = useState<any[]>(ASSETS);
@@ -46,7 +48,9 @@ export default function DashboardSiteTable() {
   }, [fetchLiveTable]);
 
   // Map site names to dynamic property asset/maintenance data
-  const fallbackRows = properties.map((site) => {
+  const fallbackRows = properties
+    .filter((site) => isPropertyAccessible(site.name || site.propertyName || site.id))
+    .map((site) => {
     const siteName = site.name || site.propertyName || '';
     const siteFirstWord = siteName.toLowerCase().split(' ')[0];
 

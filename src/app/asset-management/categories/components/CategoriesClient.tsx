@@ -114,7 +114,9 @@ function CategoryForm({ initial, onSave, onCancel }: CategoryFormProps) {
 }
 
 export default function CategoriesClient() {
-  const { isViewer, canEdit, canDelete } = useAuth();
+  const { isViewer, canEdit, canDelete, canWriteTab, isPropertyAccessible } = useAuth();
+  const hasWriteAccess = !isViewer && canEdit && canWriteTab('categories');
+  const hasDeleteAccess = !isViewer && canDelete && canWriteTab('categories');
   const [categories, setCategories] = useState<AssetCategory[]>(ASSET_CATEGORIES);
   const [liveAssets, setLiveAssets] = useState<any[]>(ASSETS);
   const [showAdd, setShowAdd] = useState(false);
@@ -146,8 +148,14 @@ export default function CategoriesClient() {
     return () => window.removeEventListener('samko:data-changed', handleDataChanged);
   }, []);
 
+  const accessibleAssets = React.useMemo(() => {
+    return liveAssets.filter((a) =>
+      isPropertyAccessible(a.hotelName || a.hotelId || a.property || a.propertyName)
+    );
+  }, [liveAssets, isPropertyAccessible]);
+
   const assetCountByCategory = (catName: string) =>
-    liveAssets.filter((a) => a.category === catName).length;
+    accessibleAssets.filter((a) => a.category === catName).length;
 
   const handleAdd = async (data: Omit<AssetCategory, 'id'>) => {
     const tempId = `cat-${Date.now()}`;
@@ -237,7 +245,7 @@ export default function CategoriesClient() {
         </div>
         <div className="flex items-center gap-2">
           <PageCMSEditButton pageId="categories" pageName="Asset Categories" />
-          {canEdit && !isViewer && (
+          {hasWriteAccess && (
             <button
               onClick={() => { setShowAdd(true); setEditingId(null); }}
               className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold cursor-pointer"
@@ -320,7 +328,7 @@ export default function CategoriesClient() {
                               </div>
                             </div>
                           </div>
-                          {!isViewer && canEdit && (
+                          {hasWriteAccess && (
                             <div className="flex items-center gap-1">
                               <button
                                 onClick={() => { setEditingId(cat.id); setShowAdd(false); }}
@@ -331,7 +339,7 @@ export default function CategoriesClient() {
                               >
                                 <Pencil size={13} />
                               </button>
-                              {!isViewer && (canDelete ?? canEdit) && (
+                              {hasDeleteAccess && (
                                 <button
                                   onClick={() => setDeleteConfirm(cat.id)}
                                   className="w-7 h-7 rounded-lg flex items-center justify-center transition-colors"
@@ -438,16 +446,17 @@ export default function CategoriesClient() {
         onConfirm={() => {
           if (deleteConfirm) handleDelete(deleteConfirm);
         }}
-        title="Confirm Deletion"
+        title="Delete Category"
         itemIdentifier={deleteConfirm || undefined}
         itemName={categories.find((c) => c.id === deleteConfirm)?.name || 'Category'}
         registerName="asset categories"
+        confirmButtonText="Delete Category"
         customWarning={(() => {
           const cat = categories.find((c) => c.id === deleteConfirm);
           const count = liveAssets.filter((a) => a.category === cat?.name).length;
           return count > 0
-            ? `Are you sure you want to permanently delete "${cat?.name || 'this category'}"? ${count} asset${count !== 1 ? 's' : ''} currently reference this category. This action cannot be undone.`
-            : undefined;
+            ? `Are you sure you want to delete the category "${cat?.name || 'this category'}"? All ${count} existing asset records will safely stay in the database. Only this category option will be removed from future selection.`
+            : `Are you sure you want to delete the category "${cat?.name || 'this category'}"? All existing database records will stay safe and untouched. Only this category option will be removed.`;
         })()}
       />
     </div>

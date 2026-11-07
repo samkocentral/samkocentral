@@ -13,8 +13,12 @@ import EmptyState from '@/components/ui/EmptyState';
 import StatusDropdown from '@/components/ui/StatusDropdown';
 import LoadingPagination from '@/components/ui/LoadingPagination';
 import { useLoadingPagination } from '@/hooks/useLoadingPagination';
+import TableCheckbox from '@/components/ui/TableCheckbox';
+import BulkActionBar from '@/components/ui/BulkActionBar';
+import ConfirmDeleteModal from '@/components/modals/ConfirmDeleteModal';
 import { toast } from 'sonner';
 import { useDeepPageCms } from '@/lib/deepPageCms';
+import CustomDropdown from '@/components/ui/CustomDropdown';
 
 const PRIORITY_FILTERS = ['All', 'urgent', 'high', 'medium', 'low'] as const;
 const STATUS_FILTERS_TASK = ['All', 'open', 'in-progress', 'completed'] as const;
@@ -43,7 +47,9 @@ const STATUS_VARIANT: Record<TaskStatus, 'ok' | 'warning' | 'info' | 'critical'>
 };
 
 export default function TaskManagerClient() {
-  const { isViewer, canEdit } = useAuth();
+  const { isViewer, canEdit, canDelete, canWriteTab, isPropertyAccessible } = useAuth();
+  const hasWriteAccess = !isViewer && canEdit && canWriteTab('tasks');
+  const hasDeleteAccess = !isViewer && canDelete && canWriteTab('tasks');
   const { columns: cmsColumns } = useDeepPageCms('tasks');
 
   const activeColumns = useMemo(() => {
@@ -70,7 +76,7 @@ export default function TaskManagerClient() {
           const parsed = JSON.parse(cached);
           if (Array.isArray(parsed) && parsed.length > 0) return parsed;
         }
-      } catch {}
+      } catch { }
     }
     return TASKS;
   });
@@ -101,7 +107,7 @@ export default function TaskManagerClient() {
         setTasks(tasksRes.value.data);
         try {
           sessionStorage.setItem('samko_cache_tasks', JSON.stringify(tasksRes.value.data));
-        } catch {}
+        } catch { }
       }
       if (propsRes.status === 'fulfilled' && propsRes.value.success && propsRes.value.data && propsRes.value.data.length > 0) {
         setPropertyList(propsRes.value.data.map((p: any) => p.name));
@@ -124,6 +130,8 @@ export default function TaskManagerClient() {
     register,
     handleSubmit,
     reset,
+    watch,
+    setValue,
     formState: { errors, isSubmitting },
   } = useForm<TaskFormValues>({
     defaultValues: {
@@ -141,8 +149,12 @@ export default function TaskManagerClient() {
     return taskStatuses[task.id] ?? task.status;
   };
 
+  const accessibleTasks = useMemo(() => {
+    return tasks.filter((t) => isPropertyAccessible(t.site || (t as any).property || (t as any).hotel));
+  }, [tasks, isPropertyAccessible]);
+
   const filtered = useMemo(() => {
-    let result = [...tasks];
+    let result = accessibleTasks;
     if (priorityFilter !== 'All') result = result.filter((t) => t.priority === priorityFilter);
     if (statusFilter !== 'All') result = result.filter((t) => getTaskStatus(t) === statusFilter);
     if (search) {
@@ -162,7 +174,7 @@ export default function TaskManagerClient() {
       return daysUntil(a.due) - daysUntil(b.due);
     });
     return result;
-  }, [priorityFilter, statusFilter, search, taskStatuses, tasks]);
+  }, [priorityFilter, statusFilter, search, taskStatuses, accessibleTasks]);
 
   const {
     currentPage,
@@ -174,12 +186,117 @@ export default function TaskManagerClient() {
     changePageSize,
   } = useLoadingPagination(filtered, 10);
 
+  // Multi-select Tasks State
+  const [selectedTaskIds, setSelectedTaskIds] = useState<string[]>([]);
+  const [isBulkDeletingTasks, setIsBulkDeletingTasks] = useState(false);
+  const [showBulkDeleteTasksModal, setShowBulkDeleteTasksModal] = useState(false);
+  const [selectedTaskTypeFilter, setSelectedTaskTypeFilter] = useState('');
+
+  const isAllTasksPageSelected =
+    paginatedTasks.length > 0 && paginatedTasks.every((t) => selectedTaskIds.includes(t.id));
+  const isSomeTasksPageSelected =
+    paginatedTasks.some((t) => selectedTaskIds.includes(t.id)) && !isAllTasksPageSelected;
+
+  const handleToggleSelectAllTasksPage = () => {
+    if (isAllTasksPageSelected) {
+      const pageIds = new Set(paginatedTasks.map((t) => t.id));
+      setSelectedTaskIds((prev) => prev.filter((id) => !pageIds.has(id)));
+    } else {
+      const pageIds = paginatedTasks.map((t) => t.id);
+      setSelectedTaskIds((prev) => Array.from(new Set([...prev, ...pageIds])));
+    }
+  };
+
+  const handleToggleTaskSelect = (id: string) => {
+    setSelectedTaskIds((prev) =>
+      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
+    );
+  };
+
+  const handleSelectAllFilteredTasks = () => {
+    setSelectedTaskIds(filtered.map((t) => t.id));
+  };
+
+  const handleClearTaskSelection = () => {
+    setSelectedTaskIds([]);
+    setSelectedTaskTypeFilter('');
+  };
+
+  const taskTypeOptions = useMemo(() => {
+    const counts: Record<string, number> = {};
+    filtered.forEach((t) => {
+      counts[`prio:${t.priority}`] = (counts[`prio:${t.priority}`] || 0) + 1;
+      const st = getTaskStatus(t);
+      counts[`status:${st}`] = (counts[`status:${st}`] || 0) + 1;
+      if (t.site) counts[`site:${t.site}`] = (counts[`site:${t.site}`] || 0) + 1;
+      if (t.category) counts[`cat:${t.category}`] = (counts[`cat:${t.category}`] || 0) + 1;
+    });
+
+    const opts: { label: string; value: string; count: number }[] = [];
+    ['urgent', 'high', 'medium', 'low'].forEach((p) => {
+      if (counts[`prio:${p}`]) opts.push({ label: `Priority: ${p}`, value: `prio:${p}`, count: counts[`prio:${p}`] });
+    });
+    ['open', 'in-progress', 'completed'].forEach((s) => {
+      if (counts[`status:${s}`]) opts.push({ label: `Status: ${s}`, value: `status:${s}`, count: counts[`status:${s}`] });
+    });
+    propertyList.forEach((site) => {
+      if (counts[`site:${site}`]) opts.push({ label: `Property: ${site}`, value: `site:${site}`, count: counts[`site:${site}`] });
+    });
+    const uniqueCategories = Array.from(new Set(tasks.map((t) => t.category).filter(Boolean)));
+    uniqueCategories.forEach((cat) => {
+      if (counts[`cat:${cat}`]) opts.push({ label: `Category: ${cat}`, value: `cat:${cat}`, count: counts[`cat:${cat}`] });
+    });
+
+    return opts;
+  }, [filtered, propertyList, tasks, taskStatuses]);
+
+  const handleSelectTaskByType = (typeKey: string) => {
+    setSelectedTaskTypeFilter(typeKey);
+    if (!typeKey) {
+      setSelectedTaskIds([]);
+      return;
+    }
+    const [kind, val] = typeKey.split(':');
+    const matched = filtered.filter((t) => {
+      if (kind === 'prio') return t.priority === val;
+      if (kind === 'status') return getTaskStatus(t) === val;
+      if (kind === 'site') return t.site === val;
+      if (kind === 'cat') return t.category === val;
+      return false;
+    });
+    setSelectedTaskIds(matched.map((t) => t.id));
+    toast.info(`Selected ${matched.length} tasks matching ${typeKey.replace(':', ': ')}`);
+  };
+
+  const handleConfirmBulkDeleteTasks = async () => {
+    if (selectedTaskIds.length === 0) return;
+    setIsBulkDeletingTasks(true);
+    try {
+      const ids = [...selectedTaskIds];
+      const count = ids.length;
+      setTasks((prev) => prev.filter((t) => !ids.includes(t.id)));
+      setSelectedTaskIds([]);
+      setSelectedTaskTypeFilter('');
+      setShowBulkDeleteTasksModal(false);
+
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('samko:data-changed', { detail: { type: 'tasks' } }));
+      }
+      await Promise.allSettled(ids.map((id) => api.tasks.delete(id)));
+      toast.success(`Deleted ${count} tasks successfully!`);
+    } catch (err: any) {
+      toast.error('Failed to bulk delete tasks');
+    } finally {
+      setIsBulkDeletingTasks(false);
+    }
+  };
+
   const taskCounts = useMemo(() => ({
-    urgent: tasks.filter((t) => t.priority === 'urgent').length,
-    open: tasks.filter((t) => getTaskStatus(t) === 'open').length,
-    inProgress: tasks.filter((t) => getTaskStatus(t) === 'in-progress').length,
-    completed: tasks.filter((t) => getTaskStatus(t) === 'completed').length,
-  }), [taskStatuses, tasks]);
+    urgent: accessibleTasks.filter((t) => t.priority === 'urgent').length,
+    open: accessibleTasks.filter((t) => getTaskStatus(t) === 'open').length,
+    inProgress: accessibleTasks.filter((t) => getTaskStatus(t) === 'in-progress').length,
+    completed: accessibleTasks.filter((t) => getTaskStatus(t) === 'completed').length,
+  }), [taskStatuses, accessibleTasks]);
 
   const handleStatusChange = async (taskId: string, newStatus: TaskStatus) => {
     setTaskStatuses((prev) => ({ ...prev, [taskId]: newStatus }));
@@ -288,7 +405,7 @@ export default function TaskManagerClient() {
           )}
         </div>
 
-        {canEdit ? (
+        {hasWriteAccess ? (
           <button
             onClick={() => setCreateOpen(true)}
             className="samko-btn-primary flex items-center gap-2 ml-auto"
@@ -363,6 +480,16 @@ export default function TaskManagerClient() {
             <table style={{ width: '100%', minWidth: 860, borderCollapse: 'collapse' }}>
               <thead>
                 <tr>
+                  {hasDeleteAccess && (
+                    <th className="table-header-cell" style={{ width: 44, textAlign: 'center' }}>
+                      <TableCheckbox
+                        checked={isAllTasksPageSelected}
+                        indeterminate={isSomeTasksPageSelected}
+                        onChange={handleToggleSelectAllTasksPage}
+                        title="Select all on this page"
+                      />
+                    </th>
+                  )}
                   {activeColumns.map((col) => (
                     <th key={`task-th-${col.id}`} className="table-header-cell">{col.label}</th>
                   ))}
@@ -375,7 +502,19 @@ export default function TaskManagerClient() {
                   const isDropdownOpen = openStatusDropdown === task.id;
 
                   return (
-                    <tr key={task.id} className="table-row-hover">
+                    <tr
+                      key={task.id}
+                      className={`table-row-hover ${selectedTaskIds.includes(task.id) ? 'bg-[#e8c97a]/5' : ''}`}
+                    >
+                      {hasDeleteAccess && (
+                        <td className="table-cell" style={{ textAlign: 'center', width: 44 }} onClick={(e) => e.stopPropagation()}>
+                          <TableCheckbox
+                            checked={selectedTaskIds.includes(task.id)}
+                            onChange={() => handleToggleTaskSelect(task.id)}
+                            title={`Select ${task.title}`}
+                          />
+                        </td>
+                      )}
                       {activeColumns.map((col) => {
                         const colKey = col.id.toLowerCase();
                         if (colKey === 'priority') {
@@ -383,153 +522,109 @@ export default function TaskManagerClient() {
                             <td key={col.id} className="table-cell">
                               <div className="flex items-center gap-2">
                                 <span
-                                  className="rounded-full flex-shrink-0"
+                                  className="rounded"
                                   style={{
-                                    width: 8,
-                                    height: 8,
-                                    background: PRIORITY_COLOR[task.priority],
-                                    display: 'block',
-                                  }}
-                                />
-                                <span
-                                  style={{
-                                    fontSize: 11,
-                                    fontWeight: 600,
-                                    color: PRIORITY_COLOR[task.priority],
-                                    textTransform: 'capitalize',
-                                  }}
-                                >
-                                  {task.priority}
-                                </span>
-                              </div>
-                            </td>
-                          );
-                        }
-                        if (colKey === 'title' || colKey === 'task') {
-                          return (
-                            <td key={col.id} className="table-cell" style={{ maxWidth: 280 }}>
-                              <div className="text-foreground font-medium" style={{ fontSize: 13, lineHeight: 1.3 }}>
-                                {task.title}
-                              </div>
-                              <div className="text-muted-foreground" style={{ fontSize: 11, marginTop: 2, lineHeight: 1.4 }}>
-                                {task.description.length > 60 ? task.description.slice(0, 60) + '…' : task.description}
-                              </div>
-                            </td>
-                          );
-                        }
-                        if (colKey === 'property' || colKey === 'site') {
-                          return (
-                            <td key={col.id} className="table-cell text-muted2" style={{ fontSize: 12, whiteSpace: 'nowrap' }}>
-                              {task.site}
-                            </td>
-                          );
-                        }
-                        if (colKey === 'category') {
-                          return (
-                            <td key={col.id} className="table-cell">
-                              <span
-                                className="rounded"
-                                style={{
-                                  background: 'var(--surface3)',
-                                  color: 'var(--text2)',
-                                  fontSize: 10,
-                                  fontWeight: 600,
-                                  padding: '2px 8px',
-                                  display: 'inline-block',
-                                  whiteSpace: 'nowrap',
-                                }}
-                              >
-                                {task.category}
-                              </span>
-                            </td>
-                          );
-                        }
-                        if (colKey === 'assignee') {
-                          return (
-                            <td key={col.id} className="table-cell">
-                              <div className="flex items-center gap-2">
-                                <div
-                                  className="rounded-full flex items-center justify-center flex-shrink-0"
-                                  style={{
-                                    width: 22,
-                                    height: 22,
                                     background: 'var(--surface3)',
                                     color: 'var(--text2)',
-                                    fontSize: 8,
-                                    fontWeight: 700,
+                                    fontSize: 10,
+                                    fontWeight: 600,
+                                    padding: '2px 8px',
+                                    display: 'inline-block',
+                                    whiteSpace: 'nowrap',
                                   }}
                                 >
-                                  {task.assignee.split(' ').map((n) => n[0]).join('').slice(0, 2)}
-                                </div>
-                                <span className="text-muted2 whitespace-nowrap" style={{ fontSize: 12 }}>
-                                  {task.assignee}
+                                  {task.category}
                                 </span>
                               </div>
                             </td>
-                          );
-                        }
-                        if (colKey === 'status') {
-                          return (
-                            <td key={col.id} className="table-cell">
-                              <StatusDropdown
-                                value={currentStatus}
-                                disabled={isViewer}
-                                title={isViewer ? 'Read-only access (L4 Viewer)' : 'Change task status'}
-                                options={[
-                                  { value: 'open', label: 'Open', color: '#f59e0b', bg: 'var(--warning-bg)' },
-                                  { value: 'in-progress', label: 'In Progress', color: '#60a5fa', bg: 'var(--info-bg)' },
-                                  { value: 'completed', label: 'Completed', color: '#3dd68c', bg: 'var(--ok-bg)' },
-                                ]}
-                                onChange={(val) => handleStatusChange(task.id, val as TaskStatus)}
-                              />
-                            </td>
-                          );
-                        }
-                        if (colKey === 'duedate' || colKey === 'due') {
+                            );
+                          }
+                          if (colKey === 'assignee') {
+                            return (
+                              <td key={col.id} className="table-cell">
+                                <div className="flex items-center gap-2">
+                                  <div
+                                    className="rounded-full flex items-center justify-center flex-shrink-0"
+                                    style={{
+                                      width: 22,
+                                      height: 22,
+                                      background: 'var(--surface3)',
+                                      color: 'var(--text2)',
+                                      fontSize: 8,
+                                      fontWeight: 700,
+                                    }}
+                                  >
+                                    {task.assignee.split(' ').map((n) => n[0]).join('').slice(0, 2)}
+                                  </div>
+                                  <span className="text-muted2 whitespace-nowrap" style={{ fontSize: 12 }}>
+                                    {task.assignee}
+                                  </span>
+                                </div>
+                              </td>
+                            );
+                          }
+                          if (colKey === 'status') {
+                            return (
+                              <td key={col.id} className="table-cell">
+                                <StatusDropdown
+                                  value={currentStatus}
+                                  disabled={isViewer}
+                                  title={isViewer ? 'Read-only access (L4 Viewer)' : 'Change task status'}
+                                  options={[
+                                    { value: 'open', label: 'Open', color: '#f59e0b', bg: 'var(--warning-bg)' },
+                                    { value: 'in-progress', label: 'In Progress', color: '#60a5fa', bg: 'var(--info-bg)' },
+                                    { value: 'completed', label: 'Completed', color: '#3dd68c', bg: 'var(--ok-bg)' },
+                                  ]}
+                                  onChange={(val) => handleStatusChange(task.id, val as TaskStatus)}
+                                />
+                              </td>
+                            );
+                          }
+                          if (colKey === 'duedate' || colKey === 'due') {
+                            return (
+                              <td key={col.id} className="table-cell text-muted2" style={{ fontSize: 12, whiteSpace: 'nowrap' }}>
+                                {formatDateGB(task.due).split(' ').slice(0, 2).join(' ')}
+                              </td>
+                            );
+                          }
+                          if (colKey === 'daysleft') {
+                            return (
+                              <td key={col.id} className="table-cell">
+                                <span
+                                  className="font-head tabular-nums"
+                                  style={{
+                                    fontSize: 13,
+                                    fontWeight: 700,
+                                    color:
+                                      days < 0
+                                        ? 'var(--critical)'
+                                        : days <= 7
+                                          ? 'var(--critical)'
+                                          : days <= 30
+                                            ? 'var(--warning)'
+                                            : 'var(--text2)',
+                                  }}
+                                >
+                                  {days < 0 ? `${Math.abs(days)}d overdue` : `${days}d`}
+                                </span>
+                              </td>
+                            );
+                          }
+
+                          // Dynamic custom columns
+                          const val = (task as any)[col.id] ?? (task as any)[colKey];
                           return (
                             <td key={col.id} className="table-cell text-muted2" style={{ fontSize: 12, whiteSpace: 'nowrap' }}>
-                              {formatDateGB(task.due).split(' ').slice(0, 2).join(' ')}
+                              {val !== undefined && val !== null && String(val).trim() !== '' ? String(val) : '—'}
                             </td>
                           );
-                        }
-                        if (colKey === 'daysleft') {
-                          return (
-                            <td key={col.id} className="table-cell">
-                              <span
-                                className="font-head tabular-nums"
-                                style={{
-                                  fontSize: 13,
-                                  fontWeight: 700,
-                                  color:
-                                    days < 0
-                                      ? 'var(--critical)'
-                                      : days <= 7
-                                      ? 'var(--critical)'
-                                      : days <= 30
-                                      ? 'var(--warning)'
-                                      : 'var(--text2)',
-                                }}
-                              >
-                                {days < 0 ? `${Math.abs(days)}d overdue` : `${days}d`}
-                              </span>
-                            </td>
-                          );
-                        }
-
-                        // Dynamic custom columns
-                        const val = (task as any)[col.id] ?? (task as any)[colKey];
-                        return (
-                          <td key={col.id} className="table-cell text-muted2" style={{ fontSize: 12, whiteSpace: 'nowrap' }}>
-                            {val !== undefined && val !== null && String(val).trim() !== '' ? String(val) : '—'}
-                          </td>
-                        );
-                      })}
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+                        })}
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
             <LoadingPagination
               currentPage={currentPage}
               totalRecords={totalRecords}
@@ -540,6 +635,25 @@ export default function TaskManagerClient() {
               isLoading={isPageLoading}
               recordName="tasks"
             />
+
+            {/* Floating Bulk Action Bar (Only shown for authorized delete users) */}
+            {hasDeleteAccess && (
+              <div className="mt-4">
+                <BulkActionBar
+                  selectedCount={selectedTaskIds.length}
+                  totalCount={filtered.length}
+                  onClearSelection={handleClearTaskSelection}
+                  onSelectAll={handleSelectAllFilteredTasks}
+                  onDeleteSelected={() => setShowBulkDeleteTasksModal(true)}
+                  typeOptions={taskTypeOptions}
+                  onSelectByType={handleSelectTaskByType}
+                  selectedTypeValue={selectedTaskTypeFilter}
+                  typePlaceholder="Select all of type (Priority, Status, Property)..."
+                  recordName="tasks"
+                  isDeleting={isBulkDeletingTasks}
+                />
+              </div>
+            )}
           </>
         )}
       </div>
@@ -575,33 +689,37 @@ export default function TaskManagerClient() {
                 <label className="samko-label" htmlFor="task-site">
                   Site *
                 </label>
-                <select
+                <CustomDropdown
                   id="task-site"
-                  className="samko-input"
-                  style={{ cursor: 'pointer' }}
-                  {...register('site', { required: 'Site is required' })}
-                >
-                  {propertyList.map((propName) => (
-                    <option key={`task-site-opt-${propName}`} value={propName}>{propName}</option>
-                  ))}
-                  <option value="All Sites">All Sites</option>
-                </select>
+                  value={watch('site')}
+                  onChange={(val) => setValue('site', val)}
+                  options={[
+                    ...propertyList.map((propName) => ({ value: propName, label: propName })),
+                    { value: 'All Sites', label: 'All Sites' }
+                  ]}
+                  variant="form"
+                  width="100%"
+                  searchable
+                />
               </div>
 
               <div>
                 <label className="samko-label" htmlFor="task-priority">
                   Priority *
                 </label>
-                <select
+                <CustomDropdown
                   id="task-priority"
-                  className="samko-input"
-                  style={{ cursor: 'pointer' }}
-                  {...register('priority', { required: true })}
-                >
-                  {(['urgent', 'high', 'medium', 'low'] as TaskPriority[]).map((p) => (
-                    <option key={`task-pri-${p}`} value={p}>{p.charAt(0).toUpperCase() + p.slice(1)}</option>
-                  ))}
-                </select>
+                  value={watch('priority')}
+                  onChange={(val) => setValue('priority', val as TaskPriority)}
+                  options={[
+                    { value: 'urgent', label: 'Urgent', color: '#f43f5e' },
+                    { value: 'high', label: 'High', color: '#f97316' },
+                    { value: 'medium', label: 'Medium', color: '#3b82f6' },
+                    { value: 'low', label: 'Low', color: '#94a3b8' }
+                  ]}
+                  variant="form"
+                  width="100%"
+                />
               </div>
 
               <div>
@@ -623,16 +741,18 @@ export default function TaskManagerClient() {
                 <label className="samko-label" htmlFor="task-category">
                   Category
                 </label>
-                <select
+                <CustomDropdown
                   id="task-category"
-                  className="samko-input"
-                  style={{ cursor: 'pointer' }}
-                  {...register('category')}
-                >
-                  {['H&S', 'Fire Safety', 'Gas Safety', 'Electrical', 'Insurance', 'Food Hygiene', 'Licenses', 'Vehicle', 'HR', 'Lease'].map((c) => (
-                    <option key={`task-cat-${c}`} value={c}>{c}</option>
-                  ))}
-                </select>
+                  value={watch('category')}
+                  onChange={(val) => setValue('category', val)}
+                  options={['H&S', 'Fire Safety', 'Gas Safety', 'Electrical', 'Insurance', 'Food Hygiene', 'Licenses', 'Vehicle', 'HR', 'Lease'].map((c) => ({
+                    value: c,
+                    label: c
+                  }))}
+                  variant="form"
+                  width="100%"
+                  searchable
+                />
               </div>
             </div>
 
@@ -704,6 +824,19 @@ export default function TaskManagerClient() {
           onClick={() => setOpenStatusDropdown(null)}
         />
       )}
+
+      {/* Bulk Delete Tasks Modal */}
+      <ConfirmDeleteModal
+        isOpen={showBulkDeleteTasksModal}
+        onClose={() => setShowBulkDeleteTasksModal(false)}
+        onConfirm={handleConfirmBulkDeleteTasks}
+        title="Confirm Bulk Deletion"
+        itemName={`${selectedTaskIds.length} Selected Tasks`}
+        registerName="tasks register"
+        customWarning={`Are you sure you want to permanently delete these ${selectedTaskIds.length} selected tasks? This action cannot be undone.`}
+        confirmButtonText={`Delete ${selectedTaskIds.length} Tasks`}
+        isDeleting={isBulkDeletingTasks}
+      />
     </>
   );
 }

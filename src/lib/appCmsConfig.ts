@@ -313,7 +313,7 @@ export const DEFAULT_APP_CMS: AppCmsConfig = {
     pageTitle: 'Operational Overview',
     pageSubtitle:
       'Real-time portfolio intelligence, statutory compliance status & cross-property operations',
-    welcomeGreeting: 'Good afternoon, Marcus. Operational pulse across all UK properties.',
+    welcomeGreeting: 'Good afternoon, {name}. Operational pulse across all UK properties.',
     kpis: [
       {
         id: 'kpi-sites',

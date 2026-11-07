@@ -16,6 +16,7 @@ import { toast } from 'sonner';
 import { useAppCms } from '@/lib/appCmsConfig';
 import { useDeepPageCms } from '@/lib/deepPageCms';
 import PageCMSEditButton from '@/components/cms/PageCMSEditButton';
+import CustomDropdown from '@/components/ui/CustomDropdown';
 
 type Step = 1 | 2 | 3 | 4 | 5;
 
@@ -1232,49 +1233,39 @@ export default function ImportClient() {
           <PageCMSEditButton pageId="import" pageName="Bulk Data Import & Migration Hub" />
 
           {/* Target Place / Module Dropdown */}
-          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border" style={{ background: 'var(--surface2)' }}>
+          <div className="flex items-center gap-1.5">
             <span className="text-xs text-muted-foreground font-medium flex items-center gap-1">
               Destination Place:
             </span>
-            <select
+            <CustomDropdown
               value={selectedDestinationId}
-              onChange={(e) => {
-                const newDestId = e.target.value;
+              onChange={(val) => {
+                const newDestId = val;
                 setSelectedDestinationId(newDestId);
                 const newDest = DESTINATIONS.find((d) => d.id === newDestId) || DESTINATIONS[0];
                 if (fileHeaders.length > 0) {
                   runAutoGuess(fileHeaders, newDest);
                 }
               }}
-              className="text-xs font-semibold bg-transparent border-0 outline-none cursor-pointer pr-2"
-              style={{ color: 'var(--primary)' }}
-            >
-              {DESTINATIONS.map((d) => (
-                <option key={d.id} value={d.id} style={{ background: 'var(--surface)', color: 'var(--foreground)' }}>
-                  {d.name}
-                </option>
-              ))}
-            </select>
+              options={DESTINATIONS.map((d) => ({ value: d.id, label: d.name }))}
+              size="sm"
+              variant="filter"
+              showAllOption={false}
+            />
           </div>
 
           {/* Property Dropdown */}
-          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border" style={{ background: 'var(--surface2)' }}>
+          <div className="flex items-center gap-1.5">
             <span className="text-xs text-muted-foreground font-medium">Property:</span>
-            <select
+            <CustomDropdown
               value={selectedProperty}
-              onChange={(e) => setSelectedProperty(e.target.value)}
-              className="text-xs font-semibold bg-transparent border-0 outline-none cursor-pointer pr-2"
-              style={{ color: 'var(--foreground)' }}
-            >
-              <option value="" style={{ background: 'var(--surface)', color: 'var(--foreground)' }}>
-                All Properties / Auto from Sheet
-              </option>
-              {properties.map((p) => (
-                <option key={p.id} value={p.name} style={{ background: 'var(--surface)', color: 'var(--foreground)' }}>
-                  {p.name}
-                </option>
-              ))}
-            </select>
+              onChange={setSelectedProperty}
+              options={properties.map((p) => ({ value: p.name, label: p.name }))}
+              placeholder="All Properties / Auto from Sheet"
+              allLabel="All Properties / Auto from Sheet"
+              size="sm"
+              variant="filter"
+            />
           </div>
 
           {/* Download Template for selected place */}
@@ -1672,17 +1663,15 @@ export default function ImportClient() {
                 {/* Default Property fallback */}
                 <div className="flex items-center gap-2">
                   <span className="text-xs text-muted-foreground">Default Property:</span>
-                  <select
+                  <CustomDropdown
                     value={selectedProperty}
-                    onChange={(e) => setSelectedProperty(e.target.value)}
-                    className="text-xs px-2.5 py-1.5 rounded-lg border border-border outline-none"
-                    style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
-                  >
-                    <option value="">(Use property column from sheet)</option>
-                    {properties.map((p) => (
-                      <option key={p.id} value={p.name}>{p.name}</option>
-                    ))}
-                  </select>
+                    onChange={setSelectedProperty}
+                    options={properties.map((p) => ({ value: p.name, label: p.name }))}
+                    placeholder="(Use property column from sheet)"
+                    allLabel="(Use property column from sheet)"
+                    size="sm"
+                    variant="filter"
+                  />
                 </div>
               </div>
 
@@ -1703,19 +1692,25 @@ export default function ImportClient() {
 
                     <ArrowRight size={14} className="text-muted-foreground flex-shrink-0" />
 
-                    <select
-                      value={mapping[col] || ''}
-                      onChange={(e) => setMapping((m) => ({ ...m, [col]: e.target.value }))}
-                      className="flex-1 text-xs px-3 py-2 rounded-lg border border-border outline-none"
-                      style={{ background: 'var(--surface)', color: 'var(--foreground)' }}
-                    >
-                      <option value="">— Skip This Column —</option>
-                      {activeDestination.systemFields.map((f) => (
-                        <option key={f.key} value={f.key}>
-                          {f.label} {f.required ? ' * (Required)' : ''}
-                        </option>
-                      ))}
-                    </select>
+                    <div className="flex-1">
+                      <CustomDropdown
+                        value={mapping[col] || ''}
+                        onChange={(val) => setMapping((m) => ({ ...m, [col]: val }))}
+                        options={[
+                          { value: '', label: '— Skip This Column —' },
+                          ...activeDestination.systemFields.map((f) => ({
+                            value: f.key,
+                            label: `${f.label}${f.required ? ' * (Required)' : ''}`
+                          }))
+                        ]}
+                        placeholder="— Skip This Column —"
+                        showAllOption={false}
+                        variant="form"
+                        size="sm"
+                        searchable
+                        width="100%"
+                      />
+                    </div>
                   </div>
                 ))}
               </div>

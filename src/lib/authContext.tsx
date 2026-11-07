@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { api } from './api';
 import { toast } from 'sonner';
@@ -203,6 +203,127 @@ interface AuthContextType {
   getTabAccess: (tabId: string) => 'read' | 'write' | 'none';
   canWriteTab: (tabId: string) => boolean;
   updateUserTabPermissions: (newPermissions: UserTabPermissions) => void;
+  // Property Assignment Controls
+  isPropertyAccessible: (recordProperty?: string | null) => boolean;
+  userAssignedProperties: string[];
+}
+
+const HOTEL_ID_NAME_MAP: Record<string, string> = {
+  'hotel-001': 'crowne plaza kingston-south',
+  'hotel-002': 'stanhill court',
+  'hotel-003': 'hotel hampton 1 & hampton 2 property',
+  'hotel-004': 'ravens ait island',
+  'hotel-005': 'river club',
+  'hotel-006': 'warren house',
+  'hotel-007': 'gatwick manor (stanhill court)',
+  'hotel-008': 'sharnbrook',
+  'h-01': 'crowne plaza kingston-south',
+  'h-02': 'stanhill court',
+  'h-03': 'hotel hampton 1 & hampton 2 property',
+  'h-04': 'ravens ait island',
+  'h-05': 'river club',
+  'h-06': 'warren house',
+  'h-07': 'gatwick manor (stanhill court)',
+  'h-08': 'sharnbrook',
+  'cp-kingston': 'crowne plaza kingston-south',
+  'stanhill-court': 'stanhill court',
+  'hampton': 'hotel hampton 1 & hampton 2 property',
+  'ravens-ait': 'ravens ait island',
+  'river-club': 'river club',
+  'warren-house': 'warren house',
+  'gatwick-manor': 'gatwick manor (stanhill court)',
+  'sharnbrook': 'sharnbrook',
+};
+
+export function checkPropertyAccess(
+  recordProp: string | undefined | null,
+  user: AppUser | null | undefined
+): boolean {
+  if (!user) return true;
+  if (user.roleLevel === 'L1') return true;
+  const isBot = Boolean(
+    user.id === 'usr-bot-001' ||
+    user.email?.toLowerCase() === 'digitalbot@samkocentral.com' ||
+    user.name?.toLowerCase().includes('digital bot')
+  );
+  if (isBot) return true;
+
+  const assigned =
+    user.assignedProperties && user.assignedProperties.length > 0
+      ? user.assignedProperties
+      : user.hotel
+      ? user.hotel.includes(',')
+        ? user.hotel.split(',').map((s) => s.trim()).filter(Boolean)
+        : [user.hotel]
+      : [];
+
+  if (
+    assigned.includes('all') ||
+    assigned.includes('All Properties') ||
+    assigned.includes('All Sites')
+  ) {
+    return true;
+  }
+  if (assigned.length === 0 || assigned.includes('No Property Assigned')) {
+    return false;
+  }
+  if (!recordProp) return false;
+
+  let clean = String(recordProp).trim().toLowerCase();
+  if (HOTEL_ID_NAME_MAP[clean]) {
+    clean = HOTEL_ID_NAME_MAP[clean];
+  }
+
+  if (
+    !clean ||
+    clean === 'all' ||
+    clean === 'all properties' ||
+    clean === 'all sites' ||
+    clean === 'portfolio'
+  ) {
+    return true;
+  }
+
+  return assigned.some((aProp) => {
+    let a = String(aProp).trim().toLowerCase();
+    if (HOTEL_ID_NAME_MAP[a]) {
+      a = HOTEL_ID_NAME_MAP[a];
+    }
+
+    if (a === 'all' || a === 'all properties' || a === 'all sites') return true;
+    if (a === clean) return true;
+
+    // Gatwick Manor vs Stanhill Court isolation:
+    // If either contains 'gatwick', BOTH must contain 'gatwick' to match.
+    // This strictly prevents Stanhill Court from accidentally matching Gatwick Manor (Stanhill Court).
+    const aHasGatwick = a.includes('gatwick');
+    const cleanHasGatwick = clean.includes('gatwick');
+    if (aHasGatwick || cleanHasGatwick) {
+      if (!aHasGatwick || !cleanHasGatwick) return false;
+      return true; // Both refer to Gatwick Manor
+    }
+
+    // Stanhill Court (only when neither is Gatwick)
+    if (clean.includes('stanhill') && a.includes('stanhill')) return true;
+
+    // Direct substring check
+    if (clean.includes(a) || a.includes(clean)) return true;
+
+    // Normalization check
+    const normClean = clean.replace(/[^a-z0-9]/g, '');
+    const normA = a.replace(/[^a-z0-9]/g, '');
+    if (normClean && normA && (normClean.includes(normA) || normA.includes(normClean))) return true;
+
+    // Specific property keyword matching
+    if ((clean.includes('crowne') || clean.includes('kingston')) && (a.includes('crowne') || a.includes('kingston'))) return true;
+    if (clean.includes('hampton') && a.includes('hampton')) return true;
+    if (clean.includes('sharnbrook') && a.includes('sharnbrook')) return true;
+    if (clean.includes('ravens') && a.includes('ravens')) return true;
+    if (clean.includes('river') && a.includes('river')) return true;
+    if (clean.includes('warren') && a.includes('warren')) return true;
+
+    return false;
+  });
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -217,7 +338,78 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [originalAdmin, setOriginalAdmin] = useState<AppUser | null>(null);
   const [activePortal, setActivePortalState] = useState<'propco' | 'opco'>('opco');
 
+  const syncLiveUserSession = useCallback(async (targetUserId?: string, targetUserEmail?: string) => {
+    try {
+      let uid = targetUserId || user?.id;
+      let uemail = targetUserEmail || user?.email;
+      if (!uid && !uemail && typeof window !== 'undefined') {
+        try {
+          const stored = localStorage.getItem('samko_auth_user');
+          if (stored) {
+            const parsed = JSON.parse(stored);
+            uid = parsed.id;
+            uemail = parsed.email;
+          }
+        } catch {}
+      }
+      if (!uid && !uemail) return;
+
+      const res = await api.users.getAll();
+      if (res.success && Array.isArray(res.data) && res.data.length > 0) {
+        const found = res.data.find(
+          (u: any) =>
+            (uid && u.id === uid) ||
+            (uemail && u.email?.toLowerCase().trim() === uemail.toLowerCase().trim())
+        );
+
+        if (found) {
+          let freshAssigned: string[] = [];
+          if (Array.isArray(found.assignedProperties)) {
+            freshAssigned = found.assignedProperties.filter((p: string) => p && p !== 'No Property Assigned');
+          } else if (found.hotel && found.hotel !== 'No Property Assigned') {
+            freshAssigned = found.hotel.includes(',')
+              ? found.hotel.split(',').map((s: string) => s.trim()).filter(Boolean)
+              : [found.hotel.trim()];
+          }
+
+          const freshHotel =
+            freshAssigned.length === 0
+              ? 'No Property Assigned'
+              : freshAssigned.includes('all') || freshAssigned.includes('All Properties')
+                ? 'All Properties'
+                : freshAssigned.join(', ');
+
+          setUser((prev) => {
+            const currentAssigned = prev.assignedProperties || [];
+            const isAssignedEqual =
+              currentAssigned.length === freshAssigned.length &&
+              currentAssigned.every((v, i) => v === freshAssigned[i]);
+
+            if (isAssignedEqual && prev.hotel === freshHotel && prev.roleLevel === found.roleLevel) {
+              return prev;
+            }
+
+            const updated: AppUser = {
+              ...prev,
+              ...found,
+              assignedProperties: freshAssigned,
+              hotel: freshHotel,
+              tabPermissions: found.tabPermissions || prev.tabPermissions || getDefaultTabPermissionsForRole(found.roleLevel || prev.roleLevel),
+            };
+            try {
+              localStorage.setItem('samko_auth_user', JSON.stringify(updated));
+            } catch {}
+            return updated;
+          });
+        }
+      }
+    } catch (err) {
+      console.warn('Failed to sync live user session:', err);
+    }
+  }, [user?.id, user?.email]);
+
   useEffect(() => {
+    let activeParsedUser: any = null;
     try {
       const authFlag = localStorage.getItem('samko_is_authenticated');
       const storedUser = localStorage.getItem('samko_auth_user');
@@ -225,6 +417,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (authFlag === 'true' && storedUser) {
         const parsed = JSON.parse(storedUser);
         if (parsed && (parsed.email || parsed.id)) {
+          activeParsedUser = parsed;
           setUser(parsed);
           setIsAuthenticated(true);
           if (parsed.portal === 'propco') {
@@ -257,7 +450,58 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } finally {
       setIsLoadingAuth(false);
     }
-  }, []);
+
+    if (activeParsedUser) {
+      syncLiveUserSession(activeParsedUser.id, activeParsedUser.email);
+    }
+
+    const handleDataChanged = (e: any) => {
+      if (e.detail?.type === 'users') {
+        try {
+          const stored = localStorage.getItem('samko_auth_user');
+          if (stored) {
+            const p = JSON.parse(stored);
+            syncLiveUserSession(p.id, p.email);
+            return;
+          }
+        } catch {}
+        syncLiveUserSession();
+      }
+    };
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'samko_last_user_update' || e.key === 'samko_auth_user') {
+        try {
+          const stored = localStorage.getItem('samko_auth_user');
+          if (stored) {
+            const p = JSON.parse(stored);
+            syncLiveUserSession(p.id, p.email);
+            return;
+          }
+        } catch {}
+        syncLiveUserSession();
+      }
+    };
+    const handleUserChanged = (e: any) => {
+      if (e.detail?.user) {
+        setUser(e.detail.user);
+      }
+    };
+    const handleWindowFocus = () => {
+      syncLiveUserSession();
+    };
+
+    window.addEventListener('samko:data-changed', handleDataChanged);
+    window.addEventListener('storage', handleStorageChange);
+    window.addEventListener('samko:user-changed', handleUserChanged);
+    window.addEventListener('focus', handleWindowFocus);
+
+    return () => {
+      window.removeEventListener('samko:data-changed', handleDataChanged);
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('samko:user-changed', handleUserChanged);
+      window.removeEventListener('focus', handleWindowFocus);
+    };
+  }, [syncLiveUserSession]);
 
   const setActivePortal = useCallback((p: 'propco' | 'opco') => {
     setActivePortalState(p);
@@ -493,6 +737,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return user.roleLevel !== 'L4';
       }
 
+      // Property CMS Hub tab is strictly restricted to Digital Bot
+      if (tabId === 'bot-property-hub') {
+        return Boolean(
+          user.id === 'usr-bot-001' ||
+          user.email?.toLowerCase() === 'digitalbot@samkocentral.com' ||
+          user.name?.toLowerCase().includes('digital bot')
+        );
+      }
+
       if (user.roleLevel === 'L1') return true;
       const perms = user.tabPermissions || getDefaultTabPermissionsForRole(user.roleLevel);
       if (perms[tabId] !== undefined) return perms[tabId].enabled;
@@ -589,11 +842,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     user?.name?.toLowerCase().includes('digital bot')
   );
 
-  const canManageUsers = isSuperAdmin || isAdmin || isDigitalBot;
+  const canManageUsers = isSuperAdmin || isDigitalBot;
   const canAccessSettings = isSuperAdmin || isDigitalBot;
-  const canEdit = !isViewer || isDigitalBot;
-  const canDelete = isSuperAdmin || isAdmin || isDigitalBot;
-  const canUpload = isSuperAdmin || isAdmin || isUploader || isDigitalBot;
+  const canEdit = (!isViewer && user.roleLevel !== 'L4') || isDigitalBot;
+  const canDelete = isSuperAdmin || isDigitalBot;
+  const canUpload = (isSuperAdmin || isAdmin || isUploader || isDigitalBot) && !isViewer;
   const canSwitchPortal = isSuperAdmin || isDigitalBot;
 
   const roleBadgeText =
@@ -615,6 +868,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       : '#94a3b8';
 
   const isImpersonating = Boolean(originalAdmin && user.id !== originalAdmin.id);
+
+  const isPropertyAccessible = useCallback(
+    (recordProperty?: string | null): boolean => {
+      return checkPropertyAccess(recordProperty, user);
+    },
+    [user]
+  );
+
+  const userAssignedProperties = useMemo(() => {
+    if (!user) return ['all'];
+    if (user.roleLevel === 'L1' || isDigitalBot) return ['all'];
+    if (Array.isArray(user.assignedProperties)) {
+      if (user.assignedProperties.includes('all') || user.assignedProperties.includes('All Properties')) return ['all'];
+      return user.assignedProperties.filter((p) => p && p !== 'No Property Assigned');
+    }
+    if (user.hotel) {
+      if (user.hotel.includes('All Properties') || user.hotel.includes('All Sites')) return ['all'];
+      if (user.hotel === 'No Property Assigned') return [];
+      return user.hotel.includes(',')
+        ? user.hotel.split(',').map((s) => s.trim()).filter(Boolean)
+        : [user.hotel];
+    }
+    return [];
+  }, [user, isDigitalBot]);
 
   return (
     <AuthContext.Provider
@@ -647,6 +924,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         getTabAccess,
         canWriteTab,
         updateUserTabPermissions,
+        isPropertyAccessible,
+        userAssignedProperties,
       }}
     >
       {children}

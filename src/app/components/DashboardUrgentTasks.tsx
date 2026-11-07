@@ -5,6 +5,7 @@ import { TASKS, formatDateGB } from '@/lib/mockData';
 import Link from 'next/link';
 import { api } from '@/lib/api';
 import { useDeepPageCms } from '@/lib/deepPageCms';
+import { useAuth } from '@/lib/authContext';
 
 export default function DashboardUrgentTasks() {
   const cms = useDeepPageCms('overview');
@@ -32,7 +33,13 @@ export default function DashboardUrgentTasks() {
     };
   }, [fetchLiveTasks]);
 
-  const urgentHighTasks = tasks.filter(
+  const { isPropertyAccessible } = useAuth();
+
+  const accessibleTasks = React.useMemo(() => {
+    return tasks.filter((t: any) => isPropertyAccessible(t.property || t.site || t.hotel || t.propertyName));
+  }, [tasks, isPropertyAccessible]);
+
+  const urgentHighTasks = accessibleTasks.filter(
     (t: any) =>
       (t.priority === 'urgent' || t.priority === 'high' || t.status === 'open') &&
       t.status !== 'completed'
@@ -49,13 +56,15 @@ export default function DashboardUrgentTasks() {
   const displayTasks = urgentHighTasks.length > 0
     ? urgentHighTasks
     : (cms.tasks && cms.tasks.length > 0)
-    ? cms.tasks.map((t) => ({
-        id: t.id,
-        title: t.title,
-        site: t.hotelName,
-        due: t.dueDate,
-        priority: t.priority,
-      }))
+    ? cms.tasks
+        .filter((t) => isPropertyAccessible(t.hotelName))
+        .map((t) => ({
+          id: t.id,
+          title: t.title,
+          site: t.hotelName,
+          due: t.dueDate,
+          priority: t.priority,
+        }))
     : [];
 
   return (

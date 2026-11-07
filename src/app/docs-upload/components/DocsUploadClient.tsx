@@ -33,6 +33,7 @@ import {
   addDropdownOption,
   removeDropdownOptionByName,
 } from '@/lib/deepPageCms';
+import CustomDropdown from '@/components/ui/CustomDropdown';
 import ConfirmDeleteModal from '@/components/modals/ConfirmDeleteModal';
 
 // Load directly from real document repository
@@ -44,7 +45,7 @@ function loadRealDocuments(): Document[] {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) return parsed;
       }
-    } catch (e) {}
+    } catch (e) { }
   }
   return DOCUMENTS;
 }
@@ -78,7 +79,7 @@ function createRealDocumentBlob(doc: Document): { url: string; filename: string 
 
 export default function DocsUploadClient() {
   const router = useRouter();
-  const { user, isViewer, canUpload, canDelete } = useAuth();
+  const { user, isViewer, canUpload, canDelete, isPropertyAccessible } = useAuth();
   const { dropdowns: cmsDropdowns } = useDeepPageCms('documents');
 
   // Real Documents state synchronized with Document Repository
@@ -109,7 +110,7 @@ export default function DocsUploadClient() {
         sessionStorage.removeItem('samko_vault_documents');
         localStorage.removeItem('samko_vault_documents');
         window.dispatchEvent(new CustomEvent('samko:data-changed', { detail: { type: 'documents' } }));
-      } catch (e) {}
+      } catch (e) { }
     }
   };
 
@@ -125,6 +126,7 @@ export default function DocsUploadClient() {
   const [newCategoryName, setNewCategoryName] = useState('');
   const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
   const [docToDelete, setDocToDelete] = useState<Document | null>(null);
+  const [categoryToDelete, setCategoryToDelete] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
   // Replace Document file input ref
@@ -193,9 +195,14 @@ export default function DocsUploadClient() {
     toast.success(`Category "${catName}" removed`);
   };
 
+  // Scoped documents by assigned property
+  const accessibleDocuments = useMemo(() => {
+    return documents.filter((doc) => isPropertyAccessible(doc.site));
+  }, [documents, isPropertyAccessible]);
+
   // Filtered documents
   const filteredDocuments = useMemo(() => {
-    return documents.filter((doc) => {
+    return accessibleDocuments.filter((doc) => {
       if (filterStatus !== 'all' && doc.status !== filterStatus) return false;
       if (filterCategory !== 'all' && doc.category !== filterCategory) return false;
       if (filterProperty !== 'all' && doc.site !== filterProperty) return false;
@@ -212,12 +219,12 @@ export default function DocsUploadClient() {
       }
       return true;
     });
-  }, [documents, filterStatus, filterCategory, filterProperty, search]);
+  }, [accessibleDocuments, filterStatus, filterCategory, filterProperty, search]);
 
   // Stats calculation
-  const compliantCount = useMemo(() => documents.filter((d) => d.status === 'ok').length, [documents]);
-  const dueSoonCount = useMemo(() => documents.filter((d) => d.status === 'warning').length, [documents]);
-  const overdueCount = useMemo(() => documents.filter((d) => d.status === 'critical').length, [documents]);
+  const compliantCount = useMemo(() => accessibleDocuments.filter((d) => d.status === 'ok').length, [accessibleDocuments]);
+  const dueSoonCount = useMemo(() => accessibleDocuments.filter((d) => d.status === 'warning').length, [accessibleDocuments]);
+  const overdueCount = useMemo(() => accessibleDocuments.filter((d) => d.status === 'critical').length, [accessibleDocuments]);
 
   // Handle file replacement
   const handleFilePickedForReplace = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -278,7 +285,7 @@ export default function DocsUploadClient() {
       uploaded: new Date().toISOString().split('T')[0],
       uploadedBy: 'Current Administrator',
       expiry: expDate,
-      
+
       status,
       size: uploadForm.fileSize || '1.8 MB',
       fileUrl: uploadForm.fileUrl || '',
@@ -441,34 +448,26 @@ export default function DocsUploadClient() {
           {/* Action & Filter Controls */}
           <div className="flex items-center gap-2 flex-wrap">
             {/* Property Filter */}
-            <select
+            <CustomDropdown
               value={filterProperty}
-              onChange={(e) => setFilterProperty(e.target.value)}
-              className="px-3 py-2 rounded-xl border border-border text-xs outline-none cursor-pointer"
-              style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
-            >
-              <option value="all">All Properties</option>
-              {HOTELS.map((h) => (
-                <option key={h.id} value={h.name}>
-                  {h.name}
-                </option>
-              ))}
-            </select>
+              onChange={setFilterProperty}
+              options={HOTELS.filter((h) => isPropertyAccessible(h.name || h.id)).map((h) => ({ value: h.name, label: h.name }))}
+              placeholder="All Properties"
+              allLabel="All Properties"
+              size="sm"
+              variant="filter"
+            />
 
             {/* Category Filter */}
-            <select
+            <CustomDropdown
               value={filterCategory}
-              onChange={(e) => setFilterCategory(e.target.value)}
-              className="px-3 py-2 rounded-xl border border-border text-xs outline-none cursor-pointer"
-              style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
-            >
-              <option value="all">All Categories</option>
-              {allCategories.map((c) => (
-                <option key={c} value={c}>
-                  {c}
-                </option>
-              ))}
-            </select>
+              onChange={setFilterCategory}
+              options={allCategories.map((c) => ({ value: c, label: c }))}
+              placeholder="All Categories"
+              allLabel="All Categories"
+              size="sm"
+              variant="filter"
+            />
 
             {/* Manage / Add Category Button */}
             <button
@@ -506,17 +505,15 @@ export default function DocsUploadClient() {
               <button
                 key={tab.id}
                 onClick={() => setFilterStatus(tab.id as any)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-2 transition-all cursor-pointer ${
-                  isActive
-                    ? 'bg-primary text-black font-bold shadow-sm'
-                    : 'text-muted-foreground hover:text-foreground hover:bg-white/[0.04]'
-                }`}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-2 transition-all cursor-pointer ${isActive
+                  ? 'bg-primary text-black font-bold shadow-sm'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-white/[0.04]'
+                  }`}
               >
                 <span>{tab.label}</span>
                 <span
-                  className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
-                    isActive ? 'bg-black/20 text-black' : 'bg-white/10 text-muted-foreground'
-                  }`}
+                  className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${isActive ? 'bg-black/20 text-black' : 'bg-white/10 text-muted-foreground'
+                    }`}
                   style={!isActive && tab.color ? { color: tab.color } : {}}
                 >
                   {tab.count}
@@ -558,8 +555,8 @@ export default function DocsUploadClient() {
                   const badgeBg = isCompliant
                     ? 'rgba(61,214,140,0.14)'
                     : isDueSoon
-                    ? 'rgba(245,158,11,0.14)'
-                    : 'rgba(244,63,94,0.14)';
+                      ? 'rgba(245,158,11,0.14)'
+                      : 'rgba(244,63,94,0.14)';
                   const badgeColor = isCompliant ? '#3dd68c' : isDueSoon ? '#f59e0b' : '#f43f5e';
                   const label = isCompliant ? 'Compliant' : isDueSoon ? 'Due Soon' : 'Overdue';
 
@@ -944,36 +941,30 @@ export default function DocsUploadClient() {
                   <label className="block text-xs font-semibold text-muted-foreground mb-1 uppercase tracking-wide">
                     Property *
                   </label>
-                  <select
+                  <CustomDropdown
                     value={uploadForm.property}
-                    onChange={(e) => setUploadForm({ ...uploadForm, property: e.target.value })}
-                    className="w-full px-3 py-2 rounded-lg border border-border text-xs outline-none"
-                    style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
-                  >
-                    {HOTELS.map((h) => (
-                      <option key={h.id} value={h.name}>
-                        {h.name}
-                      </option>
-                    ))}
-                  </select>
+                    onChange={(val) => setUploadForm({ ...uploadForm, property: val })}
+                    options={HOTELS.filter((h) => isPropertyAccessible(h.name || h.id)).map((h) => ({ value: h.name, label: h.name }))}
+                    placeholder="Select Property"
+                    variant="form"
+                    width="100%"
+                    searchable
+                  />
                 </div>
 
                 <div>
                   <label className="block text-xs font-semibold text-muted-foreground mb-1 uppercase tracking-wide">
                     Category *
                   </label>
-                  <select
+                  <CustomDropdown
                     value={uploadForm.category}
-                    onChange={(e) => setUploadForm({ ...uploadForm, category: e.target.value })}
-                    className="w-full px-3 py-2 rounded-lg border border-border text-xs outline-none"
-                    style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
-                  >
-                    {allCategories.map((c) => (
-                      <option key={c} value={c}>
-                        {c}
-                      </option>
-                    ))}
-                  </select>
+                    onChange={(val) => setUploadForm({ ...uploadForm, category: val })}
+                    options={allCategories.map((c) => ({ value: c, label: c }))}
+                    placeholder="Select Category"
+                    variant="form"
+                    width="100%"
+                    searchable
+                  />
                 </div>
               </div>
 
@@ -1076,7 +1067,7 @@ export default function DocsUploadClient() {
                       <span>{cat}</span>
                       <button
                         type="button"
-                        onClick={() => handleDeleteCategory(cat)}
+                        onClick={() => setCategoryToDelete(cat)}
                         className="w-4 h-4 rounded-full flex items-center justify-center hover:bg-rose-500/20 hover:text-rose-400 text-muted-foreground transition-colors cursor-pointer"
                         title={`Delete "${cat}"`}
                       >
@@ -1153,6 +1144,22 @@ export default function DocsUploadClient() {
         customWarning="Are you sure you want to permanently delete this document from the vault? This cannot be undone."
         isDeleting={isDeleting}
         confirmButtonText="Delete Document"
+      />
+
+      {/* ── DELETE CATEGORY CONFIRMATION MODAL ── */}
+      <ConfirmDeleteModal
+        isOpen={Boolean(categoryToDelete)}
+        onClose={() => setCategoryToDelete(null)}
+        onConfirm={() => {
+          if (!categoryToDelete) return;
+          handleDeleteCategory(categoryToDelete);
+          setCategoryToDelete(null);
+        }}
+        title="Delete Category"
+        itemName={categoryToDelete || 'Category'}
+        registerName="document categories"
+        confirmButtonText="Delete Category"
+        customWarning={`Are you sure you want to delete the category "${categoryToDelete}"? All existing documents with this category will safely stay in the database. Only this category option will be removed from the dropdown list.`}
       />
     </div>
   );

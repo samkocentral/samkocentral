@@ -6,6 +6,7 @@ import { ArrowLeft, MapPin, Phone, AlertTriangle, CheckCircle, FileText, Clipboa
 import { SITES, DOCUMENTS, COMPLIANCE, TASKS, ALERTS, daysUntil, formatDateGB } from '@/lib/mockData';
 import StatusBadge from '@/components/ui/StatusBadge';
 import ComplianceRing from '@/components/ui/ComplianceRing';
+import { useAuth } from '@/lib/authContext';
 
 interface SiteDetailClientProps {
   siteId: string;
@@ -14,10 +15,27 @@ interface SiteDetailClientProps {
 type TabId = 'overview' | 'compliance' | 'documents' | 'tasks' | 'alerts';
 
 export default function SiteDetailClient({ siteId }: SiteDetailClientProps) {
+  const { isPropertyAccessible } = useAuth();
   const [activeTab, setActiveTab] = useState<TabId>('overview');
 
   const site = SITES.find((s) => s.id === siteId);
-  if (!site) return null;
+  if (!site || !isPropertyAccessible(site.name || site.id)) {
+    return (
+      <div className="flex flex-col items-center justify-center p-12 text-center">
+        <AlertTriangle size={36} className="text-amber-400 mb-3" />
+        <h2 className="text-lg font-bold mb-1">Access Restricted</h2>
+        <p className="text-xs text-muted-foreground mb-4 max-w-sm">
+          You do not have administrative permission to view operations for this property based on your assigned site permissions.
+        </p>
+        <Link
+          href="/multi-site-operations"
+          className="px-4 py-2 rounded-lg text-xs font-semibold bg-primary text-black"
+        >
+          Return to Operations
+        </Link>
+      </div>
+    );
+  }
 
   const siteDocs = DOCUMENTS.filter((d) => d.site === site.name);
   const siteCompliance = COMPLIANCE.filter((c) => c.site === site.name);

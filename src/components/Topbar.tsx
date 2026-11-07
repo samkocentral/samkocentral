@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
@@ -37,6 +37,7 @@ import {
   formatRelativeTime,
   type AppNotification,
 } from '@/lib/notifications';
+import { api } from '@/lib/api';
 
 interface TopbarProps {
   title: string;
@@ -57,6 +58,21 @@ export default function Topbar({ title, subtitle, actions, hideDefaultActions = 
   const [tasksOpen, setTasksOpen] = useState(false);
   const [tasksFilter, setTasksFilter] = useState<'all' | 'urgent' | 'open'>('all');
   const [tasksList, setTasksList] = useState<TaskItem[]>([]);
+  const [systemUsers, setSystemUsers] = useState<any[]>([]);
+
+  useEffect(() => {
+    const fetchUsers = async () => {
+      try {
+        const res = await api.users.getAll();
+        if (res.success && Array.isArray(res.data)) {
+          setSystemUsers(res.data.filter((u: any) => u.id !== 'usr-bot-001'));
+        }
+      } catch {}
+    };
+    fetchUsers();
+    window.addEventListener('samko:data-changed', fetchUsers);
+    return () => window.removeEventListener('samko:data-changed', fetchUsers);
+  }, []);
   const pathname = usePathname();
   const { dashboard: cmsDashboard, recentLogs: cmsRecentLogs, importExport: cmsImportExport } = useAppCms();
   const [cmsOverride, setCmsOverride] = useState<{
@@ -80,6 +96,7 @@ export default function Topbar({ title, subtitle, actions, hideDefaultActions = 
     isImpersonating,
     exitImpersonation,
     isDigitalBot,
+    isPropertyAccessible,
   } = useAuth();
 
   // Load and listen for live notifications updates across the entire application
@@ -97,7 +114,7 @@ export default function Topbar({ title, subtitle, actions, hideDefaultActions = 
             return;
           }
         }
-      } catch (e) {}
+      } catch (e) { }
       setTasksList(getInitialTasks());
     };
     syncTasks();
@@ -120,18 +137,27 @@ export default function Topbar({ title, subtitle, actions, hideDefaultActions = 
     };
   }, []);
 
-  // Compute live alarm / notification metrics
-  const unreadCount = notifications.filter((n) => !n.read).length;
-  const criticalList = notifications.filter((n) => n.type === 'critical');
-  const warningList = notifications.filter((n) => n.type === 'warning');
-  const unreadCriticalCount = notifications.filter((n) => n.type === 'critical' && !n.read).length;
-  const unreadWarningCount = notifications.filter((n) => n.type === 'warning' && !n.read).length;
+  // Scope notifications and tasks by user's assigned property
+  const accessibleNotifications = useMemo(() => {
+    return notifications.filter((n: AppNotification) => !n.site || isPropertyAccessible(n.site));
+  }, [notifications, isPropertyAccessible]);
 
-  const displayCriticalCount = criticalList.length > 0 ? (unreadCriticalCount > 0 ? unreadCriticalCount : criticalList.length) : 3;
-  const displayWarningCount = warningList.length > 0 ? (unreadWarningCount > 0 ? unreadWarningCount : warningList.length) : 3;
+  const accessibleTasks = useMemo(() => {
+    return tasksList.filter((t: TaskItem) => !t.property && !(t as any).hotel ? true : isPropertyAccessible(t.property || (t as any).hotel));
+  }, [tasksList, isPropertyAccessible]);
+
+  // Compute live alarm / notification metrics
+  const unreadCount = accessibleNotifications.filter((n: AppNotification) => !n.read).length;
+  const criticalList = accessibleNotifications.filter((n: AppNotification) => n.type === 'critical');
+  const warningList = accessibleNotifications.filter((n: AppNotification) => n.type === 'warning');
+  const unreadCriticalCount = accessibleNotifications.filter((n: AppNotification) => n.type === 'critical' && !n.read).length;
+  const unreadWarningCount = accessibleNotifications.filter((n: AppNotification) => n.type === 'warning' && !n.read).length;
+
+  const displayCriticalCount = criticalList.length > 0 ? (unreadCriticalCount > 0 ? unreadCriticalCount : criticalList.length) : (isSuperAdmin ? 3 : 0);
+  const displayWarningCount = warningList.length > 0 ? (unreadWarningCount > 0 ? unreadWarningCount : warningList.length) : (isSuperAdmin ? 3 : 0);
 
   // Filtered notifications for popover
-  const filteredNotifications = notifications.filter((n) => {
+  const filteredNotifications = accessibleNotifications.filter((n: AppNotification) => {
     if (notifFilter === 'critical') return n.type === 'critical';
     if (notifFilter === 'warning') return n.type === 'warning';
     if (notifFilter === 'unread') return !n.read;
@@ -374,13 +400,12 @@ export default function Topbar({ title, subtitle, actions, hideDefaultActions = 
           >
             <Bell
               size={15}
-              className={`transition-colors ${
-                unreadCriticalCount > 0
-                  ? 'text-rose-400 animate-bounce'
-                  : unreadCount > 0
+              className={`transition-colors ${unreadCriticalCount > 0
+                ? 'text-rose-400 animate-bounce'
+                : unreadCount > 0
                   ? 'text-primary'
                   : 'text-muted-foreground group-hover:text-foreground'
-              }`}
+                }`}
             />
             <span className="text-xs font-bold text-foreground hidden sm:inline">
               Alerts
@@ -389,11 +414,10 @@ export default function Topbar({ title, subtitle, actions, hideDefaultActions = 
             {/* Counter Badge */}
             {unreadCount > 0 && (
               <span
-                className={`min-w-[18px] h-[18px] px-1 rounded-full flex items-center justify-center text-[10px] font-black text-white ${
-                  unreadCriticalCount > 0
-                    ? 'bg-rose-500 shadow-md shadow-rose-500/50'
-                    : 'bg-amber-500 shadow-md shadow-amber-500/40'
-                }`}
+                className={`min-w-[18px] h-[18px] px-1 rounded-full flex items-center justify-center text-[10px] font-black text-white ${unreadCriticalCount > 0
+                  ? 'bg-rose-500 shadow-md shadow-rose-500/50'
+                  : 'bg-amber-500 shadow-md shadow-amber-500/40'
+                  }`}
               >
                 {unreadCount > 9 ? '9+' : unreadCount}
               </span>
@@ -537,39 +561,37 @@ export default function Topbar({ title, subtitle, actions, hideDefaultActions = 
                     </p>
                   </div>
                 ) : (
-                  filteredNotifications.map((notif) => {
+                  filteredNotifications.map((notif: AppNotification) => {
                     const isCrit = notif.type === 'critical';
                     const isWarn = notif.type === 'warning';
                     return (
                       <div
                         key={notif.id}
-                        className={`relative p-3 rounded-xl border transition-all ${
-                          notif.read
-                            ? 'bg-surface/60 border-border opacity-85 hover:opacity-100'
-                            : 'bg-surface2 border-border-strong shadow-md'
-                        }`}
+                        className={`relative p-3 rounded-xl border transition-all ${notif.read
+                          ? 'bg-surface/60 border-border opacity-85 hover:opacity-100'
+                          : 'bg-surface2 border-border-strong shadow-md'
+                          }`}
                         style={{
                           borderLeftWidth: 4,
                           borderLeftColor: isCrit
                             ? '#ef4444'
                             : isWarn
-                            ? '#f59e0b'
-                            : notif.type === 'success'
-                            ? '#10b981'
-                            : '#3b82f6',
+                              ? '#f59e0b'
+                              : notif.type === 'success'
+                                ? '#10b981'
+                                : '#3b82f6',
                         }}
                       >
                         {/* Top Meta */}
                         <div className="flex items-center justify-between gap-2">
                           <div className="flex items-center gap-1.5 flex-wrap">
                             <span
-                              className={`px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-wider ${
-                                isCrit
-                                  ? 'bg-rose-500/20 text-rose-300 border border-rose-500/30'
-                                  : isWarn
+                              className={`px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-wider ${isCrit
+                                ? 'bg-rose-500/20 text-rose-300 border border-rose-500/30'
+                                : isWarn
                                   ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
                                   : 'bg-blue-500/20 text-blue-300 border border-blue-500/30'
-                              }`}
+                                }`}
                             >
                               {notif.source || notif.type}
                             </span>
@@ -604,9 +626,8 @@ export default function Topbar({ title, subtitle, actions, hideDefaultActions = 
                         {/* Title & Description */}
                         <div className="mt-1.5">
                           <p
-                            className={`text-xs font-bold leading-tight ${
-                              isCrit ? 'text-rose-300' : 'text-foreground'
-                            }`}
+                            className={`text-xs font-bold leading-tight ${isCrit ? 'text-rose-300' : 'text-foreground'
+                              }`}
                           >
                             {notif.title}
                           </p>
@@ -707,7 +728,7 @@ export default function Topbar({ title, subtitle, actions, hideDefaultActions = 
                   border: '1px solid rgba(232, 201, 122, 0.35)',
                 }}
               >
-                {tasksList.filter((t) => t.status !== 'completed').length}
+                {accessibleTasks.filter((t: TaskItem) => t.status !== 'completed').length}
               </span>
             </button>
 
@@ -735,7 +756,7 @@ export default function Topbar({ title, subtitle, actions, hideDefaultActions = 
                           Operational Tasks & Workflows
                         </span>
                         <span className="px-1.5 py-0.5 rounded-full text-[10px] font-black bg-amber-500/20 text-amber-300 border border-amber-500/30">
-                          {tasksList.filter((t) => t.status !== 'completed').length} open
+                          {accessibleTasks.filter((t: TaskItem) => t.status !== 'completed').length} open
                         </span>
                       </div>
                       <p className="text-[10px] text-muted-foreground mt-0.5">
@@ -759,9 +780,9 @@ export default function Topbar({ title, subtitle, actions, hideDefaultActions = 
                   style={{ background: 'var(--surface)' }}
                 >
                   {[
-                    { key: 'all', label: 'All Tasks', count: tasksList.length },
-                    { key: 'urgent', label: 'Urgent', count: tasksList.filter((t) => t.priority === 'urgent').length },
-                    { key: 'open', label: 'Open', count: tasksList.filter((t) => t.status === 'open').length },
+                    { key: 'all', label: 'All Tasks', count: accessibleTasks.length },
+                    { key: 'urgent', label: 'Urgent', count: accessibleTasks.filter((t: TaskItem) => t.priority === 'urgent').length },
+                    { key: 'open', label: 'Open', count: accessibleTasks.filter((t: TaskItem) => t.status === 'open').length },
                   ].map((tab) => {
                     const isActive = tasksFilter === tab.key;
                     return (
@@ -793,13 +814,13 @@ export default function Topbar({ title, subtitle, actions, hideDefaultActions = 
 
                 {/* Tasks List */}
                 <div className="max-h-[340px] overflow-y-auto p-3 space-y-2 custom-scrollbar">
-                  {tasksList
-                    .filter((t) => {
+                  {accessibleTasks
+                    .filter((t: TaskItem) => {
                       if (tasksFilter === 'urgent') return t.priority === 'urgent';
                       if (tasksFilter === 'open') return t.status === 'open';
                       return true;
                     })
-                    .map((task) => (
+                    .map((task: TaskItem) => (
                       <Link
                         key={task.id}
                         href="/tasks"
@@ -816,14 +837,14 @@ export default function Topbar({ title, subtitle, actions, hideDefaultActions = 
                                   task.priority === 'urgent'
                                     ? 'rgba(244,63,94,0.15)'
                                     : task.priority === 'high'
-                                    ? 'rgba(245,158,11,0.15)'
-                                    : 'rgba(56,189,248,0.15)',
+                                      ? 'rgba(245,158,11,0.15)'
+                                      : 'rgba(56,189,248,0.15)',
                                 color:
                                   task.priority === 'urgent'
                                     ? '#f43f5e'
                                     : task.priority === 'high'
-                                    ? '#f59e0b'
-                                    : '#38bdf8',
+                                      ? '#f59e0b'
+                                      : '#38bdf8',
                               }}
                             >
                               {task.priority}
@@ -841,8 +862,8 @@ export default function Topbar({ title, subtitle, actions, hideDefaultActions = 
                             {task.dueInDays < 0
                               ? `${Math.abs(task.dueInDays)}d overdue`
                               : task.dueInDays === 0
-                              ? 'Due today'
-                              : `Due in ${task.dueInDays}d`}
+                                ? 'Due today'
+                                : `Due in ${task.dueInDays}d`}
                           </span>
                         </div>
                         <p className="text-xs font-semibold text-foreground mt-1 group-hover:text-primary transition-colors line-clamp-1">
@@ -1002,6 +1023,41 @@ export default function Topbar({ title, subtitle, actions, hideDefaultActions = 
                             />
                             <span className="truncate text-foreground font-medium">
                               {cred.level} · {cred.title}
+                            </span>
+                          </div>
+                          {isActive ? (
+                            <Check size={12} className="text-primary flex-shrink-0" />
+                          ) : (
+                            <span className="text-[10px] text-muted-foreground uppercase">Switch</span>
+                          )}
+                        </button>
+                      );
+                    })}
+
+                    {systemUsers.filter((su) => !DEMO_CREDENTIALS.some((c) => c.user.id === su.id || c.user.email?.toLowerCase() === su.email?.toLowerCase())).map((su) => {
+                      const isActive = user.email === su.email;
+                      const roleColor =
+                        su.roleLevel === 'L1' ? '#f43f5e' :
+                        su.roleLevel === 'L2' ? '#60a5fa' :
+                        su.roleLevel === 'L3' ? '#10b981' : '#94a3b8';
+                      return (
+                        <button
+                          key={su.id}
+                          type="button"
+                          onClick={() => {
+                            switchUser(su);
+                            setUserMenuOpen(false);
+                          }}
+                          className="w-full flex items-center justify-between px-3 py-1.5 rounded-lg text-left text-xs transition-colors hover:bg-surface2"
+                          style={{ background: isActive ? 'var(--surface2)' : 'transparent' }}
+                        >
+                          <div className="flex items-center gap-2 min-w-0">
+                            <span
+                              className="w-2 h-2 rounded-full flex-shrink-0"
+                              style={{ background: roleColor }}
+                            />
+                            <span className="truncate text-foreground font-medium">
+                              {su.name} ({su.roleLevel} · {su.roleTitle || su.role})
                             </span>
                           </div>
                           {isActive ? (

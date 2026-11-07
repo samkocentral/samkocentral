@@ -20,6 +20,7 @@ import {
 import { useAuth, type RoleLevel } from '@/lib/authContext';
 import { toast } from 'sonner';
 import Modal from '@/components/ui/Modal';
+import CustomDropdown from '@/components/ui/CustomDropdown';
 import {
   Check,
   X,
@@ -1137,18 +1138,16 @@ export default function TabPermissionsEditor({
                 <label className="block text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-1.5">
                   Source Role (Copy From)
                 </label>
-                <select
+                <CustomDropdown
+                  variant="form"
+                  width="100%"
                   value={bulkSourceRole}
-                  onChange={(e) => setBulkSourceRole(e.target.value as RoleLevel)}
-                  className="w-full px-3 py-2 rounded-lg border border-border text-xs font-semibold outline-none cursor-pointer"
-                  style={{ background: 'var(--surface)', color: 'var(--foreground)' }}
-                >
-                  {(['L1', 'L2', 'L3', 'L4'] as RoleLevel[]).map((r) => (
-                    <option key={r} value={r}>
-                      {ROLE_METADATA[r].label}
-                    </option>
-                  ))}
-                </select>
+                  onChange={(val) => setBulkSourceRole(val as RoleLevel)}
+                  options={(['L1', 'L2', 'L3', 'L4'] as RoleLevel[]).map((r) => ({
+                    value: r,
+                    label: ROLE_METADATA[r].label,
+                  }))}
+                />
                 <div className="text-[10px] text-muted-foreground mt-1">
                   Active tabs in this role will be transferred
                 </div>
@@ -1158,19 +1157,19 @@ export default function TabPermissionsEditor({
                 <label className="block text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-1.5">
                   Destination Role (Assign To)
                 </label>
-                <select
+                <CustomDropdown
+                  variant="form"
+                  width="100%"
                   value={bulkTargetRole}
-                  onChange={(e) => setBulkTargetRole(e.target.value as RoleLevel | 'ALL')}
-                  className="w-full px-3 py-2 rounded-lg border border-border text-xs font-semibold outline-none cursor-pointer"
-                  style={{ background: 'var(--surface)', color: 'var(--foreground)' }}
-                >
-                  <option value="ALL">All Roles (L1, L2, L3, L4)</option>
-                  {(['L1', 'L2', 'L3', 'L4'] as RoleLevel[]).map((r) => (
-                    <option key={r} value={r}>
-                      {ROLE_METADATA[r].label}
-                    </option>
-                  ))}
-                </select>
+                  onChange={(val) => setBulkTargetRole(val as RoleLevel | 'ALL')}
+                  options={[
+                    { value: 'ALL', label: 'All Roles (L1, L2, L3, L4)' },
+                    ...(['L1', 'L2', 'L3', 'L4'] as RoleLevel[]).map((r) => ({
+                      value: r,
+                      label: ROLE_METADATA[r].label,
+                    })),
+                  ]}
+                />
                 <div className="text-[10px] text-muted-foreground mt-1">
                   Destination that receives the transferred tabs
                 </div>

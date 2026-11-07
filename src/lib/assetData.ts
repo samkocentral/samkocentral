@@ -76,6 +76,11 @@ export function isAssetFixed(a: any): boolean {
   if (!a) return false;
   if (a.isFixed === false) return false;
 
+  const rawType = String(a.type || a.assetType || '').toLowerCase();
+  if (rawType === 'non-fixed' || rawType.includes('non-fixed') || rawType.includes('loose') || rawType.includes('ffe')) {
+    return false;
+  }
+
   const rawCat =
     typeof a.category === 'object' && a.category !== null
       ? (a.category.name || a.category.label || '')

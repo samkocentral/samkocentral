@@ -3,10 +3,11 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { Building2, Package, AlertTriangle, CheckCircle2, Clock, TrendingUp, BarChart3, Activity, ChevronRight, ArrowUpRight } from 'lucide-react';
-import { HOTELS, ASSETS, MAINTENANCE_RECORDS, ASSET_CATEGORIES, getAssetStats } from '@/lib/assetData';
+import { HOTELS, ASSETS, MAINTENANCE_RECORDS, ASSET_CATEGORIES, DEPARTMENTS, getAssetStats } from '@/lib/assetData';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import Icon from '@/components/ui/AppIcon';
 import { useDeepPageCms } from '@/lib/deepPageCms';
+import { useAuth } from '@/lib/authContext';
 import PageCMSEditButton from '@/components/cms/PageCMSEditButton';
 import LoadingPagination from '@/components/ui/LoadingPagination';
 import { useLoadingPagination } from '@/hooks/useLoadingPagination';
@@ -83,7 +84,55 @@ function MaintenanceBadge({ status }: { status: string }) {
 
 export default function AssetDashboardClient() {
   const cms = useDeepPageCms('assetdashboard');
-  const stats = getAssetStats();
+  const { isPropertyAccessible } = useAuth();
+
+  const accessibleHotels = React.useMemo(() => {
+    return HOTELS.filter((h) => isPropertyAccessible(h.name || h.id));
+  }, [isPropertyAccessible]);
+
+  const accessibleAssets = React.useMemo(() => {
+    return ASSETS.filter((a) => isPropertyAccessible(a.hotelName || a.hotelId || (a as any).property));
+  }, [isPropertyAccessible]);
+
+  const accessibleMaintenance = React.useMemo(() => {
+    return MAINTENANCE_RECORDS.filter((m) => isPropertyAccessible(m.hotelName || m.hotelId || (m as any).property));
+  }, [isPropertyAccessible]);
+
+  const stats = React.useMemo(() => {
+    const total = accessibleAssets.length;
+    const fixed = accessibleAssets.filter((a) => a.isFixed).length;
+    const nonFixed = accessibleAssets.filter((a) => !a.isFixed).length;
+    const overdueMaintenance = accessibleMaintenance.filter((m) => m.status === 'overdue').length;
+    const dueToday = accessibleMaintenance.filter((m) => m.status === 'due-today').length;
+    const criticalAssets = accessibleAssets.filter((a) => a.riskLevel === 'critical').length;
+    const byDepartment = DEPARTMENTS.reduce((acc, dept) => {
+      acc[dept] = accessibleAssets.filter((a) => a.department === dept).length;
+      return acc;
+    }, {} as Record<string, number>);
+    const byCategory = ASSET_CATEGORIES.reduce((acc, cat) => {
+      acc[cat.name] = accessibleAssets.filter((a) => a.category === cat.name).length;
+      return acc;
+    }, {} as Record<string, number>);
+    const byHotel = accessibleHotels.reduce((acc, h) => {
+      acc[h.name] = accessibleAssets.filter((a) => a.hotelName === h.name).length;
+      return acc;
+    }, {} as Record<string, number>);
+    const maintenanceCompletion = Math.round(
+      (accessibleMaintenance.filter((m) => m.status === 'completed').length / (accessibleMaintenance.length || 1)) * 100
+    );
+    return {
+      total,
+      fixed,
+      nonFixed,
+      overdueMaintenance,
+      dueToday,
+      criticalAssets,
+      byDepartment,
+      byCategory,
+      byHotel,
+      maintenanceCompletion,
+    };
+  }, [accessibleAssets, accessibleMaintenance, accessibleHotels]);
 
   const {
     currentPage,
@@ -93,7 +142,7 @@ export default function AssetDashboardClient() {
     isPageLoading,
     changePage,
     changePageSize,
-  } = useLoadingPagination(HOTELS, 10);
+  } = useLoadingPagination(accessibleHotels, 10);
 
   const categoryChartData = ASSET_CATEGORIES
     .map((c) => ({ name: c.name.replace(' & ', ' & '), value: stats.byCategory[c.name] || 0, color: c.color }))
@@ -101,18 +150,18 @@ export default function AssetDashboardClient() {
     .sort((a, b) => b.value - a.value)
     .slice(0, 8);
 
-  const hotelChartData = HOTELS.map((h) => ({
+  const hotelChartData = accessibleHotels.map((h) => ({
     name: h.name.split(' ').slice(0, 2).join(' '),
     assets: stats.byHotel[h.name] || 0,
   }));
 
-  const recentMaintenance = MAINTENANCE_RECORDS.slice(0, 6);
+  const recentMaintenance = accessibleMaintenance.slice(0, 6);
 
   const riskData = [
-    { name: 'Low', value: ASSETS.filter((a) => a.riskLevel === 'low').length, color: '#3dd68c' },
-    { name: 'Medium', value: ASSETS.filter((a) => a.riskLevel === 'medium').length, color: '#f59e0b' },
-    { name: 'High', value: ASSETS.filter((a) => a.riskLevel === 'high').length, color: '#f97316' },
-    { name: 'Critical', value: ASSETS.filter((a) => a.riskLevel === 'critical').length, color: '#f43f5e' },
+    { name: 'Low', value: accessibleAssets.filter((a) => a.riskLevel === 'low').length, color: '#3dd68c' },
+    { name: 'Medium', value: accessibleAssets.filter((a) => a.riskLevel === 'medium').length, color: '#f59e0b' },
+    { name: 'High', value: accessibleAssets.filter((a) => a.riskLevel === 'high').length, color: '#f97316' },
+    { name: 'Critical', value: accessibleAssets.filter((a) => a.riskLevel === 'critical').length, color: '#f43f5e' },
   ].filter((d) => d.value > 0);
 
   return (

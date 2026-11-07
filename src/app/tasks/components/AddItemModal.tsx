@@ -22,6 +22,7 @@ import {
   getDateWithOffset,
 } from '@/data/tasksData';
 import { toast } from 'sonner';
+import CustomDropdown from '@/components/ui/CustomDropdown';
 
 interface AddItemModalProps {
   isOpen: boolean;
@@ -168,17 +169,19 @@ export default function AddItemModal({
                 <Tag size={13} className="text-primary" />
                 <span>Type</span>
               </label>
-              <select
+              <CustomDropdown
                 value={type}
-                onChange={(e) => setType(e.target.value as TaskType)}
-                className="w-full text-xs rounded-lg px-3.5 py-2.5 bg-surface2 text-foreground border border-border focus:border-primary outline-none transition-all cursor-pointer"
-              >
-                <option value="Task">Task (Standard Operational Action)</option>
-                <option value="Inspection">Inspection (Technical PPM / Visual)</option>
-                <option value="Maintenance">Maintenance (Repair / Refurbishment)</option>
-                <option value="Compliance">Compliance (Statutory Obligation)</option>
-                <option value="Audit Action">Audit Action (Audit Non-Conformance)</option>
-              </select>
+                onChange={(val) => setType(val as TaskType)}
+                options={[
+                  { value: 'Task', label: 'Task (Standard Operational Action)' },
+                  { value: 'Inspection', label: 'Inspection (Technical PPM / Visual)' },
+                  { value: 'Maintenance', label: 'Maintenance (Repair / Refurbishment)' },
+                  { value: 'Compliance', label: 'Compliance (Statutory Obligation)' },
+                  { value: 'Audit Action', label: 'Audit Action (Audit Non-Conformance)' }
+                ]}
+                variant="form"
+                width="100%"
+              />
             </div>
 
             {/* Field 2: Title */}
@@ -204,17 +207,15 @@ export default function AddItemModal({
                 <Building2 size={13} className="text-primary" />
                 <span>Property / Hotel</span>
               </label>
-              <select
+              <CustomDropdown
                 value={property}
-                onChange={(e) => setProperty(e.target.value)}
-                className="w-full text-xs rounded-lg px-3.5 py-2.5 bg-surface2 text-foreground border border-border focus:border-primary outline-none transition-all cursor-pointer"
-              >
-                {TASK_PROPERTIES.map((prop) => (
-                  <option key={prop} value={prop}>
-                    {prop}
-                  </option>
-                ))}
-              </select>
+                onChange={(val) => setProperty(val)}
+                options={TASK_PROPERTIES.map((prop) => ({ value: prop, label: prop }))}
+                placeholder="Select Property"
+                variant="form"
+                width="100%"
+                searchable
+              />
             </div>
 
             {/* Field 4 & 5: Priority and Due in (days) */}
@@ -225,15 +226,17 @@ export default function AddItemModal({
                   <AlertCircle size={13} className="text-primary" />
                   <span>Priority</span>
                 </label>
-                <select
+                <CustomDropdown
                   value={priority}
-                  onChange={(e) => setPriority(e.target.value as TaskPriority)}
-                  className="w-full text-xs rounded-lg px-3.5 py-2.5 bg-surface2 text-foreground border border-border focus:border-primary outline-none transition-all cursor-pointer"
-                >
-                  <option value="low">Low (Routine)</option>
-                  <option value="medium">Medium (Standard)</option>
-                  <option value="urgent">Urgent / High (Critical)</option>
-                </select>
+                  onChange={(val) => setPriority(val as TaskPriority)}
+                  options={[
+                    { value: 'low', label: 'Low (Routine)', color: '#3dd68c' },
+                    { value: 'medium', label: 'Medium (Standard)', color: '#f59e0b' },
+                    { value: 'urgent', label: 'Urgent / High (Critical)', color: '#f43f5e' }
+                  ]}
+                  variant="form"
+                  width="100%"
+                />
               </div>
 
               {/* Due in (days) */}
@@ -268,17 +271,18 @@ export default function AddItemModal({
                 <User size={13} className="text-primary" />
                 <span>Assignee (Role / User)</span>
               </label>
-              <select
+              <CustomDropdown
                 value={assigneeName}
-                onChange={(e) => setAssigneeName(e.target.value)}
-                className="w-full text-xs rounded-lg px-3.5 py-2.5 bg-surface2 text-foreground border border-border focus:border-primary outline-none transition-all cursor-pointer"
-              >
-                {TASK_ASSIGNEES.map((a) => (
-                  <option key={a.name} value={a.name}>
-                    {a.name} ({a.role})
-                  </option>
-                ))}
-              </select>
+                onChange={(val) => setAssigneeName(val)}
+                options={TASK_ASSIGNEES.map((a) => ({
+                  value: a.name,
+                  label: `${a.name} (${a.role})`
+                }))}
+                placeholder="Select Assignee"
+                variant="form"
+                width="100%"
+                searchable
+              />
             </div>
 
             {/* Optional Description */}

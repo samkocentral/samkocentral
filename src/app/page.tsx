@@ -12,18 +12,25 @@ import DashboardComplianceChart from './components/DashboardComplianceChart';
 import DashboardModulesSummary from './components/DashboardModulesSummary';
 import PageCMSEditButton from '@/components/cms/PageCMSEditButton';
 import { usePathname, useSearchParams } from 'next/navigation';
+import { useAuth } from '@/lib/authContext';
 
 function ExecutiveDashboardInner() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const { userAssignedProperties } = useAuth();
   const queryStr = searchParams?.toString();
   const fullPath = queryStr ? `${pathname}?${queryStr}` : (pathname || '/');
+
+  const isRestricted = !userAssignedProperties.includes('all') && userAssignedProperties.length > 0;
+  const subtitle = isRestricted
+    ? `${userAssignedProperties.length === 1 ? userAssignedProperties[0] : `${userAssignedProperties.length} Assigned Properties`} · Asset Management · Maintenance · Compliance · Insurance · Contracts`
+    : 'Group-wide facilities overview — 5 Hotels · Asset Management · Maintenance · Compliance · Insurance · Contracts';
 
   return (
     <AppLayout currentPath={fullPath}>
       <Topbar
         title="Executive Dashboard"
-        subtitle="Group-wide facilities overview — 5 Hotels · Asset Management · Maintenance · Compliance · Insurance · Contracts"
+        subtitle={subtitle}
         actions={<PageCMSEditButton pageId="overview" pageName="Executive Dashboard" />}
       />
       <main

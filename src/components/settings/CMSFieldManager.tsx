@@ -827,26 +827,26 @@ export default function CMSFieldManager() {
                         {/* Color Selector */}
                         <div className="flex items-center gap-1">
                           <Palette size={12} className="text-muted-foreground" />
-                          <select
+                          <CustomDropdown
                             value={currentOptionInput.color}
-                            onChange={(e) =>
+                            onChange={(val) =>
                               setNewOptionInputs((prev) => ({
                                 ...prev,
                                 [field.id]: {
                                   ...currentOptionInput,
-                                  color: e.target.value,
+                                  color: val,
                                 },
                               }))
                             }
-                            className="text-xs rounded-lg border border-border px-2 py-1 outline-none text-foreground"
-                            style={{ background: 'var(--surface2)' }}
-                          >
-                            {COLOR_PRESETS.map((col) => (
-                              <option key={col.label} value={col.value}>
-                                {col.label}
-                              </option>
-                            ))}
-                          </select>
+                            options={COLOR_PRESETS.map((col) => ({
+                              value: col.value,
+                              label: col.label,
+                              color: col.value || undefined
+                            }))}
+                            size="sm"
+                            variant="filter"
+                            showAllOption={false}
+                          />
                         </div>
 
                         <button
@@ -879,29 +879,21 @@ export default function CMSFieldManager() {
                             >
                               {/* Left: Color Dot + Label */}
                               <div className="flex items-center gap-2.5 flex-1 min-w-0">
-                                {/* Color dot */}
-                                <div className="relative">
-                                  <select
-                                    value={opt.color || ''}
-                                    onChange={(e) =>
-                                      handleChangeOptionColor(field.id, opt.id, e.target.value)
-                                    }
-                                    title="Click to change color badge"
-                                    className="opacity-0 absolute inset-0 cursor-pointer w-4 h-4 z-10"
-                                  >
-                                    {COLOR_PRESETS.map((col) => (
-                                      <option key={col.label} value={col.value}>
-                                        {col.label}
-                                      </option>
-                                    ))}
-                                  </select>
-                                  <div
-                                    className="w-3 h-3 rounded-full border border-white/20 flex-shrink-0 shadow-sm cursor-pointer hover:scale-125 transition-transform"
-                                    style={{
-                                      background: opt.color || 'var(--surface3)',
-                                    }}
-                                  />
-                                </div>
+                                {/* Color selector pill */}
+                                <CustomDropdown
+                                  value={opt.color || ''}
+                                  onChange={(val) =>
+                                    handleChangeOptionColor(field.id, opt.id, val)
+                                  }
+                                  options={COLOR_PRESETS.map((col) => ({
+                                    value: col.value,
+                                    label: col.label,
+                                    color: col.value || undefined
+                                  }))}
+                                  variant="pill"
+                                  size="sm"
+                                  showAllOption={false}
+                                />
 
                                 {/* Option Text Inline Editable */}
                                 {isEditingOpt ? (
@@ -1061,24 +1053,25 @@ export default function CMSFieldManager() {
               <div className="grid grid-cols-2 gap-3">
                 <div className="flex flex-col gap-1.5">
                   <label className="text-xs font-semibold text-foreground">Field Type</label>
-                  <select
+                  <CustomDropdown
                     value={newFieldForm.type}
-                    onChange={(e) =>
+                    onChange={(val) =>
                       setNewFieldForm({
                         ...newFieldForm,
-                        type: e.target.value as CMSFieldType,
+                        type: val as CMSFieldType,
                       })
                     }
-                    className="rounded-lg border border-border px-3 py-2 text-sm outline-none"
-                    style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
-                  >
-                    <option value="select">Dropdown (Select Box)</option>
-                    <option value="text">Single-Line Text</option>
-                    <option value="number">Number</option>
-                    <option value="date">Date Picker</option>
-                    <option value="textarea">Multi-Line Textarea</option>
-                    <option value="checkbox">Checkbox (Yes/No)</option>
-                  </select>
+                    options={[
+                      { value: 'select', label: 'Dropdown (Select Box)' },
+                      { value: 'text', label: 'Single-Line Text' },
+                      { value: 'number', label: 'Number' },
+                      { value: 'date', label: 'Date Picker' },
+                      { value: 'textarea', label: 'Multi-Line Textarea' },
+                      { value: 'checkbox', label: 'Checkbox (Yes/No)' }
+                    ]}
+                    variant="form"
+                    width="100%"
+                  />
                 </div>
 
                 <div className="flex flex-col gap-1.5">

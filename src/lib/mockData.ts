@@ -28,6 +28,7 @@ export interface Document {
   name: string;
   site: string;
   category: string;
+  department?: string;
   expiry: string;
   status: DocStatus;
   size: string;
@@ -38,6 +39,10 @@ export interface Document {
   fileName?: string;
   fileType?: string;
   notes?: string;
+  approvalStatus?: 'pending' | 'hold' | 'approved';
+  approvedBy?: string;
+  approvedDate?: string;
+  approvalNotes?: string;
 }
 
 export interface ComplianceItem {
@@ -158,6 +163,10 @@ export const DOCUMENTS: Document[] = [
   {
     id: 'doc-001',
     name: 'Public Liability Insurance',
+    department: 'Legal & Compliance',
+    approvalStatus: 'approved',
+    approvedBy: 'Alexander Vance (Super Admin)',
+    approvedDate: '2025-08-11',
     site: 'Crowne Plaza Kingston-south',
     category: 'Insurance',
     expiry: '2026-08-15',
@@ -170,6 +179,10 @@ export const DOCUMENTS: Document[] = [
   {
     id: 'doc-002',
     name: 'Fire Safety Certificate',
+    department: 'Maintenance',
+    approvalStatus: 'approved',
+    approvedBy: 'Digital Bot',
+    approvedDate: '2024-06-19',
     site: 'Stanhill Court',
     category: 'Fire Safety',
     expiry: '2026-06-20',
@@ -182,6 +195,9 @@ export const DOCUMENTS: Document[] = [
   {
     id: 'doc-003',
     name: 'Gas Safety Record',
+    department: 'Kitchen',
+    approvalStatus: 'pending',
+    approvalNotes: 'Statutory annual gas safety certification submitted by property team. Awaiting Super Admin review.',
     site: 'Ravents Ait Island',
     category: 'Gas Safety',
     expiry: '2026-06-02',
@@ -194,6 +210,10 @@ export const DOCUMENTS: Document[] = [
   {
     id: 'doc-004',
     name: 'Premises Licence',
+    department: 'Reception',
+    approvalStatus: 'approved',
+    approvedBy: 'Alexander Vance (Super Admin)',
+    approvedDate: '2025-01-29',
     site: 'River Club',
     category: 'Licenses',
     expiry: '2027-01-31',
@@ -206,6 +226,9 @@ export const DOCUMENTS: Document[] = [
   {
     id: 'doc-005',
     name: 'EICR – Electrical Installation Report',
+    department: 'Engineering',
+    approvalStatus: 'pending',
+    approvalNotes: '5-year fixed wire condition report requiring Super Admin sign-off.',
     site: 'Hampton 1 & 2',
     category: 'Electrical',
     expiry: '2026-07-10',
@@ -216,8 +239,74 @@ export const DOCUMENTS: Document[] = [
     version: 'v1.0',
   },
   {
+    id: 'doc-food-001',
+    name: 'Food',
+    site: 'River Club',
+    category: 'Food Hygiene',
+    department: 'Kitchen',
+    expiry: '2026-11-04',
+    status: 'ok',
+    size: '474 KB',
+    uploaded: '2026-11-04',
+    uploadedBy: 'Marcus Webb',
+    version: 'v1.0',
+    approvalStatus: 'pending',
+    approvalNotes: 'Food safety audit documentation uploaded for River Club kitchen. Awaiting Super Admin or Digital Bot approval.',
+  },
+  {
+    id: 'doc-food-002',
+    name: 'FoodCostReport 2026 10 17',
+    site: 'Crowne Plaza Kingston-south',
+    category: 'Insurance',
+    department: 'Kitchen',
+    expiry: '2026-11-05',
+    status: 'ok',
+    size: '474 KB',
+    uploaded: '2026-11-05',
+    uploadedBy: 'Marcus Webb',
+    version: 'v1.0',
+    approvalStatus: 'pending',
+    approvalNotes: 'Monthly food cost compliance audit for Crowne Plaza. Awaiting Super Admin review.',
+  },
+  {
+    id: 'doc-food-003',
+    name: 'Food Hygiene Rating',
+    site: 'Stanhill Court',
+    category: 'Food Hygiene',
+    department: 'Kitchen',
+    expiry: '2030-04-13',
+    status: 'ok',
+    size: '0.7 MB',
+    uploaded: '2025-04-10',
+    uploadedBy: 'Sarah Chen',
+    version: 'v1.0',
+    approvalStatus: 'pending',
+    approvalNotes: 'Local authority food hygiene inspection score report. Awaiting review.',
+  },
+  {
+    id: 'doc-food-004',
+    name: 'Food Hygiene Certificate',
+    site: 'Crowne Plaza Kingston-south',
+    category: 'Food Hygiene',
+    department: 'Kitchen',
+    expiry: '2030-06-04',
+    status: 'ok',
+    size: '0.6 MB',
+    uploaded: '2025-06-01',
+    uploadedBy: 'Marcus Webb',
+    version: 'v2.2',
+    approvalStatus: 'approved',
+    approvedBy: 'Digital Bot',
+    approvedDate: '2025-06-02',
+    approvalNotes: 'Level 5 Food Hygiene Certificate verified by Digital Bot and dispatched to Kitchen.',
+  },
+  {
     id: 'doc-006',
     name: 'Food Hygiene Certificate – Level 5',
+    department: 'Kitchen',
+    approvalStatus: 'approved',
+    approvedBy: 'Digital Bot',
+    approvedDate: '2025-03-21',
     site: 'Crowne Plaza Kingston-south',
     category: 'Food Hygiene',
     expiry: '2028-03-22',
@@ -230,6 +319,9 @@ export const DOCUMENTS: Document[] = [
   {
     id: 'doc-007',
     name: 'Employer Liability Insurance',
+    department: 'HR & People',
+    approvalStatus: 'approved',
+    approvedBy: 'Alexander Vance (Super Admin)',
     site: 'Crowne Plaza Kingston-south',
     category: 'Insurance',
     expiry: '2026-08-15',
@@ -242,6 +334,9 @@ export const DOCUMENTS: Document[] = [
   {
     id: 'doc-008',
     name: 'PAT Testing Record',
+    department: 'Public Areas',
+    approvalStatus: 'hold',
+    approvalNotes: 'Placed on hold pending re-test of 4 failed items in guest reception.',
     site: 'Ravents Ait Island',
     category: 'Electrical',
     expiry: '2026-05-30',
@@ -254,6 +349,9 @@ export const DOCUMENTS: Document[] = [
   {
     id: 'doc-009',
     name: 'Vehicle MOT Certificate – Van XR22',
+    department: 'Operations',
+    approvalStatus: 'approved',
+    approvedBy: 'Digital Bot',
     site: 'Stanhill Court',
     category: 'Vehicle',
     expiry: '2026-07-04',

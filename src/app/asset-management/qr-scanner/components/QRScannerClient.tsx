@@ -6,6 +6,7 @@ import { ASSETS, MAINTENANCE_RECORDS } from '@/lib/assetData';
 import Link from 'next/link';
 import { useDeepPageCms } from '@/lib/deepPageCms';
 import PageCMSEditButton from '@/components/cms/PageCMSEditButton';
+import { useAuth } from '@/lib/authContext';
 
 const RISK_COLORS: Record<string, string> = {
   low: '#3dd68c',
@@ -23,6 +24,7 @@ const CONDITION_COLORS: Record<string, string> = {
 };
 
 function AssetResultCard({ assetId }: { assetId: string }) {
+  const { isPropertyAccessible } = useAuth();
   const asset = ASSETS.find(
     (a) => a.assetId.toLowerCase() === assetId.toLowerCase() || a.id === assetId
   );
@@ -37,6 +39,21 @@ function AssetResultCard({ assetId }: { assetId: string }) {
         <div className="font-semibold text-sm mb-1">Asset Not Found</div>
         <div className="text-xs text-muted-foreground">
           No asset found with ID: <span className="font-mono font-bold">{assetId}</span>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isPropertyAccessible(asset.hotelName || asset.hotelId)) {
+    return (
+      <div
+        className="rounded-xl border p-6 text-center"
+        style={{ background: 'var(--surface)', borderColor: 'rgba(245,158,11,0.3)' }}
+      >
+        <AlertTriangle size={32} className="mx-auto mb-3" style={{ color: '#f59e0b' }} />
+        <div className="font-semibold text-sm mb-1">Access Restricted</div>
+        <div className="text-xs text-muted-foreground">
+          Asset <span className="font-mono font-bold">{asset.assetId}</span> belongs to <span className="font-semibold text-foreground">{asset.hotelName}</span>, which is not assigned to your account.
         </div>
       </div>
     );
@@ -170,6 +187,7 @@ function AssetResultCard({ assetId }: { assetId: string }) {
 }
 
 export default function QRScannerClient() {
+  const { isPropertyAccessible } = useAuth();
   const cms = useDeepPageCms('qr');
   const [manualId, setManualId] = useState('');
   const [searchedId, setSearchedId] = useState('');
@@ -179,6 +197,8 @@ export default function QRScannerClient() {
     { id: 'SC-014', name: 'Fire Alarm Panel', hotel: 'Stanhill Court', time: '3 hrs ago' },
     { id: 'RA-013', name: 'Fire Alarm Panel', hotel: 'Ravents Ait Island', time: 'Yesterday' },
   ]);
+
+  const accessibleRecentScans = recentScans.filter((s) => isPropertyAccessible(s.hotel));
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -281,7 +301,7 @@ export default function QRScannerClient() {
                 <div className="font-head font-bold text-sm">Recent Scans</div>
               </div>
               <div className="divide-y divide-border">
-                {recentScans.map((scan) => (
+                {accessibleRecentScans.map((scan) => (
                   <button
                     key={scan.id}
                     onClick={() => { setManualId(scan.id); setSearchedId(scan.id); }}

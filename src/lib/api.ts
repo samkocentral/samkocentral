@@ -79,6 +79,28 @@ export const api = {
     return res;
   },
 
+  // ── Universal Bulk Delete ─────────────────────────────
+  bulkDelete: async (collection: string, ids: string[]) => {
+    const res = await fetchJson<{ success: boolean; collection: string; count: number; message: string }>('/api/bulk-import', {
+      method: 'DELETE',
+      body: JSON.stringify({ collection, ids }),
+    });
+    if (res.success) {
+      try {
+        recordAuditLog({
+          action: 'DELETE',
+          actionLabel: 'Universal Bulk Delete',
+          category: 'ASSET_REGISTER',
+          categoryLabel: 'Import & Registry',
+          resource: `Bulk Delete: ${collection.toUpperCase()} (${ids.length} records)`,
+          property: 'All Properties (Portfolio)',
+          details: `Deleted ${ids.length} records from ${collection} register.`,
+        });
+      } catch {}
+    }
+    return res;
+  },
+
   // ── Categories ─────────────────────────────────────────
   categories: {
     getAll: () =>

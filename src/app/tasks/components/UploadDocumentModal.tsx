@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { X, UploadCloud, FileText, CheckCircle2, Building2, Tag } from 'lucide-react';
 import { TASK_PROPERTIES } from '@/data/tasksData';
 import { toast } from 'sonner';
+import CustomDropdown from '@/components/ui/CustomDropdown';
 
 interface UploadDocumentModalProps {
   isOpen: boolean;
@@ -110,17 +111,15 @@ export default function UploadDocumentModal({
                 <Building2 size={13} className="text-primary" />
                 <span>Property</span>
               </label>
-              <select
+              <CustomDropdown
                 value={property}
-                onChange={(e) => setProperty(e.target.value)}
-                className="w-full text-xs rounded-lg px-3.5 py-2.5 bg-surface2 text-foreground border border-border focus:border-primary outline-none transition-all cursor-pointer"
-              >
-                {TASK_PROPERTIES.map((prop) => (
-                  <option key={prop} value={prop}>
-                    {prop}
-                  </option>
-                ))}
-              </select>
+                onChange={(val) => setProperty(val)}
+                options={TASK_PROPERTIES.map((prop) => ({ value: prop, label: prop }))}
+                placeholder="Select Property"
+                variant="form"
+                width="100%"
+                searchable
+              />
             </div>
 
             {/* Category */}
@@ -129,18 +128,21 @@ export default function UploadDocumentModal({
                 <Tag size={13} className="text-primary" />
                 <span>Document Category</span>
               </label>
-              <select
+              <CustomDropdown
                 value={category}
-                onChange={(e) => setCategory(e.target.value)}
-                className="w-full text-xs rounded-lg px-3.5 py-2.5 bg-surface2 text-foreground border border-border focus:border-primary outline-none transition-all cursor-pointer"
-              >
-                <option value="Gas Safety">Gas Safety (CP12)</option>
-                <option value="Electrical">Electrical (EICR / PAT)</option>
-                <option value="Fire Safety">Fire Safety & Risk Assessment</option>
-                <option value="Water Hygiene">Water Hygiene / Legionella</option>
-                <option value="LOLER Lifts">Lifts & Lifting (LOLER)</option>
-                <option value="Maintenance Sign-off">Maintenance Sign-off Sheet</option>
-              </select>
+                onChange={(val) => setCategory(val)}
+                options={[
+                  { value: 'Gas Safety', label: 'Gas Safety (CP12)' },
+                  { value: 'Electrical', label: 'Electrical (EICR / PAT)' },
+                  { value: 'Fire Safety', label: 'Fire Safety & Risk Assessment' },
+                  { value: 'Water Hygiene', label: 'Water Hygiene / Legionella' },
+                  { value: 'LOLER Lifts', label: 'Lifts & Lifting (LOLER)' },
+                  { value: 'Maintenance Sign-off', label: 'Maintenance Sign-off Sheet' }
+                ]}
+                variant="form"
+                width="100%"
+                searchable
+              />
             </div>
 
             {/* Document Title */}

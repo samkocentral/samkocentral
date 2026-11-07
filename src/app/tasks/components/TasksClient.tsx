@@ -45,8 +45,9 @@ type StatusTab = 'all' | 'open' | 'urgent' | 'completed';
 
 export default function TasksClient() {
   const cms = useDeepPageCms('tasks');
-  const { canWriteTab } = useAuth();
-  const canWrite = canWriteTab('tasks');
+  const { canWriteTab, isPropertyAccessible, canDelete, isViewer } = useAuth();
+  const canWrite = !isViewer && canWriteTab('tasks');
+  const hasDeleteAccess = !isViewer && canDelete && canWriteTab('tasks');
 
   const [tasks, setTasks] = useState<TaskItem[]>(() => {
     if (typeof window !== 'undefined') {
@@ -177,9 +178,17 @@ export default function TasksClient() {
     }
   };
 
+  const accessibleTasks = useMemo(() => {
+    return tasks.filter((t) => isPropertyAccessible(t.property || (t as any).hotel || (t as any).site));
+  }, [tasks, isPropertyAccessible]);
+
+  const accessibleTaskProperties = useMemo(() => {
+    return TASK_PROPERTIES.filter((p) => isPropertyAccessible(p));
+  }, [isPropertyAccessible]);
+
   // Filter tasks based on property, assignee, status tab, and search
   const filteredTasks = useMemo(() => {
-    return tasks.filter((t) => {
+    return accessibleTasks.filter((t) => {
       // Property filter
       if (selectedProperty !== 'ALL' && t.property !== selectedProperty) {
         return false;
@@ -209,7 +218,7 @@ export default function TasksClient() {
 
       return true;
     });
-  }, [tasks, selectedProperty, selectedAssignee, activeTab, searchQuery]);
+  }, [accessibleTasks, selectedProperty, selectedAssignee, activeTab, searchQuery]);
 
   const {
     currentPage,
@@ -223,9 +232,9 @@ export default function TasksClient() {
 
   // Summary Metrics calculations (across selected properties)
   const scopedTasks = useMemo(() => {
-    if (selectedProperty === 'ALL') return tasks;
-    return tasks.filter((t) => t.property === selectedProperty);
-  }, [tasks, selectedProperty]);
+    if (selectedProperty === 'ALL') return accessibleTasks;
+    return accessibleTasks.filter((t) => t.property === selectedProperty);
+  }, [accessibleTasks, selectedProperty]);
 
   const openCount = scopedTasks.filter((t) => t.status !== 'completed').length;
   const overdueCount = scopedTasks.filter(
@@ -271,8 +280,8 @@ export default function TasksClient() {
               icon={<Building2 size={14} className="text-primary" />}
               value={selectedProperty}
               options={[
-                { value: 'ALL', label: `All Properties (${TASK_PROPERTIES.length})` },
-                ...TASK_PROPERTIES.map((p) => ({ value: p, label: p })),
+                { value: 'ALL', label: `All Properties (${accessibleTaskProperties.length})` },
+                ...accessibleTaskProperties.map((p) => ({ value: p, label: p })),
               ]}
               onChange={setSelectedProperty}
             />
@@ -586,8 +595,8 @@ export default function TasksClient() {
                 Property Workload
               </span>
               <div className="space-y-2">
-                {TASK_PROPERTIES.slice(0, 3).map((prop) => {
-                  const propTasks = tasks.filter((t) => t.property === prop && t.status !== 'completed');
+                {accessibleTaskProperties.slice(0, 3).map((prop) => {
+                  const propTasks = accessibleTasks.filter((t) => t.property === prop && t.status !== 'completed');
                   return (
                     <div key={prop} className="text-xs">
                       <div className="flex justify-between mb-1">
@@ -784,6 +793,7 @@ export default function TasksClient() {
                     key={task.id}
                     task={task}
                     canWrite={canWrite}
+                    canDelete={hasDeleteAccess}
                     onToggleComplete={handleToggleComplete}
                     onDelete={() => setTaskToDelete(task)}
                   />
@@ -803,6 +813,7 @@ export default function TasksClient() {
               key={task.id}
               task={task}
               canWrite={canWrite}
+              canDelete={hasDeleteAccess}
               onToggleComplete={handleToggleComplete}
               onDelete={() => setTaskToDelete(task)}
             />
@@ -945,9 +956,10 @@ interface TaskCardRowProps {
   onToggleComplete: (id: string) => void;
   onDelete: () => void;
   canWrite?: boolean;
+  canDelete?: boolean;
 }
 
-function TaskCardRow({ task, onToggleComplete, onDelete, canWrite = true }: TaskCardRowProps) {
+function TaskCardRow({ task, onToggleComplete, onDelete, canWrite = true, canDelete = false }: TaskCardRowProps) {
   const isCompleted = task.status === 'completed';
   const isOverdue = task.dueInDays < 0 && !isCompleted;
 
@@ -1167,8 +1179,8 @@ function TaskCardRow({ task, onToggleComplete, onDelete, canWrite = true }: Task
         </div>
       </div>
 
-      {/* Action Buttons: Delete (Only rendered if user has write access) */}
-      {canWrite && (
+      {/* Action Buttons: Delete (Only rendered if user has delete access) */}
+      {canDelete && (
         <div className="flex items-center gap-1 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
           <button
             type="button"

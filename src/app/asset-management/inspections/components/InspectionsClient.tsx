@@ -9,6 +9,7 @@ import PageCMSEditButton from '@/components/cms/PageCMSEditButton';
 import { useDeepPageCms } from '@/lib/deepPageCms';
 import LoadingPagination from '@/components/ui/LoadingPagination';
 import { useLoadingPagination } from '@/hooks/useLoadingPagination';
+import CustomDropdown from '@/components/ui/CustomDropdown';
 
 type TabId = 'pending' | 'in-progress' | 'completed';
 
@@ -56,7 +57,7 @@ function StatCard({ label, value, color, icon: Icon }: { label: string; value: n
 }
 
 export default function InspectionsClient() {
-  const { isViewer, canEdit } = useAuth();
+  const { isViewer, canEdit, isPropertyAccessible } = useAuth();
   const {
     title: cmsTitle,
     subtitle: cmsSubtitle,
@@ -142,31 +143,33 @@ export default function InspectionsClient() {
     return () => window.removeEventListener('samko:data-changed', handleDataChanged);
   }, [fetchData]);
 
-  // Transform maintenance records into inspection items
+  // Transform maintenance records into inspection items scoped by assigned properties
   const inspections: InspectionRecord[] = useMemo(() => {
-    return maintenanceRecords.map((m) => {
-      const asset = assets.find((a) => a.id === m.assetId);
-      let status: 'pending' | 'in-progress' | 'completed' = 'pending';
-      if (m.status === 'completed') status = 'completed';
-      else if (m.status === 'due-today' || m.status === 'overdue' || m.status === 'in-progress') status = 'in-progress';
-      return {
-        id: m.id,
-        assetId: m.assetId,
-        assetName: m.assetName,
-        hotelId: m.hotelId || 'h-01',
-        hotelName: m.hotelName || 'Crowne Plaza Kingston-south',
-        scheduledDate: m.scheduledDate,
-        completedDate: m.completedDate,
-        status,
-        type: m.type,
-        assignedTo: m.assignedTo,
-        result: (m.result as 'pass' | 'fail' | 'pending') || (m.status === 'completed' ? 'pass' : 'pending'),
-        notes: m.notes,
-        category: asset?.category || 'General',
-        riskLevel: asset?.riskLevel || 'low',
-      };
-    });
-  }, [maintenanceRecords, assets]);
+    return maintenanceRecords
+      .filter((m) => isPropertyAccessible(m.hotelName || (m as any).propertyName || (m as any).property || m.hotelId))
+      .map((m) => {
+        const asset = assets.find((a) => a.id === m.assetId);
+        let status: 'pending' | 'in-progress' | 'completed' = 'pending';
+        if (m.status === 'completed') status = 'completed';
+        else if (m.status === 'due-today' || m.status === 'overdue' || m.status === 'in-progress') status = 'in-progress';
+        return {
+          id: m.id,
+          assetId: m.assetId,
+          assetName: m.assetName,
+          hotelId: m.hotelId || 'h-01',
+          hotelName: m.hotelName || 'Crowne Plaza Kingston-south',
+          scheduledDate: m.scheduledDate,
+          completedDate: m.completedDate,
+          status,
+          type: m.type,
+          assignedTo: m.assignedTo,
+          result: (m.result as 'pass' | 'fail' | 'pending') || (m.status === 'completed' ? 'pass' : 'pending'),
+          notes: m.notes,
+          category: asset?.category || 'General',
+          riskLevel: asset?.riskLevel || 'low',
+        };
+      });
+  }, [maintenanceRecords, assets, isPropertyAccessible]);
 
   const counts = useMemo(() => ({
     pending: inspections.filter((i) => i.status === 'pending').length,
@@ -272,9 +275,12 @@ export default function InspectionsClient() {
     }
   };
 
-  const propertyOptions = properties.length > 0
-    ? properties.map((p) => ({ id: p.id, name: p.name }))
-    : HOTELS;
+  const propertyOptions = useMemo(() => {
+    const raw = properties.length > 0
+      ? properties.map((p) => ({ id: p.id, name: p.name }))
+      : HOTELS;
+    return raw.filter((p) => isPropertyAccessible(p.name || p.id));
+  }, [properties, isPropertyAccessible]);
 
   const tabs: { id: TabId; label: string; icon: React.ElementType; color: string }[] = [
     { id: 'pending', label: 'Pending', icon: Clock, color: '#60a5fa' },
@@ -388,20 +394,15 @@ export default function InspectionsClient() {
             style={{ color: 'var(--foreground)' }}
           />
         </div>
-        <div className="relative">
-          <select
-            value={hotelFilter}
-            onChange={(e) => setHotelFilter(e.target.value)}
-            className="appearance-none text-xs font-medium pl-3 pr-7 py-2 rounded-lg border border-border outline-none cursor-pointer"
-            style={{ background: 'var(--surface2)', color: 'var(--text2)' }}
-          >
-            <option value="">All Properties</option>
-            {propertyOptions.map((h) => (
-              <option key={h.id} value={h.id}>{h.name}</option>
-            ))}
-          </select>
-          <ChevronDown size={12} className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
-        </div>
+        <CustomDropdown
+          value={hotelFilter}
+          onChange={setHotelFilter}
+          options={propertyOptions.map((h) => ({ value: h.id, label: h.name }))}
+          placeholder="All Properties"
+          allLabel="All Properties"
+          size="sm"
+          variant="filter"
+        />
       </div>
 
       {/* Content */}
@@ -534,31 +535,17 @@ export default function InspectionsClient() {
                                 {insp.result || 'pending'}
                               </span>
                             ) : (
-                              <div className="relative inline-block">
-                                <select
-                                  value={insp.result || 'pending'}
-                                  onChange={(e) => handleResultChange(insp.id, e.target.value as 'pass' | 'fail' | 'pending')}
-                                  className="appearance-none cursor-pointer pl-4 pr-6 py-1 rounded-full text-xs font-semibold outline-none transition-all capitalize"
-                                  style={{
-                                    background: RESULT_CONFIG[insp.result || 'pending'].bg,
-                                    color: RESULT_CONFIG[insp.result || 'pending'].color,
-                                    border: `1px solid ${RESULT_CONFIG[insp.result || 'pending'].color}33`,
-                                  }}
-                                >
-                                  <option value="pass" style={{ background: '#18181b', color: '#3dd68c' }}>Pass</option>
-                                  <option value="fail" style={{ background: '#18181b', color: '#f43f5e' }}>Fail</option>
-                                  <option value="pending" style={{ background: '#18181b', color: '#94a3b8' }}>Pending</option>
-                                </select>
-                                <span
-                                  className="w-1.5 h-1.5 rounded-full absolute left-2 top-1/2 -translate-y-1/2 pointer-events-none"
-                                  style={{ background: RESULT_CONFIG[insp.result || 'pending'].color }}
-                                />
-                                <ChevronDown
-                                  size={11}
-                                  className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none opacity-80"
-                                  style={{ color: RESULT_CONFIG[insp.result || 'pending'].color }}
-                                />
-                              </div>
+                              <CustomDropdown
+                                value={insp.result || 'pending'}
+                                onChange={(val) => handleResultChange(insp.id, val as 'pass' | 'fail' | 'pending')}
+                                options={[
+                                  { value: 'pass', label: 'Pass', color: '#3dd68c' },
+                                  { value: 'fail', label: 'Fail', color: '#f43f5e' },
+                                  { value: 'pending', label: 'Pending', color: '#94a3b8' }
+                                ]}
+                                variant="pill"
+                                size="sm"
+                              />
                             )}
                           </td>
                         );
@@ -679,31 +666,17 @@ export default function InspectionsClient() {
                       {selected.result || 'pending'}
                     </span>
                   ) : (
-                    <div className="relative inline-block">
-                      <select
-                        value={selected.result || 'pending'}
-                        onChange={(e) => handleResultChange(selected.id, e.target.value as 'pass' | 'fail' | 'pending')}
-                        className="appearance-none cursor-pointer pl-4 pr-6 py-1 rounded-full text-xs font-semibold outline-none transition-all capitalize"
-                        style={{
-                          background: RESULT_CONFIG[selected.result || 'pending'].bg,
-                          color: RESULT_CONFIG[selected.result || 'pending'].color,
-                          border: `1px solid ${RESULT_CONFIG[selected.result || 'pending'].color}33`,
-                        }}
-                      >
-                        <option value="pass" style={{ background: '#18181b', color: '#3dd68c' }}>Pass</option>
-                        <option value="fail" style={{ background: '#18181b', color: '#f43f5e' }}>Fail</option>
-                        <option value="pending" style={{ background: '#18181b', color: '#94a3b8' }}>Pending</option>
-                      </select>
-                      <span
-                        className="w-1.5 h-1.5 rounded-full absolute left-2 top-1/2 -translate-y-1/2 pointer-events-none"
-                        style={{ background: RESULT_CONFIG[selected.result || 'pending'].color }}
-                      />
-                      <ChevronDown
-                        size={11}
-                        className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none opacity-80"
-                        style={{ color: RESULT_CONFIG[selected.result || 'pending'].color }}
-                      />
-                    </div>
+                    <CustomDropdown
+                      value={selected.result || 'pending'}
+                      onChange={(val) => handleResultChange(selected.id, val as 'pass' | 'fail' | 'pending')}
+                      options={[
+                        { value: 'pass', label: 'Pass', color: '#3dd68c' },
+                        { value: 'fail', label: 'Fail', color: '#f43f5e' },
+                        { value: 'pending', label: 'Pending', color: '#94a3b8' }
+                      ]}
+                      variant="pill"
+                      size="sm"
+                    />
                   )}
                 </div>
                 {selected.notes && (
@@ -757,10 +730,10 @@ export default function InspectionsClient() {
               <div className="p-5 flex flex-col gap-4">
                 <div>
                   <label className="block text-xs font-medium text-muted-foreground mb-1">Asset *</label>
-                  <select
+                  <CustomDropdown
                     value={newForm.assetId}
-                    onChange={(e) => {
-                      const asset = assets.find((a) => a.id === e.target.value);
+                    onChange={(val) => {
+                      const asset = assets.find((a) => a.id === val);
                       if (asset) {
                         setNewForm({
                           ...newForm,
@@ -771,13 +744,15 @@ export default function InspectionsClient() {
                         });
                       }
                     }}
-                    className="w-full rounded-lg border border-border px-3 py-2 text-sm outline-none"
-                    style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
-                  >
-                    {assets.map((a) => (
-                      <option key={a.id} value={a.id}>{a.name} ({a.assetId || a.id})</option>
-                    ))}
-                  </select>
+                    options={assets.map((a) => ({
+                      value: a.id,
+                      label: `${a.name} (${a.assetId || a.id})`
+                    }))}
+                    placeholder="Select Asset"
+                    variant="form"
+                    width="100%"
+                    searchable
+                  />
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-muted-foreground mb-1">Inspection Type *</label>
@@ -816,17 +791,18 @@ export default function InspectionsClient() {
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-muted-foreground mb-1">Frequency</label>
-                  <select
+                  <CustomDropdown
                     value={newForm.frequency}
-                    onChange={(e) => setNewForm({ ...newForm, frequency: e.target.value })}
-                    className="w-full rounded-lg border border-border px-3 py-2 text-sm outline-none"
-                    style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
-                  >
-                    <option value="monthly">Monthly</option>
-                    <option value="quarterly">Quarterly</option>
-                    <option value="6-monthly">6-Monthly</option>
-                    <option value="yearly">Yearly</option>
-                  </select>
+                    onChange={(val) => setNewForm({ ...newForm, frequency: val })}
+                    options={[
+                      { value: 'monthly', label: 'Monthly' },
+                      { value: 'quarterly', label: 'Quarterly' },
+                      { value: '6-monthly', label: '6-Monthly' },
+                      { value: 'yearly', label: 'Yearly' }
+                    ]}
+                    variant="form"
+                    width="100%"
+                  />
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-muted-foreground mb-1">Notes</label>

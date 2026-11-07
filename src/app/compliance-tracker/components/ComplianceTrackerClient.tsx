@@ -14,9 +14,10 @@ import PageCMSEditButton from '@/components/cms/PageCMSEditButton';
 import { useDeepPageCms, DEFAULT_COMPLIANCE_CATEGORIES, addDropdownOption, removeDropdownOptionByName } from '@/lib/deepPageCms';
 import LoadingPagination from '@/components/ui/LoadingPagination';
 import { useLoadingPagination } from '@/hooks/useLoadingPagination';
+import CustomDropdown from '@/components/ui/CustomDropdown';
 
 export default function ComplianceTrackerClient() {
-  const { isViewer, canEdit } = useAuth();
+  const { isViewer, canEdit, isPropertyAccessible } = useAuth();
   const {
     title: cmsTitle,
     subtitle: cmsSubtitle,
@@ -34,7 +35,7 @@ export default function ComplianceTrackerClient() {
           const parsed = JSON.parse(saved);
           if (Array.isArray(parsed)) return parsed;
         }
-      } catch {}
+      } catch { }
     }
     return [];
   });
@@ -78,7 +79,7 @@ export default function ComplianceTrackerClient() {
             const parsed = JSON.parse(saved);
             if (Array.isArray(parsed)) setCustomCategories(parsed);
           }
-        } catch {}
+        } catch { }
       }
     };
     window.addEventListener('samko:compliance_categories_updated', handleCategorySync);
@@ -192,11 +193,18 @@ export default function ComplianceTrackerClient() {
     complianceList.forEach((c) => { if (c.category) set.add(c.category); });
     return Array.from(set);
   }, [allCategories, complianceList]);
-  const sitesList = useMemo(() => ['All Sites', ...Array.from(new Set(complianceList.map((c) => c.site))).sort()], [complianceList]);
+  const accessibleComplianceList = useMemo(() => {
+    return complianceList.filter((c) => isPropertyAccessible(c.site || (c as any).hotel || (c as any).property));
+  }, [complianceList, isPropertyAccessible]);
 
-  const critCount = complianceList.filter((c) => c.status === 'critical').length;
-  const warnCount = complianceList.filter((c) => c.status === 'warning').length;
-  const okCount = complianceList.filter((c) => c.status === 'ok').length;
+  const sitesList = useMemo(
+    () => ['All Sites', ...Array.from(new Set(accessibleComplianceList.map((c) => c.site))).sort()],
+    [accessibleComplianceList]
+  );
+
+  const critCount = accessibleComplianceList.filter((c) => c.status === 'critical').length;
+  const warnCount = accessibleComplianceList.filter((c) => c.status === 'warning').length;
+  const okCount = accessibleComplianceList.filter((c) => c.status === 'ok').length;
 
   const handleStatusChange = async (item: ComplianceItem, newStatus: 'ok' | 'warning' | 'critical') => {
     setComplianceList((prev) =>
@@ -298,7 +306,7 @@ export default function ComplianceTrackerClient() {
   };
 
   const filtered = useMemo(() => {
-    let items = [...complianceList];
+    let items = [...accessibleComplianceList];
     if (statusFilter !== 'All') items = items.filter((c) => c.status === statusFilter);
     if (categoryFilter !== 'All') items = items.filter((c) => c.category === categoryFilter);
     if (siteFilter !== 'All Sites') items = items.filter((c) => c.site === siteFilter);
@@ -319,7 +327,7 @@ export default function ComplianceTrackerClient() {
       return daysUntil(a.dueDate) - daysUntil(b.dueDate);
     });
     return items;
-  }, [complianceList, statusFilter, categoryFilter, siteFilter, search]);
+  }, [accessibleComplianceList, statusFilter, categoryFilter, siteFilter, search]);
 
   const {
     currentPage,
@@ -500,25 +508,15 @@ export default function ComplianceTrackerClient() {
           )}
         </div>
 
-        <select
+        <CustomDropdown
           value={siteFilter}
-          onChange={(e) => setSiteFilter(e.target.value)}
-          style={{
-            background: 'var(--surface2)',
-            border: '1px solid var(--border-strong)',
-            borderRadius: 8,
-            padding: '8px 12px',
-            fontSize: 12,
-            color: 'var(--foreground)',
-            fontFamily: 'var(--font-sans)',
-            cursor: 'pointer',
-            outline: 'none',
-          }}
-        >
-          {sitesList.map((s) => (
-            <option key={`comp-site-${s}`} value={s}>{s}</option>
-          ))}
-        </select>
+          onChange={setSiteFilter}
+          options={sitesList.map((s) => ({ value: s, label: s }))}
+          placeholder="All Sites"
+          allLabel="All Sites"
+          size="sm"
+          variant="filter"
+        />
 
         <div className="flex items-center gap-3 ml-auto">
           <p className="text-muted-foreground" style={{ fontSize: 12 }}>
@@ -788,32 +786,32 @@ export default function ComplianceTrackerClient() {
                   <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wide">
                     Record Type
                   </label>
-                  <select
+                  <CustomDropdown
                     value={addForm.type}
-                    onChange={(e) => setAddForm({ ...addForm, type: e.target.value })}
-                    className="w-full px-3 py-2 rounded-lg border border-border text-xs outline-none"
-                    style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
-                  >
-                    <option value="Statutory Obligation">Statutory Obligation</option>
-                    <option value="Complaint / Incident">Complaint / Incident</option>
-                    <option value="Certification Renewal">Certification Renewal</option>
-                    <option value="Health & Safety Audit">Health & Safety Audit</option>
-                  </select>
+                    onChange={(val) => setAddForm({ ...addForm, type: val })}
+                    options={[
+                      { value: 'Statutory Obligation', label: 'Statutory Obligation' },
+                      { value: 'Complaint / Incident', label: 'Complaint / Incident' },
+                      { value: 'Certification Renewal', label: 'Certification Renewal' },
+                      { value: 'Health & Safety Audit', label: 'Health & Safety Audit' }
+                    ]}
+                    variant="form"
+                    width="100%"
+                  />
                 </div>
                 <div>
                   <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wide">
                     Site / Property
                   </label>
-                  <select
+                  <CustomDropdown
                     value={addForm.site}
-                    onChange={(e) => setAddForm({ ...addForm, site: e.target.value })}
-                    className="w-full px-3 py-2 rounded-lg border border-border text-xs outline-none"
-                    style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
-                  >
-                    {sitesList.filter((s) => s !== 'All Sites').map((s) => (
-                      <option key={s} value={s}>{s}</option>
-                    ))}
-                  </select>
+                    onChange={(val) => setAddForm({ ...addForm, site: val })}
+                    options={sitesList.filter((s) => s !== 'All Sites').map((s) => ({ value: s, label: s }))}
+                    placeholder="Select Property"
+                    variant="form"
+                    width="100%"
+                    searchable
+                  />
                 </div>
               </div>
 
@@ -822,32 +820,32 @@ export default function ComplianceTrackerClient() {
                   <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wide">
                     Category
                   </label>
-                  <select
+                  <CustomDropdown
                     value={addForm.category}
-                    onChange={(e) => setAddForm({ ...addForm, category: e.target.value })}
-                    className="w-full px-3 py-2 rounded-lg border border-border text-xs outline-none"
-                    style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
-                  >
-                    {allCategories.map((c) => (
-                      <option key={c} value={c}>{c}</option>
-                    ))}
-                  </select>
+                    onChange={(val) => setAddForm({ ...addForm, category: val })}
+                    options={allCategories.map((c) => ({ value: c, label: c }))}
+                    placeholder="Select Category"
+                    variant="form"
+                    width="100%"
+                    searchable
+                  />
                 </div>
                 <div>
                   <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wide">
                     Risk Rating
                   </label>
-                  <select
+                  <CustomDropdown
                     value={addForm.riskRating}
-                    onChange={(e) => setAddForm({ ...addForm, riskRating: e.target.value })}
-                    className="w-full px-3 py-2 rounded-lg border border-border text-xs outline-none"
-                    style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
-                  >
-                    <option value="low">Low Risk</option>
-                    <option value="medium">Medium Risk</option>
-                    <option value="high">High Risk</option>
-                    <option value="critical">Critical Risk</option>
-                  </select>
+                    onChange={(val) => setAddForm({ ...addForm, riskRating: val })}
+                    options={[
+                      { value: 'low', label: 'Low Risk', color: '#3dd68c' },
+                      { value: 'medium', label: 'Medium Risk', color: '#f59e0b' },
+                      { value: 'high', label: 'High Risk', color: '#f97316' },
+                      { value: 'critical', label: 'Critical Risk', color: '#f43f5e' }
+                    ]}
+                    variant="form"
+                    width="100%"
+                  />
                 </div>
               </div>
 
@@ -869,16 +867,17 @@ export default function ComplianceTrackerClient() {
                   <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wide">
                     Status
                   </label>
-                  <select
+                  <CustomDropdown
                     value={addForm.status}
-                    onChange={(e) => setAddForm({ ...addForm, status: e.target.value as any })}
-                    className="w-full px-3 py-2 rounded-lg border border-border text-xs outline-none"
-                    style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
-                  >
-                    <option value="ok">Compliant / Resolved</option>
-                    <option value="warning">Due Soon / In Review</option>
-                    <option value="critical">Overdue / Action Required</option>
-                  </select>
+                    onChange={(val) => setAddForm({ ...addForm, status: val as any })}
+                    options={[
+                      { value: 'ok', label: 'Compliant / Resolved', color: '#3dd68c' },
+                      { value: 'warning', label: 'Due Soon / In Review', color: '#f59e0b' },
+                      { value: 'critical', label: 'Overdue / Action Required', color: '#f43f5e' }
+                    ]}
+                    variant="form"
+                    width="100%"
+                  />
                 </div>
               </div>
 

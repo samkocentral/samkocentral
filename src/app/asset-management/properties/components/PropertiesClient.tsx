@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import Link from 'next/link';
 import { Building2, MapPin, Phone, User, Package, ChevronRight, ChevronDown, Search, Plus, X, Loader2, Edit2, Trash2, Sparkles } from 'lucide-react';
 import { HOTELS, MAINTENANCE_RECORDS, ASSETS, getAssetStats, type Hotel } from '@/lib/assetData';
@@ -13,9 +13,13 @@ import CustomDropdown from '@/components/ui/CustomDropdown';
 import LoadingPagination from '@/components/ui/LoadingPagination';
 import ConfirmDeleteModal from '@/components/modals/ConfirmDeleteModal';
 import { useLoadingPagination } from '@/hooks/useLoadingPagination';
+import TableCheckbox from '@/components/ui/TableCheckbox';
+import BulkActionBar from '@/components/ui/BulkActionBar';
 
 export default function PropertiesClient() {
-  const { isViewer, canEdit, canDelete } = useAuth();
+  const { isViewer, canEdit, canDelete, canWriteTab, isPropertyAccessible, userAssignedProperties } = useAuth();
+  const hasWriteAccess = !isViewer && canEdit && canWriteTab('properties');
+  const hasDeleteAccess = !isViewer && canDelete && canWriteTab('properties');
   const {
     title: cmsTitle,
     subtitle: cmsSubtitle,
@@ -225,9 +229,54 @@ export default function PropertiesClient() {
     }
   };
 
-  const effectiveProperties = cmsPropertiesList && cmsPropertiesList.length > 0 ? (cmsPropertiesList as any[]) : properties;
+  const effectiveProperties = useMemo(() => {
+    const cmsList = (cmsPropertiesList && cmsPropertiesList.length > 0 ? (cmsPropertiesList as any[]) : []) || [];
+    if (properties.length === 0) return cmsList;
+    if (cmsList.length === 0) return properties;
+
+    // Merge database properties with CMS overrides by matching ID or name
+    const merged: any[] = [];
+    const matchedCmsIds = new Set<string>();
+
+    properties.forEach((dbProp) => {
+      const dbCleanName = (dbProp.name || '').toLowerCase().trim();
+      const dbId = (dbProp.id || '').toLowerCase().trim();
+
+      const cmsMatch = cmsList.find((c) => {
+        const cCleanName = (c.name || '').toLowerCase().trim();
+        const cId = (c.id || '').toLowerCase().trim();
+        return (
+          cId === dbId ||
+          cCleanName === dbCleanName ||
+          (dbCleanName && cCleanName && (dbCleanName.includes(cCleanName) || cCleanName.includes(dbCleanName)))
+        );
+      });
+
+      if (cmsMatch) {
+        matchedCmsIds.add(cmsMatch.id);
+        merged.push({
+          ...dbProp,
+          ...cmsMatch,
+          name: cmsMatch.name || dbProp.name,
+          id: dbProp.id || cmsMatch.id,
+        });
+      } else {
+        merged.push(dbProp);
+      }
+    });
+
+    // Add any remaining CMS items that didn't match a DB property
+    cmsList.forEach((c) => {
+      if (!matchedCmsIds.has(c.id)) {
+        merged.push(c);
+      }
+    });
+
+    return merged;
+  }, [cmsPropertiesList, properties]);
 
   const filtered = effectiveProperties?.filter((h) => {
+    if (!isPropertyAccessible(h?.name) && !isPropertyAccessible(h?.id) && !isPropertyAccessible(h?.propertyId)) return false;
     const matchSearch =
       !search ||
       h?.name?.toLowerCase()?.includes(search?.toLowerCase()) ||
@@ -267,6 +316,92 @@ export default function PropertiesClient() {
     changePageSize,
   } = useLoadingPagination(filtered || [], 10);
 
+  // Multi-select Properties State
+  const [selectedPropertyIds, setSelectedPropertyIds] = useState<string[]>([]);
+  const [isBulkDeletingProperties, setIsBulkDeletingProperties] = useState(false);
+  const [showBulkDeletePropertiesModal, setShowBulkDeletePropertiesModal] = useState(false);
+  const [selectedPropertyTypeFilter, setSelectedPropertyTypeFilter] = useState('');
+
+  const isAllPropertiesPageSelected =
+    paginatedProperties.length > 0 && paginatedProperties.every((p) => selectedPropertyIds.includes(p.id));
+
+  const handleToggleSelectAllPropertiesPage = () => {
+    if (isAllPropertiesPageSelected) {
+      const pageIds = new Set(paginatedProperties.map((p) => p.id));
+      setSelectedPropertyIds((prev) => prev.filter((id) => !pageIds.has(id)));
+    } else {
+      const pageIds = paginatedProperties.map((p) => p.id);
+      setSelectedPropertyIds((prev) => Array.from(new Set([...prev, ...pageIds])));
+    }
+  };
+
+  const handleTogglePropertySelect = (id: string) => {
+    setSelectedPropertyIds((prev) =>
+      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
+    );
+  };
+
+  const handleSelectAllFilteredProperties = () => {
+    setSelectedPropertyIds(filtered.map((p) => p.id));
+  };
+
+  const handleClearPropertySelection = () => {
+    setSelectedPropertyIds([]);
+    setSelectedPropertyTypeFilter('');
+  };
+
+  const propertyTypeOptions = useMemo(() => {
+    const counts: Record<string, number> = {};
+    filtered.forEach((p) => {
+      counts[`status:${p.status || 'active'}`] = (counts[`status:${p.status || 'active'}`] || 0) + 1;
+      if (p.city) counts[`city:${p.city}`] = (counts[`city:${p.city}`] || 0) + 1;
+    });
+
+    const opts: { label: string; value: string; count: number }[] = [];
+    if (counts['status:active']) opts.push({ label: 'Status: Active', value: 'status:active', count: counts['status:active'] });
+    if (counts['status:inactive']) opts.push({ label: 'Status: Inactive', value: 'status:inactive', count: counts['status:inactive'] });
+    return opts;
+  }, [filtered]);
+
+  const handleSelectPropertyByType = (typeKey: string) => {
+    setSelectedPropertyTypeFilter(typeKey);
+    if (!typeKey) {
+      setSelectedPropertyIds([]);
+      return;
+    }
+    const [kind, val] = typeKey.split(':');
+    const matched = filtered.filter((p) => {
+      if (kind === 'status') return (p.status || 'active') === val;
+      if (kind === 'city') return p.city === val;
+      return false;
+    });
+    setSelectedPropertyIds(matched.map((p) => p.id));
+    toast.info(`Selected ${matched.length} properties matching ${typeKey.replace(':', ': ')}`);
+  };
+
+  const handleConfirmBulkDeleteProperties = async () => {
+    if (selectedPropertyIds.length === 0) return;
+    setIsBulkDeletingProperties(true);
+    try {
+      const ids = [...selectedPropertyIds];
+      const count = ids.length;
+      setProperties((prev) => prev.filter((p) => !ids.includes(p.id)));
+      setSelectedPropertyIds([]);
+      setSelectedPropertyTypeFilter('');
+      setShowBulkDeletePropertiesModal(false);
+
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('samko:data-changed', { detail: { type: 'properties' } }));
+      }
+      await Promise.allSettled(ids.map((id) => api.properties.delete(id)));
+      toast.success(`Deleted ${count} properties successfully!`);
+    } catch (err: any) {
+      toast.error('Failed to bulk delete properties');
+    } finally {
+      setIsBulkDeletingProperties(false);
+    }
+  };
+
   return (
     <div className="flex-1 min-h-0 flex flex-col h-full overflow-hidden">
       {/* Topbar */}
@@ -277,7 +412,9 @@ export default function PropertiesClient() {
         <div>
           <h1 className="font-head text-xl font-bold">{cmsTitle || 'Properties'}</h1>
           <p className="text-xs text-muted-foreground mt-0.5">
-            {cmsSubtitle || `${properties?.length} properties managed ${loading ? ' (syncing...)' : ''}`}
+            {userAssignedProperties && userAssignedProperties.length > 0 && !userAssignedProperties.includes('all')
+              ? `${filtered?.length} assigned ${filtered?.length === 1 ? 'property' : 'properties'} managed across portfolio`
+              : (cmsSubtitle || `${filtered?.length} ${filtered?.length === 1 ? 'property' : 'properties'} managed ${loading ? ' (syncing...)' : ''}`)}
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -297,7 +434,7 @@ export default function PropertiesClient() {
 
           <PageCMSEditButton pageId="properties" pageName="Properties & Sites" />
 
-          {canEdit && !isViewer && (
+          {hasWriteAccess && (
             <button
               onClick={() => setShowAddModal(true)}
               className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-bold transition-all shadow-sm cursor-pointer"
@@ -339,7 +476,7 @@ export default function PropertiesClient() {
 
       {/* Grid */}
       <div className="flex-1 overflow-y-auto px-6 py-5">
-        <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
+        <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3 items-stretch">
           {paginatedProperties?.map((hotel) => {
             const assetCount =
               assets.filter(
@@ -359,28 +496,46 @@ export default function PropertiesClient() {
             return (
               <div
                 key={hotel?.id}
-                className="rounded-xl border border-border p-5 transition-all duration-150 hover:border-opacity-60"
-                style={{ background: 'var(--surface)' }}
+                className={`flex flex-col justify-between h-full rounded-xl border p-5 transition-all duration-150 hover:border-opacity-60 ${
+                  selectedPropertyIds.includes(hotel?.id)
+                    ? 'border-[#e8c97a] shadow-[0_0_15px_rgba(232,201,122,0.15)] bg-[#e8c97a]/5'
+                    : 'border-border'
+                }`}
+                style={{ background: selectedPropertyIds.includes(hotel?.id) ? 'rgba(232,201,122,0.04)' : 'var(--surface)' }}
               >
                 {/* Header */}
-                <div className="flex items-start justify-between mb-4">
-                  <div className="flex items-center gap-3">
+                <div className="flex items-start justify-between gap-2.5 mb-3.5">
+                  <div className="flex items-start gap-2.5 min-w-0 flex-1">
+                    <div className="pt-1 flex-shrink-0">
+                      <TableCheckbox
+                        checked={selectedPropertyIds.includes(hotel?.id)}
+                        onChange={() => handleTogglePropertySelect(hotel?.id)}
+                        title={`Select ${hotel?.name}`}
+                      />
+                    </div>
                     <div
-                      className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+                      className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5"
                       style={{ background: 'rgba(232,201,122,0.12)' }}
                     >
                       <Building2 size={18} style={{ color: '#e8c97a' }} />
                     </div>
-                    <div>
-                      <div className="font-head font-bold text-sm leading-tight">{hotel?.name}</div>
-                      <div className="text-xs text-muted-foreground mt-0.5">{hotel?.city}</div>
+                    <div className="min-w-0 flex-1 pr-1">
+                      <div
+                        className="font-head font-bold text-sm leading-snug line-clamp-2 h-10 flex items-center"
+                        title={hotel?.name}
+                      >
+                        <span className="line-clamp-2">{hotel?.name}</span>
+                      </div>
+                      <div className="text-xs text-muted-foreground mt-0.5 truncate h-4 flex items-center">
+                        <span>{hotel?.city || 'United Kingdom'}</span>
+                      </div>
                     </div>
                   </div>
-                  <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
+                  <div className="flex items-center gap-1.5 flex-shrink-0 pt-0.5" onClick={(e) => e.stopPropagation()}>
                     {/* Status Badge */}
                     {!canEdit || isViewer ? (
                       <span
-                        className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold"
+                        className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold whitespace-nowrap"
                         style={{
                           background: isActive ? 'rgba(61,214,140,0.12)' : 'rgba(245,158,11,0.12)',
                           color: isActive ? '#3dd68c' : '#f59e0b',
@@ -394,29 +549,19 @@ export default function PropertiesClient() {
                         {isActive ? 'Active' : 'Inactive'}
                       </span>
                     ) : (
-                      <div className="relative inline-block">
-                        <select
-                          value={hotel?.status || 'active'}
-                          onChange={(e) => handleStatusChange(hotel.id, e.target.value)}
-                          className="appearance-none cursor-pointer pl-4 pr-2.5 py-0.5 rounded-full text-xs font-semibold outline-none transition-all"
-                          title="Click to change status"
-                          style={{
-                            background: isActive ? 'rgba(61,214,140,0.12)' : 'rgba(245,158,11,0.12)',
-                            color: isActive ? '#3dd68c' : '#f59e0b',
-                            border: `1px solid ${isActive ? 'rgba(61,214,140,0.3)' : 'rgba(245,158,11,0.3)'}`,
-                          }}
-                        >
-                          <option value="active" style={{ background: '#18181b', color: '#3dd68c' }}>Active</option>
-                          <option value="inactive" style={{ background: '#18181b', color: '#f59e0b' }}>Inactive</option>
-                        </select>
-                        <span
-                          className="w-1.5 h-1.5 rounded-full absolute left-2 top-1/2 -translate-y-1/2 pointer-events-none"
-                          style={{ background: isActive ? '#3dd68c' : '#f59e0b' }}
-                        />
-                      </div>
+                      <CustomDropdown
+                        value={hotel?.status || 'active'}
+                        onChange={(val) => handleStatusChange(hotel.id, val)}
+                        options={[
+                          { value: 'active', label: 'Active', color: '#3dd68c' },
+                          { value: 'inactive', label: 'Inactive', color: '#f59e0b' }
+                        ]}
+                        variant="pill"
+                        size="sm"
+                      />
                     )}
 
-                    {!isViewer && canEdit && (
+                    {hasWriteAccess && (
                       <button
                         onClick={() => handleOpenEditProperty(hotel)}
                         className="p-1.5 rounded-lg border border-border text-muted-foreground hover:text-amber-400 hover:bg-amber-400/10 transition-colors"
@@ -427,34 +572,36 @@ export default function PropertiesClient() {
                     )}
                   </div>
                 </div>
+
                 {/* Details */}
-                <div className="space-y-2 mb-4">
-                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                    <MapPin size={12} />
-                    <span className="truncate">{hotel?.address || 'Address not registered'}</span>
+                <div className="space-y-2 mb-4 pt-2.5 pb-1 border-t border-border/30">
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground h-4">
+                    <MapPin size={12} className="flex-shrink-0 text-muted-foreground/70" />
+                    <span className="truncate" title={hotel?.address}>{hotel?.address || 'Address not registered'}</span>
                   </div>
-                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                    <User size={12} />
-                    <span>{hotel?.manager || 'Unassigned'}</span>
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground h-4">
+                    <User size={12} className="flex-shrink-0 text-muted-foreground/70" />
+                    <span className="truncate">{hotel?.manager || 'Unassigned'}</span>
                   </div>
-                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                    <Phone size={12} />
-                    <span>{hotel?.phone || 'N/A'}</span>
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground h-4">
+                    <Phone size={12} className="flex-shrink-0 text-muted-foreground/70" />
+                    <span className="truncate">{hotel?.phone || 'N/A'}</span>
                   </div>
                 </div>
+
                 {/* Stats */}
                 <div className="grid grid-cols-3 gap-2 mb-4">
                   <div
-                    className="rounded-lg p-2.5 text-center"
+                    className="rounded-lg p-2.5 text-center transition-all hover:bg-white/[0.03]"
                     style={{ background: 'var(--surface2)' }}
                   >
                     <div className="font-head font-bold text-lg" style={{ color: '#e8c97a' }}>
                       {assetCount}
                     </div>
-                    <div className="text-xs text-muted-foreground">{cmsCustomLabels.assetsStatLabel || 'Assets'}</div>
+                    <div className="text-xs text-muted-foreground truncate">{cmsCustomLabels.assetsStatLabel || 'Assets'}</div>
                   </div>
                   <div
-                    className="rounded-lg p-2.5 text-center"
+                    className="rounded-lg p-2.5 text-center transition-all hover:bg-white/[0.03]"
                     style={{ background: 'var(--surface2)' }}
                   >
                     <div
@@ -463,10 +610,10 @@ export default function PropertiesClient() {
                     >
                       {overdueCount}
                     </div>
-                    <div className="text-xs text-muted-foreground">{cmsCustomLabels.overdueStatLabel || 'Overdue'}</div>
+                    <div className="text-xs text-muted-foreground truncate">{cmsCustomLabels.overdueStatLabel || 'Overdue'}</div>
                   </div>
                   <div
-                    className="rounded-lg p-2.5 text-center"
+                    className="rounded-lg p-2.5 text-center transition-all hover:bg-white/[0.03]"
                     style={{ background: 'var(--surface2)' }}
                   >
                     <div
@@ -475,21 +622,24 @@ export default function PropertiesClient() {
                     >
                       {dueTodayCount}
                     </div>
-                    <div className="text-xs text-muted-foreground">{cmsCustomLabels.dueTodayStatLabel || 'Due Today'}</div>
+                    <div className="text-xs text-muted-foreground truncate">{cmsCustomLabels.dueTodayStatLabel || 'Due Today'}</div>
                   </div>
                 </div>
+
                 {/* Action */}
-                <Link
-                  href={`/asset-management/assets?hotel=${hotel?.id}`}
-                  className="flex items-center justify-between w-full px-3 py-2 rounded-lg text-xs font-semibold transition-colors"
-                  style={{ background: 'rgba(232,201,122,0.08)', color: '#e8c97a', border: '1px solid rgba(232,201,122,0.2)' }}
-                >
-                  <span className="flex items-center gap-1.5">
-                    <Package size={13} />
-                    {cmsCustomLabels.viewRegisterLabel || 'View Asset Register'}
-                  </span>
-                  <ChevronRight size={13} />
-                </Link>
+                <div className="mt-auto">
+                  <Link
+                    href={`/asset-management/assets?hotel=${hotel?.id}`}
+                    className="flex items-center justify-between w-full px-3 py-2.5 rounded-lg text-xs font-semibold transition-all hover:brightness-110 active:scale-[0.99]"
+                    style={{ background: 'rgba(232,201,122,0.08)', color: '#e8c97a', border: '1px solid rgba(232,201,122,0.2)' }}
+                  >
+                    <span className="flex items-center gap-1.5">
+                      <Package size={13} />
+                      {cmsCustomLabels.viewRegisterLabel || 'View Asset Register'}
+                    </span>
+                    <ChevronRight size={13} />
+                  </Link>
+                </div>
               </div>
             );
           })}
@@ -508,6 +658,23 @@ export default function PropertiesClient() {
         recordName="properties"
         className="sticky bottom-0 z-20 flex-shrink-0"
       />
+
+      {/* Floating Bulk Action Bar */}
+      <div className="mt-2 px-6">
+        <BulkActionBar
+          selectedCount={selectedPropertyIds.length}
+          totalCount={filtered.length}
+          onClearSelection={handleClearPropertySelection}
+          onSelectAll={handleSelectAllFilteredProperties}
+          onDeleteSelected={() => setShowBulkDeletePropertiesModal(true)}
+          typeOptions={propertyTypeOptions}
+          onSelectByType={handleSelectPropertyByType}
+          selectedTypeValue={selectedPropertyTypeFilter}
+          typePlaceholder="Select all of type (Status)..."
+          recordName="properties"
+          isDeleting={isBulkDeletingProperties}
+        />
+      </div>
 
       {/* Add Property Modal */}
       {showAddModal && (
@@ -548,15 +715,16 @@ export default function PropertiesClient() {
                 </div>
                 <div>
                   <label className="block text-xs font-semibold text-muted-foreground mb-1">Status</label>
-                  <select
+                  <CustomDropdown
                     value={form.status}
-                    onChange={(e) => setForm({ ...form, status: e.target.value as any })}
-                    className="w-full rounded-lg border border-border px-3 py-2 text-sm outline-none"
-                    style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
-                  >
-                    <option value="active">Active</option>
-                    <option value="inactive">Inactive</option>
-                  </select>
+                    onChange={(val) => setForm({ ...form, status: val as any })}
+                    options={[
+                      { value: 'active', label: 'Active', color: '#3dd68c' },
+                      { value: 'inactive', label: 'Inactive', color: '#f59e0b' }
+                    ]}
+                    variant="form"
+                    width="100%"
+                  />
                 </div>
               </div>
 
@@ -673,15 +841,16 @@ export default function PropertiesClient() {
                 </div>
                 <div>
                   <label className="block text-xs font-semibold text-muted-foreground mb-1">Status</label>
-                  <select
+                  <CustomDropdown
                     value={editForm.status}
-                    onChange={(e) => setEditForm({ ...editForm, status: e.target.value as any })}
-                    className="w-full rounded-lg border border-border px-3 py-2 text-sm outline-none"
-                    style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
-                  >
-                    <option value="active">Active</option>
-                    <option value="inactive">Inactive</option>
-                  </select>
+                    onChange={(val) => setEditForm({ ...editForm, status: val as any })}
+                    options={[
+                      { value: 'active', label: 'Active', color: '#3dd68c' },
+                      { value: 'inactive', label: 'Inactive', color: '#f59e0b' }
+                    ]}
+                    variant="form"
+                    width="100%"
+                  />
                 </div>
               </div>
 
@@ -756,7 +925,7 @@ export default function PropertiesClient() {
               </div>
 
               <div className="flex items-center justify-between pt-4 border-t border-border">
-                {!isViewer && (canDelete ?? canEdit) && (
+                {hasDeleteAccess && (
                   <button
                     type="button"
                     onClick={() => handleDeleteProperty(editingProperty.id, editingProperty.name)}
@@ -799,6 +968,19 @@ export default function PropertiesClient() {
         itemName={propertyToDelete?.name || 'Property'}
         registerName="properties portfolio"
         isDeleting={isDeletingProperty}
+      />
+
+      {/* Bulk Delete Properties Modal */}
+      <ConfirmDeleteModal
+        isOpen={showBulkDeletePropertiesModal}
+        onClose={() => setShowBulkDeletePropertiesModal(false)}
+        onConfirm={handleConfirmBulkDeleteProperties}
+        title="Confirm Bulk Deletion"
+        itemName={`${selectedPropertyIds.length} Selected Properties`}
+        registerName="properties portfolio"
+        customWarning={`Are you sure you want to permanently delete these ${selectedPropertyIds.length} selected properties? This action cannot be undone.`}
+        confirmButtonText={`Delete ${selectedPropertyIds.length} Properties`}
+        isDeleting={isBulkDeletingProperties}
       />
     </div>
   );

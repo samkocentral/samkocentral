@@ -53,6 +53,7 @@ import DeepPageCMSEditor from '@/components/settings/DeepPageCMSEditor';
 import CompleteAppCMS, { type AppCmsSectionKey, AVAILABLE_ICONS } from '@/components/settings/CompleteAppCMS';
 import { type DeepAppCMSStore } from '@/lib/deepPageCms';
 import { toast } from 'sonner';
+import CustomDropdown from '@/components/ui/CustomDropdown';
 
 export type PortalType = 'opco' | 'propco';
 
@@ -1330,17 +1331,17 @@ export default function PortalCMSEditor({ portal, initialTabId }: PortalCMSEdito
 
               <div className="flex flex-col gap-1">
                 <label className="text-xs font-semibold text-foreground">Icon</label>
-                <select
+                <CustomDropdown
                   value={newTabIcon}
-                  onChange={(e) => setNewTabIcon(e.target.value)}
-                  className="px-3 py-2 rounded-lg border border-border text-xs text-foreground bg-surface2 outline-none cursor-pointer"
-                >
-                  {AVAILABLE_ICONS.map((ico) => (
-                    <option key={ico.name} value={ico.name}>
-                      {ico.name} ({ico.label})
-                    </option>
-                  ))}
-                </select>
+                  onChange={(val) => setNewTabIcon(val)}
+                  options={AVAILABLE_ICONS.map((ico) => ({
+                    value: ico.name,
+                    label: `${ico.name} (${ico.label})`
+                  }))}
+                  variant="form"
+                  width="100%"
+                  searchable
+                />
               </div>
 
               <div className="flex items-center justify-end gap-2 pt-2 border-t border-border mt-2">

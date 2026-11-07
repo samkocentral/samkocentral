@@ -85,6 +85,12 @@ const memoryStore: Record<string, any[]> = {
     { id: 'ut-006', accountNo: 'ELEC-H12-001', property: 'Hampton 1 & 2', utilityType: 'Electricity', supplier: 'E.ON Next', meterNo: 'MPAN-190003928174', contractEndDate: '2027-06-30', annualCost: 31200, status: 'active' },
   ],
   documents: [...DOCUMENTS],
+  claims: [
+    { id: 'c1', policyId: '1', policyNumber: 'POL-2025-001', hotel: 'Crowne Plaza Kingston-south', property: 'Crowne Plaza Kingston-south', claimDate: '2025-03-15', description: 'Water damage to ground floor lobby ceiling', amount: 12500, status: 'settled' },
+    { id: 'c2', policyId: '2', policyNumber: 'POL-2025-002', hotel: 'Crowne Plaza Kingston-south', property: 'Crowne Plaza Kingston-south', claimDate: '2025-05-20', description: 'Guest slip and fall in car park', amount: 8000, status: 'in-progress' },
+    { id: 'c3', policyId: '4', policyNumber: 'POL-2024-004', hotel: 'Hampton 1 & 2', property: 'Hampton 1 & 2', claimDate: '2025-06-10', description: 'Commercial kitchen oven breakdown', amount: 4500, status: 'open' },
+    { id: 'c4', policyId: '6', policyNumber: 'POL-2024-006', hotel: 'River Club', property: 'River Club', claimDate: '2025-04-12', description: 'Fitness studio equipment water leak repair', amount: 6200, status: 'in-progress' },
+  ],
   users: [
     { id: '1', name: 'Group Admin', email: 'admin@samkocentral.com', role: 'super-admin', hotel: 'All Properties', status: 'active', lastLogin: '2026-07-21', initials: 'GA' },
     { id: '2', name: 'Marcus Webb', email: 'm.webb@crowneplaza.com', role: 'hotel-manager', hotel: 'Crowne Plaza Kingston-south', status: 'active', lastLogin: '2026-07-20', initials: 'MW' },
@@ -161,6 +167,10 @@ function matchesId(item: any, id: string): boolean {
   const target = String(id).toLowerCase().trim();
   return (
     String(item.id || '').toLowerCase().trim() === target ||
+    String(item.name || '').toLowerCase().trim() === target ||
+    String(item.propertyName || '').toLowerCase().trim() === target ||
+    String(item.hotelName || '').toLowerCase().trim() === target ||
+    String(item.email || '').toLowerCase().trim() === target ||
     String(item.assetId || '').toLowerCase().trim() === target ||
     String(item.propertyId || '').toLowerCase().trim() === target ||
     String(item.hotelId || '').toLowerCase().trim() === target ||
@@ -189,7 +199,7 @@ export async function getCollectionData(collectionName: string, forceRemote = fa
   const cached = memoryStore[collectionName];
 
   // Return cached data immediately for sub-millisecond response
-  if (!forceRemote && cached && cached.length > 0) {
+  if (!forceRemote && cached !== undefined) {
     return cached;
   }
 
@@ -278,19 +288,13 @@ export async function createDocument(collectionName: string, data: any): Promise
 
   const adminDb = getAdminDb();
   if (adminDb) {
-    try {
-      await withTimeout(adminDb.collection(collectionName).doc(String(id)).set(docData, { merge: true }), 3000);
-    } catch (e) {
-      console.warn(`[serverData] Admin Firestore write to ${collectionName} failed:`, e);
-    }
+    withTimeout(adminDb.collection(collectionName).doc(String(id)).set(docData, { merge: true }), 3000)
+      .catch((e) => console.warn(`[serverData] Admin Firestore write to ${collectionName} failed:`, e));
   } else {
     const clientDb = getDb();
     if (clientDb) {
-      try {
-        await withTimeout(setDoc(doc(clientDb, collectionName, String(id)), docData, { merge: true }), 3000);
-      } catch (e) {
-        console.warn(`[serverData] Client Firestore write to ${collectionName} failed:`, e);
-      }
+      withTimeout(setDoc(doc(clientDb, collectionName, String(id)), docData, { merge: true }), 3000)
+        .catch((e) => console.warn(`[serverData] Client Firestore write to ${collectionName} failed:`, e));
     }
   }
 
@@ -381,7 +385,11 @@ export async function updateDocument(collectionName: string, id: string, data: a
   }
 
   const store = memoryStore[collectionName] || [];
-  const idx = store.findIndex((item: any) => matchesId(item, id));
+  const idx = store.findIndex((item: any) =>
+    matchesId(item, id) ||
+    (item.email && data?.email && String(item.email).toLowerCase().trim() === String(data.email).toLowerCase().trim()) ||
+    (item.id && data?.id && String(item.id).toLowerCase().trim() === String(data.id).toLowerCase().trim())
+  );
   
   let targetId = id;
   let updatedDoc: any;
@@ -399,19 +407,13 @@ export async function updateDocument(collectionName: string, id: string, data: a
 
   const adminDb = getAdminDb();
   if (adminDb) {
-    try {
-      await withTimeout(adminDb.collection(collectionName).doc(String(targetId)).set({ ...data, updatedAt }, { merge: true }), 3000);
-    } catch (e) {
-      console.warn(`[serverData] Admin Firestore update to ${collectionName}/${targetId} failed:`, e);
-    }
+    withTimeout(adminDb.collection(collectionName).doc(String(targetId)).set({ ...data, updatedAt }, { merge: true }), 3000)
+      .catch((e) => console.warn(`[serverData] Admin Firestore update to ${collectionName}/${targetId} failed:`, e));
   } else {
     const clientDb = getDb();
     if (clientDb) {
-      try {
-        await withTimeout(setDoc(doc(clientDb, collectionName, String(targetId)), { ...data, updatedAt }, { merge: true }), 3000);
-      } catch (e) {
-        console.warn(`[serverData] Client Firestore update to ${collectionName}/${targetId} failed:`, e);
-      }
+      withTimeout(setDoc(doc(clientDb, collectionName, String(targetId)), { ...data, updatedAt }, { merge: true }), 3000)
+        .catch((e) => console.warn(`[serverData] Client Firestore update to ${collectionName}/${targetId} failed:`, e));
     }
   }
 
@@ -429,23 +431,43 @@ export async function deleteDocument(collectionName: string, id: string): Promis
 
   const adminDb = getAdminDb();
   if (adminDb) {
-    try {
-      await withTimeout(adminDb.collection(collectionName).doc(String(targetId)).delete(), 3000);
-    } catch (e) {
-      console.warn(`[serverData] Admin Firestore delete ${collectionName}/${targetId} failed:`, e);
-    }
+    withTimeout(adminDb.collection(collectionName).doc(String(targetId)).delete(), 3000)
+      .catch((e) => console.warn(`[serverData] Admin Firestore delete ${collectionName}/${targetId} failed:`, e));
   } else {
     const clientDb = getDb();
     if (clientDb) {
-      try {
-        await withTimeout(deleteDoc(doc(clientDb, collectionName, String(targetId))), 3000);
-      } catch (e) {
-        console.warn(`[serverData] Client Firestore delete ${collectionName}/${targetId} failed:`, e);
-      }
+      withTimeout(deleteDoc(doc(clientDb, collectionName, String(targetId))), 3000)
+        .catch((e) => console.warn(`[serverData] Client Firestore delete ${collectionName}/${targetId} failed:`, e));
     }
   }
 
   return true;
+}
+
+export async function bulkDeleteDocuments(collectionName: string, ids: string[]): Promise<{ count: number }> {
+  loadFromDisk();
+  if (!ids || !ids.length) return { count: 0 };
+  const idSet = new Set(ids.map((id) => String(id).toLowerCase().trim()));
+  const store = memoryStore[collectionName] || [];
+
+  const toDelete = store.filter((item: any) => idSet.has(String(item.id).toLowerCase().trim()));
+  memoryStore[collectionName] = store.filter((item: any) => !idSet.has(String(item.id).toLowerCase().trim()));
+  saveToDisk(memoryStore);
+
+  const adminDb = getAdminDb();
+  if (adminDb && toDelete.length > 0) {
+    try {
+      const batch = adminDb.batch();
+      toDelete.forEach((item: any) => {
+        batch.delete(adminDb.collection(collectionName).doc(String(item.id)));
+      });
+      withTimeout(batch.commit(), 3000).catch((e) => console.warn(`Batch delete failed:`, e));
+    } catch (e) {
+      console.warn('Batch delete error:', e);
+    }
+  }
+
+  return { count: toDelete.length };
 }
 
 export async function seedAllCollections(): Promise<{ success: boolean; counts: Record<string, number>; message: string }> {

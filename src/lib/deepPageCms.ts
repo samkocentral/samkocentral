@@ -513,7 +513,7 @@ export const DEFAULT_DEEP_CMS: DeepAppCMSStore = {
       },
       {
         id: 'gatwick-manor',
-        name: 'Gatwick Manor Hotel',
+        name: 'Gatwick Manor (Stanhill Court)',
         city: 'West Sussex',
         address: 'London Road, Lowfield Heath, Crawley RH10 9ST',
         manager: 'Oliver Smith',
@@ -525,7 +525,7 @@ export const DEFAULT_DEEP_CMS: DeepAppCMSStore = {
       },
       {
         id: 'sharnbrook',
-        name: 'Sharnbrook Hotel',
+        name: 'Sharnbrook',
         city: 'Bedfordshire',
         address: 'Park Lane, Sharnbrook, Bedford MK44 1LX',
         manager: 'Elena Rossi',
@@ -555,7 +555,7 @@ export const DEFAULT_DEEP_CMS: DeepAppCMSStore = {
     dropdowns: [
       { id: 'asset-cat', label: 'Asset Category', options: DEFAULT_ASSET_CATEGORIES },
       { id: 'category', label: 'Asset Category', options: DEFAULT_ASSET_CATEGORIES },
-      { id: 'asset-hotel', label: 'Property / Hotel Site', options: ['Crowne Plaza Kingston-south', 'Stanhill Court', 'Hotel Hampton 1 & 2', 'Ravens Ait Island', 'River Club', 'Warren House', 'Gatwick Manor Hotel', 'Sharnbrook Hotel'] },
+      { id: 'asset-hotel', label: 'Property / Hotel Site', options: ['Crowne Plaza Kingston-south', 'Stanhill Court', 'Hotel Hampton 1 & Hampton 2 Property', 'Ravens Ait Island', 'River Club', 'Warren House', 'Gatwick Manor (Stanhill Court)', 'Sharnbrook'] },
       { id: 'asset-dept', label: 'Department', options: ['Engineering & Facilities', 'Housekeeping', 'Food & Beverage', 'Front Office', 'Spa & Leisure', 'Security', 'Administration'] },
       { id: 'asset-cond', label: 'Asset Condition', options: ['Excellent', 'Good', 'Fair', 'Poor', 'End of Life'] },
       { id: 'asset-risk', label: 'Risk Rating', options: ['Low Risk', 'Medium Risk', 'High Risk', 'Urgent Statutory'] },

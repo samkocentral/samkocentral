@@ -28,12 +28,14 @@ import {
   ShieldAlert,
 } from 'lucide-react';
 import Icon from '@/components/ui/AppIcon';
+import CustomDropdown from '@/components/ui/CustomDropdown';
 import { useAuth } from '@/lib/authContext';
 import { toast } from 'sonner';
 import CMSFieldManager from '@/components/settings/CMSFieldManager';
 import CompleteAppCMS, { type AppCmsSectionKey } from '@/components/settings/CompleteAppCMS';
 import DeepPageCMSEditor from '@/components/settings/DeepPageCMSEditor';
 import PortalCMSEditor from '@/components/settings/PortalCMSEditor';
+import PropertyOnboardingHub from '@/components/settings/PropertyOnboardingHub';
 
 type SettingsTab =
   | 'general'
@@ -51,7 +53,8 @@ type SettingsTab =
   | 'cms-import'
   | 'cms-users'
   | 'cms-navigation'
-  | 'cms-forms';
+  | 'cms-forms'
+  | 'cms-property-hub';
 
 interface TabItem {
   id: SettingsTab;
@@ -78,6 +81,7 @@ const BASE_TABS: TabItem[] = [
 ];
 
 const CMS_NAV_ITEMS: CmsTabItem[] = [
+  { id: 'cms-property-hub', label: 'Property Data & Setup CMS', icon: Building2, badgeText: 'CMS Hub', badgeColor: '#06b6d4' },
   { id: 'cms-opco', label: 'OpCo Portal', icon: Shield, badgeText: 'Operations', badgeColor: '#60a5fa' },
   { id: 'cms-propco', label: 'PropCo Portal', icon: Building2, badgeText: 'Asset Co', badgeColor: '#e8c97a' },
   { id: 'cms-navigation', label: 'Portal Navigation', icon: SlidersHorizontal, badgeText: 'Layout', badgeColor: '#f59e0b' },
@@ -206,6 +210,14 @@ export default function SettingsClient() {
     ipRestriction: false,
   });
 
+  const [generalSettings, setGeneralSettings] = useState({
+    currency: 'GBP (£)',
+    dateFormat: 'DD/MM/YYYY',
+    timeZone: 'Europe/London (GMT+0)',
+    inspectionFreq: 'Yearly',
+    backupRetention: '30 days',
+  });
+
   const handleSave = () => {
     setSaved(true);
     toast.success('All settings and CMS configurations saved successfully!');
@@ -276,6 +288,11 @@ export default function SettingsClient() {
               >
                 <Icon size={14} />
                 <span className="flex-1 truncate">{tab.label}</span>
+                {tab.id === 'hotels' && isDigitalBot && (
+                  <span className="text-[9px] px-1.5 py-0.2 rounded bg-cyan-400/20 text-[#38bdf8] border border-[#38bdf8]/30 font-bold">
+                    BOT HUB
+                  </span>
+                )}
                 {tab.id === 'data' && (
                   <span className="text-[9px] px-1.5 py-0.2 rounded bg-cyan-400/20 text-[#38bdf8] border border-[#38bdf8]/30 font-bold">
                     BOT
@@ -355,35 +372,59 @@ export default function SettingsClient() {
                   <input className="rounded-lg border border-border px-3 py-1.5 text-sm" style={{ background: 'var(--surface2)', color: 'var(--foreground)', width: 220 }} defaultValue="Samko Central" />
                 </SettingRow>
                 <SettingRow label="Default Currency" desc="Currency used across the platform">
-                  <select className="rounded-lg border border-border px-3 py-1.5 text-sm" style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}>
-                    <option>GBP (£)</option>
-                    <option>USD ($)</option>
-                    <option>EUR (€)</option>
-                  </select>
+                  <CustomDropdown
+                    value={generalSettings.currency}
+                    onChange={(val) => setGeneralSettings({ ...generalSettings, currency: val })}
+                    options={[
+                      { value: 'GBP (£)', label: 'GBP (£)' },
+                      { value: 'USD ($)', label: 'USD ($)' },
+                      { value: 'EUR (€)', label: 'EUR (€)' }
+                    ]}
+                    variant="form"
+                    width={220}
+                  />
                 </SettingRow>
                 <SettingRow label="Date Format" desc="How dates are displayed">
-                  <select className="rounded-lg border border-border px-3 py-1.5 text-sm" style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}>
-                    <option>DD/MM/YYYY</option>
-                    <option>MM/DD/YYYY</option>
-                    <option>YYYY-MM-DD</option>
-                  </select>
+                  <CustomDropdown
+                    value={generalSettings.dateFormat}
+                    onChange={(val) => setGeneralSettings({ ...generalSettings, dateFormat: val })}
+                    options={[
+                      { value: 'DD/MM/YYYY', label: 'DD/MM/YYYY' },
+                      { value: 'MM/DD/YYYY', label: 'MM/DD/YYYY' },
+                      { value: 'YYYY-MM-DD', label: 'YYYY-MM-DD' }
+                    ]}
+                    variant="form"
+                    width={220}
+                  />
                 </SettingRow>
                 <SettingRow label="Time Zone" desc="Platform time zone">
-                  <select className="rounded-lg border border-border px-3 py-1.5 text-sm" style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}>
-                    <option>Europe/London (GMT+0)</option>
-                    <option>America/New_York (GMT-5)</option>
-                    <option>Asia/Dubai (GMT+4)</option>
-                  </select>
+                  <CustomDropdown
+                    value={generalSettings.timeZone}
+                    onChange={(val) => setGeneralSettings({ ...generalSettings, timeZone: val })}
+                    options={[
+                      { value: 'Europe/London (GMT+0)', label: 'Europe/London (GMT+0)' },
+                      { value: 'America/New_York (GMT-5)', label: 'America/New_York (GMT-5)' },
+                      { value: 'Asia/Dubai (GMT+4)', label: 'Asia/Dubai (GMT+4)' }
+                    ]}
+                    variant="form"
+                    width={220}
+                  />
                 </SettingRow>
               </SectionCard>
               <SectionCard title="Asset Management">
                 <SettingRow label="Default Inspection Frequency" desc="Applied to new assets">
-                  <select className="rounded-lg border border-border px-3 py-1.5 text-sm" style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}>
-                    <option>Yearly</option>
-                    <option>6-Monthly</option>
-                    <option>Quarterly</option>
-                    <option>Monthly</option>
-                  </select>
+                  <CustomDropdown
+                    value={generalSettings.inspectionFreq}
+                    onChange={(val) => setGeneralSettings({ ...generalSettings, inspectionFreq: val })}
+                    options={[
+                      { value: 'Yearly', label: 'Yearly' },
+                      { value: '6-Monthly', label: '6-Monthly' },
+                      { value: 'Quarterly', label: 'Quarterly' },
+                      { value: 'Monthly', label: 'Monthly' }
+                    ]}
+                    variant="form"
+                    width={220}
+                  />
                 </SettingRow>
                 <SettingRow label="Auto-generate Asset IDs" desc="Automatically assign IDs to new assets">
                   <Toggle checked onChange={() => {}} />
@@ -437,22 +478,32 @@ export default function SettingsClient() {
                   <Toggle checked={security.twoFactor} onChange={(v) => setSecurity({ ...security, twoFactor: v })} />
                 </SettingRow>
                 <SettingRow label="Session Timeout" desc="Auto-logout after inactivity (minutes)">
-                  <select className="rounded-lg border border-border px-3 py-1.5 text-sm" style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
-                    value={security.sessionTimeout} onChange={(e) => setSecurity({ ...security, sessionTimeout: e.target.value })}>
-                    <option value="30">30 minutes</option>
-                    <option value="60">60 minutes</option>
-                    <option value="120">2 hours</option>
-                    <option value="480">8 hours</option>
-                  </select>
+                  <CustomDropdown
+                    value={security.sessionTimeout}
+                    onChange={(val) => setSecurity({ ...security, sessionTimeout: val })}
+                    options={[
+                      { value: '30', label: '30 minutes' },
+                      { value: '60', label: '60 minutes' },
+                      { value: '120', label: '2 hours' },
+                      { value: '480', label: '8 hours' }
+                    ]}
+                    variant="form"
+                    width={220}
+                  />
                 </SettingRow>
                 <SettingRow label="Password Expiry" desc="Force password reset after (days)">
-                  <select className="rounded-lg border border-border px-3 py-1.5 text-sm" style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
-                    value={security.passwordExpiry} onChange={(e) => setSecurity({ ...security, passwordExpiry: e.target.value })}>
-                    <option value="30">30 days</option>
-                    <option value="60">60 days</option>
-                    <option value="90">90 days</option>
-                    <option value="never">Never</option>
-                  </select>
+                  <CustomDropdown
+                    value={security.passwordExpiry}
+                    onChange={(val) => setSecurity({ ...security, passwordExpiry: val })}
+                    options={[
+                      { value: '30', label: '30 days' },
+                      { value: '60', label: '60 days' },
+                      { value: '90', label: '90 days' },
+                      { value: 'never', label: 'Never' }
+                    ]}
+                    variant="form"
+                    width={220}
+                  />
                 </SettingRow>
               </SectionCard>
               <SectionCard title="Audit & Access">
@@ -475,23 +526,7 @@ export default function SettingsClient() {
           )}
 
           {activeTab === 'hotels' && (
-            <div>
-              <SectionCard title="Registered Properties">
-                {['Crowne Plaza Kingston-south', 'Stanhill Court', 'Hampton 1 & 2', 'Ravents Ait Island', 'River Club'].map((hotel) => (
-                  <SettingRow key={hotel} label={hotel} desc="London, UK">
-                    <span className="text-xs font-semibold px-2 py-0.5 rounded-full" style={{ background: 'rgba(61,214,140,0.12)', color: '#3dd68c' }}>Active</span>
-                  </SettingRow>
-                ))}
-              </SectionCard>
-              <SectionCard title="Property Settings">
-                <SettingRow label="Allow Cross-Property Asset Transfer" desc="Enable moving assets between properties">
-                  <Toggle checked onChange={() => {}} />
-                </SettingRow>
-                <SettingRow label="Property-Level Reporting" desc="Generate separate reports per property">
-                  <Toggle checked onChange={() => {}} />
-                </SettingRow>
-              </SectionCard>
-            </div>
+            <PropertyOnboardingHub />
           )}
 
           {activeTab === 'appearance' && (
@@ -641,11 +676,17 @@ export default function SettingsClient() {
                   <Toggle checked onChange={() => {}} />
                 </SettingRow>
                 <SettingRow label="Backup Retention" desc="How long to keep backups">
-                  <select className="rounded-lg border border-border px-3 py-1.5 text-sm" style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}>
-                    <option>30 days</option>
-                    <option>60 days</option>
-                    <option>90 days</option>
-                  </select>
+                  <CustomDropdown
+                    value={generalSettings.backupRetention}
+                    onChange={(val) => setGeneralSettings({ ...generalSettings, backupRetention: val })}
+                    options={[
+                      { value: '30 days', label: '30 days' },
+                      { value: '60 days', label: '60 days' },
+                      { value: '90 days', label: '90 days' }
+                    ]}
+                    variant="form"
+                    width={220}
+                  />
                 </SettingRow>
               </SectionCard>
             </div>
@@ -654,6 +695,7 @@ export default function SettingsClient() {
           {/* Application CMS Active Panels (Restricted strictly to Digital Bot) */}
           {isDigitalBot && (
             <>
+              {activeTab === 'cms-property-hub' && <PropertyOnboardingHub />}
               {activeTab === 'cms-opco' && <PortalCMSEditor portal="opco" initialTabId={initialPage} />}
               {activeTab === 'cms-propco' && <PortalCMSEditor portal="propco" initialTabId={initialPage} />}
               {activeTab === 'cms-pages' && (

@@ -2,7 +2,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { ChevronDown, Check } from 'lucide-react';
+import { ChevronDown, Check, Search } from 'lucide-react';
 
 export interface DropdownOption {
   value: string;
@@ -14,22 +14,29 @@ export interface DropdownOption {
 
 export interface CustomDropdownProps {
   label?: string;
-  value?: string | string[];
+  allLabel?: string;
+  value?: string | number | string[];
   options: (DropdownOption | string)[];
   onChange: (value: any) => void;
   placeholder?: string;
   disabled?: boolean;
   className?: string;
-  size?: 'sm' | 'md';
-  variant?: 'filter' | 'surface' | 'pill';
+  size?: 'sm' | 'md' | 'lg';
+  variant?: 'filter' | 'surface' | 'pill' | 'form';
   width?: number | string;
   align?: 'left' | 'right' | 'auto';
   icon?: React.ReactNode;
   multiple?: boolean;
+  showAllOption?: boolean;
+  searchable?: boolean;
+  id?: string;
+  name?: string;
+  style?: React.CSSProperties;
 }
 
 export default function CustomDropdown({
   label,
+  allLabel,
   value,
   options,
   onChange,
@@ -42,9 +49,15 @@ export default function CustomDropdown({
   align = 'auto',
   icon,
   multiple = false,
+  showAllOption,
+  searchable,
+  id,
+  name,
+  style,
 }: CustomDropdownProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
   const containerRef = useRef<HTMLDivElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -55,6 +68,7 @@ export default function CustomDropdown({
     right?: number;
     maxHeight?: number;
     minWidth?: number;
+    width?: number;
   }>({});
 
   useEffect(() => {
@@ -68,16 +82,25 @@ export default function CustomDropdown({
     ? value
     : typeof value === 'string' && value !== ''
     ? [value]
+    : typeof value === 'number'
+    ? [String(value)]
     : [];
+
+  const isAllValue = (v: any) => {
+    const s = String(v ?? '').trim().toLowerCase();
+    return s === '' || s === 'all' || s.startsWith('all ') || s === 'all properties';
+  };
 
   const isAllSelected =
     selectedValues.length === 0 ||
-    selectedValues.includes('') ||
-    selectedValues.some((v) => v.toLowerCase() === 'all');
+    selectedValues.some((v) => isAllValue(v));
 
   // Compute fixed viewport coordinates to prevent clipping by overflow containers
   useEffect(() => {
-    if (!isOpen) return;
+    if (!isOpen) {
+      setSearchQuery('');
+      return;
+    }
 
     const computeCoords = () => {
       if (!containerRef.current) return;
@@ -91,7 +114,7 @@ export default function CustomDropdown({
         return;
       }
 
-      const menuWidth = menuRef.current?.offsetWidth || 210;
+      const menuWidth = menuRef.current?.offsetWidth || Math.max(rect.width, 210);
       const menuHeight = menuRef.current?.offsetHeight || 260;
 
       const spaceBelow = vh - rect.bottom - 12;
@@ -114,6 +137,7 @@ export default function CustomDropdown({
         right: isRight ? Math.max(12, vw - rect.right) : undefined,
         maxHeight: Math.max(160, maxHeight),
         minWidth: Math.max(rect.width, 180),
+        width: rect.width,
       });
     };
 
@@ -131,25 +155,35 @@ export default function CustomDropdown({
 
   // Normalize options
   const normalizedOptions: DropdownOption[] = options.map((opt) =>
-    typeof opt === 'string' ? { value: opt, label: opt } : opt
+    typeof opt === 'string'
+      ? { value: opt, label: opt }
+      : typeof opt === 'number'
+      ? { value: String(opt), label: String(opt) }
+      : opt
   );
 
   const hasExplicitAll = normalizedOptions.some(
     (opt) => opt.value === '' || opt.value.toLowerCase() === 'all'
   );
 
+  const shouldShowAll =
+    showAllOption !== undefined
+      ? showAllOption
+      : isMulti || (variant === 'filter' && (Boolean(label) || Boolean(allLabel)));
+
   // Single select selected option
   const singleSelectedOption = !isMulti
-    ? normalizedOptions.find((opt) => opt.value === (typeof value === 'string' ? value : ''))
+    ? normalizedOptions.find((opt) => String(opt.value) === String(value ?? ''))
     : null;
 
   // Display text computation
   let displayText = placeholder;
   if (isMulti) {
     if (isAllSelected) {
-      displayText = label ? label : placeholder;
+      const allOpt = normalizedOptions.find((opt) => isAllValue(opt.value));
+      displayText = allOpt ? allOpt.label : label ? label : placeholder;
     } else if (selectedValues.length === 1) {
-      const match = normalizedOptions.find((opt) => opt.value === selectedValues[0]);
+      const match = normalizedOptions.find((opt) => String(opt.value) === String(selectedValues[0]));
       displayText = match ? match.label : selectedValues[0];
     } else {
       displayText = label ? `${label} (${selectedValues.length})` : `${selectedValues.length} Selected`;
@@ -157,16 +191,18 @@ export default function CustomDropdown({
   } else {
     if (singleSelectedOption) {
       displayText = singleSelectedOption.label;
-    } else if (label) {
+    } else if (label && (value === undefined || value === '')) {
       displayText = label;
+    } else if (value !== undefined && value !== '') {
+      displayText = String(value);
     }
   }
 
   const isPlaceholder = isMulti
     ? isAllSelected && !!label
-    : !singleSelectedOption && !!label;
+    : (!singleSelectedOption || singleSelectedOption.value === '') && !value;
 
-  const hasActiveFilter = isMulti ? !isAllSelected : Boolean(value && value !== '' && value.toLowerCase() !== 'all');
+  const hasActiveFilter = isMulti ? !isAllSelected : Boolean(value && value !== '' && String(value).toLowerCase() !== 'all');
 
   // Click outside listener
   useEffect(() => {
@@ -201,15 +237,14 @@ export default function CustomDropdown({
 
   const handleSelect = (val: string) => {
     if (isMulti) {
-      const isAllVal = val === '' || val.toLowerCase() === 'all';
-      if (isAllVal) {
-        onChange([]);
+      const isValAll = isAllValue(val);
+      if (isValAll) {
+        onChange([val || 'all']);
         return;
       }
 
-      const cleanSelected = selectedValues.filter(
-        (v) => v !== '' && v.toLowerCase() !== 'all'
-      );
+      // Filter out any "all" strings from existing selection when picking an individual item
+      const cleanSelected = selectedValues.filter((v) => !isAllValue(v));
 
       if (cleanSelected.includes(val)) {
         const next = cleanSelected.filter((v) => v !== val);
@@ -224,6 +259,17 @@ export default function CustomDropdown({
     }
   };
 
+  const showSearch =
+    searchable === true || (searchable !== false && normalizedOptions.length > 7);
+
+  const filteredOptions = searchQuery.trim()
+    ? normalizedOptions.filter(
+        (opt) =>
+          opt.label.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          opt.value.toLowerCase().includes(searchQuery.toLowerCase())
+      )
+    : normalizedOptions;
+
   const dropdownMenu = isOpen && mounted && (
     <div
       ref={menuRef}
@@ -235,15 +281,33 @@ export default function CustomDropdown({
         right: coords.right !== undefined ? `${coords.right}px` : undefined,
         maxHeight: coords.maxHeight ? `${coords.maxHeight}px` : '320px',
         minWidth: coords.minWidth ? `${coords.minWidth}px` : '180px',
-        maxWidth: 'min(90vw, 360px)',
+        maxWidth: 'min(95vw, 550px)',
         background: '#161a22',
         borderColor: 'rgba(232, 201, 122, 0.25)',
         boxShadow: '0 16px 36px -6px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(255, 255, 255, 0.06)',
       }}
       onClick={(e) => e.stopPropagation()}
     >
-      {/* Default "All (...)" Option if label provided and not in normalizedOptions */}
-      {label && !hasExplicitAll && (
+      {/* Quick Search */}
+      {showSearch && (
+        <div className="p-1 mb-1 border-b border-white/10">
+          <div className="relative flex items-center">
+            <Search size={12} className="absolute left-2.5 text-muted-foreground pointer-events-none" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search..."
+              className="w-full bg-white/[0.04] text-xs text-foreground placeholder-white/30 rounded-lg pl-7 pr-2 py-1.5 outline-none border border-white/10 focus:border-[#e8c97a]/60"
+              autoFocus
+              onClick={(e) => e.stopPropagation()}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Default "All (...)" Option if label or allLabel provided and not in normalizedOptions and shouldShowAll */}
+      {shouldShowAll && (label || allLabel) && !hasExplicitAll && (
         <button
           type="button"
           onClick={() => handleSelect('')}
@@ -258,7 +322,7 @@ export default function CustomDropdown({
           }}
         >
           <div className="flex items-center gap-2.5 truncate">
-            {/* Checkbox box */}
+            {/* Checkbox box matching Image 1 */}
             <div
               className={`w-4 h-4 rounded-[4px] flex items-center justify-center flex-shrink-0 transition-all duration-150 ${
                 isAllSelected
@@ -270,19 +334,24 @@ export default function CustomDropdown({
                 <Check size={11} strokeWidth={3.5} className="text-[#121316]" />
               )}
             </div>
-            <span>All ({label})</span>
+            <span>{allLabel || `All (${label})`}</span>
           </div>
         </button>
       )}
 
-      {normalizedOptions.map((option) => {
-        const isOptionAll =
-          option.value === '' || option.value.toLowerCase() === 'all';
+      {filteredOptions.length === 0 && (
+        <div className="px-3 py-3 text-xs text-muted-foreground text-center italic">
+          No options found
+        </div>
+      )}
+
+      {filteredOptions.map((option) => {
+        const isOptionAll = isAllValue(option.value);
         const isSelected = isOptionAll
           ? isAllSelected
           : isMulti
           ? selectedValues.includes(option.value)
-          : option.value === (typeof value === 'string' ? value : '');
+          : String(option.value) === String(value ?? '');
 
         return (
           <button
@@ -300,7 +369,7 @@ export default function CustomDropdown({
             }}
           >
             <div className="flex items-center gap-2.5 truncate min-w-0">
-              {/* Checkbox Box */}
+              {/* Checkbox Box matching Image 1 */}
               <div
                 className={`w-4 h-4 rounded-[4px] flex items-center justify-center flex-shrink-0 transition-all duration-150 ${
                   isSelected
@@ -360,39 +429,55 @@ export default function CustomDropdown({
   return (
     <div
       ref={containerRef}
+      id={id ? `${id}-container` : undefined}
       className={`relative inline-block text-left ${width === '100%' ? 'w-full block' : ''} ${className}`}
       style={{ width: width ? width : undefined }}
     >
+      {/* Hidden input for form integration if name is given */}
+      {name && (
+        <input
+          type="hidden"
+          name={name}
+          id={id}
+          value={Array.isArray(value) ? value.join(',') : (value ?? '')}
+        />
+      )}
+
       {/* Trigger Button */}
       <button
         type="button"
+        id={id}
         disabled={disabled}
         onClick={() => !disabled && setIsOpen((prev) => !prev)}
-        className={`group flex items-center justify-between gap-2 rounded-xl transition-all select-none outline-none ${
+        className={`group flex items-center justify-between gap-2 transition-all select-none outline-none ${
           width === '100%' ? 'w-full' : ''
         } ${
-          disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:border-primary/40'
+          disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:border-[#e8c97a]/50'
         }`}
         style={{
-          width: width === '100%' ? '100%' : undefined,
-          minHeight: '38px',
-          background: variant === 'filter' ? 'var(--surface2)' : 'var(--surface)',
-          color: isPlaceholder ? 'var(--text2)' : 'var(--foreground)',
+          width: width === '100%' ? '100%' : width ? width : undefined,
+          minHeight: variant === 'form' ? '40px' : size === 'sm' ? '32px' : '38px',
+          background: variant === 'filter' ? 'var(--surface2)' : variant === 'form' ? 'var(--surface2)' : 'var(--surface)',
+          color: isPlaceholder ? 'var(--text3)' : 'var(--foreground)',
+          borderRadius: variant === 'form' ? '8px' : variant === 'pill' ? '9999px' : '10px',
           border: isOpen
             ? '1px solid var(--primary)'
-            : hasActiveFilter
+            : hasActiveFilter && variant === 'filter'
             ? '1px solid rgba(232, 201, 122, 0.45)'
+            : variant === 'form'
+            ? '1px solid var(--border-strong)'
             : '1px solid var(--border)',
           boxShadow: isOpen
             ? '0 0 0 2px rgba(232, 201, 122, 0.15)'
             : 'none',
-          padding: size === 'sm' ? '5px 10px' : '7px 12px',
-          fontSize: size === 'sm' ? '12px' : '13px',
+          padding: variant === 'form' ? '8px 12px' : size === 'sm' ? '4px 8px' : '7px 12px',
+          fontSize: variant === 'form' ? '13px' : size === 'sm' ? '12px' : '13px',
           fontWeight: 500,
           minWidth: variant === 'filter' ? '120px' : undefined,
+          ...style,
         }}
       >
-        <span className="flex items-center gap-2 truncate">
+        <span className="flex items-center gap-2 truncate min-w-0">
           {icon && <span className="text-muted-foreground flex-shrink-0">{icon}</span>}
           {singleSelectedOption?.color && (
             <span

@@ -9,6 +9,7 @@ import ComplianceRing from '@/components/ui/ComplianceRing';
 import EmptyState from '@/components/ui/EmptyState';
 import { Building2 } from 'lucide-react';
 import { api } from '@/lib/api';
+import { useAuth } from '@/lib/authContext';
 import { useDeepPageCms } from '@/lib/deepPageCms';
 import PageCMSEditButton from '@/components/cms/PageCMSEditButton';
 
@@ -16,6 +17,7 @@ type TypeFilter = 'All' | 'Hotel' | 'Restaurant';
 type RiskFilter = 'All' | 'high' | 'medium' | 'low';
 
 export default function MultiSiteClient() {
+  const { isPropertyAccessible } = useAuth();
   const cms = useDeepPageCms('multisite');
   const [sites, setSites] = useState<any[]>(SITES);
   const [compliance, setCompliance] = useState<any[]>(COMPLIANCE);
@@ -68,11 +70,11 @@ export default function MultiSiteClient() {
   }, [fetchLiveSites]);
 
   const filtered = useMemo(() => {
-    let list = [...sites];
+    let list = sites.filter((s) => isPropertyAccessible(s.name || s.propertyName || s.id));
     if (typeFilter !== 'All') list = list.filter((s) => s.type === typeFilter || (typeFilter === 'Hotel' && (s.type === 'Hotel' || !s.type)));
     if (riskFilter !== 'All') list = list.filter((s) => (s.risk || 'low') === riskFilter);
     return list;
-  }, [sites, typeFilter, riskFilter]);
+  }, [sites, typeFilter, riskFilter, isPropertyAccessible]);
 
   const getSiteCompliance = (siteName: string) => {
     const sName = siteName.toLowerCase();

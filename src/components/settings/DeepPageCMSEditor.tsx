@@ -90,6 +90,7 @@ import {
 } from '@/lib/deepPageCms';
 import { HOTELS, ASSET_CATEGORIES } from '@/lib/assetData';
 import { toast } from 'sonner';
+import CustomDropdown from '@/components/ui/CustomDropdown';
 
 const TAB_PAGES: Array<{ id: keyof DeepAppCMSStore; label: string; icon: React.ElementType; group: string; livePath: string }> = [
   { id: 'overview', label: 'OpCo & PropCo Dashboard', icon: LayoutDashboard, group: 'PropCo & OpCo', livePath: '/' },
@@ -1343,16 +1344,18 @@ export default function DeepPageCMSEditor({
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div className="flex flex-col gap-1">
                     <label className="text-[10px] font-semibold text-muted-foreground">Severity Level</label>
-                    <select
+                    <CustomDropdown
                       value={alert.type}
-                      onChange={(e) => handleUpdateAlert(alert.id, { type: e.target.value as any })}
-                      className="rounded border border-border px-2.5 py-1.5 text-xs outline-none"
-                      style={{ background: 'var(--surface)', color: 'var(--foreground)' }}
-                    >
-                      <option value="critical">Critical (Red)</option>
-                      <option value="warning">Warning (Amber)</option>
-                      <option value="info">Info (Blue)</option>
-                    </select>
+                      onChange={(val) => handleUpdateAlert(alert.id, { type: val as any })}
+                      options={[
+                        { value: 'critical', label: 'Critical (Red)', color: '#f43f5e' },
+                        { value: 'warning', label: 'Warning (Amber)', color: '#f59e0b' },
+                        { value: 'info', label: 'Info (Blue)', color: '#60a5fa' }
+                      ]}
+                      variant="form"
+                      size="sm"
+                      width="100%"
+                    />
                   </div>
 
                   <div className="flex flex-col gap-1">
@@ -1475,17 +1478,19 @@ export default function DeepPageCMSEditor({
 
                   <div className="flex flex-col gap-1">
                     <label className="text-[10px] font-semibold text-muted-foreground">Priority Level</label>
-                    <select
+                    <CustomDropdown
                       value={task.priority}
-                      onChange={(e) => handleUpdateTask(task.id, { priority: e.target.value as any })}
-                      className="rounded border border-border px-2.5 py-1.5 text-xs outline-none"
-                      style={{ background: 'var(--surface)', color: 'var(--foreground)' }}
-                    >
-                      <option value="urgent">Urgent</option>
-                      <option value="high">High</option>
-                      <option value="medium">Medium</option>
-                      <option value="low">Low</option>
-                    </select>
+                      onChange={(val) => handleUpdateTask(task.id, { priority: val as any })}
+                      options={[
+                        { value: 'urgent', label: 'Urgent', color: '#f43f5e' },
+                        { value: 'high', label: 'High', color: '#f97316' },
+                        { value: 'medium', label: 'Medium', color: '#60a5fa' },
+                        { value: 'low', label: 'Low', color: '#94a3b8' }
+                      ]}
+                      variant="form"
+                      size="sm"
+                      width="100%"
+                    />
                   </div>
                 </div>
               </div>
@@ -2019,40 +2024,32 @@ export default function DeepPageCMSEditor({
             </div>
 
             {/* Category Filter */}
-            <select
+            <CustomDropdown
               value={assetCategoryFilter}
-              onChange={(e) => {
-                setAssetCategoryFilter(e.target.value);
+              onChange={(val) => {
+                setAssetCategoryFilter(val);
                 setAssetPage(1);
               }}
-              className="px-3 py-1.5 rounded-lg border border-border text-xs outline-none cursor-pointer"
-              style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
-            >
-              <option value="All">All Categories</option>
-              {ASSET_CATEGORIES.map((cat) => (
-                <option key={cat.id} value={cat.name}>
-                  {cat.name}
-                </option>
-              ))}
-            </select>
+              options={ASSET_CATEGORIES.map((cat) => ({ value: cat.name, label: cat.name }))}
+              placeholder="All Categories"
+              allLabel="All Categories"
+              size="sm"
+              variant="filter"
+            />
 
             {/* Hotel Filter */}
-            <select
+            <CustomDropdown
               value={assetHotelFilter}
-              onChange={(e) => {
-                setAssetHotelFilter(e.target.value);
+              onChange={(val) => {
+                setAssetHotelFilter(val);
                 setAssetPage(1);
               }}
-              className="px-3 py-1.5 rounded-lg border border-border text-xs outline-none cursor-pointer"
-              style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
-            >
-              <option value="All">All Properties</option>
-              {HOTELS.map((hotel) => (
-                <option key={hotel.id} value={hotel.name}>
-                  {hotel.name}
-                </option>
-              ))}
-            </select>
+              options={HOTELS.map((hotel) => ({ value: hotel.name, label: hotel.name }))}
+              placeholder="All Properties"
+              allLabel="All Properties"
+              size="sm"
+              variant="filter"
+            />
           </div>
 
           {/* Assets Data Table */}
@@ -2463,15 +2460,21 @@ export default function DeepPageCMSEditor({
                       </div>
                       <div className="flex flex-col gap-1">
                         <label className="text-[10px] text-muted-foreground font-semibold">Status</label>
-                        <select
-                          defaultValue={hotel.status}
-                          id={`status_${hotel.id}`}
-                          className="rounded border border-border px-2 py-1 text-xs outline-none"
-                          style={{ background: 'var(--surface)' }}
-                        >
-                          <option value="active">Active</option>
-                          <option value="inactive">Inactive</option>
-                        </select>
+                        <input type="hidden" id={`status_${hotel.id}`} defaultValue={hotel.status || 'active'} />
+                        <CustomDropdown
+                          value={hotel.status || 'active'}
+                          onChange={(val) => {
+                            const hiddenInput = document.getElementById(`status_${hotel.id}`) as HTMLInputElement;
+                            if (hiddenInput) hiddenInput.value = val;
+                          }}
+                          options={[
+                            { value: 'active', label: 'Active', color: '#3dd68c' },
+                            { value: 'inactive', label: 'Inactive', color: '#f59e0b' }
+                          ]}
+                          variant="form"
+                          size="sm"
+                          width="100%"
+                        />
                       </div>
 
                       <div className="col-span-2 flex items-center justify-end gap-2 pt-2">
@@ -2697,30 +2700,28 @@ export default function DeepPageCMSEditor({
 
                 <div className="flex flex-col gap-1.5">
                   <label className="text-xs font-semibold text-foreground">Category</label>
-                  <select
+                  <CustomDropdown
                     value={editingAsset.category}
-                    onChange={(e) => setEditingAsset({ ...editingAsset, category: e.target.value })}
-                    className="rounded-lg border border-border px-3 py-2 text-xs outline-none"
-                    style={{ background: 'var(--surface2)' }}
-                  >
-                    {ASSET_CATEGORIES.map((c) => (
-                      <option key={c.id} value={c.name}>{c.name}</option>
-                    ))}
-                  </select>
+                    onChange={(val) => setEditingAsset({ ...editingAsset, category: val })}
+                    options={ASSET_CATEGORIES.map((c) => ({ value: c.name, label: c.name }))}
+                    placeholder="Select Category"
+                    variant="form"
+                    width="100%"
+                    searchable
+                  />
                 </div>
 
                 <div className="flex flex-col gap-1.5">
                   <label className="text-xs font-semibold text-foreground">Hotel / Property</label>
-                  <select
+                  <CustomDropdown
                     value={editingAsset.hotelName}
-                    onChange={(e) => setEditingAsset({ ...editingAsset, hotelName: e.target.value })}
-                    className="rounded-lg border border-border px-3 py-2 text-xs outline-none"
-                    style={{ background: 'var(--surface2)' }}
-                  >
-                    {HOTELS.map((h) => (
-                      <option key={h.id} value={h.name}>{h.name}</option>
-                    ))}
-                  </select>
+                    onChange={(val) => setEditingAsset({ ...editingAsset, hotelName: val })}
+                    options={HOTELS.map((h) => ({ value: h.name, label: h.name }))}
+                    placeholder="Select Property"
+                    variant="form"
+                    width="100%"
+                    searchable
+                  />
                 </div>
 
                 <div className="flex flex-col gap-1.5">
@@ -2758,46 +2759,49 @@ export default function DeepPageCMSEditor({
 
                 <div className="flex flex-col gap-1.5">
                   <label className="text-xs font-semibold text-foreground">Condition</label>
-                  <select
+                  <CustomDropdown
                     value={editingAsset.condition || 'good'}
-                    onChange={(e) => setEditingAsset({ ...editingAsset, condition: e.target.value })}
-                    className="rounded-lg border border-border px-3 py-2 text-xs outline-none"
-                    style={{ background: 'var(--surface2)' }}
-                  >
-                    <option value="excellent">Excellent</option>
-                    <option value="good">Good</option>
-                    <option value="fair">Fair</option>
-                    <option value="poor">Poor</option>
-                  </select>
+                    onChange={(val) => setEditingAsset({ ...editingAsset, condition: val })}
+                    options={[
+                      { value: 'excellent', label: 'Excellent', color: '#3dd68c' },
+                      { value: 'good', label: 'Good', color: '#60a5fa' },
+                      { value: 'fair', label: 'Fair', color: '#f59e0b' },
+                      { value: 'poor', label: 'Poor', color: '#f97316' }
+                    ]}
+                    variant="form"
+                    width="100%"
+                  />
                 </div>
 
                 <div className="flex flex-col gap-1.5">
                   <label className="text-xs font-semibold text-foreground">Risk Level</label>
-                  <select
+                  <CustomDropdown
                     value={editingAsset.riskLevel || 'low'}
-                    onChange={(e) => setEditingAsset({ ...editingAsset, riskLevel: e.target.value })}
-                    className="rounded-lg border border-border px-3 py-2 text-xs outline-none"
-                    style={{ background: 'var(--surface2)' }}
-                  >
-                    <option value="low">Low</option>
-                    <option value="medium">Medium</option>
-                    <option value="high">High</option>
-                    <option value="critical">Critical</option>
-                  </select>
+                    onChange={(val) => setEditingAsset({ ...editingAsset, riskLevel: val })}
+                    options={[
+                      { value: 'low', label: 'Low', color: '#3dd68c' },
+                      { value: 'medium', label: 'Medium', color: '#f59e0b' },
+                      { value: 'high', label: 'High', color: '#f97316' },
+                      { value: 'critical', label: 'Critical', color: '#f43f5e' }
+                    ]}
+                    variant="form"
+                    width="100%"
+                  />
                 </div>
 
                 <div className="flex flex-col gap-1.5">
                   <label className="text-xs font-semibold text-foreground">Status</label>
-                  <select
+                  <CustomDropdown
                     value={editingAsset.status || 'active'}
-                    onChange={(e) => setEditingAsset({ ...editingAsset, status: e.target.value })}
-                    className="rounded-lg border border-border px-3 py-2 text-xs outline-none"
-                    style={{ background: 'var(--surface2)' }}
-                  >
-                    <option value="active">Active</option>
-                    <option value="under-maintenance">Under Maintenance</option>
-                    <option value="inactive">Inactive</option>
-                  </select>
+                    onChange={(val) => setEditingAsset({ ...editingAsset, status: val })}
+                    options={[
+                      { value: 'active', label: 'Active', color: '#3dd68c' },
+                      { value: 'under-maintenance', label: 'Under Maintenance', color: '#f59e0b' },
+                      { value: 'inactive', label: 'Inactive', color: '#94a3b8' }
+                    ]}
+                    variant="form"
+                    width="100%"
+                  />
                 </div>
               </div>
 
@@ -2909,30 +2913,28 @@ export default function DeepPageCMSEditor({
 
                 <div className="flex flex-col gap-1.5">
                   <label className="text-xs font-semibold text-foreground">Category</label>
-                  <select
+                  <CustomDropdown
                     value={newAssetForm.category}
-                    onChange={(e) => setNewAssetForm({ ...newAssetForm, category: e.target.value })}
-                    className="rounded-lg border border-border px-3 py-2 text-xs outline-none"
-                    style={{ background: 'var(--surface2)' }}
-                  >
-                    {ASSET_CATEGORIES.map((c) => (
-                      <option key={c.id} value={c.name}>{c.name}</option>
-                    ))}
-                  </select>
+                    onChange={(val) => setNewAssetForm({ ...newAssetForm, category: val })}
+                    options={ASSET_CATEGORIES.map((c) => ({ value: c.name, label: c.name }))}
+                    placeholder="Select Category"
+                    variant="form"
+                    width="100%"
+                    searchable
+                  />
                 </div>
 
                 <div className="flex flex-col gap-1.5">
                   <label className="text-xs font-semibold text-foreground">Hotel / Property</label>
-                  <select
+                  <CustomDropdown
                     value={newAssetForm.hotelName}
-                    onChange={(e) => setNewAssetForm({ ...newAssetForm, hotelName: e.target.value })}
-                    className="rounded-lg border border-border px-3 py-2 text-xs outline-none"
-                    style={{ background: 'var(--surface2)' }}
-                  >
-                    {HOTELS.map((h) => (
-                      <option key={h.id} value={h.name}>{h.name}</option>
-                    ))}
-                  </select>
+                    onChange={(val) => setNewAssetForm({ ...newAssetForm, hotelName: val })}
+                    options={HOTELS.map((h) => ({ value: h.name, label: h.name }))}
+                    placeholder="Select Property"
+                    variant="form"
+                    width="100%"
+                    searchable
+                  />
                 </div>
 
                 <div className="flex flex-col gap-1.5">
@@ -2972,17 +2974,18 @@ export default function DeepPageCMSEditor({
 
                 <div className="flex flex-col gap-1.5">
                   <label className="text-xs font-semibold text-foreground">Condition</label>
-                  <select
+                  <CustomDropdown
                     value={newAssetForm.condition}
-                    onChange={(e) => setNewAssetForm({ ...newAssetForm, condition: e.target.value })}
-                    className="rounded-lg border border-border px-3 py-2 text-xs outline-none"
-                    style={{ background: 'var(--surface2)' }}
-                  >
-                    <option value="excellent">Excellent</option>
-                    <option value="good">Good</option>
-                    <option value="fair">Fair</option>
-                    <option value="poor">Poor</option>
-                  </select>
+                    onChange={(val) => setNewAssetForm({ ...newAssetForm, condition: val })}
+                    options={[
+                      { value: 'excellent', label: 'Excellent', color: '#3dd68c' },
+                      { value: 'good', label: 'Good', color: '#60a5fa' },
+                      { value: 'fair', label: 'Fair', color: '#f59e0b' },
+                      { value: 'poor', label: 'Poor', color: '#f97316' }
+                    ]}
+                    variant="form"
+                    width="100%"
+                  />
                 </div>
               </div>
 
@@ -3266,17 +3269,18 @@ export default function DeepPageCMSEditor({
                 </div>
                 <div className="flex flex-col gap-1.5">
                   <label className="text-xs font-semibold text-foreground">Initial Status</label>
-                  <select
+                  <CustomDropdown
                     value={newPropertyForm.status}
-                    onChange={(e) =>
-                      setNewPropertyForm({ ...newPropertyForm, status: e.target.value })
+                    onChange={(val) =>
+                      setNewPropertyForm({ ...newPropertyForm, status: val })
                     }
-                    className="rounded-lg border border-border px-3 py-2 text-xs outline-none cursor-pointer"
-                    style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
-                  >
-                    <option value="active">Active</option>
-                    <option value="inactive">Inactive</option>
-                  </select>
+                    options={[
+                      { value: 'active', label: 'Active', color: '#3dd68c' },
+                      { value: 'inactive', label: 'Inactive', color: '#f59e0b' }
+                    ]}
+                    variant="form"
+                    width="100%"
+                  />
                 </div>
               </div>
 

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import {
   Users,
   Shield,
@@ -19,6 +19,7 @@ import {
   Building2,
   UploadCloud,
   Check,
+  X,
   AlertCircle,
   Loader2,
   Activity,
@@ -34,10 +35,12 @@ import {
   FileText,
   AlertTriangle,
   SlidersHorizontal,
+  LogIn,
 } from 'lucide-react';
 import { api } from '@/lib/api';
 import { useAuth, type RoleLevel, type PortalType, type AppUser } from '@/lib/authContext';
 import { getAppCmsConfig } from '@/lib/appCmsConfig';
+import CustomDropdown from '@/components/ui/CustomDropdown';
 import { toast } from 'sonner';
 import Modal from '@/components/ui/Modal';
 import TabPermissionsEditor from '@/components/users/TabPermissionsEditor';
@@ -45,6 +48,8 @@ import { useDeepPageCms } from '@/lib/deepPageCms';
 import PageCMSEditButton from '@/components/cms/PageCMSEditButton';
 import LoadingPagination from '@/components/ui/LoadingPagination';
 import ConfirmDeleteModal from '@/components/modals/ConfirmDeleteModal';
+import TableCheckbox from '@/components/ui/TableCheckbox';
+import BulkActionBar from '@/components/ui/BulkActionBar';
 import { useLoadingPagination } from '@/hooks/useLoadingPagination';
 import {
   ALL_SYSTEM_TABS,
@@ -79,6 +84,18 @@ export interface UserRecord {
   description?: string;
   tabPermissions?: UserTabPermissions;
 }
+
+export const ASSIGNED_PROPERTY_OPTIONS = [
+  { value: 'All Properties', label: 'All Properties (Portfolio-wide)' },
+  { value: 'Crowne Plaza Kingston-south', label: 'Crowne Plaza Kingston-south' },
+  { value: 'Stanhill Court', label: 'Stanhill Court' },
+  { value: 'Hampton 1 & 2', label: 'Hotel Hampton 1 & Hampton 2 Property' },
+  { value: 'Ravens Ait Island', label: 'Ravens Ait Island' },
+  { value: 'River Club', label: 'River Club' },
+  { value: 'Warren House', label: 'Warren House' },
+  { value: 'Gatwick Manor (Stanhill Court)', label: 'Gatwick Manor (Stanhill Court)' },
+  { value: 'Sharnbrook', label: 'Sharnbrook' },
+];
 
 const BASE_ROLE_LEVEL_CONFIG: Record<
   RoleLevel,
@@ -186,7 +203,7 @@ const PERMISSION_MATRIX: Record<
 
 export default function UsersClient() {
   const cms = useDeepPageCms('users');
-  const { user: currentAuthUser, isSuperAdmin, isAdmin, canManageUsers, updateUserTabPermissions, isDigitalBot, isViewer } = useAuth();
+  const { user: currentAuthUser, isSuperAdmin, isAdmin, canManageUsers, updateUserTabPermissions, isDigitalBot, isViewer, switchUser } = useAuth();
 
   const isBotAccount = useCallback(
     (u: any) =>
@@ -206,6 +223,10 @@ export default function UsersClient() {
   const [search, setSearch] = useState('');
   const [userToDelete, setUserToDelete] = useState<UserRecord | null>(null);
   const [isDeletingUser, setIsDeletingUser] = useState(false);
+  const [selectedUserIds, setSelectedUserIds] = useState<string[]>([]);
+  const [isBulkDeleting, setIsBulkDeleting] = useState(false);
+  const [showBulkDeleteModal, setShowBulkDeleteModal] = useState(false);
+  const [selectedTypeFilter, setSelectedTypeFilter] = useState('');
   const [selectedRoleLevel, setSelectedRoleLevel] = useState<RoleLevel>('L1');
   const [showAddModal, setShowAddModal] = useState(false);
   const [savingUser, setSavingUser] = useState(false);
@@ -214,6 +235,33 @@ export default function UsersClient() {
   const [permissionsModalUser, setPermissionsModalUser] = useState<UserRecord | null>(null);
   const [tempModalPermissions, setTempModalPermissions] = useState<UserTabPermissions>({});
   const [savingPermissions, setSavingPermissions] = useState(false);
+
+  // Quick Property Assignment Modal State
+  const [propertyModalUser, setPropertyModalUser] = useState<UserRecord | null>(null);
+  const [tempAssignedProperties, setTempAssignedProperties] = useState<string[]>([]);
+  const [propertyRemovalConfirm, setPropertyRemovalConfirm] = useState<{
+    user: UserRecord;
+    property: string;
+    onConfirmOverride?: () => void;
+  } | null>(null);
+  const [newCustomPropertyInput, setNewCustomPropertyInput] = useState('');
+  const [newEditCustomPropertyInput, setNewEditCustomPropertyInput] = useState('');
+  const [newAddCustomPropertyInput, setNewAddCustomPropertyInput] = useState('');
+  const [savingUserProperties, setSavingUserProperties] = useState(false);
+  const recentlyUpdatedUsers = useRef<Map<string, { user: UserRecord; timestamp: number }>>(new Map());
+  const [systemProperties, setSystemProperties] = useState<string[]>([]);
+  const [customProperties, setCustomProperties] = useState<string[]>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = localStorage.getItem('samko_custom_properties');
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (Array.isArray(parsed)) return parsed;
+        }
+      } catch { }
+    }
+    return [];
+  });
 
   // Dedicated Tab Matrix Selected User ID
   const [matrixSelectedUserId, setMatrixSelectedUserId] = useState<string>('');
@@ -304,6 +352,7 @@ export default function UsersClient() {
     roleLevel: RoleLevel;
     portal: PortalType;
     hotel: string;
+    assignedProperties: string[];
     status: 'active' | 'inactive';
     tabPermissions?: UserTabPermissions;
   }>({
@@ -313,6 +362,7 @@ export default function UsersClient() {
     roleLevel: 'L3',
     portal: 'opco',
     hotel: 'Crowne Plaza Kingston-south',
+    assignedProperties: ['Crowne Plaza Kingston-south'],
     status: 'active',
     tabPermissions: getDefaultTabPermissionsForRole('L3'),
   });
@@ -325,6 +375,7 @@ export default function UsersClient() {
     roleLevel: RoleLevel;
     portal: PortalType;
     hotel: string;
+    assignedProperties: string[];
     tabPermissions?: UserTabPermissions;
   }>({
     name: '',
@@ -333,16 +384,81 @@ export default function UsersClient() {
     roleLevel: isSuperAdmin ? 'L2' : 'L3',
     portal: currentAuthUser.portal === 'propco' ? 'propco' : 'opco',
     hotel: 'Crowne Plaza Kingston-south',
+    assignedProperties: ['Crowne Plaza Kingston-south'],
     tabPermissions: getDefaultTabPermissionsForRole(isSuperAdmin ? 'L2' : 'L3'),
   });
+
+  const saveCustomProperty = useCallback((propName: string) => {
+    const clean = propName.trim();
+    if (!clean || clean.toLowerCase().startsWith('all')) return;
+    setCustomProperties((prev) => {
+      if (prev.some((p) => p.toLowerCase() === clean.toLowerCase())) return prev;
+      const updated = [...prev, clean];
+      if (typeof window !== 'undefined') {
+        try {
+          localStorage.setItem('samko_custom_properties', JSON.stringify(updated));
+        } catch { }
+      }
+      return updated;
+    });
+  }, []);
+
+  const dynamicPropertyOptions = useMemo(() => {
+    const set = new Set<string>();
+
+    ASSIGNED_PROPERTY_OPTIONS.forEach((opt) => {
+      if (opt.value && !opt.value.toLowerCase().startsWith('all')) {
+        set.add(opt.value.trim());
+      }
+    });
+
+    systemProperties.forEach((p) => {
+      if (p && !p.toLowerCase().startsWith('all')) {
+        set.add(p.trim());
+      }
+    });
+
+    customProperties.forEach((p) => {
+      if (p && !p.toLowerCase().startsWith('all')) {
+        set.add(p.trim());
+      }
+    });
+
+    users.forEach((u) => {
+      (u.assignedProperties || []).forEach((p) => {
+        if (p && !p.toLowerCase().startsWith('all') && p !== 'No Property Assigned') {
+          set.add(p.trim());
+        }
+      });
+    });
+
+    const items = Array.from(set).sort().map((name) => ({
+      value: name,
+      label: name,
+    }));
+
+    return [
+      { value: 'All Properties', label: 'All Properties (Portfolio-wide)' },
+      ...items,
+    ];
+  }, [systemProperties, customProperties, users]);
 
   const fetchUsers = useCallback(async () => {
     try {
       setLoading(true);
-      const res = await api.users.getAll();
-      if (res.success && res.data && res.data.length > 0) {
+      const [res, propsRes] = await Promise.allSettled([
+        api.users.getAll(),
+        api.properties.getAll(),
+      ]);
+
+      if (propsRes.status === 'fulfilled' && propsRes.value.success && Array.isArray(propsRes.value.data)) {
+        const propNames = propsRes.value.data.map((p: any) => p.name || p.propertyName || p.hotelName).filter(Boolean);
+        setSystemProperties(propNames);
+      }
+
+      if (res.status === 'fulfilled' && res.value.success && res.value.data && res.value.data.length > 0) {
         // Normalize role levels and tab permissions
-        const normalized: UserRecord[] = res.data.map((u: any) => {
+        const normalized: UserRecord[] = res.value.data.map((u: any) => {
           let roleLevel: RoleLevel = u.roleLevel;
           if (!roleLevel) {
             if (u.role === 'super-admin') roleLevel = 'L1';
@@ -352,22 +468,55 @@ export default function UsersClient() {
           }
           const roleTitle = u.roleTitle || ROLE_LEVEL_CONFIG[roleLevel].title;
 
-          return {
-            id: u.id,
+          let assignedProps: string[] = [];
+          if (Array.isArray(u.assignedProperties)) {
+            assignedProps = u.assignedProperties.filter((p: string) => p && p !== 'No Property Assigned');
+          } else if (u.hotel && u.hotel !== 'No Property Assigned') {
+            assignedProps = u.hotel.includes(',')
+              ? u.hotel.split(',').map((s: string) => s.trim()).filter(Boolean)
+              : [u.hotel.trim()];
+          } else {
+            assignedProps = [];
+          }
+
+          const finalHotel =
+            assignedProps.length === 0
+              ? 'No Property Assigned'
+              : assignedProps.includes('all') || assignedProps.includes('All Properties')
+                ? 'All Properties'
+                : assignedProps.join(', ');
+
+          const rawUser: UserRecord = {
+            id: u.id || (u.email ? `usr-${u.email.split('@')[0]}` : `usr-${Math.random().toString(36).slice(2, 8)}`),
             name: u.name || 'Unnamed User',
             email: u.email,
             password: u.password || `${roleTitle.replace(/\s+/g, '')}2026!`,
             roleLevel,
             roleTitle,
             portal: u.portal || (roleLevel === 'L1' ? 'both' : 'opco'),
-            hotel: u.hotel || 'Crowne Plaza Kingston-south',
-            assignedProperties: u.assignedProperties || [u.hotel || 'all'],
+            hotel: finalHotel,
+            assignedProperties: assignedProps,
             status: u.status || 'active',
             lastLogin: u.lastLogin || '2026-07-21',
             initials: u.initials || u.name?.slice(0, 2).toUpperCase() || 'US',
             description: u.description || ROLE_LEVEL_CONFIG[roleLevel].desc,
             tabPermissions: u.tabPermissions || getDefaultTabPermissionsForRole(roleLevel),
           };
+
+          // Protect recent optimistic updates from being overwritten by stale re-fetches
+          const recent =
+            (rawUser.id ? recentlyUpdatedUsers.current.get(rawUser.id) : null) ||
+            (rawUser.email ? recentlyUpdatedUsers.current.get(rawUser.email.toLowerCase().trim()) : null);
+
+          if (recent && Date.now() - recent.timestamp < 20000) {
+            return {
+              ...rawUser,
+              hotel: recent.user.hotel,
+              assignedProperties: recent.user.assignedProperties,
+            };
+          }
+
+          return rawUser;
         });
         const visible = isDigitalBot ? normalized : normalized.filter((u) => !isBotAccount(u));
         setUsers(visible);
@@ -418,6 +567,163 @@ export default function UsersClient() {
     }
   };
 
+  const openPropertyModal = (targetUser: UserRecord) => {
+    const liveUser = users.find((u) => u.id === targetUser.id) || targetUser;
+    const current =
+      Array.isArray(liveUser.assignedProperties)
+        ? liveUser.assignedProperties.filter((p) => p && p !== 'No Property Assigned')
+        : liveUser.hotel && liveUser.hotel !== 'No Property Assigned'
+          ? (liveUser.hotel.includes(',') ? liveUser.hotel.split(',').map((s) => s.trim()).filter(Boolean) : [liveUser.hotel.trim()])
+          : [];
+    setPropertyModalUser(liveUser);
+    setTempAssignedProperties(current);
+    setNewCustomPropertyInput('');
+  };
+
+  const handleUpdateUserProperties = async (targetUser: UserRecord, newProperties: string[]) => {
+    if (isBotAccount(targetUser) && !isDigitalBot) {
+      toast.error('Permission denied', { description: 'Cannot modify the Digital Bot account' });
+      return;
+    }
+    if (targetUser.roleLevel === 'L1' && !isSuperAdmin && !isDigitalBot) {
+      toast.error('Permission denied', { description: 'Only Super Admins can edit L1 accounts' });
+      return;
+    }
+    if (targetUser.roleLevel === 'L2' && !isSuperAdmin && !isDigitalBot) {
+      toast.error('Permission denied', { description: 'Only Super Admins can edit L2 accounts' });
+      return;
+    }
+
+    setSavingUserProperties(true);
+    const finalAssigned = newProperties
+      .filter(Boolean)
+      .filter((p) => p !== 'No Property Assigned');
+    const finalHotel =
+      finalAssigned.length === 0
+        ? 'No Property Assigned'
+        : finalAssigned.includes('all') || finalAssigned.includes('All Properties')
+          ? 'All Properties'
+          : finalAssigned.join(', ');
+
+    const updatedUser: UserRecord = {
+      ...targetUser,
+      hotel: finalHotel,
+      assignedProperties: finalAssigned,
+    };
+
+    // Keep in recent cache to prevent stale re-fetches from reverting
+    if (targetUser.id) {
+      recentlyUpdatedUsers.current.set(targetUser.id, { user: updatedUser, timestamp: Date.now() });
+    }
+    if (targetUser.email) {
+      recentlyUpdatedUsers.current.set(targetUser.email.toLowerCase().trim(), { user: updatedUser, timestamp: Date.now() });
+    }
+
+    setUsers((prev) =>
+      prev.map((u) =>
+        u.id === targetUser.id || (u.email && targetUser.email && u.email.toLowerCase() === targetUser.email.toLowerCase())
+          ? updatedUser
+          : u
+      )
+    );
+    toast.success(`Updated properties for ${targetUser.name}`, {
+      description: `Assigned: ${finalHotel}`,
+    });
+
+    try {
+      const stored = localStorage.getItem('samko_auth_user');
+      const isCurrentSessionUser =
+        targetUser.id === currentAuthUser.id ||
+        targetUser.email?.toLowerCase().trim() === currentAuthUser.email?.toLowerCase().trim() ||
+        (stored && (JSON.parse(stored).id === targetUser.id || JSON.parse(stored).email?.toLowerCase().trim() === targetUser.email?.toLowerCase().trim()));
+
+      if (isCurrentSessionUser) {
+        const fullAuthUser = {
+          ...currentAuthUser,
+          ...updatedUser,
+          hotel: finalHotel,
+          assignedProperties: finalAssigned,
+        };
+        localStorage.setItem('samko_auth_user', JSON.stringify(fullAuthUser));
+        window.dispatchEvent(new CustomEvent('samko:user-changed', { detail: { user: fullAuthUser } }));
+      }
+      localStorage.setItem('samko_last_user_update', String(Date.now()));
+    } catch { }
+
+    // Append to live audit logs
+    const auditEvent: AuditLogEntry = {
+      id: `AUD-${Date.now().toString().slice(-4)}`,
+      timestamp: new Date().toISOString().replace('T', ' ').slice(0, 19),
+      relativeTime: 'Just now',
+      actorName: currentAuthUser.name || 'Administrator',
+      actorEmail: currentAuthUser.email || 'info@samko.co.uk',
+      actorInitials: currentAuthUser.initials || 'AS',
+      roleLevel: currentAuthUser.roleLevel || 'L1',
+      action: 'UPDATE',
+      actionLabel: 'Property Assignment Updated',
+      category: 'USER_MANAGEMENT',
+      categoryLabel: 'User Management',
+      resource: `User: ${targetUser.email}`,
+      ipAddress: '86.154.21.90',
+      location: 'London, UK (Active Session)',
+      status: 'success',
+      details: `Updated assigned properties for ${targetUser.name} to "${finalHotel}".`,
+    };
+    setAuditLogs((prev) => [auditEvent, ...prev]);
+    try { recordAuditLog(auditEvent); } catch { }
+
+    try {
+      await api.users.update(targetUser.id || targetUser.email, updatedUser);
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('samko:data-changed', { detail: { type: 'users' } }));
+      }
+    } catch (err) {
+      console.error('Failed to sync updated user properties:', err);
+    } finally {
+      setSavingUserProperties(false);
+    }
+  };
+
+  const handleRemovePropertyFromUser = (targetUser: UserRecord, propertyToRemove: string) => {
+    const liveUser = users.find((u) => u.id === targetUser.id) || targetUser;
+    const currentProps =
+      Array.isArray(liveUser.assignedProperties)
+        ? liveUser.assignedProperties.filter((p) => p && p !== 'No Property Assigned')
+        : liveUser.hotel && liveUser.hotel !== 'No Property Assigned'
+          ? (liveUser.hotel.includes(',') ? liveUser.hotel.split(',').map((s) => s.trim()).filter(Boolean) : [liveUser.hotel.trim()])
+          : [];
+
+    const updatedProps = currentProps.filter((p) => p !== propertyToRemove && p.toLowerCase() !== propertyToRemove.toLowerCase());
+    handleUpdateUserProperties(liveUser, updatedProps);
+  };
+
+  const handleAddPropertyToUser = (targetUser: UserRecord, propertyToAdd: string) => {
+    const clean = propertyToAdd.trim();
+    if (!clean) return;
+    saveCustomProperty(clean);
+
+    const liveUser = users.find((u) => u.id === targetUser.id) || targetUser;
+    const currentProps =
+      Array.isArray(liveUser.assignedProperties)
+        ? liveUser.assignedProperties.filter((p) => p && p !== 'No Property Assigned')
+        : liveUser.hotel && liveUser.hotel !== 'No Property Assigned'
+          ? (liveUser.hotel.includes(',') ? liveUser.hotel.split(',').map((s) => s.trim()).filter(Boolean) : [liveUser.hotel.trim()])
+          : [];
+      targetUser.assignedProperties && targetUser.assignedProperties.length > 0
+        ? targetUser.assignedProperties.filter((p) => !p.toLowerCase().startsWith('all') && p !== 'No Property Assigned')
+        : targetUser.hotel && !targetUser.hotel.toLowerCase().startsWith('all') && targetUser.hotel !== 'No Property Assigned'
+          ? (targetUser.hotel.includes(',') ? targetUser.hotel.split(',').map((s) => s.trim()) : [targetUser.hotel])
+          : [];
+
+    if (currentProps.some((p) => p.toLowerCase() === clean.toLowerCase())) {
+      toast.info(`"${clean}" is already assigned to ${targetUser.name}`);
+      return;
+    }
+
+    const updatedProps = [...currentProps, clean];
+    handleUpdateUserProperties(targetUser, updatedProps);
+  };
+
   const handleDeleteUser = async (targetUser: UserRecord) => {
     if (isBotAccount(targetUser)) {
       toast.error('Permission denied', { description: 'The Digital Bot account is protected and cannot be deleted' });
@@ -457,7 +763,7 @@ export default function UsersClient() {
       status: 'warning',
       details: `Permanently removed account ${targetUser.name} (${targetUser.roleLevel} - ${targetUser.roleTitle}) from directory.`,
     };
-    setAuditLogs((prev) => [auditEvent, ...prev]); try { recordAuditLog(auditEvent); } catch {}
+    setAuditLogs((prev) => [auditEvent, ...prev]); try { recordAuditLog(auditEvent); } catch { }
 
     try {
       await api.users.delete(targetUser.id);
@@ -484,6 +790,13 @@ export default function UsersClient() {
       return;
     }
 
+    const userAssigned =
+      Array.isArray(user.assignedProperties)
+        ? user.assignedProperties.filter((p) => p && p !== 'No Property Assigned')
+        : user.hotel && user.hotel !== 'No Property Assigned'
+          ? (user.hotel.includes(',') ? user.hotel.split(',').map((s) => s.trim()).filter(Boolean) : [user.hotel.trim()])
+          : [];
+
     setEditingUser(user);
     setEditForm({
       name: user.name,
@@ -492,6 +805,7 @@ export default function UsersClient() {
       roleLevel: user.roleLevel,
       portal: user.portal,
       hotel: user.hotel,
+      assignedProperties: userAssigned,
       status: user.status,
       tabPermissions: user.tabPermissions || getDefaultTabPermissionsForRole(user.roleLevel),
     });
@@ -544,7 +858,7 @@ export default function UsersClient() {
       status: 'success',
       details: `Updated tab-level enable/disable switches and access levels (Read Only vs Edit & Write) for ${permissionsModalUser.name}.`,
     };
-    setAuditLogs((prev) => [auditEvent, ...prev]); try { recordAuditLog(auditEvent); } catch {}
+    setAuditLogs((prev) => [auditEvent, ...prev]); try { recordAuditLog(auditEvent); } catch { }
 
     try {
       await api.users.update(permissionsModalUser.id, { tabPermissions: tempModalPermissions });
@@ -581,6 +895,19 @@ export default function UsersClient() {
 
     const tabPerms = editForm.tabPermissions || editingUser.tabPermissions || getDefaultTabPermissionsForRole(editForm.roleLevel);
 
+    const finalAssigned =
+      editForm.assignedProperties && editForm.assignedProperties.length > 0
+        ? editForm.assignedProperties
+        : editForm.hotel && editForm.hotel !== 'No Property Assigned'
+          ? [editForm.hotel]
+          : [];
+    const finalHotel =
+      finalAssigned.length === 0
+        ? 'No Property Assigned'
+        : finalAssigned.includes('all') || finalAssigned.includes('All Properties')
+          ? 'All Properties'
+          : finalAssigned.join(', ');
+
     const updatedUser: UserRecord = {
       ...editingUser,
       name: editForm.name.trim(),
@@ -589,8 +916,8 @@ export default function UsersClient() {
       roleLevel: editForm.roleLevel,
       roleTitle: roleConfig.title,
       portal: editForm.portal,
-      hotel: editForm.hotel,
-      assignedProperties: [editForm.hotel],
+      hotel: finalHotel,
+      assignedProperties: finalAssigned,
       status: editForm.status,
       initials: initials || editingUser.initials,
       description: roleConfig.desc,
@@ -602,9 +929,26 @@ export default function UsersClient() {
     setEditingUser(null);
     setSavingEdit(false);
 
-    if (editingUser.id === currentAuthUser.id) {
-      updateUserTabPermissions(tabPerms);
-    }
+    try {
+      const stored = localStorage.getItem('samko_auth_user');
+      const isCurrentSessionUser =
+        editingUser.id === currentAuthUser.id ||
+        editingUser.email?.toLowerCase().trim() === currentAuthUser.email?.toLowerCase().trim() ||
+        (stored && (JSON.parse(stored).id === editingUser.id || JSON.parse(stored).email?.toLowerCase().trim() === editingUser.email?.toLowerCase().trim()));
+
+      if (isCurrentSessionUser) {
+        updateUserTabPermissions(tabPerms);
+        const fullAuthUser = {
+          ...currentAuthUser,
+          hotel: finalHotel,
+          assignedProperties: finalAssigned,
+          tabPermissions: tabPerms,
+        };
+        localStorage.setItem('samko_auth_user', JSON.stringify(fullAuthUser));
+        window.dispatchEvent(new CustomEvent('samko:user-changed', { detail: { user: fullAuthUser } }));
+      }
+      localStorage.setItem('samko_last_user_update', String(Date.now()));
+    } catch { }
 
     // Append to live audit logs
     const auditEvent: AuditLogEntry = {
@@ -630,7 +974,7 @@ export default function UsersClient() {
         { field: 'hotel', previous: editingUser.hotel, current: editForm.hotel },
       ],
     };
-    setAuditLogs((prev) => [auditEvent, ...prev]); try { recordAuditLog(auditEvent); } catch {}
+    setAuditLogs((prev) => [auditEvent, ...prev]); try { recordAuditLog(auditEvent); } catch { }
 
     try {
       await api.users.update(editingUser.id, updatedUser);
@@ -671,6 +1015,19 @@ export default function UsersClient() {
     const roleConfig = ROLE_LEVEL_CONFIG[newUser.roleLevel];
     const password = newUser.password || `${roleConfig.title.replace(/\s+/g, '')}2026!`;
 
+    const finalAssigned =
+      newUser.assignedProperties && newUser.assignedProperties.length > 0
+        ? newUser.assignedProperties
+        : newUser.hotel && newUser.hotel !== 'No Property Assigned'
+          ? [newUser.hotel]
+          : [];
+    const finalHotel =
+      finalAssigned.length === 0
+        ? 'No Property Assigned'
+        : finalAssigned.includes('all') || finalAssigned.includes('All Properties')
+          ? 'All Properties'
+          : finalAssigned.join(', ');
+
     const payload = {
       name: newUser.name.trim(),
       email: newUser.email.trim().toLowerCase(),
@@ -678,8 +1035,8 @@ export default function UsersClient() {
       roleLevel: newUser.roleLevel,
       roleTitle: roleConfig.title,
       portal: newUser.portal,
-      hotel: newUser.hotel,
-      assignedProperties: [newUser.hotel],
+      hotel: finalHotel,
+      assignedProperties: finalAssigned,
       status: 'active' as const,
       initials: newUser.name
         .split(' ')
@@ -719,9 +1076,9 @@ export default function UsersClient() {
         ipAddress: '86.154.21.90',
         location: 'London, UK (Active Session)',
         status: 'success',
-        details: `Provisioned dynamic user account for ${newUser.name} with ${newUser.roleLevel} privileges assigned to ${newUser.hotel}.`,
+        details: `Provisioned dynamic user account for ${newUser.name} with ${newUser.roleLevel} privileges assigned to ${finalHotel}.`,
       };
-      setAuditLogs((prev) => [auditEvent, ...prev]); try { recordAuditLog(auditEvent); } catch {}
+      setAuditLogs((prev) => [auditEvent, ...prev]); try { recordAuditLog(auditEvent); } catch { }
       setNewUser({
         name: '',
         email: '',
@@ -729,6 +1086,7 @@ export default function UsersClient() {
         roleLevel: isSuperAdmin ? 'L2' : 'L3',
         portal: currentAuthUser.portal === 'propco' ? 'propco' : 'opco',
         hotel: 'Crowne Plaza Kingston-south',
+        assignedProperties: ['Crowne Plaza Kingston-south'],
       });
 
       if (typeof window !== 'undefined') {
@@ -772,6 +1130,134 @@ export default function UsersClient() {
     changePage,
     changePageSize,
   } = useLoadingPagination(filtered, 10);
+
+  const deletableUsers = useMemo(() => {
+    return filtered.filter((u) => u.roleLevel !== 'L1' || isDigitalBot);
+  }, [filtered, isDigitalBot]);
+
+  const deletablePaginatedUsers = useMemo(() => {
+    return paginatedUsers.filter((u) => u.roleLevel !== 'L1' || isDigitalBot);
+  }, [paginatedUsers, isDigitalBot]);
+
+  const isAllPageSelected =
+    deletablePaginatedUsers.length > 0 &&
+    deletablePaginatedUsers.every((u) => selectedUserIds.includes(u.id));
+
+  const isSomePageSelected =
+    deletablePaginatedUsers.some((u) => selectedUserIds.includes(u.id)) && !isAllPageSelected;
+
+  const handleToggleSelectAllPage = () => {
+    if (isAllPageSelected) {
+      const pageIds = new Set(deletablePaginatedUsers.map((u) => u.id));
+      setSelectedUserIds((prev) => prev.filter((id) => !pageIds.has(id)));
+    } else {
+      const pageIds = deletablePaginatedUsers.map((u) => u.id);
+      setSelectedUserIds((prev) => Array.from(new Set([...prev, ...pageIds])));
+    }
+  };
+
+  const handleToggleUserSelect = (userId: string) => {
+    setSelectedUserIds((prev) =>
+      prev.includes(userId) ? prev.filter((id) => id !== userId) : [...prev, userId]
+    );
+  };
+
+  const handleSelectAllFiltered = () => {
+    setSelectedUserIds(deletableUsers.map((u) => u.id));
+  };
+
+  const handleClearSelection = () => {
+    setSelectedUserIds([]);
+    setSelectedTypeFilter('');
+  };
+
+  const userTypeOptions = useMemo(() => {
+    const counts: Record<string, number> = {};
+    deletableUsers.forEach((u) => {
+      counts[`role:${u.roleLevel}`] = (counts[`role:${u.roleLevel}`] || 0) + 1;
+      counts[`status:${u.status}`] = (counts[`status:${u.status}`] || 0) + 1;
+      counts[`portal:${u.portal}`] = (counts[`portal:${u.portal}`] || 0) + 1;
+    });
+
+    const opts: { label: string; value: string; count: number }[] = [
+      { label: 'Role: L2 Admin', value: 'role:L2', count: counts['role:L2'] || 0 },
+      { label: 'Role: L3 Uploader', value: 'role:L3', count: counts['role:L3'] || 0 },
+      { label: 'Role: L4 Viewer', value: 'role:L4', count: counts['role:L4'] || 0 },
+      { label: 'Status: Active', value: 'status:active', count: counts['status:active'] || 0 },
+      { label: 'Status: Inactive', value: 'status:inactive', count: counts['status:inactive'] || 0 },
+      { label: 'Portal: PropCo', value: 'portal:propco', count: counts['portal:propco'] || 0 },
+      { label: 'Portal: OpCo', value: 'portal:opco', count: counts['portal:opco'] || 0 },
+    ];
+    return opts.filter((o) => o.count > 0);
+  }, [deletableUsers]);
+
+  const handleSelectByType = (typeKey: string) => {
+    setSelectedTypeFilter(typeKey);
+    if (!typeKey) {
+      setSelectedUserIds([]);
+      return;
+    }
+    const [kind, val] = typeKey.split(':');
+    const matched = deletableUsers.filter((u) => {
+      if (kind === 'role') return u.roleLevel === val;
+      if (kind === 'status') return u.status === val;
+      if (kind === 'portal') return u.portal === val;
+      return false;
+    });
+    setSelectedUserIds(matched.map((u) => u.id));
+    toast.info(`Selected ${matched.length} users`, {
+      description: `All users matching ${typeKey.replace(':', ': ')} are now marked for batch action.`,
+    });
+  };
+
+  const handleConfirmBulkDelete = async () => {
+    if (selectedUserIds.length === 0) return;
+    setIsBulkDeleting(true);
+    try {
+      const idsToDelete = [...selectedUserIds];
+      const count = idsToDelete.length;
+
+      setUsers((prev) => prev.filter((u) => !idsToDelete.includes(u.id)));
+      setSelectedUserIds([]);
+      setSelectedTypeFilter('');
+      setShowBulkDeleteModal(false);
+
+      await Promise.allSettled(idsToDelete.map((id) => api.users.delete(id)));
+
+      const auditEvent: AuditLogEntry = {
+        id: `AUD-${Date.now().toString().slice(-4)}`,
+        timestamp: new Date().toISOString().replace('T', ' ').slice(0, 19),
+        relativeTime: 'Just now',
+        actorName: currentAuthUser.name || 'Administrator',
+        actorEmail: currentAuthUser.email || 'info@samko.co.uk',
+        actorInitials: currentAuthUser.initials || 'AS',
+        roleLevel: currentAuthUser.roleLevel || 'L1',
+        action: 'DELETE',
+        actionLabel: 'Bulk Users Deleted',
+        category: 'USER_MANAGEMENT',
+        categoryLabel: 'User Management',
+        resource: `${count} User Accounts`,
+        ipAddress: '86.154.21.90',
+        location: 'London, UK (Active Session)',
+        status: 'warning',
+        details: `Bulk deleted ${count} user accounts from directory.`,
+      };
+      setAuditLogs((prev) => [auditEvent, ...prev]);
+      try { recordAuditLog(auditEvent); } catch { }
+
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('samko:data-changed', { detail: { type: 'users' } }));
+      }
+
+      toast.success(`Successfully deleted ${count} users!`, {
+        description: 'Selected user accounts have been permanently removed.',
+      });
+    } catch (err: any) {
+      toast.error('Bulk deletion encountered an issue', { description: err?.message });
+    } finally {
+      setIsBulkDeleting(false);
+    }
+  };
 
   const countsByLevel = useMemo(() => {
     const pool = isDigitalBot ? users : users.filter((u) => !isBotAccount(u));
@@ -849,8 +1335,8 @@ export default function UsersClient() {
                 background: isSuperAdmin
                   ? 'rgba(244,63,94,0.18)'
                   : isAdmin
-                  ? 'rgba(167,139,250,0.18)'
-                  : 'rgba(56,189,248,0.18)',
+                    ? 'rgba(167,139,250,0.18)'
+                    : 'rgba(56,189,248,0.18)',
                 color: isSuperAdmin ? '#f43f5e' : isAdmin ? '#a78bfa' : '#38bdf8',
               }}
             >
@@ -858,16 +1344,16 @@ export default function UsersClient() {
               {isSuperAdmin
                 ? 'L1 Super Admin'
                 : isAdmin
-                ? 'L2 Portal Admin'
-                : 'L4 External Auditor (Read-Only)'}
+                  ? 'L2 Portal Admin'
+                  : 'L4 External Auditor (Read-Only)'}
             </span>
           </div>
           <p className="text-xs text-muted-foreground mt-0.5">
             {cms.subtitle || (isSuperAdmin
               ? 'Full authority over Propco & Opco users, role permissions, audit trails, and platform credentials'
               : isAdmin
-              ? 'Authorized to create, configure, and manage L3 Uploaders and L4 Viewers within your portal'
-              : 'Auditor inspection rights enabled — read-only access to users, permission matrix, and full system audit trails')}
+                ? 'Authorized to create, configure, and manage L3 Uploaders and L4 Viewers within your portal'
+                : 'Auditor inspection rights enabled — read-only access to users, permission matrix, and full system audit trails')}
           </p>
         </div>
 
@@ -950,8 +1436,8 @@ export default function UsersClient() {
               })}
             </div>
 
-            {/* Search */}
-            <div className="flex items-center justify-between gap-3">
+            {/* Search and Quick Select by Type */}
+            <div className="flex items-center justify-between gap-3 flex-wrap">
               <div className="relative flex-1 max-w-sm">
                 <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
                 <input
@@ -962,6 +1448,21 @@ export default function UsersClient() {
                   onChange={(e) => setSearch(e.target.value)}
                 />
               </div>
+
+              {/* Quick Select by Type / Role */}
+              <div className="flex items-center gap-2">
+                <BulkActionBar
+                  selectedCount={0}
+                  totalCount={deletableUsers.length}
+                  onClearSelection={handleClearSelection}
+                  onDeleteSelected={() => setShowBulkDeleteModal(true)}
+                  typeOptions={userTypeOptions}
+                  onSelectByType={handleSelectByType}
+                  selectedTypeValue={selectedTypeFilter}
+                  typePlaceholder="Select all of type (Role, Status)..."
+                  recordName="users"
+                />
+              </div>
             </div>
 
             {/* User Table */}
@@ -969,6 +1470,16 @@ export default function UsersClient() {
               <table className="w-full text-left border-collapse" style={{ minWidth: 920 }}>
                 <thead style={{ background: 'var(--surface2)' }}>
                   <tr>
+                    {canManageUsers && (
+                      <th className="px-3 py-2.5 border-b border-border w-10 text-center">
+                        <TableCheckbox
+                          checked={isAllPageSelected}
+                          indeterminate={isSomePageSelected}
+                          onChange={handleToggleSelectAllPage}
+                          title="Select/Deselect All on this page"
+                        />
+                      </th>
+                    )}
                     {[
                       { label: 'User & Contact', align: 'left', width: '24%' },
                       { label: 'Role', align: 'left', width: '13%' },
@@ -994,8 +1505,22 @@ export default function UsersClient() {
                     return (
                       <tr
                         key={user.id}
-                        className="border-b border-border transition-colors hover:bg-surface2"
+                        className={`border-b border-border transition-colors ${selectedUserIds.includes(user.id)
+                            ? 'bg-[#e8c97a]/10 hover:bg-[#e8c97a]/15'
+                            : 'hover:bg-surface2'
+                          }`}
                       >
+                        {/* Checkbox Column */}
+                        {canManageUsers && (
+                          <td className="px-3 py-2.5 text-center">
+                            <TableCheckbox
+                              checked={selectedUserIds.includes(user.id)}
+                              disabled={user.roleLevel === 'L1' && !isDigitalBot}
+                              onChange={() => handleToggleUserSelect(user.id)}
+                              title={user.roleLevel === 'L1' && !isDigitalBot ? 'Super Admin cannot be deleted' : `Select ${user.name}`}
+                            />
+                          </td>
+                        )}
                         {/* User name & email */}
                         <td className="px-3 py-2.5">
                           <div className="flex items-center gap-2">
@@ -1035,28 +1560,106 @@ export default function UsersClient() {
                                 user.portal === 'both'
                                   ? 'rgba(232,201,122,0.15)'
                                   : user.portal === 'propco'
-                                  ? 'rgba(167,139,250,0.15)'
-                                  : 'rgba(96,165,250,0.15)',
+                                    ? 'rgba(167,139,250,0.15)'
+                                    : 'rgba(96,165,250,0.15)',
                               color:
                                 user.portal === 'both'
                                   ? '#e8c97a'
                                   : user.portal === 'propco'
-                                  ? '#a78bfa'
-                                  : '#60a5fa',
+                                    ? '#a78bfa'
+                                    : '#60a5fa',
                             }}
                           >
                             <Building2 size={11} />
                             {user.portal === 'both'
                               ? 'Propco & Opco'
                               : user.portal === 'propco'
-                              ? 'Propco'
-                              : 'Opco'}
+                                ? 'Propco'
+                                : 'Opco'}
                           </span>
                         </td>
 
                         {/* Assigned Property */}
-                        <td className="px-3 py-2.5 text-xs text-muted-foreground max-w-[160px] truncate" title={user.hotel}>
-                          {user.hotel}
+                        <td className="px-3 py-2.5 text-xs text-muted-foreground max-w-[220px]" title={user.hotel}>
+                          {(() => {
+                            const canEditUser =
+                              (isSuperAdmin || isAdmin || isDigitalBot) &&
+                              !(user.roleLevel === 'L1' && !isSuperAdmin && !isDigitalBot) &&
+                              !(user.roleLevel === 'L2' && !isSuperAdmin && !isDigitalBot) &&
+                              !(isBotAccount(user) && !isDigitalBot);
+
+                            const assigned =
+                              Array.isArray(user.assignedProperties)
+                                ? user.assignedProperties.filter((p) => p && p !== 'No Property Assigned')
+                                : user.hotel && user.hotel !== 'No Property Assigned'
+                                  ? (user.hotel.includes(',') ? user.hotel.split(',').map((s) => s.trim()).filter(Boolean) : [user.hotel.trim()])
+                                  : [];
+
+                            const isAll = assigned.includes('all') || assigned.includes('All Properties');
+                            const isNone = assigned.length === 0 || assigned.includes('No Property Assigned');
+
+                            return (
+                              <div className="flex flex-wrap items-center gap-1.5 min-w-[200px]">
+                                {isAll ? (
+                                  <span
+                                    className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium border"
+                                    style={{
+                                      background: 'rgba(255, 255, 255, 0.04)',
+                                      borderColor: 'rgba(255, 255, 255, 0.15)',
+                                      color: 'var(--text2)',
+                                    }}
+                                  >
+                                    All Properties
+                                  </span>
+                                ) : isNone ? (
+                                  <span className="text-[11px] text-amber-400/80 italic font-medium">
+                                    No Property Assigned
+                                  </span>
+                                ) : (
+                                  assigned.map((p) => (
+                                    <span
+                                      key={p}
+                                      className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium border transition-colors"
+                                      style={{
+                                        background: 'rgba(232, 201, 122, 0.08)',
+                                        borderColor: 'rgba(232, 201, 122, 0.25)',
+                                        color: '#e8c97a',
+                                      }}
+                                    >
+                                      <span className="truncate max-w-[130px]">{p}</span>
+                                      {canEditUser && (
+                                        <button
+                                          type="button"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            setPropertyRemovalConfirm({ user, property: p });
+                                          }}
+                                          className="text-[#e8c97a]/60 hover:text-rose-400 hover:bg-rose-500/20 rounded p-0.5 transition-colors cursor-pointer"
+                                          title={`Remove "${p}" from ${user.name}`}
+                                        >
+                                          <X size={10} />
+                                        </button>
+                                      )}
+                                    </span>
+                                  ))
+                                )}
+
+                                {canEditUser && (
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      openPropertyModal(user);
+                                    }}
+                                    className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold border border-dashed border-[#e8c97a]/40 hover:border-[#e8c97a] text-[#e8c97a]/80 hover:text-[#e8c97a] hover:bg-[#e8c97a]/10 transition-all cursor-pointer whitespace-nowrap"
+                                    title={`Assign additional property or remove existing for ${user.name}`}
+                                  >
+                                    <Plus size={10} /> Assign
+                                  </button>
+                                )}
+                              </div>
+                            );
+                          })()}
                         </td>
 
                         {/* Tab Permissions Badge */}
@@ -1077,8 +1680,8 @@ export default function UsersClient() {
                                   background: isAllWrite
                                     ? 'rgba(61,214,140,0.08)'
                                     : isAllRead
-                                    ? 'rgba(96,165,250,0.08)'
-                                    : 'var(--surface2)',
+                                      ? 'rgba(96,165,250,0.08)'
+                                      : 'var(--surface2)',
                                   borderColor: isAllWrite ? 'rgba(61,214,140,0.3)' : isAllRead ? 'rgba(96,165,250,0.3)' : 'var(--border)',
                                   color: isAllWrite ? '#3dd68c' : isAllRead ? '#60a5fa' : 'var(--foreground)',
                                 }}
@@ -1119,14 +1722,16 @@ export default function UsersClient() {
                         {/* Actions */}
                         <td className="px-3 py-2.5 text-right whitespace-nowrap">
                           <div className="flex items-center justify-end gap-1">
-                            <button
-                              type="button"
-                              onClick={() => handleOpenPermissionsModal(user)}
-                              className="p-1 rounded-lg text-primary hover:bg-primary/10 transition-colors"
-                              title="Configure Tab Permissions & Access Levels"
-                            >
-                              <SlidersHorizontal size={13} />
-                            </button>
+                            {canManageUsers && (
+                              <button
+                                type="button"
+                                onClick={() => handleOpenPermissionsModal(user)}
+                                className="p-1 rounded-lg text-primary hover:bg-primary/10 transition-colors"
+                                title="Configure Tab Permissions & Access Levels"
+                              >
+                                <SlidersHorizontal size={13} />
+                              </button>
+                            )}
                             <button
                               type="button"
                               onClick={() => {
@@ -1143,6 +1748,25 @@ export default function UsersClient() {
                             </button>
                             {!isViewer && canManageUsers && (
                               <>
+                                {user.id !== currentAuthUser.id && (
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      if (isBotAccount(user) && !isDigitalBot) {
+                                        toast.error('Access Denied', { description: 'Cannot switch into Digital Bot account' });
+                                        return;
+                                      }
+                                      switchUser(user as any);
+                                      toast.success(`Switched Session to ${user.name}`, {
+                                        description: `Now previewing as ${user.roleTitle} (${user.roleLevel})`,
+                                      });
+                                    }}
+                                    className="p-1 rounded-lg text-primary hover:bg-primary/10 transition-colors"
+                                    title={`Preview & test platform as ${user.name} (${user.roleLevel})`}
+                                  >
+                                    <LogIn size={13} />
+                                  </button>
+                                )}
                                 <button
                                   type="button"
                                   onClick={() => handleStartEdit(user)}
@@ -1183,6 +1807,23 @@ export default function UsersClient() {
                 recordName="users"
               />
             </div>
+
+            {/* Floating Bulk Action Bar (Only shown for authorized delete users) */}
+            {canManageUsers && (
+              <BulkActionBar
+                selectedCount={selectedUserIds.length}
+                totalCount={deletableUsers.length}
+                onClearSelection={handleClearSelection}
+                onSelectAll={handleSelectAllFiltered}
+                onDeleteSelected={() => setShowBulkDeleteModal(true)}
+                typeOptions={userTypeOptions}
+                onSelectByType={handleSelectByType}
+                selectedTypeValue={selectedTypeFilter}
+                typePlaceholder="Select all of type (Role, Status)..."
+                recordName="users"
+                isDeleting={isBulkDeleting}
+              />
+            )}
           </div>
         )}
 
@@ -1214,18 +1855,18 @@ export default function UsersClient() {
               {/* User Selector & Actions */}
               <div className="flex flex-wrap items-center gap-2.5">
                 <span className="text-xs text-muted-foreground font-medium">Select User:</span>
-                <select
+                <CustomDropdown
+                  size="sm"
+                  variant="surface"
                   value={matrixSelectedUserId || users[0]?.id || ''}
-                  onChange={(e) => setMatrixSelectedUserId(e.target.value)}
-                  className="px-3 py-1.5 rounded-lg border border-border text-xs font-semibold outline-none cursor-pointer"
-                  style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
-                >
-                  {users.filter((u) => !isBotAccount(u) || isDigitalBot).map((u) => (
-                    <option key={u.id} value={u.id}>
-                      {u.name} ({u.roleLevel} · {u.roleTitle}) — {u.email}
-                    </option>
-                  ))}
-                </select>
+                  onChange={(val) => setMatrixSelectedUserId(val)}
+                  options={users
+                    .filter((u) => !isBotAccount(u) || isDigitalBot)
+                    .map((u) => ({
+                      value: u.id,
+                      label: `${u.name} (${u.roleLevel} · ${u.roleTitle}) — ${u.email}`,
+                    }))}
+                />
 
                 {(() => {
                   const targetUser = users.find((u) => u.id === matrixSelectedUserId) || users[0];
@@ -1728,47 +2369,50 @@ export default function UsersClient() {
                 </div>
 
                 {/* Category Filter */}
-                <select
+                <CustomDropdown
+                  size="sm"
+                  variant="filter"
                   value={auditCategory}
-                  onChange={(e) => setAuditCategory(e.target.value)}
-                  className="rounded-lg border border-border px-2.5 py-1.5 text-xs text-foreground cursor-pointer"
-                  style={{ background: 'var(--surface2)' }}
-                >
-                  <option value="ALL">All Categories</option>
-                  <option value="AUTH">Auth & Access</option>
-                  <option value="USER_MANAGEMENT">User Management</option>
-                  <option value="ASSET_REGISTER">Asset Register</option>
-                  <option value="COMPLIANCE">Compliance & Safety</option>
-                  <option value="MAINTENANCE">Maintenance</option>
-                  <option value="SECURITY">Security</option>
-                </select>
+                  onChange={(val) => setAuditCategory(val)}
+                  options={[
+                    { value: 'ALL', label: 'All Categories' },
+                    { value: 'AUTH', label: 'Auth & Access' },
+                    { value: 'USER_MANAGEMENT', label: 'User Management' },
+                    { value: 'ASSET_REGISTER', label: 'Asset Register' },
+                    { value: 'COMPLIANCE', label: 'Compliance & Safety' },
+                    { value: 'MAINTENANCE', label: 'Maintenance' },
+                    { value: 'SECURITY', label: 'Security' },
+                  ]}
+                />
 
                 {/* Role Filter */}
-                <select
+                <CustomDropdown
+                  size="sm"
+                  variant="filter"
                   value={auditRoleFilter}
-                  onChange={(e) => setAuditRoleFilter(e.target.value)}
-                  className="rounded-lg border border-border px-2.5 py-1.5 text-xs text-foreground cursor-pointer"
-                  style={{ background: 'var(--surface2)' }}
-                >
-                  <option value="ALL">All Roles</option>
-                  <option value="L1">L1 – Super Admin</option>
-                  <option value="L2">L2 – Portal Admin</option>
-                  <option value="L3">L3 – Uploader</option>
-                  <option value="L4">L4 – Viewer / Auditor</option>
-                </select>
+                  onChange={(val) => setAuditRoleFilter(val)}
+                  options={[
+                    { value: 'ALL', label: 'All Roles' },
+                    { value: 'L1', label: 'L1 – Super Admin' },
+                    { value: 'L2', label: 'L2 – Portal Admin' },
+                    { value: 'L3', label: 'L3 – Uploader' },
+                    { value: 'L4', label: 'L4 – Viewer / Auditor' },
+                  ]}
+                />
 
                 {/* Status Filter */}
-                <select
+                <CustomDropdown
+                  size="sm"
+                  variant="filter"
                   value={auditStatusFilter}
-                  onChange={(e) => setAuditStatusFilter(e.target.value)}
-                  className="rounded-lg border border-border px-2.5 py-1.5 text-xs text-foreground cursor-pointer"
-                  style={{ background: 'var(--surface2)' }}
-                >
-                  <option value="ALL">All Statuses</option>
-                  <option value="success">Success</option>
-                  <option value="warning">Warning</option>
-                  <option value="alert">Security Alert</option>
-                </select>
+                  onChange={(val) => setAuditStatusFilter(val)}
+                  options={[
+                    { value: 'ALL', label: 'All Statuses' },
+                    { value: 'success', label: 'Success', color: '#10b981' },
+                    { value: 'warning', label: 'Warning', color: '#f59e0b' },
+                    { value: 'alert', label: 'Security Alert', color: '#ef4444' },
+                  ]}
+                />
               </div>
 
               {/* Action Buttons */}
@@ -2033,66 +2677,230 @@ export default function UsersClient() {
               <label className="samko-label" htmlFor="user-role-level">
                 Role Tier (Level) *
               </label>
-              <select
+              <CustomDropdown
                 id="user-role-level"
-                className="samko-input"
-                style={{ cursor: 'pointer' }}
+                variant="form"
+                width="100%"
                 value={newUser.roleLevel}
-                onChange={(e) => {
-                  const role = e.target.value as RoleLevel;
+                onChange={(val) => {
+                  const role = val as RoleLevel;
                   setNewUser({
                     ...newUser,
                     roleLevel: role,
                     tabPermissions: getDefaultTabPermissionsForRole(role),
                   });
                 }}
-              >
-                {isSuperAdmin && <option value="L1">L1 – Super Admin</option>}
-                {isSuperAdmin && <option value="L2">L2 – Admin</option>}
-                <option value="L3">L3 – Uploader</option>
-                <option value="L4">L4 – Viewer (Read-only)</option>
-              </select>
+                options={[
+                  ...(isSuperAdmin ? [{ value: 'L1', label: 'L1 – Super Admin' }] : []),
+                  ...(isSuperAdmin ? [{ value: 'L2', label: 'L2 – Admin' }] : []),
+                  { value: 'L3', label: 'L3 – Uploader' },
+                  { value: 'L4', label: 'L4 – Viewer (Read-only)' },
+                ]}
+              />
             </div>
 
             <div>
               <label className="samko-label" htmlFor="user-portal">
                 Portal Assignment *
               </label>
-              <select
+              <CustomDropdown
                 id="user-portal"
-                className="samko-input"
-                style={{ cursor: 'pointer' }}
+                variant="form"
+                width="100%"
                 value={newUser.portal}
-                onChange={(e) =>
-                  setNewUser({ ...newUser, portal: e.target.value as PortalType })
+                onChange={(val) =>
+                  setNewUser({ ...newUser, portal: val as PortalType })
                 }
-              >
-                {isSuperAdmin && <option value="both">Both (Propco & Opco)</option>}
-                <option value="propco">Propco Portal</option>
-                <option value="opco">Opco Portal</option>
-              </select>
+                options={[
+                  ...(isSuperAdmin ? [{ value: 'both', label: 'Both (Propco & Opco)' }] : []),
+                  { value: 'propco', label: 'Propco Portal' },
+                  { value: 'opco', label: 'Opco Portal' },
+                ]}
+              />
             </div>
           </div>
 
           <div>
-            <label className="samko-label" htmlFor="user-hotel">
-              Assigned Property *
-            </label>
-            <select
+            <div className="flex items-center justify-between mb-1">
+              <label className="samko-label mb-0" htmlFor="user-hotel">
+                Assigned Properties * <span className="text-[11px] font-normal text-muted-foreground">(Select 1 or multiple)</span>
+              </label>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() =>
+                    setNewUser({
+                      ...newUser,
+                      assignedProperties: ['All Properties'],
+                      hotel: 'All Properties',
+                    })
+                  }
+                  className="text-[11px] text-[#e8c97a] hover:underline cursor-pointer"
+                >
+                  All Properties
+                </button>
+                <span className="text-white/20">|</span>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setNewUser({
+                      ...newUser,
+                      assignedProperties: [],
+                      hotel: '',
+                    })
+                  }
+                  className="text-[11px] text-muted-foreground hover:text-foreground cursor-pointer"
+                >
+                  Clear
+                </button>
+              </div>
+            </div>
+            <CustomDropdown
               id="user-hotel"
-              className="samko-input"
-              style={{ cursor: 'pointer' }}
-              value={newUser.hotel}
-              onChange={(e) => setNewUser({ ...newUser, hotel: e.target.value })}
-            >
-              <option value="All Properties">All Properties (Portfolio-wide)</option>
-              <option value="Crowne Plaza Kingston-south">Crowne Plaza Kingston-south</option>
-              <option value="Stanhill Court">Stanhill Court</option>
-              <option value="Hampton 1 & 2">Hampton 1 & 2</option>
-              <option value="Ravents Ait Island">Ravents Ait Island</option>
-              <option value="River Club">River Club</option>
-              <option value="Warren House">Warren House</option>
-            </select>
+              variant="form"
+              width="100%"
+              multiple
+              placeholder="Select assigned properties..."
+              value={newUser.assignedProperties}
+              onChange={(vals: string[]) => {
+                setNewUser({
+                  ...newUser,
+                  assignedProperties: vals,
+                  hotel: vals.length > 0 ? (vals.includes('all') || vals.includes('All Properties') ? 'All Properties' : vals.join(', ')) : 'No Property Assigned',
+                });
+              }}
+              options={dynamicPropertyOptions}
+            />
+
+            {/* Selected Property Tags with Remove X */}
+            {newUser.assignedProperties.length > 0 && !newUser.assignedProperties.includes('all') && !newUser.assignedProperties.includes('All Properties') && (
+              <div className="flex flex-wrap gap-1.5 mt-2">
+                {newUser.assignedProperties.map((prop) => (
+                  <span
+                    key={prop}
+                    className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[11px] font-semibold border"
+                    style={{
+                      background: 'rgba(232, 201, 122, 0.12)',
+                      borderColor: '#e8c97a',
+                      color: '#e8c97a',
+                    }}
+                  >
+                    <span>{prop}</span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const next = newUser.assignedProperties.filter((p) => p !== prop);
+                        setNewUser({
+                          ...newUser,
+                          assignedProperties: next,
+                          hotel: next.length > 0 ? next.join(', ') : 'No Property Assigned',
+                        });
+                      }}
+                      className="hover:text-rose-400 p-0.5 transition-colors cursor-pointer"
+                      title={`Remove ${prop}`}
+                    >
+                      <X size={11} />
+                    </button>
+                  </span>
+                ))}
+              </div>
+            )}
+
+            {/* Direct Quick-Toggle Property Buttons */}
+            <div className="flex flex-wrap gap-1.5 mt-2.5 max-h-36 overflow-y-auto pr-1">
+              {dynamicPropertyOptions.map((opt) => {
+                const isAllOpt = opt.value.toLowerCase().startsWith('all');
+                const isSelected = isAllOpt
+                  ? newUser.assignedProperties.some((p) => p.toLowerCase().startsWith('all'))
+                  : newUser.assignedProperties.includes(opt.value);
+
+                return (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => {
+                      if (isAllOpt) {
+                        setNewUser({
+                          ...newUser,
+                          assignedProperties: ['All Properties'],
+                          hotel: 'All Properties',
+                        });
+                      } else {
+                        const withoutAll = newUser.assignedProperties.filter(
+                          (p) => !p.toLowerCase().startsWith('all')
+                        );
+                        let next: string[];
+                        if (withoutAll.includes(opt.value)) {
+                          next = withoutAll.filter((p) => p !== opt.value);
+                        } else {
+                          next = [...withoutAll, opt.value];
+                        }
+                        setNewUser({
+                          ...newUser,
+                          assignedProperties: next,
+                          hotel: next.length > 0 ? next.join(', ') : 'No Property Assigned',
+                        });
+                      }
+                    }}
+                    className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium border transition-all cursor-pointer ${isSelected
+                        ? 'bg-[#e8c97a]/20 border-[#e8c97a] text-[#e8c97a] shadow-sm font-semibold'
+                        : 'bg-white/[0.04] border-white/10 text-muted-foreground hover:border-white/30 hover:text-foreground'
+                      }`}
+                  >
+                    <div
+                      className={`w-3.5 h-3.5 rounded-[3px] flex items-center justify-center transition-all ${isSelected
+                          ? 'bg-[#e8c97a] text-[#121316]'
+                          : 'border border-white/30 bg-transparent'
+                        }`}
+                    >
+                      {isSelected && <Check size={10} strokeWidth={3.5} />}
+                    </div>
+                    <span>{opt.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Add New Custom Property On-the-Fly */}
+            <div className="flex items-center gap-2 mt-2 pt-2 border-t border-border/50">
+              <input
+                type="text"
+                placeholder="Add another new property..."
+                value={newAddCustomPropertyInput}
+                onChange={(e) => setNewAddCustomPropertyInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    const val = newAddCustomPropertyInput.trim();
+                    if (val) {
+                      saveCustomProperty(val);
+                      const withoutAll = newUser.assignedProperties.filter((p) => !p.toLowerCase().startsWith('all'));
+                      const next = withoutAll.includes(val) ? withoutAll : [...withoutAll, val];
+                      setNewUser({ ...newUser, assignedProperties: next, hotel: next.join(', ') });
+                      setNewAddCustomPropertyInput('');
+                      toast.success(`Assigned "${val}" to new user`);
+                    }
+                  }
+                }}
+                className="samko-input text-xs flex-1"
+              />
+              <button
+                type="button"
+                onClick={() => {
+                  const val = newAddCustomPropertyInput.trim();
+                  if (!val) return;
+                  saveCustomProperty(val);
+                  const withoutAll = newUser.assignedProperties.filter((p) => !p.toLowerCase().startsWith('all'));
+                  const next = withoutAll.includes(val) ? withoutAll : [...withoutAll, val];
+                  setNewUser({ ...newUser, assignedProperties: next, hotel: next.join(', ') });
+                  setNewAddCustomPropertyInput('');
+                  toast.success(`Assigned "${val}" to new user`);
+                }}
+                className="px-2.5 py-1.5 rounded-lg text-xs font-semibold border border-primary/40 text-primary hover:bg-primary hover:text-black transition-all cursor-pointer whitespace-nowrap"
+              >
+                <Plus size={11} className="inline mr-1" /> Add
+              </button>
+            </div>
           </div>
 
           {/* Tab-Level Permissions Configuration */}
@@ -2202,16 +3010,45 @@ export default function UsersClient() {
                   {viewingUser.portal === 'both'
                     ? 'Both (Propco & Opco)'
                     : viewingUser.portal === 'propco'
-                    ? 'Propco Portal Only'
-                    : 'Opco Portal Only'}
+                      ? 'Propco Portal Only'
+                      : 'Opco Portal Only'}
                 </span>
               </div>
 
               <div className="p-3 rounded-lg border border-border/60" style={{ background: 'var(--surface)' }}>
-                <span className="text-muted-foreground font-medium block mb-1">Assigned Property</span>
-                <span className="font-semibold text-foreground truncate block">
-                  {viewingUser.hotel}
-                </span>
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-muted-foreground font-medium">Assigned Properties</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const u = viewingUser;
+                      setViewingUser(null);
+                      openPropertyModal(u);
+                    }}
+                    className="text-[11px] text-[#e8c97a] hover:underline cursor-pointer flex items-center gap-1"
+                  >
+                    <Plus size={10} /> Manage Properties
+                  </button>
+                </div>
+                <div className="flex flex-wrap gap-1">
+                  {viewingUser.assignedProperties && viewingUser.assignedProperties.length > 0 && !viewingUser.assignedProperties.includes('all') && !viewingUser.assignedProperties.includes('All Properties') ? (
+                    viewingUser.assignedProperties.map((p) => (
+                      <span
+                        key={p}
+                        className="px-1.5 py-0.5 rounded text-[11px] font-medium border"
+                        style={{
+                          background: 'rgba(232, 201, 122, 0.1)',
+                          borderColor: 'rgba(232, 201, 122, 0.25)',
+                          color: '#e8c97a',
+                        }}
+                      >
+                        {p}
+                      </span>
+                    ))
+                  ) : (
+                    <span className="font-semibold text-foreground">{viewingUser.hotel || 'All Properties'}</span>
+                  )}
+                </div>
               </div>
 
               <div className="p-3 rounded-lg border border-border/60" style={{ background: 'var(--surface)' }}>
@@ -2345,86 +3182,264 @@ export default function UsersClient() {
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-3 gap-3">
               <div>
                 <label className="samko-label" htmlFor="edit-user-role-level">
                   Role Tier (Level) *
                 </label>
-                <select
+                <CustomDropdown
                   id="edit-user-role-level"
-                  className="samko-input"
-                  style={{ cursor: 'pointer' }}
+                  variant="form"
+                  width="100%"
                   value={editForm.roleLevel}
-                  onChange={(e) =>
-                    setEditForm({ ...editForm, roleLevel: e.target.value as RoleLevel })
+                  onChange={(val) =>
+                    setEditForm({ ...editForm, roleLevel: val as RoleLevel })
                   }
                   disabled={editingUser.roleLevel === 'L1' && !isSuperAdmin}
-                >
-                  {isSuperAdmin && <option value="L1">L1 – Super Admin</option>}
-                  {isSuperAdmin && <option value="L2">L2 – Admin</option>}
-                  <option value="L3">L3 – Uploader</option>
-                  <option value="L4">L4 – Viewer (Read-only)</option>
-                </select>
+                  options={[
+                    ...(isSuperAdmin ? [{ value: 'L1', label: 'L1 – Super Admin' }] : []),
+                    ...(isSuperAdmin ? [{ value: 'L2', label: 'L2 – Admin' }] : []),
+                    { value: 'L3', label: 'L3 – Uploader' },
+                    { value: 'L4', label: 'L4 – Viewer (Read-only)' },
+                  ]}
+                />
               </div>
 
               <div>
                 <label className="samko-label" htmlFor="edit-user-portal">
                   Portal Assignment *
                 </label>
-                <select
+                <CustomDropdown
                   id="edit-user-portal"
-                  className="samko-input"
-                  style={{ cursor: 'pointer' }}
+                  variant="form"
+                  width="100%"
                   value={editForm.portal}
-                  onChange={(e) =>
-                    setEditForm({ ...editForm, portal: e.target.value as PortalType })
+                  onChange={(val) =>
+                    setEditForm({ ...editForm, portal: val as PortalType })
                   }
-                >
-                  {isSuperAdmin && <option value="both">Both (Propco & Opco)</option>}
-                  <option value="propco">Propco Portal</option>
-                  <option value="opco">Opco Portal</option>
-                </select>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="samko-label" htmlFor="edit-user-hotel">
-                  Assigned Property *
-                </label>
-                <select
-                  id="edit-user-hotel"
-                  className="samko-input"
-                  style={{ cursor: 'pointer' }}
-                  value={editForm.hotel}
-                  onChange={(e) => setEditForm({ ...editForm, hotel: e.target.value })}
-                >
-                  <option value="All Properties">All Properties (Portfolio-wide)</option>
-                  <option value="Crowne Plaza Kingston-south">Crowne Plaza Kingston-south</option>
-                  <option value="Stanhill Court">Stanhill Court</option>
-                  <option value="Hampton 1 & 2">Hampton 1 & 2</option>
-                  <option value="Ravents Ait Island">Ravents Ait Island</option>
-                  <option value="River Club">River Club</option>
-                  <option value="Warren House">Warren House</option>
-                </select>
+                  options={[
+                    ...(isSuperAdmin ? [{ value: 'both', label: 'Both (Propco & Opco)' }] : []),
+                    { value: 'propco', label: 'Propco Portal' },
+                    { value: 'opco', label: 'Opco Portal' },
+                  ]}
+                />
               </div>
 
               <div>
                 <label className="samko-label" htmlFor="edit-user-status">
                   Account Status *
                 </label>
-                <select
+                <CustomDropdown
                   id="edit-user-status"
-                  className="samko-input"
-                  style={{ cursor: 'pointer' }}
+                  variant="form"
+                  width="100%"
                   value={editForm.status}
-                  onChange={(e) =>
-                    setEditForm({ ...editForm, status: e.target.value as 'active' | 'inactive' })
+                  onChange={(val) =>
+                    setEditForm({ ...editForm, status: val as 'active' | 'inactive' })
                   }
+                  options={[
+                    { value: 'active', label: 'Active', color: '#10b981' },
+                    { value: 'inactive', label: 'Inactive', color: '#ef4444' },
+                  ]}
+                />
+              </div>
+            </div>
+
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <label className="samko-label mb-0" htmlFor="edit-user-hotel">
+                  Assigned Properties * <span className="text-[11px] font-normal text-muted-foreground">(Select 1 or multiple)</span>
+                </label>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setEditForm({
+                        ...editForm,
+                        assignedProperties: ['All Properties'],
+                        hotel: 'All Properties',
+                      })
+                    }
+                    className="text-[11px] text-[#e8c97a] hover:underline cursor-pointer"
+                  >
+                    All Properties
+                  </button>
+                  <span className="text-white/20">|</span>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setEditForm({
+                        ...editForm,
+                        assignedProperties: [],
+                        hotel: '',
+                      })
+                    }
+                    className="text-[11px] text-muted-foreground hover:text-foreground cursor-pointer"
+                  >
+                    Clear
+                  </button>
+                </div>
+              </div>
+              <CustomDropdown
+                id="edit-user-hotel"
+                variant="form"
+                width="100%"
+                multiple
+                placeholder="Select assigned properties..."
+                value={editForm.assignedProperties}
+                onChange={(vals: string[]) => {
+                  setEditForm({
+                    ...editForm,
+                    assignedProperties: vals,
+                    hotel: vals.length > 0 ? (vals.includes('all') || vals.includes('All Properties') ? 'All Properties' : vals.join(', ')) : 'No Property Assigned',
+                  });
+                }}
+                options={dynamicPropertyOptions}
+              />
+
+              {/* Selected Property Tags with Remove X */}
+              {editForm.assignedProperties.length > 0 && !editForm.assignedProperties.includes('all') && !editForm.assignedProperties.includes('All Properties') && (
+                <div className="flex flex-wrap gap-1.5 mt-2">
+                  {editForm.assignedProperties.map((prop) => (
+                    <span
+                      key={prop}
+                      className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[11px] font-semibold border"
+                      style={{
+                        background: 'rgba(232, 201, 122, 0.12)',
+                        borderColor: '#e8c97a',
+                        color: '#e8c97a',
+                      }}
+                    >
+                      <span>{prop}</span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (editingUser) {
+                            setPropertyRemovalConfirm({
+                              user: editingUser,
+                              property: prop,
+                              onConfirmOverride: () => {
+                                const next = editForm.assignedProperties.filter((p) => p !== prop);
+                                setEditForm({
+                                  ...editForm,
+                                  assignedProperties: next,
+                                  hotel: next.length > 0 ? next.join(', ') : 'No Property Assigned',
+                                });
+                              },
+                            });
+                          } else {
+                            const next = editForm.assignedProperties.filter((p) => p !== prop);
+                            setEditForm({
+                              ...editForm,
+                              assignedProperties: next,
+                              hotel: next.length > 0 ? next.join(', ') : 'No Property Assigned',
+                            });
+                          }
+                        }}
+                        className="hover:text-rose-400 p-0.5 transition-colors cursor-pointer"
+                        title={`Remove ${prop}`}
+                      >
+                        <X size={11} />
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              )}
+
+              {/* Direct Quick-Toggle Property Buttons */}
+              <div className="flex flex-wrap gap-1.5 mt-2.5 max-h-36 overflow-y-auto pr-1">
+                {dynamicPropertyOptions.map((opt) => {
+                  const isAllOpt = opt.value.toLowerCase().startsWith('all');
+                  const isSelected = isAllOpt
+                    ? editForm.assignedProperties.some((p) => p.toLowerCase().startsWith('all'))
+                    : editForm.assignedProperties.includes(opt.value);
+
+                  return (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      onClick={() => {
+                        if (isAllOpt) {
+                          setEditForm({
+                            ...editForm,
+                            assignedProperties: ['All Properties'],
+                            hotel: 'All Properties',
+                          });
+                        } else {
+                          const withoutAll = editForm.assignedProperties.filter(
+                            (p) => !p.toLowerCase().startsWith('all')
+                          );
+                          let next: string[];
+                          if (withoutAll.includes(opt.value)) {
+                            next = withoutAll.filter((p) => p !== opt.value);
+                          } else {
+                            next = [...withoutAll, opt.value];
+                          }
+                          setEditForm({
+                            ...editForm,
+                            assignedProperties: next,
+                            hotel: next.length > 0 ? next.join(', ') : 'No Property Assigned',
+                          });
+                        }
+                      }}
+                      className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium border transition-all cursor-pointer ${isSelected
+                          ? 'bg-[#e8c97a]/20 border-[#e8c97a] text-[#e8c97a] shadow-sm font-semibold'
+                          : 'bg-white/[0.04] border-white/10 text-muted-foreground hover:border-white/30 hover:text-foreground'
+                        }`}
+                    >
+                      <div
+                        className={`w-3.5 h-3.5 rounded-[3px] flex items-center justify-center transition-all ${isSelected
+                            ? 'bg-[#e8c97a] text-[#121316]'
+                            : 'border border-white/30 bg-transparent'
+                          }`}
+                      >
+                        {isSelected && <Check size={10} strokeWidth={3.5} />}
+                      </div>
+                      <span>{opt.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Add New Custom Property On-the-Fly */}
+              <div className="flex items-center gap-2 mt-2 pt-2 border-t border-border/50">
+                <input
+                  type="text"
+                  placeholder="Add another new property..."
+                  value={newEditCustomPropertyInput}
+                  onChange={(e) => setNewEditCustomPropertyInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      const val = newEditCustomPropertyInput.trim();
+                      if (val) {
+                        saveCustomProperty(val);
+                        const withoutAll = editForm.assignedProperties.filter((p) => !p.toLowerCase().startsWith('all'));
+                        const next = withoutAll.includes(val) ? withoutAll : [...withoutAll, val];
+                        setEditForm({ ...editForm, assignedProperties: next, hotel: next.join(', ') });
+                        setNewEditCustomPropertyInput('');
+                        toast.success(`Assigned "${val}" to ${editForm.name}`);
+                      }
+                    }
+                  }}
+                  className="samko-input text-xs flex-1"
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    const val = newEditCustomPropertyInput.trim();
+                    if (!val) return;
+                    saveCustomProperty(val);
+                    const withoutAll = editForm.assignedProperties.filter((p) => !p.toLowerCase().startsWith('all'));
+                    const next = withoutAll.includes(val) ? withoutAll : [...withoutAll, val];
+                    setEditForm({ ...editForm, assignedProperties: next, hotel: next.join(', ') });
+                    setNewEditCustomPropertyInput('');
+                    toast.success(`Assigned "${val}" to ${editForm.name}`);
+                  }}
+                  className="px-2.5 py-1.5 rounded-lg text-xs font-semibold border border-primary/40 text-primary hover:bg-primary hover:text-black transition-all cursor-pointer whitespace-nowrap"
                 >
-                  <option value="active">Active</option>
-                  <option value="inactive">Inactive</option>
-                </select>
+                  <Plus size={11} className="inline mr-1" /> Add
+                </button>
               </div>
             </div>
 
@@ -2733,7 +3748,234 @@ export default function UsersClient() {
           </div>
         )}
       </Modal>
-    
+
+      {/* Quick Property Assignment Modal */}
+      <Modal
+        open={Boolean(propertyModalUser)}
+        onClose={() => setPropertyModalUser(null)}
+        title="Manage Assigned Properties"
+        subtitle={propertyModalUser ? `Assign or remove property access for ${propertyModalUser.name} (${propertyModalUser.roleLevel} · ${propertyModalUser.roleTitle})` : ''}
+        width={580}
+      >
+        {propertyModalUser && (
+          <div className="space-y-4">
+            {/* User Profile Summary */}
+            <div className="flex items-center justify-between p-3 rounded-xl border border-border" style={{ background: 'var(--surface2)' }}>
+              <div>
+                <div className="font-semibold text-sm text-foreground">{propertyModalUser.name}</div>
+                <div className="text-xs text-muted-foreground">{propertyModalUser.email} · {propertyModalUser.roleTitle}</div>
+              </div>
+              <span
+                className="px-2 py-0.5 rounded text-[11px] font-bold"
+                style={{
+                  background: ROLE_LEVEL_CONFIG[propertyModalUser.roleLevel]?.badgeBg,
+                  color: ROLE_LEVEL_CONFIG[propertyModalUser.roleLevel]?.color,
+                }}
+              >
+                {propertyModalUser.roleLevel}
+              </span>
+            </div>
+
+            {/* Currently Assigned Properties Header & Chips */}
+            <div>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="samko-label mb-0">Currently Assigned Properties ({tempAssignedProperties.filter((p) => !p.toLowerCase().startsWith('all')).length})</label>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setTempAssignedProperties(['All Properties'])}
+                    className="text-[11px] text-[#e8c97a] hover:underline cursor-pointer"
+                  >
+                    All Properties
+                  </button>
+                  <span className="text-white/20">|</span>
+                  <button
+                    type="button"
+                    onClick={() => setTempAssignedProperties([])}
+                    className="text-[11px] text-muted-foreground hover:text-foreground cursor-pointer"
+                  >
+                    Clear All
+                  </button>
+                </div>
+              </div>
+
+              {tempAssignedProperties.includes('all') || tempAssignedProperties.includes('All Properties') ? (
+                <div className="p-3 rounded-lg border border-border/60 bg-white/[0.02] flex items-center justify-between">
+                  <span className="text-xs text-muted-foreground font-medium flex items-center gap-1.5">
+                    <Globe size={13} className="text-primary" /> Full Portfolio Oversight (All Properties Assigned)
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setTempAssignedProperties([])}
+                    className="text-xs text-rose-400 hover:underline cursor-pointer"
+                  >
+                    Remove All Access
+                  </button>
+                </div>
+              ) : tempAssignedProperties.length === 0 ? (
+                <div className="p-3 rounded-lg border border-amber-500/20 bg-amber-500/5 text-amber-300 text-xs flex items-center gap-2">
+                  <AlertCircle size={14} />
+                  <span>No properties assigned. This user will have restricted access until a property is assigned.</span>
+                </div>
+              ) : (
+                <div className="flex flex-wrap gap-1.5 p-2.5 rounded-lg border border-border/60 bg-white/[0.02] min-h-[46px] items-center">
+                  {tempAssignedProperties.map((prop) => (
+                    <span
+                      key={prop}
+                      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold border transition-all"
+                      style={{
+                        background: 'rgba(232, 201, 122, 0.15)',
+                        borderColor: '#e8c97a',
+                        color: '#e8c97a',
+                      }}
+                    >
+                      <Building2 size={12} />
+                      <span>{prop}</span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (propertyModalUser) {
+                            setPropertyRemovalConfirm({
+                              user: propertyModalUser,
+                              property: prop,
+                              onConfirmOverride: () => {
+                                setTempAssignedProperties((prev) => prev.filter((p) => p !== prop));
+                              },
+                            });
+                          } else {
+                            setTempAssignedProperties((prev) => prev.filter((p) => p !== prop));
+                          }
+                        }}
+                        className="hover:bg-rose-500/20 hover:text-rose-400 rounded p-0.5 transition-colors cursor-pointer"
+                        title={`Remove ${prop}`}
+                      >
+                        <X size={12} />
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Quick Toggle Available Properties */}
+            <div>
+              <label className="samko-label mb-1.5">Select Properties to Assign or Remove</label>
+              <div className="flex flex-wrap gap-1.5 max-h-44 overflow-y-auto pr-1 p-2 rounded-xl border border-border" style={{ background: 'var(--surface)' }}>
+                {dynamicPropertyOptions.map((opt) => {
+                  const isAllOpt = opt.value.toLowerCase().startsWith('all');
+                  const isSelected = isAllOpt
+                    ? tempAssignedProperties.some((p) => p.toLowerCase().startsWith('all'))
+                    : tempAssignedProperties.includes(opt.value);
+
+                  return (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      onClick={() => {
+                        if (isAllOpt) {
+                          setTempAssignedProperties(['All Properties']);
+                        } else {
+                          const withoutAll = tempAssignedProperties.filter((p) => !p.toLowerCase().startsWith('all'));
+                          if (withoutAll.includes(opt.value)) {
+                            setTempAssignedProperties(withoutAll.filter((p) => p !== opt.value));
+                          } else {
+                            setTempAssignedProperties([...withoutAll, opt.value]);
+                          }
+                        }
+                      }}
+                      className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium border transition-all cursor-pointer ${isSelected
+                          ? 'bg-[#e8c97a]/20 border-[#e8c97a] text-[#e8c97a] font-semibold'
+                          : 'bg-white/[0.04] border-white/10 text-muted-foreground hover:border-white/30 hover:text-foreground'
+                        }`}
+                    >
+                      <div
+                        className={`w-3.5 h-3.5 rounded-[3px] flex items-center justify-center transition-all ${isSelected ? 'bg-[#e8c97a] text-black font-bold' : 'border border-white/30'
+                          }`}
+                      >
+                        {isSelected && <Check size={10} className="stroke-[3]" />}
+                      </div>
+                      <span>{opt.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Add New Custom Property On-the-Fly */}
+            <div className="pt-2 border-t border-border">
+              <label className="samko-label mb-1">Add &amp; Assign a New Property</label>
+              <div className="flex items-center gap-2">
+                <input
+                  type="text"
+                  placeholder="Enter new property or hotel name..."
+                  value={newCustomPropertyInput}
+                  onChange={(e) => setNewCustomPropertyInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      const val = newCustomPropertyInput.trim();
+                      if (val) {
+                        saveCustomProperty(val);
+                        const withoutAll = tempAssignedProperties.filter((p) => !p.toLowerCase().startsWith('all'));
+                        if (!withoutAll.includes(val)) {
+                          setTempAssignedProperties([...withoutAll, val]);
+                        }
+                        setNewCustomPropertyInput('');
+                        toast.success(`Added & assigned "${val}"`);
+                      }
+                    }
+                  }}
+                  className="samko-input text-xs flex-1"
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    const val = newCustomPropertyInput.trim();
+                    if (!val) return;
+                    saveCustomProperty(val);
+                    const withoutAll = tempAssignedProperties.filter((p) => !p.toLowerCase().startsWith('all'));
+                    if (!withoutAll.includes(val)) {
+                      setTempAssignedProperties([...withoutAll, val]);
+                    }
+                    setNewCustomPropertyInput('');
+                    toast.success(`Added & assigned "${val}"`);
+                  }}
+                  className="px-3 py-2 rounded-lg text-xs font-semibold border border-primary/40 text-primary hover:bg-primary hover:text-black transition-all cursor-pointer whitespace-nowrap"
+                >
+                  <Plus size={12} className="inline mr-1" /> Add &amp; Assign
+                </button>
+              </div>
+            </div>
+
+            {/* Footer Buttons */}
+            <div className="flex items-center justify-end gap-2 pt-3 border-t border-border mt-3">
+              <button
+                type="button"
+                onClick={() => setPropertyModalUser(null)}
+                className="samko-btn-ghost text-xs cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={savingUserProperties}
+                onClick={async () => {
+                  if (!propertyModalUser) return;
+                  const target = propertyModalUser;
+                  const propsToSave = [...tempAssignedProperties];
+                  setPropertyModalUser(null);
+                  await handleUpdateUserProperties(target, propsToSave);
+                }}
+                className="samko-btn-primary flex items-center gap-1.5 text-xs font-semibold cursor-pointer"
+              >
+                {savingUserProperties ? <Loader2 size={13} className="animate-spin" /> : <Check size={13} />}
+                Save Property Assignments
+              </button>
+            </div>
+          </div>
+        )}
+      </Modal>
+
       {/* Universal Delete Confirmation Modal */}
       <ConfirmDeleteModal
         isOpen={Boolean(userToDelete)}
@@ -2753,6 +3995,38 @@ export default function UsersClient() {
         itemName={userToDelete?.name || 'User Account'}
         registerName="user directory"
         isDeleting={isDeletingUser}
+      />
+
+      {/* Bulk Delete Confirmation Modal */}
+      <ConfirmDeleteModal
+        isOpen={showBulkDeleteModal}
+        onClose={() => setShowBulkDeleteModal(false)}
+        onConfirm={handleConfirmBulkDelete}
+        title="Confirm Bulk Deletion"
+        itemName={`${selectedUserIds.length} Selected Users`}
+        registerName="user directory"
+        customWarning={`Are you sure you want to permanently delete these ${selectedUserIds.length} selected user accounts? They will immediately lose access and this action cannot be undone.`}
+        confirmButtonText={`Delete ${selectedUserIds.length} Users`}
+        isDeleting={isBulkDeleting}
+      />
+
+      {/* Property Removal Confirmation Modal */}
+      <ConfirmDeleteModal
+        isOpen={Boolean(propertyRemovalConfirm)}
+        onClose={() => setPropertyRemovalConfirm(null)}
+        onConfirm={() => {
+          if (!propertyRemovalConfirm) return;
+          if (propertyRemovalConfirm.onConfirmOverride) {
+            propertyRemovalConfirm.onConfirmOverride();
+          } else {
+            handleRemovePropertyFromUser(propertyRemovalConfirm.user, propertyRemovalConfirm.property);
+          }
+          setPropertyRemovalConfirm(null);
+        }}
+        title="Remove Assigned Property"
+        itemName={propertyRemovalConfirm?.property || 'Property'}
+        confirmButtonText="Remove Property Assignment"
+        customWarning={`Are you sure you want to remove "${propertyRemovalConfirm?.property}" from ${propertyRemovalConfirm?.user?.name}? All property records, assets, documents, and operational data will safely stay in the database. Only this user's viewing assignment will be removed.`}
       />
     </div>
   );

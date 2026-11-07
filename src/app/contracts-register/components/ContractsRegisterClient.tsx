@@ -13,6 +13,9 @@ import { useDeepPageCms, DEFAULT_CONTRACT_CATEGORIES, addDropdownOption, removeD
 import PageCMSEditButton from '@/components/cms/PageCMSEditButton';
 import LoadingPagination from '@/components/ui/LoadingPagination';
 import { useLoadingPagination } from '@/hooks/useLoadingPagination';
+import TableCheckbox from '@/components/ui/TableCheckbox';
+import BulkActionBar from '@/components/ui/BulkActionBar';
+import ConfirmDeleteModal from '@/components/modals/ConfirmDeleteModal';
 
 
 type ContractStatus = 'active' | 'expiring-soon' | 'expired' | 'pending' | 'terminated';
@@ -553,7 +556,9 @@ function KPICard({ label, value, sub, color, icon: Icon }: { label: string; valu
 }
 
 export default function ContractsRegisterClient() {
-  const { isViewer, canEdit, canDelete } = useAuth();
+  const { isViewer, canEdit, canDelete, canWriteTab, isPropertyAccessible } = useAuth();
+  const hasWriteAccess = !isViewer && canEdit && canWriteTab('contracts');
+  const hasDeleteAccess = !isViewer && canDelete && canWriteTab('contracts');
   const {
     title: cmsTitle,
     subtitle: cmsSubtitle,
@@ -599,7 +604,7 @@ export default function ContractsRegisterClient() {
           const parsed = JSON.parse(cached);
           if (Array.isArray(parsed) && parsed.length > 0) return parsed.map(normalizeContract);
         }
-      } catch {}
+      } catch { }
     }
     if (cmsItems && cmsItems.length > 0) return (cmsItems as any).map(normalizeContract);
     return MOCK_CONTRACTS.map(normalizeContract);
@@ -642,7 +647,7 @@ export default function ContractsRegisterClient() {
           const parsed = JSON.parse(saved);
           if (Array.isArray(parsed)) return parsed;
         }
-      } catch {}
+      } catch { }
     }
     return [];
   });
@@ -743,7 +748,7 @@ export default function ContractsRegisterClient() {
     if (typeof window !== 'undefined') {
       try {
         localStorage.setItem('samko_contract_categories', JSON.stringify(updatedCustom));
-      } catch {}
+      } catch { }
     }
     removeDropdownOptionByName('contracts', 'category', oldName);
     addDropdownOption('contracts', 'category', newName);
@@ -758,7 +763,7 @@ export default function ContractsRegisterClient() {
     if (typeof window !== 'undefined') {
       try {
         localStorage.setItem('samko_contracts_data', JSON.stringify(updatedContracts));
-      } catch {}
+      } catch { }
     }
     setEditingCat(null);
     toast.success(`Renamed category "${oldName}" to "${newName}"`);
@@ -828,7 +833,7 @@ export default function ContractsRegisterClient() {
         setContracts(res.data.map(normalizeContract));
         try {
           sessionStorage.setItem('samko_cache_contracts', JSON.stringify(res.data));
-        } catch {}
+        } catch { }
       } else {
         setContracts(MOCK_CONTRACTS.map(normalizeContract));
       }
@@ -862,8 +867,10 @@ export default function ContractsRegisterClient() {
       ...properties.map((p) => p.name),
       ...contracts.map((c) => c.hotel).filter(Boolean),
       ...HOTELS,
-    ])).sort();
-  }, [properties, contracts]);
+    ]))
+      .filter((p) => isPropertyAccessible(p))
+      .sort();
+  }, [properties, contracts, isPropertyAccessible]);
 
   const { getDropdownOptions, getFieldLabel, customFields } = useCMSForm('contracts');
 
@@ -1060,18 +1067,22 @@ export default function ContractsRegisterClient() {
     toast.success(`Uploaded ${file.name}`);
   };
 
-  const activeContracts = contracts.filter((c) => c.status === 'active').length;
-  const expiringSoon = contracts.filter((c) => c.status === 'expiring-soon').length;
-  const renewalsDue = contracts.filter((c) => { const d = daysUntil(c.renewalDate); return !isNaN(d) && d >= 0 && d <= 90; }).length;
-  const autoRenewCount = contracts.filter((c) => c.autoRenew).length;
-  const totalValue = contracts.filter((c) => c.status === 'active').reduce((sum, c) => sum + (Number(c.contractValue) || 0), 0);
+  const accessibleContracts = useMemo(() => {
+    return contracts.filter((c) => isPropertyAccessible(c.hotel || (c as any).property || (c as any).site));
+  }, [contracts, isPropertyAccessible]);
+
+  const activeContracts = accessibleContracts.filter((c) => c.status === 'active').length;
+  const expiringSoon = accessibleContracts.filter((c) => c.status === 'expiring-soon').length;
+  const renewalsDue = accessibleContracts.filter((c) => { const d = daysUntil(c.renewalDate); return !isNaN(d) && d >= 0 && d <= 90; }).length;
+  const autoRenewCount = accessibleContracts.filter((c) => c.autoRenew).length;
+  const totalValue = accessibleContracts.filter((c) => c.status === 'active').reduce((sum, c) => sum + (Number(c.contractValue) || 0), 0);
   const annualValDisplay = isNaN(totalValue) || totalValue === 0
     ? '£0'
     : totalValue >= 1000
-    ? `£${(totalValue / 1000).toFixed(0)}k`
-    : `£${totalValue.toLocaleString()}`;
+      ? `£${(totalValue / 1000).toFixed(0)}k`
+      : `£${totalValue.toLocaleString()}`;
 
-  const filtered = contracts.filter((c) => {
+  const filtered = accessibleContracts.filter((c) => {
     const matchSearch = !search ||
       (c.contractId || '').toLowerCase().includes(search.toLowerCase()) ||
       (c.supplierName || '').toLowerCase().includes(search.toLowerCase()) ||
@@ -1094,8 +1105,107 @@ export default function ContractsRegisterClient() {
     changePageSize,
   } = useLoadingPagination(filtered, 10);
 
-  const suppliers = Array.from(new Map(contracts.map((c) => [c.supplierName, c])).values());
-  const renewals = contracts.filter((c) => { const d = daysUntil(c.renewalDate); return d >= 0 && d <= 120; }).sort((a, b) => daysUntil(a.renewalDate) - daysUntil(b.renewalDate));
+  // Multi-select Contracts State
+  const [selectedContractIds, setSelectedContractIds] = useState<string[]>([]);
+  const [isBulkDeletingContracts, setIsBulkDeletingContracts] = useState(false);
+  const [showBulkDeleteContractsModal, setShowBulkDeleteContractsModal] = useState(false);
+  const [selectedContractTypeFilter, setSelectedContractTypeFilter] = useState('');
+
+  const isAllContractsPageSelected =
+    paginatedContracts.length > 0 && paginatedContracts.every((c) => selectedContractIds.includes(c.id));
+  const isSomeContractsPageSelected =
+    paginatedContracts.some((c) => selectedContractIds.includes(c.id)) && !isAllContractsPageSelected;
+
+  const handleToggleSelectAllContractsPage = () => {
+    if (isAllContractsPageSelected) {
+      const pageIds = new Set(paginatedContracts.map((c) => c.id));
+      setSelectedContractIds((prev) => prev.filter((id) => !pageIds.has(id)));
+    } else {
+      const pageIds = paginatedContracts.map((c) => c.id);
+      setSelectedContractIds((prev) => Array.from(new Set([...prev, ...pageIds])));
+    }
+  };
+
+  const handleToggleContractSelect = (id: string) => {
+    setSelectedContractIds((prev) =>
+      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
+    );
+  };
+
+  const handleSelectAllFilteredContracts = () => {
+    setSelectedContractIds(filtered.map((c) => c.id));
+  };
+
+  const handleClearContractSelection = () => {
+    setSelectedContractIds([]);
+    setSelectedContractTypeFilter('');
+  };
+
+  const contractTypeOptions = useMemo(() => {
+    const counts: Record<string, number> = {};
+    filtered.forEach((c) => {
+      counts[`cat:${c.category}`] = (counts[`cat:${c.category}`] || 0) + 1;
+      counts[`hotel:${c.hotel}`] = (counts[`hotel:${c.hotel}`] || 0) + 1;
+      counts[`status:${c.status}`] = (counts[`status:${c.status}`] || 0) + 1;
+    });
+
+    const opts: { label: string; value: string; count: number }[] = [];
+    allCategories.forEach((cat) => {
+      if (counts[`cat:${cat}`]) opts.push({ label: `Category: ${cat}`, value: `cat:${cat}`, count: counts[`cat:${cat}`] });
+    });
+    HOTELS.forEach((h) => {
+      if (counts[`hotel:${h}`]) opts.push({ label: `Property: ${h}`, value: `hotel:${h}`, count: counts[`hotel:${h}`] });
+    });
+    if (counts['status:active']) opts.push({ label: 'Status: Active', value: 'status:active', count: counts['status:active'] });
+    if (counts['status:expiring-soon']) opts.push({ label: 'Status: Expiring Soon', value: 'status:expiring-soon', count: counts['status:expiring-soon'] });
+    if (counts['status:expired']) opts.push({ label: 'Status: Expired', value: 'status:expired', count: counts['status:expired'] });
+    if (counts['status:pending']) opts.push({ label: 'Status: Pending', value: 'status:pending', count: counts['status:pending'] });
+
+    return opts;
+  }, [filtered, allCategories]);
+
+  const handleSelectContractByType = (typeKey: string) => {
+    setSelectedContractTypeFilter(typeKey);
+    if (!typeKey) {
+      setSelectedContractIds([]);
+      return;
+    }
+    const [kind, val] = typeKey.split(':');
+    const matched = filtered.filter((c) => {
+      if (kind === 'cat') return c.category === val;
+      if (kind === 'hotel') return c.hotel === val;
+      if (kind === 'status') return c.status === val;
+      return false;
+    });
+    setSelectedContractIds(matched.map((c) => c.id));
+    toast.info(`Selected ${matched.length} contracts matching ${typeKey.replace(':', ': ')}`);
+  };
+
+  const handleConfirmBulkDeleteContracts = async () => {
+    if (selectedContractIds.length === 0) return;
+    setIsBulkDeletingContracts(true);
+    try {
+      const ids = [...selectedContractIds];
+      const count = ids.length;
+      setContracts((prev) => prev.filter((c) => !ids.includes(c.id)));
+      setSelectedContractIds([]);
+      setSelectedContractTypeFilter('');
+      setShowBulkDeleteContractsModal(false);
+
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('samko:data-changed', { detail: { type: 'contracts' } }));
+      }
+      await Promise.allSettled(ids.map((id) => api.contracts.delete(id)));
+      toast.success(`Deleted ${count} contracts successfully!`);
+    } catch (err: any) {
+      toast.error('Failed to bulk delete contracts');
+    } finally {
+      setIsBulkDeletingContracts(false);
+    }
+  };
+
+  const suppliers = Array.from(new Map(accessibleContracts.map((c) => [c.supplierName, c])).values());
+  const renewals = accessibleContracts.filter((c) => { const d = daysUntil(c.renewalDate); return d >= 0 && d <= 120; }).sort((a, b) => daysUntil(a.renewalDate) - daysUntil(b.renewalDate));
 
   const handleExport = () => {
     const headers = ['Contract ID', 'Contract Name', 'Supplier', 'Category', 'Property', 'Annual Value', 'Start Date', 'End Date', 'Renewal Date', 'Status', 'Auto Renew'];
@@ -1146,7 +1256,7 @@ export default function ContractsRegisterClient() {
           >
             <Download size={13} /> Export
           </button>
-          {!isViewer && canEdit && (
+          {hasWriteAccess && (
             <>
               <button
                 onClick={() => setShowAddCategoryModal(true)}
@@ -1228,12 +1338,21 @@ export default function ContractsRegisterClient() {
               <table className="w-full text-left border-collapse" style={{ minWidth: 960 }}>
                 <thead>
                   <tr style={{ background: 'var(--surface2)' }}>
+                    {hasDeleteAccess && (
+                      <th className="px-3 py-3 w-10 text-center">
+                        <TableCheckbox
+                          checked={isAllContractsPageSelected}
+                          indeterminate={isSomeContractsPageSelected}
+                          onChange={handleToggleSelectAllContractsPage}
+                          title="Select all on this page"
+                        />
+                      </th>
+                    )}
                     {activeColumns.map((col: any) => (
                       <th
                         key={col.id}
-                        className={`text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide whitespace-nowrap ${
-                          col.id.toLowerCase() === 'actions' ? 'text-right' : ''
-                        }`}
+                        className={`text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide whitespace-nowrap ${col.id.toLowerCase() === 'actions' ? 'text-right' : ''
+                          }`}
                       >
                         {col.label}
                       </th>
@@ -1245,10 +1364,19 @@ export default function ContractsRegisterClient() {
                     const days = daysUntil(contract.endDate);
                     const sc = STATUS_CONFIG[contract.status] || STATUS_CONFIG.active;
                     return (
-                      <tr key={contract.id} className="border-t border-border cursor-pointer transition-colors"
-                        onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--surface2)')}
-                        onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+                      <tr key={contract.id} className={`border-t border-border cursor-pointer transition-colors ${selectedContractIds.includes(contract.id) ? 'bg-[#e8c97a]/5' : ''}`}
+                        onMouseEnter={(e) => (e.currentTarget.style.background = selectedContractIds.includes(contract.id) ? 'rgba(232,201,122,0.08)' : 'var(--surface2)')}
+                        onMouseLeave={(e) => (e.currentTarget.style.background = selectedContractIds.includes(contract.id) ? 'rgba(232,201,122,0.05)' : 'transparent')}
                         onClick={() => setSelectedContract(contract)}>
+                        {hasDeleteAccess && (
+                          <td className="px-3 py-3 text-center" onClick={(e) => e.stopPropagation()}>
+                            <TableCheckbox
+                              checked={selectedContractIds.includes(contract.id)}
+                              onChange={() => handleToggleContractSelect(contract.id)}
+                              title={`Select ${contract.contractName}`}
+                            />
+                          </td>
+                        )}
                         {activeColumns.map((col: any) => {
                           const colKey = col.id.toLowerCase();
                           if (colKey === 'contractid' || colKey === 'id') {
@@ -1359,33 +1487,24 @@ export default function ContractsRegisterClient() {
                             }
                             return (
                               <td key={col.id} className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
-                                <div className="relative inline-block">
-                                  <select
-                                    value={contract.status}
-                                    onChange={(e) => handleStatusChange(contract.id, e.target.value as ContractStatus)}
-                                    className="appearance-none cursor-pointer pl-4 pr-6 py-1 rounded-full text-xs font-semibold outline-none transition-all capitalize"
-                                    style={{
-                                      background: sc.bg,
-                                      color: sc.color,
-                                      border: `1px solid ${sc.color}33`,
-                                    }}
-                                  >
-                                    <option value="active" style={{ background: '#18181b', color: '#3dd68c' }}>Active</option>
-                                    <option value="expiring-soon" style={{ background: '#18181b', color: '#f59e0b' }}>Expiring Soon</option>
-                                    <option value="expired" style={{ background: '#18181b', color: '#f43f5e' }}>Expired</option>
-                                    <option value="pending" style={{ background: '#18181b', color: '#60a5fa' }}>Pending</option>
-                                    <option value="terminated" style={{ background: '#18181b', color: '#94a3b8' }}>Terminated</option>
-                                  </select>
-                                  <span
-                                    className="w-1.5 h-1.5 rounded-full absolute left-2 top-1/2 -translate-y-1/2 pointer-events-none"
-                                    style={{ background: sc.color }}
-                                  />
-                                  <ChevronDown
-                                    size={11}
-                                    className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none opacity-80"
-                                    style={{ color: sc.color }}
-                                  />
-                                </div>
+                                <CustomDropdown
+                                  size="sm"
+                                  variant="pill"
+                                  value={contract.status}
+                                  onChange={(val) => handleStatusChange(contract.id, val as ContractStatus)}
+                                  options={[
+                                    { value: 'active', label: 'Active', color: '#3dd68c' },
+                                    { value: 'expiring-soon', label: 'Expiring Soon', color: '#f59e0b' },
+                                    { value: 'expired', label: 'Expired', color: '#f43f5e' },
+                                    { value: 'pending', label: 'Pending', color: '#60a5fa' },
+                                    { value: 'terminated', label: 'Terminated', color: '#94a3b8' },
+                                  ]}
+                                  style={{
+                                    background: sc.bg,
+                                    color: sc.color,
+                                    border: `1px solid ${sc.color}33`,
+                                  }}
+                                />
                               </td>
                             );
                           }
@@ -1396,12 +1515,12 @@ export default function ContractsRegisterClient() {
                                   <button className="p-1.5 rounded-lg hover:bg-surface2 transition-colors" style={{ color: 'var(--text2)' }} title="View Contract Details" onClick={() => setSelectedContract(contract)}>
                                     <Eye size={14} />
                                   </button>
-                                  {!isViewer && canEdit && (
+                                  {hasWriteAccess && (
                                     <button className="p-1.5 rounded-lg hover:bg-surface2 transition-colors" style={{ color: 'var(--primary)' }} title="Edit Contract" onClick={() => handleOpenEdit(contract)}>
                                       <Edit2 size={14} />
                                     </button>
                                   )}
-                                  {!isViewer && (canDelete ?? canEdit) && (
+                                  {hasDeleteAccess && (
                                     <button className="p-1.5 rounded-lg hover:bg-rose-500/20 text-rose-400 transition-colors" title="Delete Contract" onClick={() => setContractToDelete(contract)}>
                                       <Trash2 size={14} />
                                     </button>
@@ -1436,6 +1555,25 @@ export default function ContractsRegisterClient() {
               isLoading={loading || isPageLoading}
               recordName="contracts"
             />
+
+            {/* Floating Bulk Action Bar (Only shown for authorized delete users) */}
+            {hasDeleteAccess && (
+              <div className="mt-4">
+                <BulkActionBar
+                  selectedCount={selectedContractIds.length}
+                  totalCount={filtered.length}
+                  onClearSelection={handleClearContractSelection}
+                  onSelectAll={handleSelectAllFilteredContracts}
+                  onDeleteSelected={() => setShowBulkDeleteContractsModal(true)}
+                  typeOptions={contractTypeOptions}
+                  onSelectByType={handleSelectContractByType}
+                  selectedTypeValue={selectedContractTypeFilter}
+                  typePlaceholder="Select all of type (Category, Property, Status)..."
+                  recordName="contracts"
+                  isDeleting={isBulkDeletingContracts}
+                />
+              </div>
+            )}
           </>
         )}
 
@@ -1587,33 +1725,24 @@ export default function ContractsRegisterClient() {
                       {(STATUS_CONFIG[selectedContract.status] || STATUS_CONFIG.active).label}
                     </span>
                   ) : (
-                    <div className="relative inline-block">
-                      <select
-                        value={selectedContract.status}
-                        onChange={(e) => handleStatusChange(selectedContract.id, e.target.value as ContractStatus)}
-                        className="appearance-none cursor-pointer pl-4 pr-6 py-1 rounded-full text-xs font-semibold outline-none transition-all capitalize"
-                        style={{
-                          background: (STATUS_CONFIG[selectedContract.status] || STATUS_CONFIG.active).bg,
-                          color: (STATUS_CONFIG[selectedContract.status] || STATUS_CONFIG.active).color,
-                          border: `1px solid ${(STATUS_CONFIG[selectedContract.status] || STATUS_CONFIG.active).color}33`,
-                        }}
-                      >
-                        <option value="active" style={{ background: '#18181b', color: '#3dd68c' }}>Active</option>
-                        <option value="expiring-soon" style={{ background: '#18181b', color: '#f59e0b' }}>Expiring Soon</option>
-                        <option value="expired" style={{ background: '#18181b', color: '#f43f5e' }}>Expired</option>
-                        <option value="pending" style={{ background: '#18181b', color: '#60a5fa' }}>Pending</option>
-                        <option value="terminated" style={{ background: '#18181b', color: '#94a3b8' }}>Terminated</option>
-                      </select>
-                      <span
-                        className="w-1.5 h-1.5 rounded-full absolute left-2 top-1/2 -translate-y-1/2 pointer-events-none"
-                        style={{ background: (STATUS_CONFIG[selectedContract.status] || STATUS_CONFIG.active).color }}
-                      />
-                      <ChevronDown
-                        size={11}
-                        className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none opacity-80"
-                        style={{ color: (STATUS_CONFIG[selectedContract.status] || STATUS_CONFIG.active).color }}
-                      />
-                    </div>
+                    <CustomDropdown
+                      size="sm"
+                      variant="pill"
+                      value={selectedContract.status}
+                      onChange={(val) => handleStatusChange(selectedContract.id, val as ContractStatus)}
+                      options={[
+                        { value: 'active', label: 'Active', color: '#3dd68c' },
+                        { value: 'expiring-soon', label: 'Expiring Soon', color: '#f59e0b' },
+                        { value: 'expired', label: 'Expired', color: '#f43f5e' },
+                        { value: 'pending', label: 'Pending', color: '#60a5fa' },
+                        { value: 'terminated', label: 'Terminated', color: '#94a3b8' },
+                      ]}
+                      style={{
+                        background: (STATUS_CONFIG[selectedContract.status] || STATUS_CONFIG.active).bg,
+                        color: (STATUS_CONFIG[selectedContract.status] || STATUS_CONFIG.active).color,
+                        border: `1px solid ${(STATUS_CONFIG[selectedContract.status] || STATUS_CONFIG.active).color}33`,
+                      }}
+                    />
                   )}
                   {selectedContract.autoRenew && <span className="text-xs font-semibold px-2 py-0.5 rounded-full" style={{ background: 'rgba(61,214,140,0.12)', color: '#3dd68c' }}>Auto Renew</span>}
                 </div>
@@ -1674,7 +1803,7 @@ export default function ContractsRegisterClient() {
               >
                 <FileText size={13} /> Documents
               </button>
-              {!isViewer && (canDelete ?? canEdit) && (
+              {hasDeleteAccess && (
                 <button
                   onClick={() => setContractToDelete(selectedContract)}
                   className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium border border-rose-500/30 text-rose-400 hover:bg-rose-500/10 transition-colors ml-auto"
@@ -1721,29 +1850,23 @@ export default function ContractsRegisterClient() {
                 </div>
                 <div className="flex flex-col gap-1">
                   <label className="text-xs font-medium text-muted-foreground">{getFieldLabel('category', 'Category')}</label>
-                  <select
+                  <CustomDropdown
+                    variant="form"
+                    width="100%"
                     value={formData.category}
-                    onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                    className="rounded-lg border border-border px-3 py-2 text-sm outline-none"
-                    style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
-                  >
-                    {cmsCategoryOptions.map((c) => (
-                      <option key={c.value} value={c.value}>{c.label}</option>
-                    ))}
-                  </select>
+                    onChange={(val) => setFormData({ ...formData, category: val })}
+                    options={cmsCategoryOptions}
+                  />
                 </div>
                 <div className="flex flex-col gap-1">
                   <label className="text-xs font-medium text-muted-foreground">{getFieldLabel('hotel', 'Property')}</label>
-                  <select
+                  <CustomDropdown
+                    variant="form"
+                    width="100%"
                     value={formData.hotel}
-                    onChange={(e) => setFormData({ ...formData, hotel: e.target.value })}
-                    className="rounded-lg border border-border px-3 py-2 text-sm outline-none"
-                    style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
-                  >
-                    {cmsHotelOptions.map((h) => (
-                      <option key={h.value} value={h.value}>{h.label}</option>
-                    ))}
-                  </select>
+                    onChange={(val) => setFormData({ ...formData, hotel: val })}
+                    options={cmsHotelOptions}
+                  />
                 </div>
                 <div className="flex flex-col gap-1">
                   <label className="text-xs font-medium text-muted-foreground">Department</label>
@@ -1877,16 +2000,13 @@ export default function ContractsRegisterClient() {
                 </div>
                 <div className="flex flex-col gap-1">
                   <label className="text-xs font-medium text-muted-foreground">{getFieldLabel('status', 'Initial Status')}</label>
-                  <select
+                  <CustomDropdown
+                    variant="form"
+                    width="100%"
                     value={formData.status}
-                    onChange={(e) => setFormData({ ...formData, status: e.target.value as ContractStatus })}
-                    className="rounded-lg border border-border px-3 py-2 text-sm outline-none"
-                    style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
-                  >
-                    {cmsStatusOptions.map((s) => (
-                      <option key={s.value} value={s.value}>{s.label}</option>
-                    ))}
-                  </select>
+                    onChange={(val) => setFormData({ ...formData, status: val as ContractStatus })}
+                    options={cmsStatusOptions}
+                  />
                 </div>
 
                 {/* Dynamic Custom Fields Added via CMS */}
@@ -1897,17 +2017,14 @@ export default function ContractsRegisterClient() {
                       <span className="text-[10px] text-emerald-400 font-semibold">(CMS Field)</span>
                     </label>
                     {cf.type === 'select' ? (
-                      <select
+                      <CustomDropdown
+                        variant="form"
+                        width="100%"
+                        placeholder={`Select ${cf.label}...`}
                         value={(formData as any)[cf.id] || ''}
-                        onChange={(e) => setFormData({ ...formData, [cf.id]: e.target.value } as any)}
-                        className="rounded-lg border border-border px-3 py-2 text-sm outline-none"
-                        style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
-                      >
-                        <option value="">Select {cf.label}...</option>
-                        {cf.options?.map((opt) => (
-                          <option key={opt.value} value={opt.value}>{opt.label}</option>
-                        ))}
-                      </select>
+                        onChange={(val) => setFormData({ ...formData, [cf.id]: val } as any)}
+                        options={cf.options || []}
+                      />
                     ) : (
                       <input
                         type={cf.type === 'number' ? 'number' : cf.type === 'date' ? 'date' : 'text'}
@@ -2007,25 +2124,23 @@ export default function ContractsRegisterClient() {
                 </div>
                 <div className="flex flex-col gap-1">
                   <label className="text-xs font-medium text-muted-foreground">Category</label>
-                  <select
+                  <CustomDropdown
+                    variant="form"
+                    width="100%"
                     value={editFormData.category || CONTRACT_CATEGORIES[0]}
-                    onChange={(e) => setEditFormData({ ...editFormData, category: e.target.value })}
-                    className="rounded-lg border border-border px-3 py-2 text-sm outline-none"
-                    style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
-                  >
-                    {allCategories.map((c) => <option key={c} value={c}>{c}</option>)}
-                  </select>
+                    onChange={(val) => setEditFormData({ ...editFormData, category: val })}
+                    options={allCategories}
+                  />
                 </div>
                 <div className="flex flex-col gap-1">
                   <label className="text-xs font-medium text-muted-foreground">Property</label>
-                  <select
+                  <CustomDropdown
+                    variant="form"
+                    width="100%"
                     value={editFormData.hotel || propertyOptions[0]}
-                    onChange={(e) => setEditFormData({ ...editFormData, hotel: e.target.value })}
-                    className="rounded-lg border border-border px-3 py-2 text-sm outline-none"
-                    style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
-                  >
-                    {propertyOptions.map((h) => <option key={h} value={h}>{h}</option>)}
-                  </select>
+                    onChange={(val) => setEditFormData({ ...editFormData, hotel: val })}
+                    options={propertyOptions}
+                  />
                 </div>
                 <div className="flex flex-col gap-1">
                   <label className="text-xs font-medium text-muted-foreground">Department</label>
@@ -2163,18 +2278,19 @@ export default function ContractsRegisterClient() {
                 </div>
                 <div className="flex flex-col gap-1">
                   <label className="text-xs font-medium text-muted-foreground">Status</label>
-                  <select
+                  <CustomDropdown
+                    variant="form"
+                    width="100%"
                     value={editFormData.status || 'active'}
-                    onChange={(e) => setEditFormData({ ...editFormData, status: e.target.value as ContractStatus })}
-                    className="rounded-lg border border-border px-3 py-2 text-sm outline-none"
-                    style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
-                  >
-                    <option value="active">Active</option>
-                    <option value="expiring-soon">Expiring Soon</option>
-                    <option value="expired">Expired</option>
-                    <option value="pending">Pending</option>
-                    <option value="terminated">Terminated</option>
-                  </select>
+                    onChange={(val) => setEditFormData({ ...editFormData, status: val as ContractStatus })}
+                    options={[
+                      { value: 'active', label: 'Active', color: '#3dd68c' },
+                      { value: 'expiring-soon', label: 'Expiring Soon', color: '#f59e0b' },
+                      { value: 'expired', label: 'Expired', color: '#f43f5e' },
+                      { value: 'pending', label: 'Pending', color: '#60a5fa' },
+                      { value: 'terminated', label: 'Terminated', color: '#94a3b8' },
+                    ]}
+                  />
                 </div>
                 <div className="col-span-2 flex flex-col gap-1">
                   <label className="text-xs font-medium text-muted-foreground">SLA Terms</label>
@@ -2244,18 +2360,19 @@ export default function ContractsRegisterClient() {
                 <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wide">
                   When to Remind
                 </label>
-                <select
+                <CustomDropdown
+                  variant="form"
+                  width="100%"
                   value={reminderDays}
-                  onChange={(e) => setReminderDays(Number(e.target.value))}
-                  className="w-full px-3 py-2 rounded-lg border border-border text-sm outline-none"
-                  style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
-                >
-                  <option value={15}>15 days before renewal</option>
-                  <option value={30}>30 days before renewal (Recommended)</option>
-                  <option value={60}>60 days before renewal</option>
-                  <option value={90}>90 days before renewal</option>
-                  <option value={120}>120 days before renewal</option>
-                </select>
+                  onChange={(val) => setReminderDays(Number(val))}
+                  options={[
+                    { value: '15', label: '15 days before renewal' },
+                    { value: '30', label: '30 days before renewal (Recommended)' },
+                    { value: '60', label: '60 days before renewal' },
+                    { value: '90', label: '90 days before renewal' },
+                    { value: '120', label: '120 days before renewal' },
+                  ]}
+                />
               </div>
               <div>
                 <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wide">
@@ -2431,7 +2548,7 @@ export default function ContractsRegisterClient() {
           </div>
         </div>
       )}
-          {/* Add Category Modal */}
+      {/* Add Category Modal */}
       {showAddCategoryModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(4px)' }}>
           <div className="w-full max-w-lg rounded-2xl border border-border overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200" style={{ background: 'var(--surface)' }}>
@@ -2594,12 +2711,10 @@ export default function ContractsRegisterClient() {
               </div>
             </div>
             <p className="text-xs leading-relaxed text-muted-foreground mb-5">
-              Are you sure you want to remove <strong className="text-foreground">{catToDelete}</strong> from contract categories?
-              {contracts.filter((c) => c.category === catToDelete).length > 0 && (
-                <span className="block mt-2 text-rose-400">
-                  Warning: {contracts.filter((c) => c.category === catToDelete).length} contract record(s) currently use this category.
-                </span>
-              )}
+              Are you sure you want to delete the category <strong className="text-foreground">{catToDelete}</strong>?
+              <span className="block mt-2 text-emerald-400 font-medium">
+                Note: All {contracts.filter((c) => c.category === catToDelete).length} existing contract records will safely stay in the database. Only this category option will be removed from future dropdown selections.
+              </span>
             </p>
             <div className="flex items-center justify-end gap-3">
               <button
@@ -2621,6 +2736,19 @@ export default function ContractsRegisterClient() {
           </div>
         </div>
       )}
+
+      {/* Bulk Delete Contracts Modal */}
+      <ConfirmDeleteModal
+        isOpen={showBulkDeleteContractsModal}
+        onClose={() => setShowBulkDeleteContractsModal(false)}
+        onConfirm={handleConfirmBulkDeleteContracts}
+        title="Confirm Bulk Deletion"
+        itemName={`${selectedContractIds.length} Selected Contracts`}
+        registerName="contracts register"
+        customWarning={`Are you sure you want to permanently delete these ${selectedContractIds.length} selected contracts? This action cannot be undone.`}
+        confirmButtonText={`Delete ${selectedContractIds.length} Contracts`}
+        isDeleting={isBulkDeletingContracts}
+      />
     </div>
   );
 }

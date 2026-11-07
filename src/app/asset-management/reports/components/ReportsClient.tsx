@@ -17,6 +17,7 @@ import Icon from '@/components/ui/AppIcon';
 import { api } from '@/lib/api';
 import PageCMSEditButton from '@/components/cms/PageCMSEditButton';
 import { useDeepPageCms } from '@/lib/deepPageCms';
+import { useAuth } from '@/lib/authContext';
 
 
 const stats = getAssetStats();
@@ -333,7 +334,21 @@ const UTILITIES_EXPORT = [
 // ── Sub-report components ─────────────────────────────────────────────────────
 
 function MaintenanceReport() {
+  const { isPropertyAccessible } = useAuth();
   const [activeSection, setActiveSection] = useState<'overview' | 'charts' | 'export'>('overview');
+  const accessibleMaint = useMemo(() => {
+    return MAINTENANCE_RECORDS.filter((m) => isPropertyAccessible(m.hotelName || m.hotelId));
+  }, [isPropertyAccessible]);
+  const accessibleMaintByHotel = useMemo(() => {
+    return MAINTENANCE_BY_HOTEL.filter((h) => isPropertyAccessible(h.fullName));
+  }, [isPropertyAccessible]);
+  const accessibleStatusData = useMemo(() => [
+    { name: 'Scheduled', value: accessibleMaint.filter((m) => m.status === 'scheduled').length, color: '#60a5fa' },
+    { name: 'Due Today', value: accessibleMaint.filter((m) => m.status === 'due-today').length, color: '#f59e0b' },
+    { name: 'Overdue', value: accessibleMaint.filter((m) => m.status === 'overdue').length, color: '#f43f5e' },
+    { name: 'Completed', value: accessibleMaint.filter((m) => m.status === 'completed').length, color: '#3dd68c' },
+  ], [accessibleMaint]);
+
   return (
     <div className="flex flex-col h-full">
       <div className="flex items-center justify-between px-6 py-4 border-b border-border flex-shrink-0" style={{ background: 'var(--surface)' }}>
@@ -354,10 +369,10 @@ function MaintenanceReport() {
         {activeSection === 'overview' && (
           <div className="flex flex-col gap-6">
             <div className="grid grid-cols-4 gap-4">
-              <KPICard label="Total Records" value={MAINTENANCE_RECORDS.length} sub="All maintenance tasks" color="#e8c97a" icon={Wrench} />
-              <KPICard label="Scheduled" value={MAINTENANCE_RECORDS.filter((m) => m.status === 'scheduled').length} sub="Upcoming tasks" color="#60a5fa" icon={ClipboardCheck} />
-              <KPICard label="Overdue" value={MAINTENANCE_RECORDS.filter((m) => m.status === 'overdue').length} sub="Require immediate action" color="#f43f5e" icon={Wrench} />
-              <KPICard label="Completed" value={MAINTENANCE_RECORDS.filter((m) => m.status === 'completed').length} sub="Successfully completed" color="#3dd68c" icon={ClipboardCheck} />
+              <KPICard label="Total Records" value={accessibleMaint.length} sub="Accessible maintenance tasks" color="#e8c97a" icon={Wrench} />
+              <KPICard label="Scheduled" value={accessibleMaint.filter((m) => m.status === 'scheduled').length} sub="Upcoming tasks" color="#60a5fa" icon={ClipboardCheck} />
+              <KPICard label="Overdue" value={accessibleMaint.filter((m) => m.status === 'overdue').length} sub="Require immediate action" color="#f43f5e" icon={Wrench} />
+              <KPICard label="Completed" value={accessibleMaint.filter((m) => m.status === 'completed').length} sub="Successfully completed" color="#3dd68c" icon={ClipboardCheck} />
             </div>
             <div className="rounded-xl border border-border overflow-hidden" style={{ background: 'var(--surface)' }}>
               <div className="px-5 py-4 border-b border-border flex items-center gap-2">
@@ -374,7 +389,7 @@ function MaintenanceReport() {
                     </tr>
                   </thead>
                   <tbody>
-                    {MAINTENANCE_BY_HOTEL.map((row) => (
+                    {accessibleMaintByHotel.map((row) => (
                       <tr key={row.name} className="border-b border-border" onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--surface2)')} onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}>
                         <td className="px-4 py-3 font-medium text-sm">{row.fullName}</td>
                         <td className="px-4 py-3 text-sm" style={{ color: '#60a5fa' }}>{row.scheduled}</td>
@@ -400,7 +415,7 @@ function MaintenanceReport() {
                     </tr>
                   </thead>
                   <tbody>
-                    {MAINTENANCE_RECORDS.slice(0, 10).map((rec) => {
+                    {accessibleMaint.slice(0, 10).map((rec) => {
                       const statusColor = rec.status === 'overdue' ? '#f43f5e' : rec.status === 'completed' ? '#3dd68c' : rec.status === 'due-today' ? '#f59e0b' : '#60a5fa';
                       return (
                         <tr key={rec.id} className="border-b border-border" onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--surface2)')} onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}>
@@ -426,7 +441,7 @@ function MaintenanceReport() {
             <div className="rounded-xl border border-border p-5" style={{ background: 'var(--surface)' }}>
               <div className="font-head font-bold text-sm mb-4">Maintenance by Hotel</div>
               <ResponsiveContainer width="100%" height={220}>
-                <BarChart data={MAINTENANCE_BY_HOTEL} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
+                <BarChart data={accessibleMaintByHotel} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
                   <XAxis dataKey="name" tick={{ fontSize: 10, fill: 'var(--text2)' }} />
                   <YAxis tick={{ fontSize: 10, fill: 'var(--text2)' }} />
                   <Tooltip {...CHART_TOOLTIP_STYLE} />
@@ -440,8 +455,8 @@ function MaintenanceReport() {
               <div className="font-head font-bold text-sm mb-4">Maintenance Status</div>
               <ResponsiveContainer width="100%" height={220}>
                 <PieChart>
-                  <Pie data={maintenanceStatusData} cx="50%" cy="50%" innerRadius={55} outerRadius={85} paddingAngle={3} dataKey="value">
-                    {maintenanceStatusData.map((entry, i) => <Cell key={i} fill={entry.color} />)}
+                  <Pie data={accessibleStatusData} cx="50%" cy="50%" innerRadius={55} outerRadius={85} paddingAngle={3} dataKey="value">
+                    {accessibleStatusData.map((entry, i) => <Cell key={i} fill={entry.color} />)}
                   </Pie>
                   <Tooltip {...CHART_TOOLTIP_STYLE} />
                   <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 11 }} />
@@ -470,7 +485,18 @@ function MaintenanceReport() {
 }
 
 function InsuranceReport() {
+  const { isPropertyAccessible } = useAuth();
   const [activeSection, setActiveSection] = useState<'overview' | 'charts' | 'export'>('overview');
+  const accessiblePolicies = useMemo(() => {
+    return INSURANCE_POLICIES.filter((p) => isPropertyAccessible(p.hotel));
+  }, [isPropertyAccessible]);
+  const accessibleInsuranceByHotel = useMemo(() => {
+    return insuranceByHotel.filter((h) => isPropertyAccessible(h.fullName));
+  }, [isPropertyAccessible]);
+  const scopedActivePolicies = accessiblePolicies.filter((p) => p.status === 'active').length;
+  const scopedExpiringSoon = accessiblePolicies.filter((p) => p.status === 'expiring-soon').length;
+  const scopedTotalPremium = accessiblePolicies.reduce((s, p) => s + p.premium, 0);
+
   return (
     <div className="flex flex-col h-full">
       <div className="flex items-center justify-between px-6 py-4 border-b border-border flex-shrink-0" style={{ background: 'var(--surface)' }}>
@@ -491,10 +517,10 @@ function InsuranceReport() {
         {activeSection === 'overview' && (
           <div className="flex flex-col gap-6">
             <div className="grid grid-cols-4 gap-4">
-              <KPICard label="Total Policies" value={INSURANCE_POLICIES.length} sub="Across all properties" color="#e8c97a" icon={Shield} />
-              <KPICard label="Active Policies" value={activePolicies} sub="Currently in force" color="#3dd68c" icon={Shield} />
-              <KPICard label="Expiring Soon" value={expiringSoon} sub="Within 90 days" color="#f59e0b" icon={Shield} />
-              <KPICard label="Annual Premium" value={`£${(totalPremium / 1000).toFixed(0)}k`} sub="Total annual cost" color="#60a5fa" icon={TrendingUp} />
+              <KPICard label="Total Policies" value={accessiblePolicies.length} sub="Accessible policies" color="#e8c97a" icon={Shield} />
+              <KPICard label="Active Policies" value={scopedActivePolicies} sub="Currently in force" color="#3dd68c" icon={Shield} />
+              <KPICard label="Expiring Soon" value={scopedExpiringSoon} sub="Within 90 days" color="#f59e0b" icon={Shield} />
+              <KPICard label="Annual Premium" value={`£${(scopedTotalPremium / 1000).toFixed(0)}k`} sub="Total annual cost" color="#60a5fa" icon={TrendingUp} />
             </div>
             <div className="rounded-xl border border-border overflow-hidden" style={{ background: 'var(--surface)' }}>
               <div className="px-5 py-4 border-b border-border flex items-center gap-2">
@@ -511,7 +537,7 @@ function InsuranceReport() {
                     </tr>
                   </thead>
                   <tbody>
-                    {INSURANCE_POLICIES.map((pol, i) => {
+                    {accessiblePolicies.map((pol, i) => {
                       const statusColor = pol.status === 'active' ? '#3dd68c' : pol.status === 'expiring-soon' ? '#f59e0b' : '#f43f5e';
                       return (
                         <tr key={i} className="border-b border-border" onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--surface2)')} onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}>
@@ -538,7 +564,7 @@ function InsuranceReport() {
             <div className="rounded-xl border border-border p-5" style={{ background: 'var(--surface)' }}>
               <div className="font-head font-bold text-sm mb-4">Policies by Hotel</div>
               <ResponsiveContainer width="100%" height={220}>
-                <BarChart data={insuranceByHotel} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
+                <BarChart data={accessibleInsuranceByHotel} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
                   <XAxis dataKey="name" tick={{ fontSize: 10, fill: 'var(--text2)' }} />
                   <YAxis tick={{ fontSize: 10, fill: 'var(--text2)' }} />
                   <Tooltip {...CHART_TOOLTIP_STYLE} />
@@ -578,7 +604,18 @@ function InsuranceReport() {
 }
 
 function ContractReport() {
+  const { isPropertyAccessible } = useAuth();
   const [activeSection, setActiveSection] = useState<'overview' | 'charts' | 'export'>('overview');
+  const accessibleContracts = useMemo(() => {
+    return CONTRACT_DATA.filter((c) => isPropertyAccessible(c.hotel));
+  }, [isPropertyAccessible]);
+  const accessibleContractsByHotel = useMemo(() => {
+    return contractsByHotel.filter((h) => isPropertyAccessible(h.fullName));
+  }, [isPropertyAccessible]);
+  const scopedActiveContracts = accessibleContracts.filter((c) => c.status === 'active').length;
+  const scopedExpiringContracts = accessibleContracts.filter((c) => c.status === 'expiring-soon').length;
+  const scopedTotalContractValue = accessibleContracts.reduce((s, c) => s + c.value, 0);
+
   return (
     <div className="flex flex-col h-full">
       <div className="flex items-center justify-between px-6 py-4 border-b border-border flex-shrink-0" style={{ background: 'var(--surface)' }}>
@@ -599,10 +636,10 @@ function ContractReport() {
         {activeSection === 'overview' && (
           <div className="flex flex-col gap-6">
             <div className="grid grid-cols-4 gap-4">
-              <KPICard label="Total Contracts" value={CONTRACT_DATA.length} sub="Across all properties" color="#e8c97a" icon={ScrollText} />
-              <KPICard label="Active" value={activeContracts} sub="Currently active" color="#3dd68c" icon={ScrollText} />
-              <KPICard label="Expiring Soon" value={expiringContracts} sub="Within 90 days" color="#f59e0b" icon={ScrollText} />
-              <KPICard label="Annual Value" value={`£${(totalContractValue / 1000).toFixed(0)}k`} sub="Total contract value" color="#60a5fa" icon={TrendingUp} />
+              <KPICard label="Total Contracts" value={accessibleContracts.length} sub="Accessible contracts" color="#e8c97a" icon={ScrollText} />
+              <KPICard label="Active" value={scopedActiveContracts} sub="Currently active" color="#3dd68c" icon={ScrollText} />
+              <KPICard label="Expiring Soon" value={scopedExpiringContracts} sub="Within 90 days" color="#f59e0b" icon={ScrollText} />
+              <KPICard label="Annual Value" value={`£${(scopedTotalContractValue / 1000).toFixed(0)}k`} sub="Total contract value" color="#60a5fa" icon={TrendingUp} />
             </div>
             <div className="rounded-xl border border-border overflow-hidden" style={{ background: 'var(--surface)' }}>
               <div className="px-5 py-4 border-b border-border flex items-center gap-2">
@@ -619,7 +656,7 @@ function ContractReport() {
                     </tr>
                   </thead>
                   <tbody>
-                    {CONTRACT_DATA.map((con, i) => {
+                    {accessibleContracts.map((con, i) => {
                       const statusColor = con.status === 'active' ? '#3dd68c' : con.status === 'expiring-soon' ? '#f59e0b' : '#f43f5e';
                       return (
                         <tr key={i} className="border-b border-border" onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--surface2)')} onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}>
@@ -657,7 +694,7 @@ function ContractReport() {
             <div className="rounded-xl border border-border p-5" style={{ background: 'var(--surface)' }}>
               <div className="font-head font-bold text-sm mb-4">Contracts by Hotel</div>
               <ResponsiveContainer width="100%" height={220}>
-                <BarChart data={contractsByHotel} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
+                <BarChart data={accessibleContractsByHotel} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
                   <XAxis dataKey="name" tick={{ fontSize: 10, fill: 'var(--text2)' }} />
                   <YAxis tick={{ fontSize: 10, fill: 'var(--text2)' }} />
                   <Tooltip {...CHART_TOOLTIP_STYLE} />
@@ -668,7 +705,7 @@ function ContractReport() {
             <div className="rounded-xl border border-border p-5 col-span-2" style={{ background: 'var(--surface)' }}>
               <div className="font-head font-bold text-sm mb-4">Contract Value by Hotel</div>
               <ResponsiveContainer width="100%" height={200}>
-                <BarChart data={contractsByHotel} margin={{ top: 0, right: 0, left: -10, bottom: 0 }}>
+                <BarChart data={accessibleContractsByHotel} margin={{ top: 0, right: 0, left: -10, bottom: 0 }}>
                   <XAxis dataKey="name" tick={{ fontSize: 10, fill: 'var(--text2)' }} />
                   <YAxis tick={{ fontSize: 10, fill: 'var(--text2)' }} tickFormatter={(v) => `£${(v / 1000).toFixed(0)}k`} />
                   <Tooltip {...CHART_TOOLTIP_STYLE} formatter={(v: number) => [`£${v.toLocaleString()}`, 'Value']} />
@@ -685,7 +722,19 @@ function ContractReport() {
 }
 
 function ComplianceReport() {
+  const { isPropertyAccessible } = useAuth();
   const [activeSection, setActiveSection] = useState<'overview' | 'charts' | 'export'>('overview');
+  const accessibleCompliance = useMemo(() => {
+    return COMPLIANCE_DATA.filter((c) => isPropertyAccessible(c.hotel));
+  }, [isPropertyAccessible]);
+  const accessibleComplianceByHotel = useMemo(() => {
+    return complianceByHotel.filter((h) => isPropertyAccessible(h.fullName));
+  }, [isPropertyAccessible]);
+  const scopedTotalCompliance = accessibleCompliance.length;
+  const scopedCompliantCount = accessibleCompliance.filter((c) => c.status === 'compliant').length;
+  const scopedOverdueCompliance = accessibleCompliance.filter((c) => c.status === 'overdue').length;
+  const scopedExpiringSoonCompliance = accessibleCompliance.filter((c) => c.status === 'expiring-soon').length;
+
   return (
     <div className="flex flex-col h-full">
       <div className="flex items-center justify-between px-6 py-4 border-b border-border flex-shrink-0" style={{ background: 'var(--surface)' }}>
@@ -706,10 +755,10 @@ function ComplianceReport() {
         {activeSection === 'overview' && (
           <div className="flex flex-col gap-6">
             <div className="grid grid-cols-4 gap-4">
-              <KPICard label="Total Items" value={totalCompliance} sub="All compliance records" color="#e8c97a" icon={FileCheck} />
-              <KPICard label="Compliant" value={compliantCount} sub="Up to date" color="#3dd68c" icon={FileCheck} />
-              <KPICard label="Overdue" value={overdueCompliance} sub="Require immediate action" color="#f43f5e" icon={FileCheck} />
-              <KPICard label="Expiring Soon" value={expiringSoonCompliance} sub="Within 60 days" color="#f59e0b" icon={FileCheck} />
+              <KPICard label="Total Items" value={scopedTotalCompliance} sub="Accessible records" color="#e8c97a" icon={FileCheck} />
+              <KPICard label="Compliant" value={scopedCompliantCount} sub="Up to date" color="#3dd68c" icon={FileCheck} />
+              <KPICard label="Overdue" value={scopedOverdueCompliance} sub="Require immediate action" color="#f43f5e" icon={FileCheck} />
+              <KPICard label="Expiring Soon" value={scopedExpiringSoonCompliance} sub="Within 60 days" color="#f59e0b" icon={FileCheck} />
             </div>
             <div className="rounded-xl border border-border overflow-hidden" style={{ background: 'var(--surface)' }}>
               <div className="px-5 py-4 border-b border-border flex items-center gap-2">
@@ -726,7 +775,7 @@ function ComplianceReport() {
                     </tr>
                   </thead>
                   <tbody>
-                    {complianceByHotel.filter((r) => r.total > 0).map((row) => {
+                    {accessibleComplianceByHotel.filter((r) => r.total > 0).map((row) => {
                       const rate = row.total > 0 ? Math.round((row.compliant / row.total) * 100) : 0;
                       return (
                         <tr key={row.name} className="border-b border-border" onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--surface2)')} onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}>
@@ -761,7 +810,7 @@ function ComplianceReport() {
                     </tr>
                   </thead>
                 <tbody>
-                  {COMPLIANCE_DATA.map((item, i) => {
+                  {accessibleCompliance.map((item, i) => {
                     const statusColor = item.status === 'compliant' ? '#3dd68c' : item.status === 'expiring-soon' ? '#f59e0b' : '#f43f5e';
                     const riskColor = item.risk === 'critical' ? '#f43f5e' : item.risk === 'high' ? '#f97316' : item.risk === 'medium' ? '#f59e0b' : '#3dd68c';
                     return (
@@ -819,13 +868,22 @@ function ComplianceReport() {
 }
 
 // ── Helper: Get real report dataset by ID ──────────────────────────────────────
-function getReportDataset(reportId: string): { title: string; rows: Record<string, any>[] } {
+function getReportDataset(reportId: string, isPropertyAccessible?: (prop?: string | null) => boolean): { title: string; rows: Record<string, any>[] } {
+  const check = (prop?: string | null) => !isPropertyAccessible || isPropertyAccessible(prop);
+  const scopedMaint = MAINTENANCE_RECORDS.filter((m) => check(m.hotelName || m.hotelId));
+  const scopedAssets = ASSETS.filter((a) => check(a.hotelName || a.hotelId));
+  const scopedHotels = HOTELS.filter((h) => check(h.name || h.id));
+  const scopedInsurance = INSURANCE_POLICIES.filter((p) => check(p.hotel));
+  const scopedContracts = CONTRACT_DATA.filter((c) => check(c.hotel));
+  const scopedCompliance = COMPLIANCE_DATA.filter((c) => check(c.hotel));
+  const scopedUtilities = UTILITIES_DATA.filter((u) => check(u.property));
+
   switch (reportId) {
     // ── Maintenance Reports ──
     case 'maint-schedule':
       return {
         title: 'Maintenance Schedule',
-        rows: MAINTENANCE_RECORDS.map((m) => ({
+        rows: scopedMaint.map((m) => ({
           'Asset Name': m.assetName,
           'Property': m.hotelName,
           'Type': m.type,
@@ -839,7 +897,7 @@ function getReportDataset(reportId: string): { title: string; rows: Record<strin
     case 'maint-overdue':
       return {
         title: 'Overdue Maintenance',
-        rows: MAINTENANCE_RECORDS.filter((m) => m.status === 'overdue').map((m) => ({
+        rows: scopedMaint.filter((m) => m.status === 'overdue').map((m) => ({
           'Asset Name': m.assetName,
           'Property': m.hotelName,
           'Scheduled Date': m.scheduledDate,
@@ -853,7 +911,7 @@ function getReportDataset(reportId: string): { title: string; rows: Record<strin
     case 'maint-completed':
       return {
         title: 'Completed Maintenance History',
-        rows: MAINTENANCE_RECORDS.filter((m) => m.status === 'completed').map((m) => ({
+        rows: scopedMaint.filter((m) => m.status === 'completed').map((m) => ({
           'Asset Name': m.assetName,
           'Property': m.hotelName,
           'Completed Date': m.completedDate || m.scheduledDate,
@@ -867,7 +925,7 @@ function getReportDataset(reportId: string): { title: string; rows: Record<strin
     case 'maint-frequency':
       return {
         title: 'Maintenance Frequency Analysis',
-        rows: MAINTENANCE_RECORDS.map((m) => ({
+        rows: scopedMaint.map((m) => ({
           'Asset Name': m.assetName,
           'Property': m.hotelName,
           'Cycle Frequency': m.frequency,
@@ -882,7 +940,7 @@ function getReportDataset(reportId: string): { title: string; rows: Record<strin
     case 'asset-register':
       return {
         title: 'Complete Asset Register',
-        rows: ASSETS.map((a) => ({
+        rows: scopedAssets.map((a) => ({
           'Asset ID': a.assetId,
           'Asset Name': a.name,
           'Category': a.category,
@@ -898,7 +956,7 @@ function getReportDataset(reportId: string): { title: string; rows: Record<strin
     case 'condition':
       return {
         title: 'Asset Condition Assessment',
-        rows: ASSETS.map((a) => ({
+        rows: scopedAssets.map((a) => ({
           'Asset ID': a.assetId,
           'Asset Name': a.name,
           'Property': a.hotelName,
@@ -912,7 +970,7 @@ function getReportDataset(reportId: string): { title: string; rows: Record<strin
     case 'department':
       return {
         title: 'Department Asset Breakdown',
-        rows: ASSETS.map((a) => ({
+        rows: scopedAssets.map((a) => ({
           'Department': a.department,
           'Asset Name': a.name,
           'Asset ID': a.assetId,
@@ -925,14 +983,14 @@ function getReportDataset(reportId: string): { title: string; rows: Record<strin
     case 'hotel':
       return {
         title: 'Property Asset Summary',
-        rows: HOTELS.map((h) => ({
+        rows: scopedHotels.map((h) => ({
           'Property Name': h.name,
           'City': h.city,
           'Manager': h.manager,
           'Phone': h.phone,
-          'Total Assets': ASSETS.filter((a) => a.hotelId === h.id).length,
-          'Fixed Assets': ASSETS.filter((a) => a.hotelId === h.id && a.isFixed).length,
-          'Non-Fixed Assets': ASSETS.filter((a) => a.hotelId === h.id && !a.isFixed).length,
+          'Total Assets': scopedAssets.filter((a) => a.hotelId === h.id).length,
+          'Fixed Assets': scopedAssets.filter((a) => a.hotelId === h.id && a.isFixed).length,
+          'Non-Fixed Assets': scopedAssets.filter((a) => a.hotelId === h.id && !a.isFixed).length,
           'Status': h.status.toUpperCase(),
         })),
       };
@@ -941,7 +999,7 @@ function getReportDataset(reportId: string): { title: string; rows: Record<strin
     case 'ins-all':
       return {
         title: 'Insurance Policy Register',
-        rows: INSURANCE_POLICIES.map((p) => ({
+        rows: scopedInsurance.map((p) => ({
           'Property': p.hotel,
           'Insurance Type': p.type,
           'Underwriter / Company': p.company,
@@ -954,7 +1012,7 @@ function getReportDataset(reportId: string): { title: string; rows: Record<strin
     case 'ins-expiring':
       return {
         title: 'Expiring Insurance Policies',
-        rows: INSURANCE_POLICIES.filter((p) => p.status === 'expiring-soon').map((p) => ({
+        rows: scopedInsurance.filter((p) => p.status === 'expiring-soon').map((p) => ({
           'Property': p.hotel,
           'Insurance Type': p.type,
           'Underwriter': p.company,
@@ -971,12 +1029,12 @@ function getReportDataset(reportId: string): { title: string; rows: Record<strin
           { 'Claim ID': 'CLM-001', 'Property': 'Crowne Plaza Kingston-south', 'Policy': 'Building Insurance', 'Amount': '£14,500', 'Date': '2025-11-20', 'Status': 'Settled' },
           { 'Claim ID': 'CLM-002', 'Property': 'Stanhill Court', 'Policy': 'Public Liability', 'Amount': '£8,200', 'Date': '2026-01-15', 'Status': 'Under Review' },
           { 'Claim ID': 'CLM-003', 'Property': 'River Club', 'Policy': 'Waterfront Risk', 'Amount': '£22,000', 'Date': '2026-03-02', 'Status': 'In Progress' },
-        ],
+        ].filter((c) => check(c.Property)),
       };
     case 'ins-premium':
       return {
         title: 'Premium Summary by Property',
-        rows: insuranceByHotel.map((h) => ({
+        rows: insuranceByHotel.filter((h) => check(h.fullName)).map((h) => ({
           'Property': h.fullName,
           'Active Policies': h.policies,
           'Total Annual Spend': `£${h.premium.toLocaleString()}`,
@@ -987,7 +1045,7 @@ function getReportDataset(reportId: string): { title: string; rows: Record<strin
     case 'con-all':
       return {
         title: 'Service Contracts Register',
-        rows: CONTRACT_DATA.map((c) => ({
+        rows: scopedContracts.map((c) => ({
           'Contractor / Supplier': c.supplier,
           'Property': c.hotel,
           'Service Category': c.category,
@@ -999,7 +1057,7 @@ function getReportDataset(reportId: string): { title: string; rows: Record<strin
     case 'con-expiring':
       return {
         title: 'Expiring Service Contracts',
-        rows: CONTRACT_DATA.filter((c) => c.status === 'expiring-soon').map((c) => ({
+        rows: scopedContracts.filter((c) => c.status === 'expiring-soon').map((c) => ({
           'Supplier': c.supplier,
           'Property': c.hotel,
           'Category': c.category,
@@ -1011,7 +1069,7 @@ function getReportDataset(reportId: string): { title: string; rows: Record<strin
     case 'con-value':
       return {
         title: 'Contract Value by Property',
-        rows: contractsByHotel.map((h) => ({
+        rows: contractsByHotel.filter((h) => check(h.fullName)).map((h) => ({
           'Property': h.fullName,
           'Active Contracts': h.contracts,
           'Total Contract Value': `£${h.value.toLocaleString()}`,
@@ -1020,8 +1078,8 @@ function getReportDataset(reportId: string): { title: string; rows: Record<strin
     case 'con-suppliers':
       return {
         title: 'Approved Suppliers Directory',
-        rows: Array.from(new Set(CONTRACT_DATA.map((c) => c.supplier))).map((sup) => {
-          const contracts = CONTRACT_DATA.filter((c) => c.supplier === sup);
+        rows: Array.from(new Set(scopedContracts.map((c) => c.supplier))).map((sup) => {
+          const contracts = scopedContracts.filter((c) => c.supplier === sup);
           return {
             'Supplier Name': sup,
             'Categories': contracts.map((c) => c.category).join(', '),
@@ -1035,7 +1093,7 @@ function getReportDataset(reportId: string): { title: string; rows: Record<strin
     case 'comp-register':
       return {
         title: 'Statutory Compliance Register',
-        rows: COMPLIANCE_DATA.map((c) => ({
+        rows: scopedCompliance.map((c) => ({
           'Property': c.hotel,
           'Statutory Item': c.category,
           'Risk Level': c.risk.toUpperCase(),
@@ -1046,7 +1104,7 @@ function getReportDataset(reportId: string): { title: string; rows: Record<strin
     case 'comp-overdue':
       return {
         title: 'Overdue Statutory Compliance Items',
-        rows: COMPLIANCE_DATA.filter((c) => c.status === 'overdue').map((c) => ({
+        rows: scopedCompliance.filter((c) => c.status === 'overdue').map((c) => ({
           'Property': c.hotel,
           'Statutory Item': c.category,
           'Risk Level': c.risk.toUpperCase(),
@@ -1058,7 +1116,7 @@ function getReportDataset(reportId: string): { title: string; rows: Record<strin
     case 'comp-expiring':
       return {
         title: 'Expiring Compliance Certifications',
-        rows: COMPLIANCE_DATA.filter((c) => c.status === 'expiring-soon').map((c) => ({
+        rows: scopedCompliance.filter((c) => c.status === 'expiring-soon').map((c) => ({
           'Property': c.hotel,
           'Certificate': c.category,
           'Risk Level': c.risk.toUpperCase(),
@@ -1069,7 +1127,7 @@ function getReportDataset(reportId: string): { title: string; rows: Record<strin
     case 'comp-risk':
       return {
         title: 'Compliance Risk Assessment',
-        rows: COMPLIANCE_DATA.map((c) => ({
+        rows: scopedCompliance.map((c) => ({
           'Statutory Item': c.category,
           'Property': c.hotel,
           'Assigned Risk': c.risk.toUpperCase(),
@@ -1081,7 +1139,7 @@ function getReportDataset(reportId: string): { title: string; rows: Record<strin
     case 'util-all':
       return {
         title: 'Utility Accounts & Meters Register',
-        rows: UTILITIES_DATA.map((u) => ({
+        rows: scopedUtilities.map((u) => ({
           'Property': u.property,
           'Utility Type': u.utilityType,
           'Supplier': u.supplier,
@@ -1096,7 +1154,7 @@ function getReportDataset(reportId: string): { title: string; rows: Record<strin
     case 'util-expiring':
       return {
         title: 'Expiring Utility Contracts',
-        rows: UTILITIES_DATA.filter((u) => u.status === 'expiring-soon').map((u) => ({
+        rows: scopedUtilities.filter((u) => u.status === 'expiring-soon').map((u) => ({
           'Property': u.property,
           'Utility Type': u.utilityType,
           'Supplier': u.supplier,
@@ -1108,7 +1166,7 @@ function getReportDataset(reportId: string): { title: string; rows: Record<strin
     case 'util-expired':
       return {
         title: 'Expired Utility Contracts',
-        rows: UTILITIES_DATA.filter((u) => u.status === 'expired').map((u) => ({
+        rows: scopedUtilities.filter((u) => u.status === 'expired').map((u) => ({
           'Property': u.property,
           'Utility Type': u.utilityType,
           'Supplier': u.supplier,
@@ -1121,7 +1179,7 @@ function getReportDataset(reportId: string): { title: string; rows: Record<strin
     case 'util-cost':
       return {
         title: 'Annual Utility Cost Breakdown',
-        rows: UTILITIES_DATA.map((u) => ({
+        rows: scopedUtilities.map((u) => ({
           'Property': u.property,
           'Utility': u.utilityType,
           'Annual Cost': u.annualCost ? `£${u.annualCost.toLocaleString()}` : '—',
@@ -1132,7 +1190,7 @@ function getReportDataset(reportId: string): { title: string; rows: Record<strin
     case 'util-incomplete':
       return {
         title: 'Incomplete Utility Records',
-        rows: UTILITIES_DATA.filter((u) => u.status === 'incomplete').map((u) => ({
+        rows: scopedUtilities.filter((u) => u.status === 'incomplete').map((u) => ({
           'Property': u.property,
           'Utility Type': u.utilityType,
           'Supplier': u.supplier,
@@ -1144,7 +1202,7 @@ function getReportDataset(reportId: string): { title: string; rows: Record<strin
     default:
       return {
         title: 'Standard Report',
-        rows: MAINTENANCE_RECORDS.map((m) => ({
+        rows: scopedMaint.map((m) => ({
           'Asset': m.assetName,
           'Property': m.hotelName,
           'Status': m.status,
@@ -1156,6 +1214,7 @@ function getReportDataset(reportId: string): { title: string; rows: Record<strin
 
 // ── Export Section Component with View, Excel, and PDF functionality ───────────
 function ExportSection({ items }: { items: { id: string; label: string; icon: React.ElementType; desc: string }[] }) {
+  const { isPropertyAccessible } = useAuth();
   const [previewReport, setPreviewReport] = useState<{
     id: string;
     label: string;
@@ -1167,7 +1226,7 @@ function ExportSection({ items }: { items: { id: string; label: string; icon: Re
 
   // 1. Export Excel using XLSX (SheetJS)
   const handleExportExcel = (report: { id: string; label: string }) => {
-    const dataset = getReportDataset(report.id);
+    const dataset = getReportDataset(report.id, isPropertyAccessible);
     if (!dataset.rows || dataset.rows.length === 0) {
       toast.error('No data available to export');
       return;
@@ -1190,7 +1249,7 @@ function ExportSection({ items }: { items: { id: string; label: string; icon: Re
 
   // 2. Export / Print as PDF
   const handleExportPDF = (report: { id: string; label: string }) => {
-    const dataset = getReportDataset(report.id);
+    const dataset = getReportDataset(report.id, isPropertyAccessible);
     if (!dataset.rows || dataset.rows.length === 0) {
       toast.error('No data available to export');
       return;
@@ -1276,7 +1335,7 @@ function ExportSection({ items }: { items: { id: string; label: string; icon: Re
 
   // 3. Open interactive View preview modal
   const handleView = (report: { id: string; label: string; desc: string }) => {
-    const dataset = getReportDataset(report.id);
+    const dataset = getReportDataset(report.id, isPropertyAccessible);
     setSearchQuery('');
     setPreviewReport({
       id: report.id,
@@ -1519,15 +1578,25 @@ function ExportSection({ items }: { items: { id: string; label: string; icon: Re
 
 // ── Utilities Report Component ────────────────────────────────────────────────
 function UtilitiesReport() {
+  const { isPropertyAccessible } = useAuth();
   const [activeSection, setActiveSection] = useState<'overview' | 'charts' | 'export'>('overview');
   const [filterType, setFilterType] = useState<'All' | UtilityType>('All');
   const [filterStatus, setFilterStatus] = useState<'all' | UtilityStatus>('all');
 
-  const filtered = UTILITIES_DATA.filter((u) => {
+  const accessibleUtilities = useMemo(() => {
+    return UTILITIES_DATA.filter((u) => isPropertyAccessible(u.property));
+  }, [isPropertyAccessible]);
+
+  const filtered = accessibleUtilities.filter((u) => {
     const typeMatch = filterType === 'All' || u.utilityType === filterType;
     const statusMatch = filterStatus === 'all' || u.status === filterStatus;
     return typeMatch && statusMatch;
   });
+
+  const scopedActiveUtilities = accessibleUtilities.filter((u) => u.status === 'active').length;
+  const scopedExpiredUtilities = accessibleUtilities.filter((u) => u.status === 'expired').length;
+  const scopedExpiringUtilities = accessibleUtilities.filter((u) => u.status === 'expiring-soon').length;
+  const scopedTotalCost = accessibleUtilities.reduce((sum, u) => sum + (u.annualCost || 0), 0);
 
   const getStatusColor = (status: UtilityStatus) => {
     if (status === 'active') return '#3dd68c';
@@ -1564,10 +1633,10 @@ function UtilitiesReport() {
           <div className="flex flex-col gap-6">
             {/* KPI Cards */}
             <div className="grid grid-cols-4 gap-4">
-              <KPICard label="Total Accounts" value={UTILITIES_DATA.length} sub="Across all properties" color="#e8c97a" icon={Zap} />
-              <KPICard label="Active Contracts" value={activeUtilities} sub="Currently in force" color="#3dd68c" icon={Zap} />
-              <KPICard label="Expired / Expiring" value={expiredUtilities + UTILITIES_DATA.filter((u) => u.status === 'expiring-soon').length} sub="Require renewal action" color="#f43f5e" icon={Zap} />
-              <KPICard label="Annual Cost" value={totalAnnualUtilityCost > 0 ? `£${(totalAnnualUtilityCost / 1000).toFixed(0)}k` : 'Partial'} sub="Recorded annual spend" color="#60a5fa" icon={TrendingUp} />
+              <KPICard label="Total Accounts" value={accessibleUtilities.length} sub="Accessible accounts" color="#e8c97a" icon={Zap} />
+              <KPICard label="Active Contracts" value={scopedActiveUtilities} sub="Currently in force" color="#3dd68c" icon={Zap} />
+              <KPICard label="Expired / Expiring" value={scopedExpiredUtilities + scopedExpiringUtilities} sub="Require renewal action" color="#f43f5e" icon={Zap} />
+              <KPICard label="Annual Cost" value={scopedTotalCost > 0 ? `£${(scopedTotalCost / 1000).toFixed(0)}k` : '£0'} sub="Recorded annual spend" color="#60a5fa" icon={TrendingUp} />
             </div>
 
             {/* Filters */}
@@ -1756,6 +1825,7 @@ function UtilitiesReport() {
 
 // ── Asset Report (original) ───────────────────────────────────────────────────
 function AssetReport() {
+  const { isPropertyAccessible } = useAuth();
   const cms = useDeepPageCms('reports');
   const [activeSection, setActiveSection] = useState<'overview' | 'charts' | 'export'>('overview');
   const [assets, setAssets] = useState<any[]>(ASSETS);
@@ -1782,11 +1852,23 @@ function AssetReport() {
     return () => window.removeEventListener('samko:data-changed', fetchLive);
   }, []);
 
-  const total = assets.length;
-  const fixed = assets.filter((a) => a.isFixed).length;
-  const overdueMaintenance = maintenance.filter((m) => m.status === 'overdue').length;
-  const completedMaintenance = maintenance.filter((m) => m.status === 'completed').length;
-  const maintenanceCompletion = maintenance.length > 0 ? Math.round((completedMaintenance / maintenance.length) * 100) : 100;
+  const accessibleAssets = useMemo(() => {
+    return assets.filter((a) => isPropertyAccessible(a.hotelName || a.hotelId || a.property));
+  }, [assets, isPropertyAccessible]);
+
+  const accessibleProperties = useMemo(() => {
+    return properties.filter((p) => isPropertyAccessible(p.name || p.id));
+  }, [properties, isPropertyAccessible]);
+
+  const accessibleMaintenance = useMemo(() => {
+    return maintenance.filter((m) => isPropertyAccessible(m.hotelName || m.hotelId || m.property));
+  }, [maintenance, isPropertyAccessible]);
+
+  const total = accessibleAssets.length;
+  const fixed = accessibleAssets.filter((a) => a.isFixed).length;
+  const overdueMaintenance = accessibleMaintenance.filter((m) => m.status === 'overdue').length;
+  const completedMaintenance = accessibleMaintenance.filter((m) => m.status === 'completed').length;
+  const maintenanceCompletion = accessibleMaintenance.length > 0 ? Math.round((completedMaintenance / accessibleMaintenance.length) * 100) : 100;
 
   return (
     <div className="flex flex-col h-full">
@@ -1810,7 +1892,7 @@ function AssetReport() {
         {activeSection === 'overview' && (
           <div className="flex flex-col gap-6">
             <div className="grid grid-cols-4 gap-4">
-              <KPICard label="Total Assets" value={total} sub="Across all properties" color="#e8c97a" icon={Package} />
+              <KPICard label="Total Assets" value={total} sub="Accessible properties" color="#e8c97a" icon={Package} />
               <KPICard label="Fixed Assets" value={fixed} sub={`${Math.round((fixed / (total || 1)) * 100)}% of total`} color="#60a5fa" icon={Package} />
               <KPICard label="Overdue Maintenance" value={overdueMaintenance} sub="Require immediate action" color="#f43f5e" icon={Wrench} />
               <KPICard label="Maintenance Complete" value={`${maintenanceCompletion}%`} sub="Completion rate" color="#3dd68c" icon={ClipboardCheck} />
@@ -1830,11 +1912,11 @@ function AssetReport() {
                     </tr>
                   </thead>
                 <tbody>
-                  {properties.map((property) => {
+                  {accessibleProperties.map((property) => {
                     const pName = property.name || '';
                     const pFirst = pName.toLowerCase().split(' ')[0];
-                    const propAssets = assets.filter((a) => a.hotelId === property.id || a.propertyId === property.id || a.hotelName?.toLowerCase()?.includes(pFirst) || a.property?.toLowerCase()?.includes(pFirst));
-                    const propMaint = maintenance.filter((m) => (m.hotelId === property.id || m.propertyId === property.id || m.hotelName?.toLowerCase()?.includes(pFirst) || m.property?.toLowerCase()?.includes(pFirst)) && m.status === 'overdue');
+                    const propAssets = accessibleAssets.filter((a) => a.hotelId === property.id || a.propertyId === property.id || a.hotelName?.toLowerCase()?.includes(pFirst) || a.property?.toLowerCase()?.includes(pFirst));
+                    const propMaint = accessibleMaintenance.filter((m) => (m.hotelId === property.id || m.propertyId === property.id || m.hotelName?.toLowerCase()?.includes(pFirst) || m.property?.toLowerCase()?.includes(pFirst)) && m.status === 'overdue');
                     const criticalCount = propAssets.filter((a) => a.riskLevel === 'critical').length;
                     return (
                       <tr key={property.id} className="border-b border-border" onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--surface2)')} onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}>

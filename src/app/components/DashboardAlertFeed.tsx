@@ -13,6 +13,7 @@ import {
   formatRelativeTime,
   type AppNotification,
 } from '@/lib/notifications';
+import { useAuth } from '@/lib/authContext';
 
 export default function DashboardAlertFeed() {
   const cms = useDeepPageCms('overview');
@@ -37,10 +38,16 @@ export default function DashboardAlertFeed() {
     };
   }, [syncNotifications]);
 
-  const critList = notifications.filter((n) => n.type === 'critical');
-  const warnList = notifications.filter((n) => n.type === 'warning');
+  const { isPropertyAccessible } = useAuth();
 
-  const filtered = notifications.filter((n) => {
+  const accessibleNotifications = React.useMemo(() => {
+    return notifications.filter((n) => !n.site || isPropertyAccessible(n.site));
+  }, [notifications, isPropertyAccessible]);
+
+  const critList = accessibleNotifications.filter((n) => n.type === 'critical');
+  const warnList = accessibleNotifications.filter((n) => n.type === 'warning');
+
+  const filtered = accessibleNotifications.filter((n) => {
     if (filter === 'critical') return n.type === 'critical';
     if (filter === 'warning') return n.type === 'warning';
     return true;
@@ -63,7 +70,7 @@ export default function DashboardAlertFeed() {
           >
             <span>{title}</span>
             <span className="px-1.5 py-0.2 rounded-full text-[10px] font-black bg-rose-500/20 text-rose-300 border border-rose-500/30">
-              {notifications.length} Active
+              {accessibleNotifications.length} Active
             </span>
           </h2>
         </div>

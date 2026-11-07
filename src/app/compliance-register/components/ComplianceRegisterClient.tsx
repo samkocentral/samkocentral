@@ -13,6 +13,9 @@ import { useDeepPageCms, DEFAULT_COMPLIANCE_CATEGORIES, addDropdownOption, remov
 import PageCMSEditButton from '@/components/cms/PageCMSEditButton';
 import LoadingPagination from '@/components/ui/LoadingPagination';
 import { useLoadingPagination } from '@/hooks/useLoadingPagination';
+import TableCheckbox from '@/components/ui/TableCheckbox';
+import BulkActionBar from '@/components/ui/BulkActionBar';
+import ConfirmDeleteModal from '@/components/modals/ConfirmDeleteModal';
 
 type ComplianceStatus = 'compliant' | 'expiring-soon' | 'overdue' | 'pending';
 type RiskRating = 'low' | 'medium' | 'high' | 'critical';
@@ -177,7 +180,9 @@ function KPICard({ label, value, sub, color, icon: IconComponent }: { label: str
 }
 
 export default function ComplianceRegisterClient() {
-  const { isViewer, canEdit, canDelete } = useAuth();
+  const { isViewer, canEdit, canDelete, canWriteTab, isPropertyAccessible } = useAuth();
+  const hasWriteAccess = !isViewer && canEdit && canWriteTab('compliance');
+  const hasDeleteAccess = !isViewer && canDelete && canWriteTab('compliance');
   const {
     title: cmsTitle,
     subtitle: cmsSubtitle,
@@ -265,7 +270,7 @@ export default function ComplianceRegisterClient() {
   const handleViewCategoryRecords = (catName: string) => {
     setFilterCategory([catName]);
     setShowAddCategoryModal(false);
-    const count = items.filter((c) => c.category === catName).length;
+    const count = items.filter((c) => isPropertyAccessible(c.hotel || (c as any).property || (c as any).site) && c.category === catName).length;
     toast.info(`Filtered to ${catName}`, {
       description: `Showing ${count} item(s) matching category "${catName}"`,
     });
@@ -396,8 +401,10 @@ export default function ComplianceRegisterClient() {
       ...propertyList,
       ...items.map((i) => i.hotel).filter(Boolean),
       ...DEFAULT_HOTELS,
-    ])).sort();
-  }, [propertyList, items]);
+    ]))
+      .filter((p) => isPropertyAccessible(p))
+      .sort();
+  }, [propertyList, items, isPropertyAccessible]);
 
   const categoryDropdown = (cmsDropdowns || []).find((d) => d.id === 'category');
   const allCategories = useMemo(() => {
@@ -596,13 +603,17 @@ export default function ComplianceRegisterClient() {
     }
   };
 
-  const totalItems = items.length;
-  const expiringIn30 = items.filter((c) => { const d = daysUntil(c.expiryDate); return d >= 0 && d <= 30; }).length;
-  const overdue = items.filter((c) => c.status === 'overdue').length;
-  const compliant = items.filter((c) => c.status === 'compliant').length;
-  const highRisk = items.filter((c) => c.riskRating === 'high' || c.riskRating === 'critical').length;
+  const accessibleItems = useMemo(() => {
+    return items.filter((c) => isPropertyAccessible(c.hotel || (c as any).property || (c as any).site));
+  }, [items, isPropertyAccessible]);
 
-  const filtered = items.filter((c) => {
+  const totalItems = accessibleItems.length;
+  const expiringIn30 = accessibleItems.filter((c) => { const d = daysUntil(c.expiryDate); return d >= 0 && d <= 30; }).length;
+  const overdue = accessibleItems.filter((c) => c.status === 'overdue').length;
+  const compliant = accessibleItems.filter((c) => c.status === 'compliant').length;
+  const highRisk = accessibleItems.filter((c) => c.riskRating === 'high' || c.riskRating === 'critical').length;
+
+  const filtered = accessibleItems.filter((c) => {
     const matchSearch = !search ||
       (c.name || '').toLowerCase().includes(search.toLowerCase()) ||
       (c.hotel || '').toLowerCase().includes(search.toLowerCase()) ||
@@ -640,6 +651,114 @@ export default function ComplianceRegisterClient() {
     changePage,
     changePageSize,
   } = useLoadingPagination(displayItems, 10);
+
+  // Multi-select Compliance State
+  const [selectedComplianceIds, setSelectedComplianceIds] = useState<string[]>([]);
+  const [isBulkDeletingCompliance, setIsBulkDeletingCompliance] = useState(false);
+  const [showBulkDeleteComplianceModal, setShowBulkDeleteComplianceModal] = useState(false);
+  const [selectedComplianceTypeFilter, setSelectedComplianceTypeFilter] = useState('');
+
+  const isAllCompliancePageSelected =
+    paginatedCompliance.length > 0 && paginatedCompliance.every((c) => selectedComplianceIds.includes(c.id));
+  const isSomeCompliancePageSelected =
+    paginatedCompliance.some((c) => selectedComplianceIds.includes(c.id)) && !isAllCompliancePageSelected;
+
+  const handleToggleSelectAllCompliancePage = () => {
+    if (isAllCompliancePageSelected) {
+      const pageIds = new Set(paginatedCompliance.map((c) => c.id));
+      setSelectedComplianceIds((prev) => prev.filter((id) => !pageIds.has(id)));
+    } else {
+      const pageIds = paginatedCompliance.map((c) => c.id);
+      setSelectedComplianceIds((prev) => Array.from(new Set([...prev, ...pageIds])));
+    }
+  };
+
+  const handleToggleComplianceSelect = (id: string) => {
+    setSelectedComplianceIds((prev) =>
+      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
+    );
+  };
+
+  const handleSelectAllFilteredCompliance = () => {
+    setSelectedComplianceIds(displayItems.map((c) => c.id));
+  };
+
+  const handleClearComplianceSelection = () => {
+    setSelectedComplianceIds([]);
+    setSelectedComplianceTypeFilter('');
+  };
+
+  const complianceTypeOptions = useMemo(() => {
+    const counts: Record<string, number> = {};
+    displayItems.forEach((c) => {
+      counts[`type:${c.type}`] = (counts[`type:${c.type}`] || 0) + 1;
+      counts[`cat:${c.category}`] = (counts[`cat:${c.category}`] || 0) + 1;
+      const hotel = c.hotel || (c as any).property;
+      if (hotel) counts[`hotel:${hotel}`] = (counts[`hotel:${hotel}`] || 0) + 1;
+      counts[`status:${c.status}`] = (counts[`status:${c.status}`] || 0) + 1;
+      counts[`risk:${c.riskRating}`] = (counts[`risk:${c.riskRating}`] || 0) + 1;
+    });
+
+    const opts: { label: string; value: string; count: number }[] = [];
+    ['Statutory', 'Internal', 'Insurance'].forEach((t) => {
+      if (counts[`type:${t}`]) opts.push({ label: `Type: ${t}`, value: `type:${t}`, count: counts[`type:${t}`] });
+    });
+    allCategories.forEach((cat) => {
+      if (counts[`cat:${cat}`]) opts.push({ label: `Category: ${cat}`, value: `cat:${cat}`, count: counts[`cat:${cat}`] });
+    });
+    DEFAULT_HOTELS.forEach((h) => {
+      if (counts[`hotel:${h}`]) opts.push({ label: `Property: ${h}`, value: `hotel:${h}`, count: counts[`hotel:${h}`] });
+    });
+    if (counts['status:compliant']) opts.push({ label: 'Status: Compliant', value: 'status:compliant', count: counts['status:compliant'] });
+    if (counts['status:expiring-soon']) opts.push({ label: 'Status: Expiring Soon', value: 'status:expiring-soon', count: counts['status:expiring-soon'] });
+    if (counts['status:overdue']) opts.push({ label: 'Status: Overdue', value: 'status:overdue', count: counts['status:overdue'] });
+    if (counts['risk:critical']) opts.push({ label: 'Risk: Critical', value: 'risk:critical', count: counts['risk:critical'] });
+    if (counts['risk:high']) opts.push({ label: 'Risk: High', value: 'risk:high', count: counts['risk:high'] });
+
+    return opts;
+  }, [displayItems, allCategories]);
+
+  const handleSelectComplianceByType = (typeKey: string) => {
+    setSelectedComplianceTypeFilter(typeKey);
+    if (!typeKey) {
+      setSelectedComplianceIds([]);
+      return;
+    }
+    const [kind, val] = typeKey.split(':');
+    const matched = displayItems.filter((c) => {
+      if (kind === 'type') return c.type === val;
+      if (kind === 'cat') return c.category === val;
+      if (kind === 'hotel') return (c.hotel || (c as any).property) === val;
+      if (kind === 'status') return c.status === val;
+      if (kind === 'risk') return c.riskRating === val;
+      return false;
+    });
+    setSelectedComplianceIds(matched.map((c) => c.id));
+    toast.info(`Selected ${matched.length} compliance items matching ${typeKey.replace(':', ': ')}`);
+  };
+
+  const handleConfirmBulkDeleteCompliance = async () => {
+    if (selectedComplianceIds.length === 0) return;
+    setIsBulkDeletingCompliance(true);
+    try {
+      const ids = [...selectedComplianceIds];
+      const count = ids.length;
+      setItems((prev) => prev.filter((c: any) => !ids.includes(c.id)));
+      setSelectedComplianceIds([]);
+      setSelectedComplianceTypeFilter('');
+      setShowBulkDeleteComplianceModal(false);
+
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('samko:data-changed', { detail: { type: 'compliance' } }));
+      }
+      await Promise.allSettled(ids.map((id) => api.compliance.delete(id)));
+      toast.success(`Deleted ${count} compliance items successfully!`);
+    } catch (err: any) {
+      toast.error('Failed to bulk delete compliance items');
+    } finally {
+      setIsBulkDeletingCompliance(false);
+    }
+  };
 
   const handleExport = () => {
     const headers = ['Compliance ID', 'Name', 'Category', 'Type', 'Property', 'Authority', 'Certificate Number', 'Expiry Date', 'Status', 'Risk Rating'];
@@ -689,25 +808,25 @@ export default function ComplianceRegisterClient() {
           >
             <Download size={13} /> Export
           </button>
-          {!isViewer && canEdit && (
-            <button
-              type="button"
-              onClick={() => setShowAddCategoryModal(true)}
-              className="flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-semibold border border-border transition-colors hover:border-primary cursor-pointer"
-              style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
-            >
-              <Tag size={13} style={{ color: 'var(--primary)' }} />
-              Add Category
-            </button>
-          )}
-          {canEdit && (
-            <button
-              onClick={() => setShowAddModal(true)}
-              className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-transform active:scale-95"
-              style={{ background: 'var(--primary)', color: '#000' }}
-            >
-              <Plus size={14} /> {(cmsPrimaryActionLabel || 'Add Compliance Item').replace(/^[\+\s]+/, '').trim()}
-            </button>
+          {hasWriteAccess && (
+            <>
+              <button
+                type="button"
+                onClick={() => setShowAddCategoryModal(true)}
+                className="flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-semibold border border-border transition-colors hover:border-primary cursor-pointer"
+                style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
+              >
+                <Tag size={13} style={{ color: 'var(--primary)' }} />
+                Add Category
+              </button>
+              <button
+                onClick={() => setShowAddModal(true)}
+                className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-transform active:scale-95"
+                style={{ background: 'var(--primary)', color: '#000' }}
+              >
+                <Plus size={14} /> {(cmsPrimaryActionLabel || 'Add Compliance Item').replace(/^[\+\s]+/, '').trim()}
+              </button>
+            </>
           )}
           {isViewer && (
             <span
@@ -801,6 +920,16 @@ export default function ComplianceRegisterClient() {
           <table className="w-full text-left border-collapse" style={{ minWidth: 900 }}>
             <thead>
               <tr style={{ background: 'var(--surface2)' }}>
+                {hasDeleteAccess && (
+                  <th className="px-3 py-3 w-10 text-center">
+                    <TableCheckbox
+                      checked={isAllCompliancePageSelected}
+                      indeterminate={isSomeCompliancePageSelected}
+                      onChange={handleToggleSelectAllCompliancePage}
+                      title="Select all on this page"
+                    />
+                  </th>
+                )}
                 {activeColumns.map((col: any) => (
                   <th
                     key={col.id}
@@ -822,12 +951,21 @@ export default function ComplianceRegisterClient() {
                 return (
                   <tr
                     key={item.id}
-                    className="border-t border-border cursor-pointer transition-colors"
+                    className={`border-t border-border cursor-pointer transition-colors ${selectedComplianceIds.includes(item.id) ? 'bg-[#e8c97a]/5' : ''}`}
                     style={{ background: 'transparent' }}
-                    onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--surface2)')}
-                    onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+                    onMouseEnter={(e) => (e.currentTarget.style.background = selectedComplianceIds.includes(item.id) ? 'rgba(232,201,122,0.08)' : 'var(--surface2)')}
+                    onMouseLeave={(e) => (e.currentTarget.style.background = selectedComplianceIds.includes(item.id) ? 'rgba(232,201,122,0.05)' : 'transparent')}
                     onClick={() => setSelectedItem(item)}
                   >
+                    {hasDeleteAccess && (
+                      <td className="px-3 py-3 text-center" onClick={(e) => e.stopPropagation()}>
+                        <TableCheckbox
+                          checked={selectedComplianceIds.includes(item.id)}
+                          onChange={() => handleToggleComplianceSelect(item.id)}
+                          title={`Select ${item.name}`}
+                        />
+                      </td>
+                    )}
                     {activeColumns.map((col: any) => {
                       const colKey = col.id.toLowerCase();
                       if (colKey === 'id' || colKey === 'complianceid') {
@@ -931,7 +1069,7 @@ export default function ComplianceRegisterClient() {
                               >
                                 <Eye size={13} />
                               </button>
-                              {!isViewer && canEdit && (
+                              {hasWriteAccess && (
                                 <button
                                   className="p-1.5 rounded-lg border border-border hover:bg-surface2 transition-colors text-muted-foreground hover:text-primary cursor-pointer"
                                   title="Edit Compliance Item"
@@ -940,7 +1078,7 @@ export default function ComplianceRegisterClient() {
                                   <Edit2 size={13} />
                                 </button>
                               )}
-                              {!isViewer && (canDelete ?? canEdit) && (
+                              {hasDeleteAccess && (
                                 <button
                                   className="p-1.5 rounded-lg border border-rose-500/20 hover:bg-rose-500/15 text-rose-400 transition-colors cursor-pointer"
                                   title="Delete Compliance Item"
@@ -984,6 +1122,25 @@ export default function ComplianceRegisterClient() {
             recordName="compliance items"
           />
         </div>
+
+        {/* Floating Bulk Action Bar (Only shown for authorized delete users) */}
+        {hasDeleteAccess && (
+          <div className="mt-4">
+            <BulkActionBar
+              selectedCount={selectedComplianceIds.length}
+              totalCount={displayItems.length}
+              onClearSelection={handleClearComplianceSelection}
+              onSelectAll={handleSelectAllFilteredCompliance}
+              onDeleteSelected={() => setShowBulkDeleteComplianceModal(true)}
+              typeOptions={complianceTypeOptions}
+              onSelectByType={handleSelectComplianceByType}
+              selectedTypeValue={selectedComplianceTypeFilter}
+              typePlaceholder="Select all of type (Statutory/Internal, Category, Property)..."
+              recordName="compliance items"
+              isDeleting={isBulkDeletingCompliance}
+            />
+          </div>
+        )}
       </div>
 
       {/* Detail Panel */}
@@ -1025,7 +1182,7 @@ export default function ComplianceRegisterClient() {
             )}
             <div className="flex items-center justify-between p-6 pt-0 border-t border-border mt-4">
               <div className="flex items-center gap-2">
-                {!isViewer && canEdit && (
+                {hasWriteAccess && (
                   <button
                     type="button"
                     onClick={() => handleOpenEdit(selectedItem)}
@@ -1035,7 +1192,7 @@ export default function ComplianceRegisterClient() {
                     <Edit2 size={13} /> Edit Item
                   </button>
                 )}
-                {!isViewer && (canDelete ?? canEdit) && (
+                {hasDeleteAccess && (
                   <button
                     type="button"
                     onClick={() => setItemToDelete(selectedItem)}
@@ -1076,37 +1233,40 @@ export default function ComplianceRegisterClient() {
                 </div>
                 <div className="flex flex-col gap-1">
                   <label className="text-xs font-medium text-muted-foreground">Type</label>
-                  <select
+                  <CustomDropdown
                     value={addForm.type}
-                    onChange={(e) => setAddForm({ ...addForm, type: e.target.value })}
-                    className="rounded-lg border border-border px-3 py-2 text-sm outline-none cursor-pointer"
-                    style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
-                  >
-                    <option value="Statutory">Statutory</option>
-                    <option value="Internal">Internal</option>
-                  </select>
+                    onChange={(val) => setAddForm({ ...addForm, type: val })}
+                    options={[
+                      { value: 'Statutory', label: 'Statutory' },
+                      { value: 'Internal', label: 'Internal' }
+                    ]}
+                    variant="form"
+                    width="100%"
+                  />
                 </div>
                 <div className="flex flex-col gap-1">
                   <label className="text-xs font-medium text-muted-foreground">Category</label>
-                  <select
+                  <CustomDropdown
                     value={addForm.category}
-                    onChange={(e) => setAddForm({ ...addForm, category: e.target.value })}
-                    className="rounded-lg border border-border px-3 py-2 text-sm outline-none cursor-pointer"
-                    style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
-                  >
-                    {allCategories.map((c) => <option key={c} value={c}>{c}</option>)}
-                  </select>
+                    onChange={(val) => setAddForm({ ...addForm, category: val })}
+                    options={allCategories.map((c) => ({ value: c, label: c }))}
+                    placeholder="Select Category"
+                    variant="form"
+                    width="100%"
+                    searchable
+                  />
                 </div>
                 <div className="flex flex-col gap-1">
                   <label className="text-xs font-medium text-muted-foreground">Property</label>
-                  <select
+                  <CustomDropdown
                     value={addForm.hotel}
-                    onChange={(e) => setAddForm({ ...addForm, hotel: e.target.value })}
-                    className="rounded-lg border border-border px-3 py-2 text-sm outline-none cursor-pointer"
-                    style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
-                  >
-                    {propertyList.map((h) => <option key={h}>{h}</option>)}
-                  </select>
+                    onChange={(val) => setAddForm({ ...addForm, hotel: val })}
+                    options={propertyList.map((h) => ({ value: h, label: h }))}
+                    placeholder="Select Property"
+                    variant="form"
+                    width="100%"
+                    searchable
+                  />
                 </div>
                 <div className="flex flex-col gap-1">
                   <label className="text-xs font-medium text-muted-foreground">Department</label>
@@ -1180,25 +1340,33 @@ export default function ComplianceRegisterClient() {
                 </div>
                 <div className="flex flex-col gap-1">
                   <label className="text-xs font-medium text-muted-foreground">Risk Rating</label>
-                  <select
+                  <CustomDropdown
                     value={addForm.riskRating}
-                    onChange={(e) => setAddForm({ ...addForm, riskRating: e.target.value as RiskRating })}
-                    className="rounded-lg border border-border px-3 py-2 text-sm outline-none cursor-pointer"
-                    style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
-                  >
-                    {['low', 'medium', 'high', 'critical'].map((r) => <option key={r} value={r}>{r}</option>)}
-                  </select>
+                    onChange={(val) => setAddForm({ ...addForm, riskRating: val as RiskRating })}
+                    options={[
+                      { value: 'low', label: 'Low', color: '#3dd68c' },
+                      { value: 'medium', label: 'Medium', color: '#f59e0b' },
+                      { value: 'high', label: 'High', color: '#f97316' },
+                      { value: 'critical', label: 'Critical', color: '#f43f5e' }
+                    ]}
+                    variant="form"
+                    width="100%"
+                  />
                 </div>
                 <div className="flex flex-col gap-1">
                   <label className="text-xs font-medium text-muted-foreground">Initial Status</label>
-                  <select
+                  <CustomDropdown
                     value={addForm.status}
-                    onChange={(e) => setAddForm({ ...addForm, status: e.target.value as ComplianceStatus })}
-                    className="rounded-lg border border-border px-3 py-2 text-sm outline-none cursor-pointer"
-                    style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
-                  >
-                    {['compliant', 'expiring-soon', 'overdue', 'pending'].map((s) => <option key={s} value={s}>{s}</option>)}
-                  </select>
+                    onChange={(val) => setAddForm({ ...addForm, status: val as ComplianceStatus })}
+                    options={[
+                      { value: 'compliant', label: 'Compliant', color: '#3dd68c' },
+                      { value: 'expiring-soon', label: 'Expiring Soon', color: '#f59e0b' },
+                      { value: 'overdue', label: 'Overdue', color: '#f43f5e' },
+                      { value: 'pending', label: 'Pending', color: '#94a3b8' }
+                    ]}
+                    variant="form"
+                    width="100%"
+                  />
                 </div>
                 <div className="col-span-2 flex flex-col gap-1">
                   <label className="text-xs font-medium text-muted-foreground">Notes</label>
@@ -1255,37 +1423,40 @@ export default function ComplianceRegisterClient() {
                 </div>
                 <div className="flex flex-col gap-1">
                   <label className="text-xs font-semibold text-muted-foreground uppercase">Type</label>
-                  <select
+                  <CustomDropdown
                     value={editingItem.type}
-                    onChange={(e) => setEditingItem({ ...editingItem, type: e.target.value })}
-                    className="rounded-lg border border-border px-3 py-2 text-sm outline-none cursor-pointer"
-                    style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
-                  >
-                    <option value="Statutory">Statutory</option>
-                    <option value="Internal">Internal</option>
-                  </select>
+                    onChange={(val) => setEditingItem({ ...editingItem, type: val })}
+                    options={[
+                      { value: 'Statutory', label: 'Statutory' },
+                      { value: 'Internal', label: 'Internal' }
+                    ]}
+                    variant="form"
+                    width="100%"
+                  />
                 </div>
                 <div className="flex flex-col gap-1">
                   <label className="text-xs font-semibold text-muted-foreground uppercase">Category</label>
-                  <select
+                  <CustomDropdown
                     value={editingItem.category}
-                    onChange={(e) => setEditingItem({ ...editingItem, category: e.target.value })}
-                    className="rounded-lg border border-border px-3 py-2 text-sm outline-none cursor-pointer"
-                    style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
-                  >
-                    {allCategories.map((c) => <option key={c} value={c}>{c}</option>)}
-                  </select>
+                    onChange={(val) => setEditingItem({ ...editingItem, category: val })}
+                    options={allCategories.map((c) => ({ value: c, label: c }))}
+                    placeholder="Select Category"
+                    variant="form"
+                    width="100%"
+                    searchable
+                  />
                 </div>
                 <div className="flex flex-col gap-1">
                   <label className="text-xs font-semibold text-muted-foreground uppercase">Property</label>
-                  <select
+                  <CustomDropdown
                     value={editingItem.hotel}
-                    onChange={(e) => setEditingItem({ ...editingItem, hotel: e.target.value })}
-                    className="rounded-lg border border-border px-3 py-2 text-sm outline-none cursor-pointer"
-                    style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
-                  >
-                    {propertyList.map((h) => <option key={h}>{h}</option>)}
-                  </select>
+                    onChange={(val) => setEditingItem({ ...editingItem, hotel: val })}
+                    options={propertyList.map((h) => ({ value: h, label: h }))}
+                    placeholder="Select Property"
+                    variant="form"
+                    width="100%"
+                    searchable
+                  />
                 </div>
                 <div className="flex flex-col gap-1">
                   <label className="text-xs font-semibold text-muted-foreground uppercase">Department</label>
@@ -1369,25 +1540,33 @@ export default function ComplianceRegisterClient() {
                 </div>
                 <div className="flex flex-col gap-1">
                   <label className="text-xs font-semibold text-muted-foreground uppercase">Risk Rating</label>
-                  <select
+                  <CustomDropdown
                     value={editingItem.riskRating}
-                    onChange={(e) => setEditingItem({ ...editingItem, riskRating: e.target.value as RiskRating })}
-                    className="rounded-lg border border-border px-3 py-2 text-sm outline-none cursor-pointer"
-                    style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
-                  >
-                    {['low', 'medium', 'high', 'critical'].map((r) => <option key={r} value={r}>{r}</option>)}
-                  </select>
+                    onChange={(val) => setEditingItem({ ...editingItem, riskRating: val as RiskRating })}
+                    options={[
+                      { value: 'low', label: 'Low', color: '#3dd68c' },
+                      { value: 'medium', label: 'Medium', color: '#f59e0b' },
+                      { value: 'high', label: 'High', color: '#f97316' },
+                      { value: 'critical', label: 'Critical', color: '#f43f5e' }
+                    ]}
+                    variant="form"
+                    width="100%"
+                  />
                 </div>
                 <div className="flex flex-col gap-1">
                   <label className="text-xs font-semibold text-muted-foreground uppercase">Status</label>
-                  <select
+                  <CustomDropdown
                     value={editingItem.status}
-                    onChange={(e) => setEditingItem({ ...editingItem, status: e.target.value as ComplianceStatus })}
-                    className="rounded-lg border border-border px-3 py-2 text-sm outline-none cursor-pointer"
-                    style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
-                  >
-                    {['compliant', 'expiring-soon', 'overdue', 'pending'].map((s) => <option key={s} value={s}>{s}</option>)}
-                  </select>
+                    onChange={(val) => setEditingItem({ ...editingItem, status: val as ComplianceStatus })}
+                    options={[
+                      { value: 'compliant', label: 'Compliant', color: '#3dd68c' },
+                      { value: 'expiring-soon', label: 'Expiring Soon', color: '#f59e0b' },
+                      { value: 'overdue', label: 'Overdue', color: '#f43f5e' },
+                      { value: 'pending', label: 'Pending', color: '#94a3b8' }
+                    ]}
+                    variant="form"
+                    width="100%"
+                  />
                 </div>
                 <div className="col-span-2 flex flex-col gap-1">
                   <label className="text-xs font-semibold text-muted-foreground uppercase">Notes</label>
@@ -1464,7 +1643,7 @@ export default function ComplianceRegisterClient() {
                 </div>
                 <div className="space-y-1.5 max-h-60 overflow-y-auto custom-scrollbar pr-1">
                   {allCategories.map((c) => {
-                    const count = items.filter((x) => x.category === c).length;
+                    const count = accessibleItems.filter((x) => x.category === c).length;
                     const isEditing = editingCat?.oldName === c;
                     return (
                       <div
@@ -1577,12 +1756,10 @@ export default function ComplianceRegisterClient() {
               </div>
             </div>
             <p className="text-xs leading-relaxed text-muted-foreground mb-5">
-              Are you sure you want to remove <strong className="text-foreground">{catToDelete}</strong> from compliance categories?
-              {items.filter((c) => c.category === catToDelete).length > 0 && (
-                <span className="block mt-2 text-rose-400">
-                  Warning: {items.filter((c) => c.category === catToDelete).length} compliance record(s) currently use this category.
-                </span>
-              )}
+              Are you sure you want to delete the category <strong className="text-foreground">{catToDelete}</strong>?
+              <span className="block mt-2 text-emerald-400 font-medium">
+                Note: All {items.filter((c) => c.category === catToDelete).length} existing compliance records will safely stay in the database. Only this category option will be removed from future dropdown selections.
+              </span>
             </p>
             <div className="flex items-center justify-end gap-3">
               <button
@@ -1650,6 +1827,19 @@ export default function ComplianceRegisterClient() {
           </div>
         </div>
       )}
+
+      {/* Bulk Delete Compliance Modal */}
+      <ConfirmDeleteModal
+        isOpen={showBulkDeleteComplianceModal}
+        onClose={() => setShowBulkDeleteComplianceModal(false)}
+        onConfirm={handleConfirmBulkDeleteCompliance}
+        title="Confirm Bulk Deletion"
+        itemName={`${selectedComplianceIds.length} Selected Compliance Items`}
+        registerName="compliance register"
+        customWarning={`Are you sure you want to permanently delete these ${selectedComplianceIds.length} selected compliance items? This action cannot be undone.`}
+        confirmButtonText={`Delete ${selectedComplianceIds.length} Items`}
+        isDeleting={isBulkDeletingCompliance}
+      />
     </div>
   );
 }

@@ -65,13 +65,18 @@ export async function POST(req: NextRequest) {
     }
 
     const assetId = body.assetId || `AST-${Date.now().toString().slice(-6)}`;
+    const isFixed =
+      body.isFixed !== undefined
+        ? Boolean(body.isFixed)
+        : (body.type === 'non-fixed' || body.assetType === 'non-fixed' ? false : true);
+
     const newAsset = await createDocument('assets', {
       ...body,
       assetId,
       status: body.status || 'active',
       condition: body.condition || 'good',
       riskLevel: body.riskLevel || 'low',
-      isFixed: body.isFixed ?? true,
+      isFixed,
       quantity: body.quantity || 1,
     });
 

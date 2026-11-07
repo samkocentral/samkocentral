@@ -14,6 +14,9 @@ import { useDeepPageCms, updatePageItem, addPageItem, deletePageItem } from '@/l
 import PageCMSEditButton from '@/components/cms/PageCMSEditButton';
 import LoadingPagination from '@/components/ui/LoadingPagination';
 import { useLoadingPagination } from '@/hooks/useLoadingPagination';
+import TableCheckbox from '@/components/ui/TableCheckbox';
+import BulkActionBar from '@/components/ui/BulkActionBar';
+import ConfirmDeleteModal from '@/components/modals/ConfirmDeleteModal';
 
 const CONDITION_STYLES: Record<string, { bg: string; color: string }> = {
   excellent: { bg: 'rgba(61,214,140,0.12)', color: '#3dd68c' },
@@ -77,12 +80,15 @@ function FilterSelect({
 }
 
 export default function AssetsClient() {
-  const { isViewer, canEdit, canUpload, canDelete } = useAuth();
+  const { isViewer, canEdit, canUpload, canDelete, canWriteTab, isPropertyAccessible } = useAuth();
   const searchParams = useSearchParams();
   const router = useRouter();
   const initialHotel = searchParams?.get('hotel') || '';
   const isNonFixed = searchParams?.get('type') === 'non-fixed';
   const pageKey = isNonFixed ? 'nonfixed' : 'assets';
+  const tabId = isNonFixed ? 'non-fixed-assets' : 'fixed-assets';
+  const hasWriteAccess = !isViewer && canEdit && canWriteTab(tabId);
+  const hasDeleteAccess = !isViewer && canDelete && canWriteTab(tabId);
 
   const {
     title: cmsTitle,
@@ -223,9 +229,19 @@ export default function AssetsClient() {
     setCategoryFilter([]);
   }, [isNonFixed]);
 
+  const accessibleAssets = useMemo(() => {
+    return assets.filter((a) =>
+      isPropertyAccessible(a.hotelName || a.hotelId || (a as any).property || (a as any).propertyName)
+    );
+  }, [assets, isPropertyAccessible]);
+
   const scopedAssets = useMemo(() => {
-    return assets.filter((a) => (isNonFixed ? !isAssetFixed(a) : isAssetFixed(a)));
-  }, [assets, isNonFixed]);
+    return accessibleAssets.filter((a) => (isNonFixed ? !isAssetFixed(a) : isAssetFixed(a)));
+  }, [accessibleAssets, isNonFixed]);
+
+  const accessiblePropertyOptions = useMemo(() => {
+    return properties.filter((p) => isPropertyAccessible(p.label || p.value));
+  }, [properties, isPropertyAccessible]);
 
   const availableCategories = useMemo(() => {
     const set = new Set<string>();
@@ -610,6 +626,122 @@ export default function AssetsClient() {
     changePageSize,
   } = useLoadingPagination(filtered, 10);
 
+  // Multi-select Assets State
+  const [selectedAssetIds, setSelectedAssetIds] = useState<string[]>([]);
+  const [isBulkDeletingAssets, setIsBulkDeletingAssets] = useState(false);
+  const [showBulkDeleteAssetsModal, setShowBulkDeleteAssetsModal] = useState(false);
+  const [selectedAssetTypeFilter, setSelectedAssetTypeFilter] = useState('');
+
+  const isAllAssetsPageSelected =
+    paginatedAssets.length > 0 && paginatedAssets.every((a) => selectedAssetIds.includes(a.id));
+  const isSomeAssetsPageSelected =
+    paginatedAssets.some((a) => selectedAssetIds.includes(a.id)) && !isAllAssetsPageSelected;
+
+  const handleToggleSelectAllAssetsPage = () => {
+    if (isAllAssetsPageSelected) {
+      const pageIds = new Set(paginatedAssets.map((a) => a.id));
+      setSelectedAssetIds((prev) => prev.filter((id) => !pageIds.has(id)));
+    } else {
+      const pageIds = paginatedAssets.map((a) => a.id);
+      setSelectedAssetIds((prev) => Array.from(new Set([...prev, ...pageIds])));
+    }
+  };
+
+  const handleToggleAssetSelect = (id: string) => {
+    setSelectedAssetIds((prev) =>
+      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
+    );
+  };
+
+  const handleSelectAllFilteredAssets = () => {
+    setSelectedAssetIds(filtered.map((a) => a.id));
+  };
+
+  const handleClearAssetSelection = () => {
+    setSelectedAssetIds([]);
+    setSelectedAssetTypeFilter('');
+  };
+
+  const assetTypeOptions = useMemo(() => {
+    const counts: Record<string, number> = {};
+    filtered.forEach((a) => {
+      const isFixed = isAssetFixed(a);
+      counts[isFixed ? 'type:fixed' : 'type:non-fixed'] = (counts[isFixed ? 'type:fixed' : 'type:non-fixed'] || 0) + 1;
+      counts[`cat:${a.category}`] = (counts[`cat:${a.category}`] || 0) + 1;
+      const hotel = a.hotelName || (a as any).propertyName;
+      if (hotel) counts[`hotel:${hotel}`] = (counts[`hotel:${hotel}`] || 0) + 1;
+      counts[`status:${a.status}`] = (counts[`status:${a.status}`] || 0) + 1;
+      counts[`cond:${a.condition}`] = (counts[`cond:${a.condition}`] || 0) + 1;
+      counts[`risk:${a.riskLevel}`] = (counts[`risk:${a.riskLevel}`] || 0) + 1;
+    });
+
+    const opts: { label: string; value: string; count: number }[] = [];
+    if (counts['type:fixed']) opts.push({ label: 'Type: Fixed Assets', value: 'type:fixed', count: counts['type:fixed'] });
+    if (counts['type:non-fixed']) opts.push({ label: 'Type: Non-Fixed Assets', value: 'type:non-fixed', count: counts['type:non-fixed'] });
+
+    categories.forEach((c) => {
+      if (counts[`cat:${c}`]) opts.push({ label: `Category: ${c}`, value: `cat:${c}`, count: counts[`cat:${c}`] });
+    });
+    HOTELS.forEach((h) => {
+      if (counts[`hotel:${h.name}`]) opts.push({ label: `Property: ${h.name}`, value: `hotel:${h.name}`, count: counts[`hotel:${h.name}`] });
+    });
+    if (counts['status:active']) opts.push({ label: 'Status: Active', value: 'status:active', count: counts['status:active'] });
+    if (counts['status:under-maintenance']) opts.push({ label: 'Status: Under Maintenance', value: 'status:under-maintenance', count: counts['status:under-maintenance'] });
+    if (counts['status:inactive']) opts.push({ label: 'Status: Inactive', value: 'status:inactive', count: counts['status:inactive'] });
+    if (counts['cond:excellent']) opts.push({ label: 'Condition: Excellent', value: 'cond:excellent', count: counts['cond:excellent'] });
+    if (counts['cond:good']) opts.push({ label: 'Condition: Good', value: 'cond:good', count: counts['cond:good'] });
+    if (counts['cond:poor']) opts.push({ label: 'Condition: Poor', value: 'cond:poor', count: counts['cond:poor'] });
+    if (counts['risk:high']) opts.push({ label: 'Risk: High', value: 'risk:high', count: counts['risk:high'] });
+
+    return opts;
+  }, [filtered, categories]);
+
+  const handleSelectAssetByType = (typeKey: string) => {
+    setSelectedAssetTypeFilter(typeKey);
+    if (!typeKey) {
+      setSelectedAssetIds([]);
+      return;
+    }
+    const [kind, val] = typeKey.split(':');
+    const matched = filtered.filter((a) => {
+      if (kind === 'type') return val === 'fixed' ? isAssetFixed(a) : !isAssetFixed(a);
+      if (kind === 'cat') return a.category === val;
+      if (kind === 'hotel') return (a.hotelName || (a as any).propertyName) === val;
+      if (kind === 'status') return a.status === val;
+      if (kind === 'cond') return a.condition === val;
+      if (kind === 'risk') return a.riskLevel === val;
+      return false;
+    });
+    setSelectedAssetIds(matched.map((a) => a.id));
+    toast.info(`Selected ${matched.length} assets matching ${typeKey.replace(':', ': ')}`);
+  };
+
+  const handleConfirmBulkDeleteAssets = async () => {
+    if (selectedAssetIds.length === 0) return;
+    setIsBulkDeletingAssets(true);
+    try {
+      const ids = [...selectedAssetIds];
+      const count = ids.length;
+
+      const nextList = assets.filter((a) => !ids.includes(a.id) && !ids.includes(a.assetId));
+      setAssets(nextList);
+      saveAssetsToStorage(nextList);
+      setSelectedAssetIds([]);
+      setSelectedAssetTypeFilter('');
+      setShowBulkDeleteAssetsModal(false);
+
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('samko:data-changed', { detail: { type: 'assets' } }));
+      }
+      await Promise.allSettled(ids.map((id) => api.assets.delete(id)));
+      toast.success(`Deleted ${count} assets successfully!`);
+    } catch (err: any) {
+      toast.error('Failed to bulk delete assets');
+    } finally {
+      setIsBulkDeletingAssets(false);
+    }
+  };
+
   const hasFilters =
     Boolean(search) ||
     hotelFilter.length > 0 ||
@@ -626,12 +758,12 @@ export default function AssetsClient() {
   };
 
   const fixedCount = useMemo(() => {
-    return assets.filter((a) => isAssetFixed(a)).length;
-  }, [assets]);
+    return accessibleAssets.filter((a) => isAssetFixed(a)).length;
+  }, [accessibleAssets]);
 
   const nonFixedCount = useMemo(() => {
-    return assets.filter((a) => !isAssetFixed(a)).length;
-  }, [assets]);
+    return accessibleAssets.filter((a) => !isAssetFixed(a)).length;
+  }, [accessibleAssets]);
 
   const tabs = useMemo(() => {
     if (isNonFixed) {
@@ -684,7 +816,7 @@ export default function AssetsClient() {
           <p className="text-xs text-muted-foreground mt-0.5">
             {cmsSubtitle && !cmsSubtitle.includes('of 98') && !cmsSubtitle.includes('of 100')
               ? cmsSubtitle
-              : `${filtered.length} of ${scopedAssets.length} ${isNonFixed ? 'non-fixed' : 'fixed'} assets managed across all portfolio properties`}
+              : `${filtered.length} of ${scopedAssets.length} ${isNonFixed ? 'non-fixed' : 'fixed'} assets managed`}
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -703,7 +835,7 @@ export default function AssetsClient() {
             pageName={isNonFixed ? 'Non-Fixed Assets (FF&E)' : 'Fixed Assets Register'}
           />
 
-          {canUpload && (
+          {hasWriteAccess && canUpload && (
             <Link
               href="/asset-management/import"
               className="flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-semibold transition-colors hover:border-primary"
@@ -713,7 +845,7 @@ export default function AssetsClient() {
               {cmsSecondaryActionLabel || 'Import Excel'}
             </Link>
           )}
-          {canEdit && (
+          {hasWriteAccess && (
             <>
               <button
                 onClick={() => setShowAddCategoryModal(true)}
@@ -795,7 +927,7 @@ export default function AssetsClient() {
         <FilterSelect
           label={propertyLabel}
           value={hotelFilter}
-          options={properties}
+          options={accessiblePropertyOptions}
           onChange={setHotelFilter}
         />
         <FilterSelect
@@ -844,6 +976,16 @@ export default function AssetsClient() {
             style={{ background: 'var(--surface)' }}
           >
             <tr>
+              {hasDeleteAccess && (
+                <th className="text-center px-3 py-3 border-b border-border w-10 whitespace-nowrap">
+                  <TableCheckbox
+                    checked={isAllAssetsPageSelected}
+                    indeterminate={isSomeAssetsPageSelected}
+                    onChange={handleToggleSelectAllAssetsPage}
+                    title="Select all on this page"
+                  />
+                </th>
+              )}
               {activeColumns.map((col) => (
                 <th
                   key={col.id}
@@ -859,7 +1001,7 @@ export default function AssetsClient() {
           <tbody>
             {filtered.length === 0 ? (
               <tr>
-                <td colSpan={visibleColCount} className="text-center py-16 text-muted-foreground text-sm">
+                <td colSpan={visibleColCount + 1} className="text-center py-16 text-muted-foreground text-sm">
                   No assets found matching your filters.
                 </td>
               </tr>
@@ -871,14 +1013,25 @@ export default function AssetsClient() {
                 return (
                   <tr
                     key={asset.id}
-                    className="border-b border-border transition-colors cursor-pointer"
+                    className={`border-b border-border transition-colors cursor-pointer ${
+                      selectedAssetIds.includes(asset.id) ? 'bg-[#e8c97a]/5' : ''
+                    }`}
                     onClick={() => {
                       cacheAssetForDetail(asset);
                       router.push(`/asset-management/assets/${asset.id}`);
                     }}
-                    onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.background = 'var(--surface2)')}
-                    onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.background = 'transparent')}
+                    onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.background = selectedAssetIds.includes(asset.id) ? 'rgba(232,201,122,0.08)' : 'var(--surface2)')}
+                    onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.background = selectedAssetIds.includes(asset.id) ? 'rgba(232,201,122,0.05)' : 'transparent')}
                   >
+                    {hasDeleteAccess && (
+                      <td className="px-3 py-2.5 text-center" onClick={(e) => e.stopPropagation()}>
+                        <TableCheckbox
+                          checked={selectedAssetIds.includes(asset.id)}
+                          onChange={() => handleToggleAssetSelect(asset.id)}
+                          title={`Select ${asset.name}`}
+                        />
+                      </td>
+                    )}
                     {activeColumns.map((col) => {
                       const colKey = col.id.toLowerCase();
                       if (colKey === 'assetid') {
@@ -986,7 +1139,7 @@ export default function AssetsClient() {
                                 <Eye size={12} />
                                 View
                               </Link>
-                              {!isViewer && canEdit && (
+                              {hasWriteAccess && (
                                 <button
                                   onClick={() => handleOpenEditAsset(asset)}
                                   className="p-1.5 rounded-lg border border-border hover:bg-surface2 text-muted-foreground hover:text-primary transition-colors cursor-pointer"
@@ -995,7 +1148,7 @@ export default function AssetsClient() {
                                   <Edit2 size={12} />
                                 </button>
                               )}
-                              {!isViewer && (canDelete ?? canEdit) && (
+                              {hasDeleteAccess && (
                                 <button
                                   onClick={() => setAssetToDelete(asset)}
                                   className="p-1.5 rounded-lg border border-rose-500/20 hover:bg-rose-500/15 text-rose-400 transition-colors cursor-pointer"
@@ -1093,6 +1246,25 @@ export default function AssetsClient() {
         recordName="assets"
         className="sticky bottom-0 z-20 flex-shrink-0"
       />
+
+      {/* Floating Bulk Action Bar (Only shown for authorized delete users) */}
+      {hasDeleteAccess && (
+        <div className="mt-2">
+          <BulkActionBar
+            selectedCount={selectedAssetIds.length}
+            totalCount={filtered.length}
+            onClearSelection={handleClearAssetSelection}
+            onSelectAll={handleSelectAllFilteredAssets}
+            onDeleteSelected={() => setShowBulkDeleteAssetsModal(true)}
+            typeOptions={assetTypeOptions}
+            onSelectByType={handleSelectAssetByType}
+            selectedTypeValue={selectedAssetTypeFilter}
+            typePlaceholder="Select all of type (Category, Property, Status)..."
+            recordName="assets"
+            isDeleting={isBulkDeletingAssets}
+          />
+        </div>
+      )}
 
       {/* Add Category Modal */}
       {showAddCategoryModal && (
@@ -1231,38 +1403,32 @@ export default function AssetsClient() {
                   <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wide">
                     Category
                   </label>
-                  <select
+                  <CustomDropdown
+                    variant="form"
+                    width="100%"
                     value={newAssetForm.category}
-                    onChange={(e) => setNewAssetForm({ ...newAssetForm, category: e.target.value })}
-                    className="w-full px-3 py-2 rounded-lg border border-border text-xs outline-none"
-                    style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
-                  >
-                    {categories.map((c) => (
-                      <option key={c} value={c}>{c}</option>
-                    ))}
-                  </select>
+                    onChange={(val) => setNewAssetForm({ ...newAssetForm, category: val })}
+                    options={categories}
+                  />
                 </div>
                 <div>
                   <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wide">
                     Property
                   </label>
-                  <select
+                  <CustomDropdown
+                    variant="form"
+                    width="100%"
                     value={newAssetForm.hotelId}
-                    onChange={(e) => {
-                      const prop = properties.find((p) => p.value === e.target.value);
+                    onChange={(val) => {
+                      const prop = properties.find((p) => p.value === val);
                       setNewAssetForm({
                         ...newAssetForm,
-                        hotelId: e.target.value,
+                        hotelId: val,
                         hotelName: prop ? prop.label : 'Property',
                       });
                     }}
-                    className="w-full px-3 py-2 rounded-lg border border-border text-xs outline-none"
-                    style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
-                  >
-                    {properties.map((p) => (
-                      <option key={p.value} value={p.value}>{p.label}</option>
-                    ))}
-                  </select>
+                    options={accessiblePropertyOptions}
+                  />
                 </div>
               </div>
 
@@ -1271,16 +1437,13 @@ export default function AssetsClient() {
                   <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wide">
                     Department
                   </label>
-                  <select
+                  <CustomDropdown
+                    variant="form"
+                    width="100%"
                     value={newAssetForm.department}
-                    onChange={(e) => setNewAssetForm({ ...newAssetForm, department: e.target.value })}
-                    className="w-full px-3 py-2 rounded-lg border border-border text-xs outline-none"
-                    style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
-                  >
-                    {DEPARTMENTS.map((d) => (
-                      <option key={d} value={d}>{d}</option>
-                    ))}
-                  </select>
+                    onChange={(val) => setNewAssetForm({ ...newAssetForm, department: val })}
+                    options={DEPARTMENTS}
+                  />
                 </div>
                 <div>
                   <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wide">
@@ -1315,34 +1478,36 @@ export default function AssetsClient() {
                   <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wide">
                     Condition
                   </label>
-                  <select
+                  <CustomDropdown
+                    variant="form"
+                    width="100%"
                     value={newAssetForm.condition}
-                    onChange={(e) => setNewAssetForm({ ...newAssetForm, condition: e.target.value })}
-                    className="w-full px-3 py-2 rounded-lg border border-border text-xs outline-none"
-                    style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
-                  >
-                    <option value="excellent">Excellent</option>
-                    <option value="good">Good</option>
-                    <option value="fair">Fair</option>
-                    <option value="poor">Poor</option>
-                    <option value="critical">Critical</option>
-                  </select>
+                    onChange={(val) => setNewAssetForm({ ...newAssetForm, condition: val })}
+                    options={[
+                      { value: 'excellent', label: 'Excellent', color: '#10b981' },
+                      { value: 'good', label: 'Good', color: '#3dd68c' },
+                      { value: 'fair', label: 'Fair', color: '#f59e0b' },
+                      { value: 'poor', label: 'Poor', color: '#ef4444' },
+                      { value: 'critical', label: 'Critical', color: '#dc2626' },
+                    ]}
+                  />
                 </div>
                 <div>
                   <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wide">
                     Risk Level
                   </label>
-                  <select
+                  <CustomDropdown
+                    variant="form"
+                    width="100%"
                     value={newAssetForm.riskLevel}
-                    onChange={(e) => setNewAssetForm({ ...newAssetForm, riskLevel: e.target.value })}
-                    className="w-full px-3 py-2 rounded-lg border border-border text-xs outline-none"
-                    style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
-                  >
-                    <option value="low">Low</option>
-                    <option value="medium">Medium</option>
-                    <option value="high">High</option>
-                    <option value="critical">Critical</option>
-                  </select>
+                    onChange={(val) => setNewAssetForm({ ...newAssetForm, riskLevel: val })}
+                    options={[
+                      { value: 'low', label: 'Low', color: '#10b981' },
+                      { value: 'medium', label: 'Medium', color: '#f59e0b' },
+                      { value: 'high', label: 'High', color: '#ef4444' },
+                      { value: 'critical', label: 'Critical', color: '#dc2626' },
+                    ]}
+                  />
                 </div>
               </div>
 
@@ -1495,44 +1660,34 @@ export default function AssetsClient() {
                   <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wide">
                     Category *
                   </label>
-                  <select
+                  <CustomDropdown
+                    variant="form"
+                    width="100%"
                     value={editingAsset.category}
-                    onChange={(e) => setEditingAsset({ ...editingAsset, category: e.target.value })}
-                    className="w-full px-3 py-2 rounded-lg border border-border text-xs outline-none"
-                    style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
-                  >
-                    {categories.map((c) => (
-                      <option key={c} value={c}>
-                        {c}
-                      </option>
-                    ))}
-                  </select>
+                    onChange={(val) => setEditingAsset({ ...editingAsset, category: val })}
+                    options={categories}
+                  />
                 </div>
 
                 <div>
                   <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wide">
                     Property *
                   </label>
-                  <select
+                  <CustomDropdown
+                    variant="form"
+                    width="100%"
                     value={editingAsset.hotelName || (editingAsset as any).propertyName || (editingAsset as any).property || ''}
-                    onChange={(e) => {
-                      const prop = properties.find((p) => p.label === e.target.value || p.value === e.target.value);
+                    onChange={(val) => {
+                      const prop = properties.find((p) => p.label === val || p.value === val);
                       setEditingAsset({
                         ...editingAsset,
-                        hotelName: prop ? prop.label : e.target.value,
+                        hotelName: prop ? prop.label : val,
                         hotelId: prop ? prop.value : editingAsset.hotelId,
-                        property: prop ? prop.label : e.target.value,
+                        property: prop ? prop.label : val,
                       } as any);
                     }}
-                    className="w-full px-3 py-2 rounded-lg border border-border text-xs outline-none"
-                    style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
-                  >
-                    {properties.map((p) => (
-                      <option key={p.value} value={p.label}>
-                        {p.label}
-                      </option>
-                    ))}
-                  </select>
+                    options={accessiblePropertyOptions.map((p) => ({ value: p.label, label: p.label }))}
+                  />
                 </div>
 
                 <div>
@@ -1579,51 +1734,54 @@ export default function AssetsClient() {
                   <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wide">
                     Status
                   </label>
-                  <select
+                  <CustomDropdown
+                    variant="form"
+                    width="100%"
                     value={editingAsset.status}
-                    onChange={(e) => setEditingAsset({ ...editingAsset, status: e.target.value as any })}
-                    className="w-full px-3 py-2 rounded-lg border border-border text-xs outline-none"
-                    style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
-                  >
-                    <option value="active">Active</option>
-                    <option value="under-maintenance">Under Maintenance</option>
-                    <option value="inactive">Inactive</option>
-                    <option value="disposed">Disposed</option>
-                    <option value="lost">Lost</option>
-                  </select>
+                    onChange={(val) => setEditingAsset({ ...editingAsset, status: val as any })}
+                    options={[
+                      { value: 'active', label: 'Active', color: '#10b981' },
+                      { value: 'under-maintenance', label: 'Under Maintenance', color: '#f59e0b' },
+                      { value: 'inactive', label: 'Inactive', color: '#ef4444' },
+                      { value: 'disposed', label: 'Disposed', color: '#6b7280' },
+                      { value: 'lost', label: 'Lost', color: '#dc2626' },
+                    ]}
+                  />
                 </div>
 
                 <div>
                   <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wide">
                     Condition
                   </label>
-                  <select
+                  <CustomDropdown
+                    variant="form"
+                    width="100%"
                     value={editingAsset.condition || 'good'}
-                    onChange={(e) => setEditingAsset({ ...editingAsset, condition: e.target.value as any })}
-                    className="w-full px-3 py-2 rounded-lg border border-border text-xs outline-none"
-                    style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
-                  >
-                    <option value="new">New</option>
-                    <option value="good">Good</option>
-                    <option value="fair">Fair</option>
-                    <option value="poor">Poor</option>
-                  </select>
+                    onChange={(val) => setEditingAsset({ ...editingAsset, condition: val as any })}
+                    options={[
+                      { value: 'new', label: 'New', color: '#10b981' },
+                      { value: 'good', label: 'Good', color: '#3dd68c' },
+                      { value: 'fair', label: 'Fair', color: '#f59e0b' },
+                      { value: 'poor', label: 'Poor', color: '#ef4444' },
+                    ]}
+                  />
                 </div>
 
                 <div>
                   <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wide">
                     Risk Level
                   </label>
-                  <select
+                  <CustomDropdown
+                    variant="form"
+                    width="100%"
                     value={editingAsset.risk || 'low'}
-                    onChange={(e) => setEditingAsset({ ...editingAsset, risk: e.target.value as any })}
-                    className="w-full px-3 py-2 rounded-lg border border-border text-xs outline-none"
-                    style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
-                  >
-                    <option value="low">Low Risk</option>
-                    <option value="medium">Medium Risk</option>
-                    <option value="high">High Risk</option>
-                  </select>
+                    onChange={(val) => setEditingAsset({ ...editingAsset, risk: val as any })}
+                    options={[
+                      { value: 'low', label: 'Low Risk', color: '#10b981' },
+                      { value: 'medium', label: 'Medium Risk', color: '#f59e0b' },
+                      { value: 'high', label: 'High Risk', color: '#ef4444' },
+                    ]}
+                  />
                 </div>
 
                 <div>
@@ -1777,6 +1935,19 @@ export default function AssetsClient() {
           </div>
         </div>
       )}
+
+      {/* Bulk Delete Assets Modal */}
+      <ConfirmDeleteModal
+        isOpen={showBulkDeleteAssetsModal}
+        onClose={() => setShowBulkDeleteAssetsModal(false)}
+        onConfirm={handleConfirmBulkDeleteAssets}
+        title="Confirm Bulk Deletion"
+        itemName={`${selectedAssetIds.length} Selected Assets`}
+        registerName="fixed assets register"
+        customWarning={`Are you sure you want to permanently delete these ${selectedAssetIds.length} selected assets from the register? This action cannot be undone.`}
+        confirmButtonText={`Delete ${selectedAssetIds.length} Assets`}
+        isDeleting={isBulkDeletingAssets}
+      />
     </div>
   );
 }

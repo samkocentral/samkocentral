@@ -60,6 +60,7 @@ import {
   type AppCmsKpiCard,
 } from '@/lib/appCmsConfig';
 import { toast } from 'sonner';
+import CustomDropdown from '@/components/ui/CustomDropdown';
 
 export type AppCmsSectionKey =
   | 'dashboard'
@@ -520,18 +521,19 @@ export default function CompleteAppCMS({ activeSection, onSelectSection }: Props
                   <div className="flex flex-col gap-1.5">
                     <label className="text-xs font-semibold text-foreground">Badge Theme Color</label>
                     <div className="flex items-center gap-2">
-                      <select
-                        value={headerForm.badgeColor}
-                        onChange={(e) => setHeaderForm({ ...headerForm, badgeColor: e.target.value })}
-                        className="rounded-lg border border-border px-3 py-2 text-xs outline-none flex-1"
-                        style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
-                      >
-                        {COLOR_OPTIONS.map((col) => (
-                          <option key={col.value} value={col.value}>
-                            {col.label}
-                          </option>
-                        ))}
-                      </select>
+                      <div className="flex-1">
+                        <CustomDropdown
+                          value={headerForm.badgeColor}
+                          onChange={(val) => setHeaderForm({ ...headerForm, badgeColor: val })}
+                          options={COLOR_OPTIONS.map((col) => ({
+                            value: col.value,
+                            label: col.label,
+                            color: col.value
+                          }))}
+                          variant="form"
+                          width="100%"
+                        />
+                      </div>
                       <div
                         className="w-7 h-7 rounded-lg border border-white/20 flex-shrink-0"
                         style={{ background: headerForm.badgeColor }}
@@ -802,18 +804,19 @@ export default function CompleteAppCMS({ activeSection, onSelectSection }: Props
                               <label className="text-xs font-semibold text-foreground">
                                 Portal Placement
                               </label>
-                              <select
+                              <CustomDropdown
                                 value={tabEditForm.section}
-                                onChange={(e) =>
-                                  setTabEditForm({ ...tabEditForm, section: e.target.value as any })
+                                onChange={(val) =>
+                                  setTabEditForm({ ...tabEditForm, section: val as any })
                                 }
-                                className="px-3 py-2 rounded-lg border border-border outline-none text-xs text-foreground cursor-pointer"
-                                style={{ background: 'var(--surface2)' }}
-                              >
-                                <option value="propco">PROPCO (Asset Co)</option>
-                                <option value="opco">OPCO (Operations)</option>
-                                <option value="both">Both (PropCo & OpCo)</option>
-                              </select>
+                                options={[
+                                  { value: 'propco', label: 'PROPCO (Asset Co)' },
+                                  { value: 'opco', label: 'OPCO (Operations)' },
+                                  { value: 'both', label: 'Both (PropCo & OpCo)' }
+                                ]}
+                                variant="form"
+                                width="100%"
+                              />
                             </div>
 
                             {/* Description */}
@@ -838,20 +841,19 @@ export default function CompleteAppCMS({ activeSection, onSelectSection }: Props
                               <label className="text-xs font-semibold text-foreground">
                                 Tab Icon
                               </label>
-                              <select
+                              <CustomDropdown
                                 value={tabEditForm.iconName}
-                                onChange={(e) =>
-                                  setTabEditForm({ ...tabEditForm, iconName: e.target.value })
+                                onChange={(val) =>
+                                  setTabEditForm({ ...tabEditForm, iconName: val })
                                 }
-                                className="px-3 py-2 rounded-lg border border-border outline-none text-xs text-foreground cursor-pointer"
-                                style={{ background: 'var(--surface2)' }}
-                              >
-                                {AVAILABLE_ICONS.map((ico) => (
-                                  <option key={ico.name} value={ico.name}>
-                                    {ico.name} ({ico.label})
-                                  </option>
-                                ))}
-                              </select>
+                                options={AVAILABLE_ICONS.map((ico) => ({
+                                  value: ico.name,
+                                  label: `${ico.name} (${ico.label})`
+                                }))}
+                                variant="form"
+                                width="100%"
+                                searchable
+                              />
                             </div>
                           </div>
                         </div>
@@ -1008,17 +1010,18 @@ export default function CompleteAppCMS({ activeSection, onSelectSection }: Props
             </div>
             <div className="flex flex-col gap-1.5">
               <label className="text-xs font-semibold text-foreground">Audit Retention</label>
-              <select
-                defaultValue={recentLogs.retentionDays}
-                onChange={(e) => updateRecentLogsConfig({ retentionDays: e.target.value })}
-                className="rounded-lg border border-border px-3 py-2 text-xs outline-none"
-                style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
-              >
-                <option value="90">90 Days</option>
-                <option value="180">180 Days (Standard)</option>
-                <option value="365">1 Year (Statutory)</option>
-                <option value="1825">5 Years (Audit Grade)</option>
-              </select>
+              <CustomDropdown
+                value={recentLogs.retentionDays}
+                onChange={(val) => updateRecentLogsConfig({ retentionDays: val })}
+                options={[
+                  { value: '90', label: '90 Days' },
+                  { value: '180', label: '180 Days (Standard)' },
+                  { value: '365', label: '1 Year (Statutory)' },
+                  { value: '1825', label: '5 Years (Audit Grade)' }
+                ]}
+                variant="form"
+                width="100%"
+              />
             </div>
           </div>
 
@@ -1141,20 +1144,20 @@ export default function CompleteAppCMS({ activeSection, onSelectSection }: Props
                 </div>
 
                 <div className="flex items-center gap-2">
-                  <select
+                  <CustomDropdown
                     value={role.badgeColor}
-                    onChange={(e) =>
-                      updateRoleConfig(role.roleLevel, { badgeColor: e.target.value })
+                    onChange={(val) =>
+                      updateRoleConfig(role.roleLevel, { badgeColor: val })
                     }
-                    className="text-xs rounded-lg border border-border px-2 py-1 outline-none"
-                    style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
-                  >
-                    {COLOR_OPTIONS.map((col) => (
-                      <option key={col.value} value={col.value}>
-                        {col.label}
-                      </option>
-                    ))}
-                  </select>
+                    options={COLOR_OPTIONS.map((col) => ({
+                      value: col.value,
+                      label: col.label,
+                      color: col.value
+                    }))}
+                    variant="pill"
+                    size="sm"
+                    showAllOption={false}
+                  />
                   <div
                     className="w-4 h-4 rounded-full"
                     style={{ background: role.badgeColor }}
@@ -1274,35 +1277,35 @@ export default function CompleteAppCMS({ activeSection, onSelectSection }: Props
                 </div>
                 <div className="flex flex-col gap-1.5">
                   <label className="text-xs font-semibold text-foreground">Tab Group</label>
-                  <select
+                  <CustomDropdown
                     value={newTabForm.group}
-                    onChange={(e) => setNewTabForm({ ...newTabForm, group: e.target.value })}
-                    className="rounded-lg border border-border px-3 py-2 text-xs outline-none"
-                    style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
-                  >
-                    <option value="Asset Management">Asset Management</option>
-                    <option value="Maintenance">Maintenance</option>
-                    <option value="Compliance">Compliance</option>
-                    <option value="Governance & Legal">Governance & Legal</option>
-                    <option value="Analytics & Tools">Analytics & Tools</option>
-                  </select>
+                    onChange={(val) => setNewTabForm({ ...newTabForm, group: val })}
+                    options={[
+                      { value: 'Asset Management', label: 'Asset Management' },
+                      { value: 'Maintenance', label: 'Maintenance' },
+                      { value: 'Compliance', label: 'Compliance' },
+                      { value: 'Governance & Legal', label: 'Governance & Legal' },
+                      { value: 'Analytics & Tools', label: 'Analytics & Tools' }
+                    ]}
+                    variant="form"
+                    width="100%"
+                  />
                 </div>
               </div>
 
               <div className="flex flex-col gap-1.5">
                 <label className="text-xs font-semibold text-foreground">Tab Icon</label>
-                <select
+                <CustomDropdown
                   value={newTabForm.iconName}
-                  onChange={(e) => setNewTabForm({ ...newTabForm, iconName: e.target.value })}
-                  className="rounded-lg border border-border px-3 py-2 text-xs outline-none"
-                  style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
-                >
-                  {AVAILABLE_ICONS.map((ico) => (
-                    <option key={ico.name} value={ico.name}>
-                      {ico.name} ({ico.label})
-                    </option>
-                  ))}
-                </select>
+                  onChange={(val) => setNewTabForm({ ...newTabForm, iconName: val })}
+                  options={AVAILABLE_ICONS.map((ico) => ({
+                    value: ico.name,
+                    label: `${ico.name} (${ico.label})`
+                  }))}
+                  variant="form"
+                  width="100%"
+                  searchable
+                />
               </div>
 
               <div className="flex flex-col gap-1.5">

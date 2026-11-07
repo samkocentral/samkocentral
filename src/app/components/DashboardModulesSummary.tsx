@@ -11,7 +11,7 @@ import { getNotifications } from '@/lib/notifications';
 import { useDeepPageCms } from '@/lib/deepPageCms';
 
 export default function DashboardModulesSummary() {
-  const { activePortal } = useAuth();
+  const { activePortal, isPropertyAccessible, user } = useAuth();
   const cms = useDeepPageCms('overview');
 
   const [assets, setAssets] = useState<any[]>(ASSETS);
@@ -93,42 +93,65 @@ export default function DashboardModulesSummary() {
     };
   }, [fetchRealData]);
 
+  // Scoped Collections by Assigned Properties
+  const accessibleAssets = assets.filter((a) => isPropertyAccessible(a.hotelName || a.hotelId || a.property || a.propertyName));
+  const accessibleMaintenance = maintenance.filter((m) => isPropertyAccessible(m.hotelName || m.property || m.propertyName || m.hotelId));
+  const accessibleContracts = contracts.filter((c) => isPropertyAccessible(c.hotel || c.property || c.site));
+  const accessibleInsurance = insurance.filter((i) => isPropertyAccessible(i.hotel || i.property || i.site));
+  const accessibleCompliance = compliance.filter((c) => isPropertyAccessible(c.site || c.hotel || c.property));
+  const accessibleUtilities = utilities.filter((u) => isPropertyAccessible(u.property || u.hotel || u.site));
+  const accessibleProperties = properties.filter((p) => isPropertyAccessible(p.name || p.propertyName || p.id));
+  const accessibleTasks = tasks.filter((t) => isPropertyAccessible(t.site || t.property || t.hotel));
+  const accessibleNotifs = notifications.filter((n) => !n.site || isPropertyAccessible(n.site));
+
   // Dynamic Asset counts
-  const totalAssets = assets.length;
-  const fixedAssets = assets.filter((a) => a.isFixed).length;
-  const nonFixedAssets = assets.filter((a) => !a.isFixed).length;
+  const totalAssets = accessibleAssets.length;
+  const fixedAssets = accessibleAssets.filter((a) => a.isFixed).length;
+  const nonFixedAssets = accessibleAssets.filter((a) => !a.isFixed).length;
 
   // Dynamic Maintenance
-  const scheduledMaint = maintenance.filter((m) => m.status === 'scheduled').length;
-  const overdueMaint = maintenance.filter((m) => m.status === 'overdue').length;
-  const completedMaint = maintenance.filter((m) => m.status === 'completed').length;
-  const totalMaint = maintenance.length;
+  const scheduledMaint = accessibleMaintenance.filter((m) => m.status === 'scheduled').length;
+  const overdueMaint = accessibleMaintenance.filter((m) => m.status === 'overdue').length;
+  const completedMaint = accessibleMaintenance.filter((m) => m.status === 'completed').length;
+  const totalMaint = accessibleMaintenance.length;
   const maintCompletion = totalMaint > 0 ? Math.round((completedMaint / totalMaint) * 100) : 100;
 
   // Dynamic Compliance
-  const okCompliance = compliance.filter((c) => c.status === 'ok' || c.status === 'compliant').length;
-  const criticalCompliance = compliance.filter((c) => c.status === 'critical' || c.status === 'overdue' || c.riskRating === 'critical').length;
-  const warningCompliance = compliance.filter((c) => c.status === 'warning' || c.status === 'expiring-soon').length;
+  const okCompliance = accessibleCompliance.filter((c) => c.status === 'ok' || c.status === 'compliant').length;
+  const criticalCompliance = accessibleCompliance.filter((c) => c.status === 'critical' || c.status === 'overdue' || c.riskRating === 'critical').length;
+  const warningCompliance = accessibleCompliance.filter((c) => c.status === 'warning' || c.status === 'expiring-soon').length;
 
   // Dynamic Insurance
-  const totalPolicies = insurance.length;
-  const activeInsurance = insurance.filter((i) => i.status === 'active').length;
-  const expiringInsurance = insurance.filter((i) => i.status === 'expiring-soon' || i.status === 'expired').length;
+  const totalPolicies = accessibleInsurance.length;
+  const activeInsurance = accessibleInsurance.filter((i) => i.status === 'active').length;
+  const expiringInsurance = accessibleInsurance.filter((i) => i.status === 'expiring-soon' || i.status === 'expired').length;
+  const totalInsuranceCoverage = accessibleInsurance.reduce((sum, p) => sum + (Number(p.coverageAmount ?? p.coverage) || 0), 0);
+  const insuranceCoverageDisplay = totalInsuranceCoverage >= 1000000
+    ? `£${(totalInsuranceCoverage / 1000000).toFixed(1)}M`
+    : totalInsuranceCoverage > 0
+      ? `£${Math.round(totalInsuranceCoverage / 1000)}k`
+      : '£0';
 
   // Dynamic Contracts
-  const totalContracts = contracts.length;
-  const activeContracts = contracts.filter((c) => c.status === 'active').length;
-  const expiringContracts = contracts.filter((c) => c.status === 'expiring-soon').length;
-  const criticalContracts = contracts.filter((c) => c.status === 'expired').length;
+  const totalContracts = accessibleContracts.length;
+  const activeContracts = accessibleContracts.filter((c) => c.status === 'active').length;
+  const expiringContracts = accessibleContracts.filter((c) => c.status === 'expiring-soon').length;
+  const criticalContracts = accessibleContracts.filter((c) => c.status === 'expired').length;
+  const totalContractVal = accessibleContracts.filter((c) => c.status === 'active').reduce((sum, c) => sum + (Number(c.contractValue ?? c.value) || 0), 0);
+  const contractValDisplay = totalContractVal >= 1000000
+    ? `£${(totalContractVal / 1000000).toFixed(1)}M`
+    : totalContractVal > 0
+      ? `£${Math.round(totalContractVal / 1000)}k`
+      : '£0';
 
   // Dynamic Utilities
-  const totalUtilities = utilities.length;
-  const totalSpendK = Math.round(utilities.reduce((sum, u) => sum + (Number(u.annualCost) || 0), 0) / 1000);
+  const totalUtilities = accessibleUtilities.length;
+  const totalSpendK = Math.round(accessibleUtilities.reduce((sum, u) => sum + (Number(u.annualCost) || 0), 0) / 1000);
 
   // Dynamic Tasks & Dynamic Alarms
-  const openTasks = tasks.filter((t) => t.status === 'open' || t.status === 'pending' || !t.status || t.status === 'in-progress').length;
-  const urgentTasks = tasks.filter((t) => (t.priority === 'urgent' || t.priority === 'high') && t.status !== 'completed').length;
-  const liveNotifs = notifications.length > 0 ? notifications : (typeof window !== 'undefined' ? getNotifications() : []);
+  const openTasks = accessibleTasks.filter((t) => t.status === 'open' || t.status === 'pending' || !t.status || t.status === 'in-progress').length;
+  const urgentTasks = accessibleTasks.filter((t) => (t.priority === 'urgent' || t.priority === 'high') && t.status !== 'completed').length;
+  const liveNotifs = accessibleNotifs.length > 0 ? accessibleNotifs : (typeof window !== 'undefined' ? getNotifications().filter((n: any) => !n.site || isPropertyAccessible(n.site)) : []);
   const totalAlerts = liveNotifs.length;
 
   const propcoKpiMap = new Map((cms.propcoKpis || []).map((k) => [k.id, k]));
@@ -143,8 +166,8 @@ export default function DashboardModulesSummary() {
       color: propcoKpiMap.get('mod-properties')?.color || '#e8c97a',
       bg: 'rgba(232,201,122,0.1)',
       stats: [
-        { label: 'Properties', value: properties.length || 5 },
-        { label: 'Active Sites', value: properties.length || 5 },
+        { label: 'Properties', value: accessibleProperties.length },
+        { label: 'Active Sites', value: accessibleProperties.length },
         { label: 'Monitored', value: '100%' },
       ],
       badge: null,
@@ -160,7 +183,7 @@ export default function DashboardModulesSummary() {
       stats: [
         { label: 'Fixed Items', value: fixedAssets },
         { label: 'Total Assets', value: totalAssets },
-        { label: 'Plant & MEP', value: `${Math.round((fixedAssets / totalAssets) * 100)}%` },
+        { label: 'Plant & MEP', value: totalAssets > 0 ? `${Math.round((fixedAssets / totalAssets) * 100)}%` : '0%' },
       ],
       badge: null,
       enabled: propcoKpiMap.get('mod-fixed-assets')?.enabled !== false,
@@ -203,9 +226,9 @@ export default function DashboardModulesSummary() {
       color: propcoKpiMap.get('mod-reports')?.color || '#a78bfa',
       bg: 'rgba(167,139,250,0.1)',
       stats: [
-        { label: 'Contracts', value: '£1175k' },
-        { label: 'Insurance', value: '£43.5M' },
-        { label: 'Sites', value: properties.length || 5 },
+        { label: 'Contracts', value: contractValDisplay },
+        { label: 'Insurance', value: insuranceCoverageDisplay },
+        { label: 'Sites', value: accessibleProperties.length },
       ],
       badge: null,
       enabled: propcoKpiMap.get('mod-reports')?.enabled !== false,

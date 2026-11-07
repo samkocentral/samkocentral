@@ -14,6 +14,7 @@ import { ASSETS, MAINTENANCE_RECORDS, type Asset, type MaintenanceRecord } from 
 import { api } from '@/lib/api';
 import { useAuth } from '@/lib/authContext';
 import { toast } from 'sonner';
+import CustomDropdown from '@/components/ui/CustomDropdown';
 
 type TabId = 'overview' | 'maintenance' | 'inspections' | 'documents' | 'photos' | 'audit';
 
@@ -226,7 +227,11 @@ export default function AssetDetailClient({ assetId }: { assetId: string }) {
     );
   });
 
-  const { user, isViewer, canEdit, canDelete } = useAuth();
+  const { user, isViewer, canEdit, canDelete, canWriteTab, isPropertyAccessible } = useAuth();
+  const isNonFixed = !asset?.isFixed;
+  const tabId = isNonFixed ? 'non-fixed-assets' : 'fixed-assets';
+  const hasWriteAccess = !isViewer && canEdit && canWriteTab(tabId);
+  const hasDeleteAccess = !isViewer && canDelete && canWriteTab(tabId);
   const currentUserName = user?.name || 'Alexander Vance';
   const currentUserRole = user?.roleTitle || 'Super Admin';
   const currentUserInitials = user?.initials || 'AV';
@@ -373,6 +378,29 @@ export default function AssetDetailClient({ assetId }: { assetId: string }) {
           style={{ background: 'var(--primary)', color: '#000' }}
         >
           <ArrowLeft size={14} /> Back to Assets
+        </Link>
+      </div>
+    );
+  }
+
+  const isAccessible = isPropertyAccessible(
+    asset.hotelName || asset.hotelId || (asset as any).property || (asset as any).propertyName
+  );
+
+  if (!isAccessible) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
+        <ShieldCheck size={40} style={{ color: '#f59e0b' }} />
+        <div className="font-head font-bold text-lg">Access Restricted</div>
+        <p className="text-sm text-muted-foreground text-center max-w-md">
+          This asset belongs to <span className="font-semibold text-foreground">{asset.hotelName || 'another property'}</span>, which is not included in your assigned properties.
+        </p>
+        <Link
+          href="/asset-management/assets"
+          className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold"
+          style={{ background: 'var(--primary)', color: '#000' }}
+        >
+          <ArrowLeft size={14} /> Back to Accessible Assets
         </Link>
       </div>
     );
@@ -823,33 +851,19 @@ export default function AssetDetailClient({ assetId }: { assetId: string }) {
                 {asset.status.replace('-', ' ')}
               </span>
             ) : (
-              <div className="relative inline-block">
-                <select
-                  value={asset.status}
-                  onChange={(e) => handleStatusChange(e.target.value)}
-                  className="appearance-none cursor-pointer pl-4 pr-6 py-1 rounded-full text-xs font-semibold outline-none transition-all capitalize"
-                  style={{
-                    background: statusStyle.bg,
-                    color: statusStyle.color,
-                    border: `1px solid ${statusStyle.color}33`,
-                  }}
-                >
-                  <option value="active" style={{ background: '#18181b', color: '#3dd68c' }}>Active</option>
-                  <option value="under-maintenance" style={{ background: '#18181b', color: '#f59e0b' }}>Under Maintenance</option>
-                  <option value="inactive" style={{ background: '#18181b', color: '#94a3b8' }}>Inactive</option>
-                  <option value="disposed" style={{ background: '#18181b', color: '#f43f5e' }}>Disposed</option>
-                  <option value="lost" style={{ background: '#18181b', color: '#f43f5e' }}>Lost</option>
-                </select>
-                <span
-                  className="w-1.5 h-1.5 rounded-full absolute left-2 top-1/2 -translate-y-1/2 pointer-events-none"
-                  style={{ background: statusStyle.color }}
-                />
-                <ChevronDown
-                  size={11}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none opacity-80"
-                  style={{ color: statusStyle.color }}
-                />
-              </div>
+              <CustomDropdown
+                value={asset.status}
+                onChange={handleStatusChange}
+                options={[
+                  { value: 'active', label: 'Active', color: '#3dd68c' },
+                  { value: 'under-maintenance', label: 'Under Maintenance', color: '#f59e0b' },
+                  { value: 'inactive', label: 'Inactive', color: '#94a3b8' },
+                  { value: 'disposed', label: 'Disposed', color: '#f43f5e' },
+                  { value: 'lost', label: 'Lost', color: '#f43f5e' }
+                ]}
+                variant="pill"
+                size="sm"
+              />
             )}
           {/* Condition in Header */}
             {isViewer || !canEdit ? (
@@ -868,33 +882,19 @@ export default function AssetDetailClient({ assetId }: { assetId: string }) {
                 {asset.condition}
               </span>
             ) : (
-              <div className="relative inline-block">
-                <select
-                  value={asset.condition}
-                  onChange={(e) => handleConditionChange(e.target.value)}
-                  className="appearance-none cursor-pointer pl-4 pr-6 py-1 rounded-full text-xs font-semibold outline-none transition-all capitalize"
-                  style={{
-                    background: `${condStyle}18`,
-                    color: condStyle,
-                    border: `1px solid ${condStyle}33`,
-                  }}
-                >
-                  <option value="excellent" style={{ background: '#18181b', color: '#3dd68c' }}>Excellent</option>
-                  <option value="good" style={{ background: '#18181b', color: '#60a5fa' }}>Good</option>
-                  <option value="fair" style={{ background: '#18181b', color: '#f59e0b' }}>Fair</option>
-                  <option value="poor" style={{ background: '#18181b', color: '#f97316' }}>Poor</option>
-                  <option value="critical" style={{ background: '#18181b', color: '#f43f5e' }}>Critical</option>
-                </select>
-                <span
-                  className="w-1.5 h-1.5 rounded-full absolute left-2 top-1/2 -translate-y-1/2 pointer-events-none"
-                  style={{ background: condStyle }}
-                />
-                <ChevronDown
-                  size={11}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none opacity-80"
-                  style={{ color: condStyle }}
-                />
-              </div>
+              <CustomDropdown
+                value={asset.condition}
+                onChange={handleConditionChange}
+                options={[
+                  { value: 'excellent', label: 'Excellent', color: '#3dd68c' },
+                  { value: 'good', label: 'Good', color: '#60a5fa' },
+                  { value: 'fair', label: 'Fair', color: '#f59e0b' },
+                  { value: 'poor', label: 'Poor', color: '#f97316' },
+                  { value: 'critical', label: 'Critical', color: '#f43f5e' }
+                ]}
+                variant="pill"
+                size="sm"
+              />
             )}
           </div>
           <div className="flex items-center gap-4 mt-1.5 text-xs text-muted-foreground flex-wrap">
@@ -905,7 +905,7 @@ export default function AssetDetailClient({ assetId }: { assetId: string }) {
           </div>
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">
-          {!isViewer && canEdit && (
+          {hasWriteAccess && (
             <button
               onClick={handleOpenEdit}
               className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold border border-border hover:bg-surface2 transition-colors text-foreground"
@@ -915,7 +915,7 @@ export default function AssetDetailClient({ assetId }: { assetId: string }) {
               <Edit2 size={13} /> Edit Asset
             </button>
           )}
-          {!isViewer && (canDelete ?? canEdit) && (
+          {hasDeleteAccess && (
             <button
               onClick={() => setShowDeleteAssetModal(true)}
               className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold border border-rose-500/30 hover:bg-rose-500/15 text-rose-400 transition-colors"
@@ -924,7 +924,7 @@ export default function AssetDetailClient({ assetId }: { assetId: string }) {
               <Trash2 size={13} /> Delete
             </button>
           )}
-          {!isViewer && canEdit && (
+          {hasWriteAccess && (
             <button
               onClick={() => setShowLogModal(true)}
               className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-transform active:scale-95"
@@ -1271,7 +1271,7 @@ export default function AssetDetailClient({ assetId }: { assetId: string }) {
                       <Eye size={12} />
                       <span>View</span>
                     </button>
-                    {!isViewer && (canDelete ?? canEdit) && (
+                    {hasDeleteAccess && (
                       <button
                         type="button"
                         onClick={() => setDeleteConfirm({ type: 'document', id: doc.id, name: doc.name })}
@@ -1358,7 +1358,7 @@ export default function AssetDetailClient({ assetId }: { assetId: string }) {
                         >
                           <Maximize2 size={16} />
                         </button>
-                        {!isViewer && (canDelete ?? canEdit) && (
+                        {hasDeleteAccess && (
                           <button
                             type="button"
                             onClick={() => setDeleteConfirm({ type: 'photo', id: photo.id, name: photo.name })}
@@ -1611,18 +1611,19 @@ export default function AssetDetailClient({ assetId }: { assetId: string }) {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs font-semibold text-muted-foreground block mb-1">Frequency</label>
-                  <select
+                  <CustomDropdown
                     value={logForm.frequency}
-                    onChange={(e) => setLogForm({ ...logForm, frequency: e.target.value })}
-                    className="w-full text-sm px-3 py-2 rounded-lg border border-border outline-none cursor-pointer"
-                    style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
-                  >
-                    <option value="monthly">Monthly</option>
-                    <option value="quarterly">Quarterly</option>
-                    <option value="6-monthly">6-Monthly</option>
-                    <option value="yearly">Yearly</option>
-                    <option value="custom">Custom</option>
-                  </select>
+                    onChange={(val) => setLogForm({ ...logForm, frequency: val })}
+                    options={[
+                      { value: 'monthly', label: 'Monthly' },
+                      { value: 'quarterly', label: 'Quarterly' },
+                      { value: '6-monthly', label: '6-Monthly' },
+                      { value: 'yearly', label: 'Yearly' },
+                      { value: 'custom', label: 'Custom' }
+                    ]}
+                    variant="form"
+                    width="100%"
+                  />
                 </div>
 
                 <div>
@@ -1653,17 +1654,18 @@ export default function AssetDetailClient({ assetId }: { assetId: string }) {
 
                 <div>
                   <label className="text-xs font-semibold text-muted-foreground block mb-1">Initial Status</label>
-                  <select
+                  <CustomDropdown
                     value={logForm.status}
-                    onChange={(e) => setLogForm({ ...logForm, status: e.target.value })}
-                    className="w-full text-sm px-3 py-2 rounded-lg border border-border outline-none cursor-pointer"
-                    style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
-                  >
-                    <option value="scheduled">Scheduled</option>
-                    <option value="due-today">Due Today</option>
-                    <option value="in-progress">In Progress</option>
-                    <option value="completed">Completed</option>
-                  </select>
+                    onChange={(val) => setLogForm({ ...logForm, status: val })}
+                    options={[
+                      { value: 'scheduled', label: 'Scheduled', color: '#60a5fa' },
+                      { value: 'due-today', label: 'Due Today', color: '#f59e0b' },
+                      { value: 'in-progress', label: 'In Progress', color: '#a78bfa' },
+                      { value: 'completed', label: 'Completed', color: '#3dd68c' }
+                    ]}
+                    variant="form"
+                    width="100%"
+                  />
                 </div>
               </div>
 
@@ -2142,13 +2144,10 @@ export default function AssetDetailClient({ assetId }: { assetId: string }) {
                   <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wide">
                     Category *
                   </label>
-                  <select
+                  <CustomDropdown
                     value={editFormData.category || ''}
-                    onChange={(e) => setEditFormData({ ...editFormData, category: e.target.value })}
-                    className="w-full px-3 py-2 rounded-lg border border-border text-xs outline-none"
-                    style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
-                  >
-                    {[
+                    onChange={(val) => setEditFormData({ ...editFormData, category: val })}
+                    options={[
                       'HVAC & Climate Control',
                       'Electrical & Power',
                       'Fire & Life Safety',
@@ -2159,36 +2158,33 @@ export default function AssetDetailClient({ assetId }: { assetId: string }) {
                       'Building Fabric & Security',
                       'Furniture & Fixtures',
                       'Vehicles & Machinery',
-                    ].map((cat) => (
-                      <option key={cat} value={cat}>
-                        {cat}
-                      </option>
-                    ))}
-                  </select>
+                    ].map((cat) => ({ value: cat, label: cat }))}
+                    placeholder="Select Category"
+                    variant="form"
+                    width="100%"
+                    searchable
+                  />
                 </div>
 
                 <div>
                   <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wide">
                     Property *
                   </label>
-                  <select
+                  <CustomDropdown
                     value={editFormData.hotelName || ''}
-                    onChange={(e) => setEditFormData({ ...editFormData, hotelName: e.target.value })}
-                    className="w-full px-3 py-2 rounded-lg border border-border text-xs outline-none"
-                    style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
-                  >
-                    {[
+                    onChange={(val) => setEditFormData({ ...editFormData, hotelName: val })}
+                    options={[
                       'Crowne Plaza Kingston-south',
                       'Holiday Inn Express London',
                       'Voco Grand Hotel',
                       'Hilton London Syon Park',
                       'The Tower Hotel London',
-                    ].map((h) => (
-                      <option key={h} value={h}>
-                        {h}
-                      </option>
-                    ))}
-                  </select>
+                    ].map((h) => ({ value: h, label: h }))}
+                    placeholder="Select Property"
+                    variant="form"
+                    width="100%"
+                    searchable
+                  />
                 </div>
 
                 <div>
@@ -2234,53 +2230,56 @@ export default function AssetDetailClient({ assetId }: { assetId: string }) {
                   <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wide">
                     Status
                   </label>
-                  <select
+                  <CustomDropdown
                     value={editFormData.status || 'active'}
-                    onChange={(e) => setEditFormData({ ...editFormData, status: e.target.value as any })}
-                    className="w-full px-3 py-2 rounded-lg border border-border text-xs outline-none"
-                    style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
-                  >
-                    <option value="active">Active</option>
-                    <option value="under-maintenance">Under Maintenance</option>
-                    <option value="inactive">Inactive</option>
-                    <option value="disposed">Disposed</option>
-                    <option value="lost">Lost</option>
-                  </select>
+                    onChange={(val) => setEditFormData({ ...editFormData, status: val as any })}
+                    options={[
+                      { value: 'active', label: 'Active', color: '#3dd68c' },
+                      { value: 'under-maintenance', label: 'Under Maintenance', color: '#f59e0b' },
+                      { value: 'inactive', label: 'Inactive', color: '#94a3b8' },
+                      { value: 'disposed', label: 'Disposed', color: '#f43f5e' },
+                      { value: 'lost', label: 'Lost', color: '#f43f5e' }
+                    ]}
+                    variant="form"
+                    width="100%"
+                  />
                 </div>
 
                 <div>
                   <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wide">
                     Condition
                   </label>
-                  <select
+                  <CustomDropdown
                     value={editFormData.condition || 'good'}
-                    onChange={(e) => setEditFormData({ ...editFormData, condition: e.target.value as any })}
-                    className="w-full px-3 py-2 rounded-lg border border-border text-xs outline-none"
-                    style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
-                  >
-                    <option value="excellent">Excellent</option>
-                    <option value="good">Good</option>
-                    <option value="fair">Fair</option>
-                    <option value="poor">Poor</option>
-                    <option value="critical">Critical</option>
-                  </select>
+                    onChange={(val) => setEditFormData({ ...editFormData, condition: val as any })}
+                    options={[
+                      { value: 'excellent', label: 'Excellent', color: '#3dd68c' },
+                      { value: 'good', label: 'Good', color: '#60a5fa' },
+                      { value: 'fair', label: 'Fair', color: '#f59e0b' },
+                      { value: 'poor', label: 'Poor', color: '#f97316' },
+                      { value: 'critical', label: 'Critical', color: '#f43f5e' }
+                    ]}
+                    variant="form"
+                    width="100%"
+                  />
                 </div>
 
                 <div>
                   <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wide">
                     Risk Level
                   </label>
-                  <select
+                  <CustomDropdown
                     value={editFormData.riskLevel || 'low'}
-                    onChange={(e) => setEditFormData({ ...editFormData, riskLevel: e.target.value as any })}
-                    className="w-full px-3 py-2 rounded-lg border border-border text-xs outline-none"
-                    style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
-                  >
-                    <option value="low">Low Risk</option>
-                    <option value="medium">Medium Risk</option>
-                    <option value="high">High Risk</option>
-                    <option value="critical">Critical Risk</option>
-                  </select>
+                    onChange={(val) => setEditFormData({ ...editFormData, riskLevel: val as any })}
+                    options={[
+                      { value: 'low', label: 'Low Risk', color: '#3dd68c' },
+                      { value: 'medium', label: 'Medium Risk', color: '#f59e0b' },
+                      { value: 'high', label: 'High Risk', color: '#f97316' },
+                      { value: 'critical', label: 'Critical Risk', color: '#f43f5e' }
+                    ]}
+                    variant="form"
+                    width="100%"
+                  />
                 </div>
 
                 <div>

@@ -12,6 +12,9 @@ import PageCMSEditButton from '@/components/cms/PageCMSEditButton';
 import { useDeepPageCms, addDropdownOption, removeDropdownOptionByName, type ColumnDefinition } from '@/lib/deepPageCms';
 import LoadingPagination from '@/components/ui/LoadingPagination';
 import { useLoadingPagination } from '@/hooks/useLoadingPagination';
+import TableCheckbox from '@/components/ui/TableCheckbox';
+import BulkActionBar from '@/components/ui/BulkActionBar';
+import ConfirmDeleteModal from '@/components/modals/ConfirmDeleteModal';
 
 
 
@@ -329,7 +332,9 @@ const DEFAULT_UTILITY_CATEGORIES = [
 ];
 
 export default function UtilitiesRegisterClient() {
-  const { isViewer, canEdit, canDelete } = useAuth();
+  const { isViewer, canEdit, canDelete, canWriteTab, isPropertyAccessible } = useAuth();
+  const hasWriteAccess = !isViewer && canEdit && canWriteTab('utilities');
+  const hasDeleteAccess = !isViewer && canDelete && canWriteTab('utilities');
   const {
     title: cmsTitle,
     subtitle: cmsSubtitle,
@@ -764,8 +769,10 @@ export default function UtilitiesRegisterClient() {
       ...properties.map((p) => p.name),
       ...accounts.map((a) => a.property).filter(Boolean),
       ...PROPERTIES,
-    ])).sort();
-  }, [properties, accounts]);
+    ]))
+      .filter((p) => isPropertyAccessible(p))
+      .sort();
+  }, [properties, accounts, isPropertyAccessible]);
 
   const handleStatusChange = async (id: string, newStatus: UtilityStatus) => {
     setAccounts((prev) =>
@@ -894,15 +901,19 @@ export default function UtilitiesRegisterClient() {
     }
   };
 
-  const activeCount = accounts.filter((u) => u.status === 'active').length;
-  const expiringSoon = accounts.filter((u) => u.status === 'expiring-soon').length;
-  const expiredCount = accounts.filter((u) => u.status === 'expired').length;
-  const incompleteCount = accounts.filter((u) => u.status === 'incomplete').length;
-  const totalAnnual = accounts.filter((u) => u.annualCost > 0).reduce((sum, u) => sum + u.annualCost, 0);
-  const flaggedCount = accounts.filter((u) => u.flags && u.flags.length > 0).length;
+  const accessibleAccounts = useMemo(() => {
+    return accounts.filter((u) => isPropertyAccessible(u.property || (u as any).hotel || (u as any).site));
+  }, [accounts, isPropertyAccessible]);
+
+  const activeCount = accessibleAccounts.filter((u) => u.status === 'active').length;
+  const expiringSoon = accessibleAccounts.filter((u) => u.status === 'expiring-soon').length;
+  const expiredCount = accessibleAccounts.filter((u) => u.status === 'expired').length;
+  const incompleteCount = accessibleAccounts.filter((u) => u.status === 'incomplete').length;
+  const totalAnnual = accessibleAccounts.filter((u) => u.annualCost > 0).reduce((sum, u) => sum + u.annualCost, 0);
+  const flaggedCount = accessibleAccounts.filter((u) => u.flags && u.flags.length > 0).length;
 
   const filtered = useMemo(() => {
-    return accounts.filter((u) => {
+    return accessibleAccounts.filter((u) => {
       const matchSearch = !search ||
         (u.property || '').toLowerCase().includes(search.toLowerCase()) ||
         (u.supplier || '').toLowerCase().includes(search.toLowerCase()) ||
@@ -929,7 +940,7 @@ export default function UtilitiesRegisterClient() {
 
       return matchSearch && matchType && matchProperty && matchStatus && matchCategory;
     });
-  }, [accounts, search, filterTypes, filterProperty, filterStatus, categoryFilter]);
+  }, [accessibleAccounts, search, filterTypes, filterProperty, filterStatus, categoryFilter]);
 
   const {
     currentPage,
@@ -940,6 +951,104 @@ export default function UtilitiesRegisterClient() {
     changePage,
     changePageSize,
   } = useLoadingPagination(filtered, 10);
+
+  // Multi-select Utilities State
+  const [selectedAccountIds, setSelectedAccountIds] = useState<string[]>([]);
+  const [isBulkDeletingAccounts, setIsBulkDeletingAccounts] = useState(false);
+  const [showBulkDeleteAccountsModal, setShowBulkDeleteAccountsModal] = useState(false);
+  const [selectedAccountTypeFilter, setSelectedAccountTypeFilter] = useState('');
+
+  const isAllAccountsPageSelected =
+    paginatedAccounts.length > 0 && paginatedAccounts.every((u) => selectedAccountIds.includes(u.id));
+  const isSomeAccountsPageSelected =
+    paginatedAccounts.some((u) => selectedAccountIds.includes(u.id)) && !isAllAccountsPageSelected;
+
+  const handleToggleSelectAllAccountsPage = () => {
+    if (isAllAccountsPageSelected) {
+      const pageIds = new Set(paginatedAccounts.map((u) => u.id));
+      setSelectedAccountIds((prev) => prev.filter((id) => !pageIds.has(id)));
+    } else {
+      const pageIds = paginatedAccounts.map((u) => u.id);
+      setSelectedAccountIds((prev) => Array.from(new Set([...prev, ...pageIds])));
+    }
+  };
+
+  const handleToggleAccountSelect = (id: string) => {
+    setSelectedAccountIds((prev) =>
+      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
+    );
+  };
+
+  const handleSelectAllFilteredAccounts = () => {
+    setSelectedAccountIds(filtered.map((u) => u.id));
+  };
+
+  const handleClearAccountSelection = () => {
+    setSelectedAccountIds([]);
+    setSelectedAccountTypeFilter('');
+  };
+
+  const utilityTypeOptions = useMemo(() => {
+    const counts: Record<string, number> = {};
+    filtered.forEach((u) => {
+      counts[`type:${u.utilityType}`] = (counts[`type:${u.utilityType}`] || 0) + 1;
+      counts[`prop:${u.property}`] = (counts[`prop:${u.property}`] || 0) + 1;
+      counts[`status:${u.status}`] = (counts[`status:${u.status}`] || 0) + 1;
+    });
+
+    const opts: { label: string; value: string; count: number }[] = [];
+    ['Electricity', 'Gas', 'Water'].forEach((t) => {
+      if (counts[`type:${t}`]) opts.push({ label: `Type: ${t}`, value: `type:${t}`, count: counts[`type:${t}`] });
+    });
+    PROPERTIES.forEach((h: string) => {
+      if (counts[`prop:${h}`]) opts.push({ label: `Property: ${h}`, value: `prop:${h}`, count: counts[`prop:${h}`] });
+    });
+    if (counts['status:active']) opts.push({ label: 'Status: Active', value: 'status:active', count: counts['status:active'] });
+    if (counts['status:expiring-soon']) opts.push({ label: 'Status: Expiring Soon', value: 'status:expiring-soon', count: counts['status:expiring-soon'] });
+    if (counts['status:expired']) opts.push({ label: 'Status: Expired', value: 'status:expired', count: counts['status:expired'] });
+
+    return opts;
+  }, [filtered]);
+
+  const handleSelectAccountByType = (typeKey: string) => {
+    setSelectedAccountTypeFilter(typeKey);
+    if (!typeKey) {
+      setSelectedAccountIds([]);
+      return;
+    }
+    const [kind, val] = typeKey.split(':');
+    const matched = filtered.filter((u) => {
+      if (kind === 'type') return u.utilityType === val;
+      if (kind === 'prop') return u.property === val;
+      if (kind === 'status') return u.status === val;
+      return false;
+    });
+    setSelectedAccountIds(matched.map((u) => u.id));
+    toast.info(`Selected ${matched.length} utility accounts matching ${typeKey.replace(':', ': ')}`);
+  };
+
+  const handleConfirmBulkDeleteAccounts = async () => {
+    if (selectedAccountIds.length === 0) return;
+    setIsBulkDeletingAccounts(true);
+    try {
+      const ids = [...selectedAccountIds];
+      const count = ids.length;
+      setAccounts((prev) => prev.filter((u) => !ids.includes(u.id)));
+      setSelectedAccountIds([]);
+      setSelectedAccountTypeFilter('');
+      setShowBulkDeleteAccountsModal(false);
+
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('samko:data-changed', { detail: { type: 'utilities' } }));
+      }
+      await Promise.allSettled(ids.map((id) => api.utilities.delete(id)));
+      toast.success(`Deleted ${count} utility accounts successfully!`);
+    } catch (err: any) {
+      toast.error('Failed to bulk delete utility accounts');
+    } finally {
+      setIsBulkDeletingAccounts(false);
+    }
+  };
 
   const handleExport = () => {
     const headers = ['Property', 'Utility Type', 'Supplier', 'Account Number', 'Meter Reference', 'Annual Cost', 'Monthly Cost', 'Contract Start', 'Contract End', 'Status'];
@@ -989,7 +1098,7 @@ export default function UtilitiesRegisterClient() {
           >
             <Download size={13} /> Export
           </button>
-          {canEdit && (
+          {hasWriteAccess && (
             <>
               <button
                 onClick={() => setShowAddCategoryModal(true)}
@@ -1036,7 +1145,7 @@ export default function UtilitiesRegisterClient() {
       {/* Utility Type Summary */}
       <div className="grid gap-3 px-7 pb-4 flex-shrink-0" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
         {(['Electricity', 'Gas', 'Water'] as UtilityType[]).map((type) => {
-          const typeAccounts = accounts.filter((u) => u.utilityType === type);
+          const typeAccounts = accessibleAccounts.filter((u) => u.utilityType === type);
           const typeActive = typeAccounts.filter((u) => u.status === 'active').length;
           const typeAnnual = typeAccounts.filter((u) => u.annualCost > 0).reduce((sum, u) => sum + u.annualCost, 0);
           const TypeIcon = UTILITY_ICONS[type];
@@ -1110,6 +1219,16 @@ export default function UtilitiesRegisterClient() {
           <table className="w-full text-left border-collapse" style={{ minWidth: 1050 }}>
             <thead>
               <tr style={{ background: 'var(--surface2)' }}>
+                {hasDeleteAccess && (
+                  <th className="px-3 py-3 w-10 text-center">
+                    <TableCheckbox
+                      checked={isAllAccountsPageSelected}
+                      indeterminate={isSomeAccountsPageSelected}
+                      onChange={handleToggleSelectAllAccountsPage}
+                      title="Select all on this page"
+                    />
+                  </th>
+                )}
                 {activeColumns.map((col) => (
                   <th
                     key={col.id}
@@ -1128,10 +1247,19 @@ export default function UtilitiesRegisterClient() {
                 const color = UTILITY_COLORS[account.utilityType] || '#e8c97a';
                 const sc = STATUS_CONFIG[account.status] || STATUS_CONFIG.active;
                 return (
-                  <tr key={account.id} className="border-t border-border cursor-pointer transition-colors"
-                    onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--surface2)')}
-                    onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+                  <tr key={account.id} className={`border-t border-border cursor-pointer transition-colors ${selectedAccountIds.includes(account.id) ? 'bg-[#e8c97a]/5' : ''}`}
+                    onMouseEnter={(e) => (e.currentTarget.style.background = selectedAccountIds.includes(account.id) ? 'rgba(232,201,122,0.08)' : 'var(--surface2)')}
+                    onMouseLeave={(e) => (e.currentTarget.style.background = selectedAccountIds.includes(account.id) ? 'rgba(232,201,122,0.05)' : 'transparent')}
                     onClick={() => setSelectedAccount(account)}>
+                    {hasDeleteAccess && (
+                      <td className="px-3 py-3 text-center" onClick={(e) => e.stopPropagation()}>
+                        <TableCheckbox
+                          checked={selectedAccountIds.includes(account.id)}
+                          onChange={() => handleToggleAccountSelect(account.id)}
+                          title={`Select ${account.property} - ${account.utilityType}`}
+                        />
+                      </td>
+                    )}
                     {activeColumns.map((col) => {
                       const colKey = col.id.toLowerCase();
                       if (colKey === 'property') {
@@ -1205,32 +1333,23 @@ export default function UtilitiesRegisterClient() {
                                 {account.status.replace('-', ' ')}
                               </span>
                             ) : (
-                              <div className="relative inline-block">
-                                <select
-                                  value={account.status}
-                                  onChange={(e) => handleStatusChange(account.id, e.target.value as UtilityStatus)}
-                                  className="appearance-none cursor-pointer pl-4 pr-6 py-1 rounded-full text-xs font-semibold outline-none transition-all capitalize"
-                                  style={{
-                                    background: sc.bg,
-                                    color: sc.color,
-                                    border: `1px solid ${sc.color}33`,
-                                  }}
-                                >
-                                  <option value="active" style={{ background: '#18181b', color: '#3dd68c' }}>Active</option>
-                                  <option value="expiring-soon" style={{ background: '#18181b', color: '#f59e0b' }}>Expiring Soon</option>
-                                  <option value="expired" style={{ background: '#18181b', color: '#f43f5e' }}>Expired</option>
-                                  <option value="incomplete" style={{ background: '#18181b', color: '#94a3b8' }}>Incomplete</option>
-                                </select>
-                                <span
-                                  className="w-1.5 h-1.5 rounded-full absolute left-2 top-1/2 -translate-y-1/2 pointer-events-none"
-                                  style={{ background: sc.color }}
-                                />
-                                <ChevronDown
-                                  size={11}
-                                  className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none opacity-80"
-                                  style={{ color: sc.color }}
-                                />
-                              </div>
+                            <CustomDropdown
+                              size="sm"
+                              variant="pill"
+                              value={account.status}
+                              onChange={(val) => handleStatusChange(account.id, val as UtilityStatus)}
+                              options={[
+                                { value: 'active', label: 'Active', color: '#3dd68c' },
+                                { value: 'expiring-soon', label: 'Expiring Soon', color: '#f59e0b' },
+                                { value: 'expired', label: 'Expired', color: '#f43f5e' },
+                                { value: 'incomplete', label: 'Incomplete', color: '#94a3b8' },
+                              ]}
+                              style={{
+                                background: sc.bg,
+                                color: sc.color,
+                                border: `1px solid ${sc.color}33`,
+                              }}
+                            />
                             )}
                           </td>
                         );
@@ -1261,7 +1380,7 @@ export default function UtilitiesRegisterClient() {
                                 <Eye size={12} />
                                 View
                               </button>
-                              {!isViewer && canEdit && (
+                              {hasWriteAccess && (
                                 <button
                                   type="button"
                                   className="p-1.5 rounded-lg border border-border hover:bg-surface2 transition-colors text-muted-foreground hover:text-primary cursor-pointer"
@@ -1271,7 +1390,7 @@ export default function UtilitiesRegisterClient() {
                                   <Edit2 size={13} />
                                 </button>
                               )}
-                              {!isViewer && (canDelete ?? canEdit) && (
+                              {hasDeleteAccess && (
                                 <button
                                   type="button"
                                   className="p-1.5 rounded-lg border border-rose-500/20 hover:bg-rose-500/15 text-rose-400 transition-colors cursor-pointer"
@@ -1310,6 +1429,25 @@ export default function UtilitiesRegisterClient() {
             recordName="utility accounts"
           />
         </div>
+
+        {/* Floating Bulk Action Bar (Only shown for authorized delete users) */}
+        {hasDeleteAccess && (
+          <div className="mt-4">
+            <BulkActionBar
+              selectedCount={selectedAccountIds.length}
+              totalCount={filtered.length}
+              onClearSelection={handleClearAccountSelection}
+              onSelectAll={handleSelectAllFilteredAccounts}
+              onDeleteSelected={() => setShowBulkDeleteAccountsModal(true)}
+              typeOptions={utilityTypeOptions}
+              onSelectByType={handleSelectAccountByType}
+              selectedTypeValue={selectedAccountTypeFilter}
+              typePlaceholder="Select all of type (Type, Property, Status)..."
+              recordName="utility accounts"
+              isDeleting={isBulkDeletingAccounts}
+            />
+          </div>
+        )}
       </div>
 
       {/* Account Detail Modal */}
@@ -1320,32 +1458,23 @@ export default function UtilitiesRegisterClient() {
               <div>
                 <div className="flex items-center gap-2 mb-1">
                   {(() => { const TypeIcon = UTILITY_ICONS[selectedAccount.utilityType]; const color = UTILITY_COLORS[selectedAccount.utilityType]; return <div className="flex items-center gap-1.5"><TypeIcon size={14} style={{ color }} /><span className="text-sm font-semibold" style={{ color }}>{selectedAccount.utilityType}</span></div>; })()}
-                  <div className="relative inline-block">
-                    <select
-                      value={selectedAccount.status}
-                      onChange={(e) => handleStatusChange(selectedAccount.id, e.target.value as UtilityStatus)}
-                      className="appearance-none cursor-pointer pl-4 pr-6 py-1 rounded-full text-xs font-semibold outline-none transition-all capitalize"
-                      style={{
-                        background: (STATUS_CONFIG[selectedAccount.status] || STATUS_CONFIG.active).bg,
-                        color: (STATUS_CONFIG[selectedAccount.status] || STATUS_CONFIG.active).color,
-                        border: `1px solid ${(STATUS_CONFIG[selectedAccount.status] || STATUS_CONFIG.active).color}33`,
-                      }}
-                    >
-                      <option value="active" style={{ background: '#18181b', color: '#3dd68c' }}>Active</option>
-                      <option value="expiring-soon" style={{ background: '#18181b', color: '#f59e0b' }}>Expiring Soon</option>
-                      <option value="expired" style={{ background: '#18181b', color: '#f43f5e' }}>Expired</option>
-                      <option value="incomplete" style={{ background: '#18181b', color: '#94a3b8' }}>Incomplete</option>
-                    </select>
-                    <span
-                      className="w-1.5 h-1.5 rounded-full absolute left-2 top-1/2 -translate-y-1/2 pointer-events-none"
-                      style={{ background: (STATUS_CONFIG[selectedAccount.status] || STATUS_CONFIG.active).color }}
-                    />
-                    <ChevronDown
-                      size={11}
-                      className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none opacity-80"
-                      style={{ color: (STATUS_CONFIG[selectedAccount.status] || STATUS_CONFIG.active).color }}
-                    />
-                  </div>
+                  <CustomDropdown
+                    size="sm"
+                    variant="pill"
+                    value={selectedAccount.status}
+                    onChange={(val) => handleStatusChange(selectedAccount.id, val as UtilityStatus)}
+                    options={[
+                      { value: 'active', label: 'Active', color: '#3dd68c' },
+                      { value: 'expiring-soon', label: 'Expiring Soon', color: '#f59e0b' },
+                      { value: 'expired', label: 'Expired', color: '#f43f5e' },
+                      { value: 'incomplete', label: 'Incomplete', color: '#94a3b8' },
+                    ]}
+                    style={{
+                      background: (STATUS_CONFIG[selectedAccount.status] || STATUS_CONFIG.active).bg,
+                      color: (STATUS_CONFIG[selectedAccount.status] || STATUS_CONFIG.active).color,
+                      border: `1px solid ${(STATUS_CONFIG[selectedAccount.status] || STATUS_CONFIG.active).color}33`,
+                    }}
+                  />
                 </div>
                 <h2 className="font-head font-bold text-lg">{selectedAccount.property}</h2>
                 <p className="text-sm text-muted-foreground mt-0.5">{selectedAccount.supplier}</p>
@@ -1395,7 +1524,7 @@ export default function UtilitiesRegisterClient() {
             )}
             <div className="flex items-center justify-between gap-2 p-6 border-t border-border" style={{ background: 'var(--surface2)' }}>
               <div className="flex items-center gap-2">
-                {!isViewer && canEdit && (
+                {hasWriteAccess && (
                   <button
                     type="button"
                     onClick={() => handleOpenEdit(selectedAccount)}
@@ -1405,7 +1534,7 @@ export default function UtilitiesRegisterClient() {
                     <Edit2 size={13} /> Edit Account
                   </button>
                 )}
-                {!isViewer && (canDelete ?? canEdit) && (
+                {hasDeleteAccess && (
                   <button
                     type="button"
                     onClick={() => setAccountToDelete(selectedAccount)}
@@ -1440,25 +1569,23 @@ export default function UtilitiesRegisterClient() {
               <div className="p-6 grid grid-cols-2 gap-4">
                 <div className="flex flex-col gap-1">
                   <label className="text-xs font-medium text-muted-foreground">Property *</label>
-                  <select
+                  <CustomDropdown
+                    variant="form"
+                    width="100%"
                     value={formData.property}
-                    onChange={(e) => setFormData({ ...formData, property: e.target.value })}
-                    className="rounded-lg border border-border px-3 py-2 text-sm outline-none"
-                    style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
-                  >
-                    {propertyOptions.map((p) => <option key={p}>{p}</option>)}
-                  </select>
+                    onChange={(val) => setFormData({ ...formData, property: val })}
+                    options={propertyOptions}
+                  />
                 </div>
                 <div className="flex flex-col gap-1">
                   <label className="text-xs font-medium text-muted-foreground">Utility Type *</label>
-                  <select
+                  <CustomDropdown
+                    variant="form"
+                    width="100%"
                     value={formData.utilityType}
-                    onChange={(e) => setFormData({ ...formData, utilityType: e.target.value as UtilityType })}
-                    className="rounded-lg border border-border px-3 py-2 text-sm outline-none"
-                    style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
-                  >
-                    {allTypes.map((t) => <option key={t} value={t}>{t}</option>)}
-                  </select>
+                    onChange={(val) => setFormData({ ...formData, utilityType: val as UtilityType })}
+                    options={allTypes}
+                  />
                 </div>
                 <div className="flex flex-col gap-1">
                   <label className="text-xs font-medium text-muted-foreground">Supplier *</label>
@@ -1574,17 +1701,18 @@ export default function UtilitiesRegisterClient() {
                 </div>
                 <div className="flex flex-col gap-1">
                   <label className="text-xs font-medium text-muted-foreground">Status</label>
-                  <select
+                  <CustomDropdown
+                    variant="form"
+                    width="100%"
                     value={formData.status}
-                    onChange={(e) => setFormData({ ...formData, status: e.target.value as UtilityStatus })}
-                    className="rounded-lg border border-border px-3 py-2 text-sm outline-none"
-                    style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
-                  >
-                    <option value="active">Active</option>
-                    <option value="expiring-soon">Expiring Soon</option>
-                    <option value="expired">Expired</option>
-                    <option value="incomplete">Incomplete</option>
-                  </select>
+                    onChange={(val) => setFormData({ ...formData, status: val as UtilityStatus })}
+                    options={[
+                      { value: 'active', label: 'Active', color: '#3dd68c' },
+                      { value: 'expiring-soon', label: 'Expiring Soon', color: '#f59e0b' },
+                      { value: 'expired', label: 'Expired', color: '#f43f5e' },
+                      { value: 'incomplete', label: 'Incomplete', color: '#94a3b8' },
+                    ]}
+                  />
                 </div>
                 <div className="col-span-2 flex flex-col gap-1">
                   <label className="text-xs font-medium text-muted-foreground">Notes / Flags</label>
@@ -1641,27 +1769,23 @@ export default function UtilitiesRegisterClient() {
               <div className="p-6 grid grid-cols-2 gap-4">
                 <div className="flex flex-col gap-1">
                   <label className="text-xs font-semibold text-muted-foreground uppercase">Property *</label>
-                  <select
+                  <CustomDropdown
+                    variant="form"
+                    width="100%"
                     value={editingAccount.property}
-                    onChange={(e) => setEditingAccount({ ...editingAccount, property: e.target.value })}
-                    className="rounded-lg border border-border px-3 py-2 text-sm outline-none cursor-pointer"
-                    style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
-                  >
-                    {propertyOptions.map((p) => <option key={p} value={p}>{p}</option>)}
-                  </select>
+                    onChange={(val) => setEditingAccount({ ...editingAccount, property: val })}
+                    options={propertyOptions}
+                  />
                 </div>
                 <div className="flex flex-col gap-1">
                   <label className="text-xs font-semibold text-muted-foreground uppercase">Utility Type *</label>
-                  <select
+                  <CustomDropdown
+                    variant="form"
+                    width="100%"
                     value={editingAccount.utilityType}
-                    onChange={(e) => setEditingAccount({ ...editingAccount, utilityType: e.target.value as UtilityType })}
-                    className="rounded-lg border border-border px-3 py-2 text-sm outline-none cursor-pointer"
-                    style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
-                  >
-                    {allTypes.map((t) => (
-                      <option key={t} value={t}>{t}</option>
-                    ))}
-                  </select>
+                    onChange={(val) => setEditingAccount({ ...editingAccount, utilityType: val as UtilityType })}
+                    options={allTypes}
+                  />
                 </div>
                 <div className="flex flex-col gap-1">
                   <label className="text-xs font-semibold text-muted-foreground uppercase">Supplier *</label>
@@ -1697,17 +1821,18 @@ export default function UtilitiesRegisterClient() {
                 </div>
                 <div className="flex flex-col gap-1">
                   <label className="text-xs font-semibold text-muted-foreground uppercase">Status</label>
-                  <select
+                  <CustomDropdown
+                    variant="form"
+                    width="100%"
                     value={editingAccount.status}
-                    onChange={(e) => setEditingAccount({ ...editingAccount, status: e.target.value as UtilityStatus })}
-                    className="rounded-lg border border-border px-3 py-2 text-sm outline-none cursor-pointer"
-                    style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
-                  >
-                    <option value="active">Active</option>
-                    <option value="expiring-soon">Expiring Soon</option>
-                    <option value="expired">Expired</option>
-                    <option value="incomplete">Incomplete</option>
-                  </select>
+                    onChange={(val) => setEditingAccount({ ...editingAccount, status: val as UtilityStatus })}
+                    options={[
+                      { value: 'active', label: 'Active', color: '#3dd68c' },
+                      { value: 'expiring-soon', label: 'Expiring Soon', color: '#f59e0b' },
+                      { value: 'expired', label: 'Expired', color: '#f43f5e' },
+                      { value: 'incomplete', label: 'Incomplete', color: '#94a3b8' },
+                    ]}
+                  />
                 </div>
                 <div className="flex flex-col gap-1">
                   <label className="text-xs font-semibold text-muted-foreground uppercase">Contract Start</label>
@@ -2018,7 +2143,10 @@ export default function UtilitiesRegisterClient() {
               </div>
             </div>
             <p className="text-xs leading-relaxed text-muted-foreground mb-5">
-              Are you sure you want to remove category <strong className="text-foreground">{catToDelete}</strong>?
+              Are you sure you want to delete the category <strong className="text-foreground">{catToDelete}</strong>?
+              <span className="block mt-2 text-emerald-400 font-medium">
+                Note: All existing utility meters and invoices will safely stay in the database. Only this category option will be removed from future dropdown selections.
+              </span>
             </p>
             <div className="flex items-center justify-end gap-3">
               <button
@@ -2235,7 +2363,20 @@ export default function UtilitiesRegisterClient() {
           </div>
         </div>
       )}
-</div>
+
+      {/* Bulk Delete Utilities Modal */}
+      <ConfirmDeleteModal
+        isOpen={showBulkDeleteAccountsModal}
+        onClose={() => setShowBulkDeleteAccountsModal(false)}
+        onConfirm={handleConfirmBulkDeleteAccounts}
+        title="Confirm Bulk Deletion"
+        itemName={`${selectedAccountIds.length} Selected Utility Accounts`}
+        registerName="utilities register"
+        customWarning={`Are you sure you want to permanently delete these ${selectedAccountIds.length} selected utility accounts? This action cannot be undone.`}
+        confirmButtonText={`Delete ${selectedAccountIds.length} Accounts`}
+        isDeleting={isBulkDeletingAccounts}
+      />
+    </div>
   );
 }
 
