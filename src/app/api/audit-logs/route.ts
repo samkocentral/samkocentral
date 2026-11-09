@@ -2,9 +2,10 @@ import { NextResponse } from 'next/server';
 import fs from 'fs';
 import path from 'path';
 
-const AUDIT_LOGS_DIR = process.env.NODE_ENV === 'production' && fs.existsSync('/tmp')
-  ? '/tmp'
-  : path.join(process.cwd(), '.runtime_data');
+const AUDIT_LOGS_DIR =
+  process.env.NODE_ENV === 'production' && fs.existsSync('/tmp')
+    ? '/tmp'
+    : path.join(process.cwd(), '.runtime_data');
 const AUDIT_LOGS_FILE = path.join(AUDIT_LOGS_DIR, 'samko_audit_logs.json');
 
 function ensureDir(filePath: string) {
@@ -74,7 +75,6 @@ export async function POST(req: Request) {
     return NextResponse.json({ success: false, error: err.message }, { status: 400 });
   }
 }
-
 
 export async function DELETE() {
   saveLogsToDisk([]);

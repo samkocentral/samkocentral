@@ -1,7 +1,16 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { AlertCircle, AlertTriangle, Info, Sparkles, Trash2, ExternalLink, Shield, Radio } from 'lucide-react';
+import {
+  AlertCircle,
+  AlertTriangle,
+  Info,
+  Sparkles,
+  Trash2,
+  ExternalLink,
+  Shield,
+  Radio,
+} from 'lucide-react';
 import Link from 'next/link';
 import { useDeepPageCms } from '@/lib/deepPageCms';
 import {
@@ -66,7 +75,12 @@ export default function DashboardAlertFeed() {
           </span>
           <h2
             className="font-head text-foreground flex items-center gap-2"
-            style={{ fontSize: 13, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em' }}
+            style={{
+              fontSize: 13,
+              fontWeight: 700,
+              textTransform: 'uppercase',
+              letterSpacing: '0.08em',
+            }}
           >
             <span>{title}</span>
             <span className="px-1.5 py-0.2 rounded-full text-[10px] font-black bg-rose-500/20 text-rose-300 border border-rose-500/30">
@@ -153,17 +167,19 @@ export default function DashboardAlertFeed() {
               <div
                 key={item.id}
                 className={`relative flex items-start gap-3 p-2.5 rounded-xl border transition-all ${
-                  item.read ? 'bg-surface/50 border-border opacity-80 hover:opacity-100' : 'bg-surface2/90 border-border-strong shadow-sm'
+                  item.read
+                    ? 'bg-surface/50 border-border opacity-80 hover:opacity-100'
+                    : 'bg-surface2/90 border-border-strong shadow-sm'
                 }`}
                 style={{
                   borderLeftWidth: 3.5,
                   borderLeftColor: isCrit
                     ? 'var(--critical)'
                     : isWarn
-                    ? 'var(--warning)'
-                    : item.type === 'success'
-                    ? 'var(--primary)'
-                    : '#3b82f6',
+                      ? 'var(--warning)'
+                      : item.type === 'success'
+                        ? 'var(--primary)'
+                        : '#3b82f6',
                 }}
               >
                 {/* Severity Icon */}
@@ -175,8 +191,8 @@ export default function DashboardAlertFeed() {
                     background: isCrit
                       ? 'var(--critical-bg)'
                       : isWarn
-                      ? 'var(--warning-bg)'
-                      : 'var(--info-bg)',
+                        ? 'var(--warning-bg)'
+                        : 'var(--info-bg)',
                   }}
                 >
                   {isCrit ? (
@@ -197,8 +213,8 @@ export default function DashboardAlertFeed() {
                           isCrit
                             ? 'bg-rose-500/20 text-rose-300 border border-rose-500/30'
                             : isWarn
-                            ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
-                            : 'bg-blue-500/20 text-blue-300 border border-blue-500/30'
+                              ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+                              : 'bg-blue-500/20 text-blue-300 border border-blue-500/30'
                         }`}
                       >
                         {item.source || item.type}
@@ -228,7 +244,9 @@ export default function DashboardAlertFeed() {
                     </div>
                   </div>
 
-                  <p className={`text-xs font-bold mt-1 ${isCrit ? 'text-rose-300' : 'text-foreground'}`}>
+                  <p
+                    className={`text-xs font-bold mt-1 ${isCrit ? 'text-rose-300' : 'text-foreground'}`}
+                  >
                     {item.title}
                   </p>
                   <p className="text-muted-foreground text-[11px] leading-relaxed mt-0.5">

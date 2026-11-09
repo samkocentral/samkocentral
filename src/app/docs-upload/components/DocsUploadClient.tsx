@@ -43,12 +43,14 @@ import ConfirmDeleteModal from '@/components/modals/ConfirmDeleteModal';
 function loadRealDocuments(): Document[] {
   if (typeof window !== 'undefined') {
     try {
-      const saved = localStorage.getItem('samko_repository_documents') || sessionStorage.getItem('samko_repository_documents');
+      const saved =
+        localStorage.getItem('samko_repository_documents') ||
+        sessionStorage.getItem('samko_repository_documents');
       if (saved) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) return parsed;
       }
-    } catch (e) { }
+    } catch (e) {}
   }
   return DOCUMENTS;
 }
@@ -112,8 +114,10 @@ export default function DocsUploadClient() {
         // Remove legacy dummy keys
         sessionStorage.removeItem('samko_vault_documents');
         localStorage.removeItem('samko_vault_documents');
-        window.dispatchEvent(new CustomEvent('samko:data-changed', { detail: { type: 'documents' } }));
-      } catch (e) { }
+        window.dispatchEvent(
+          new CustomEvent('samko:data-changed', { detail: { type: 'documents' } })
+        );
+      } catch (e) {}
     }
   };
 
@@ -158,7 +162,12 @@ export default function DocsUploadClient() {
 
     cmsOptions.forEach((c) => {
       const clean = c.trim();
-      if (clean && !clean.toLowerCase().startsWith('all ') && clean.toLowerCase() !== 'all' && !deleted.has(clean.toLowerCase())) {
+      if (
+        clean &&
+        !clean.toLowerCase().startsWith('all ') &&
+        clean.toLowerCase() !== 'all' &&
+        !deleted.has(clean.toLowerCase())
+      ) {
         merged.add(clean);
       }
     });
@@ -259,9 +268,18 @@ export default function DocsUploadClient() {
   } = useLoadingPagination(filteredDocuments, 10);
 
   // Stats calculation
-  const compliantCount = useMemo(() => accessibleDocuments.filter((d) => d.status === 'ok').length, [accessibleDocuments]);
-  const dueSoonCount = useMemo(() => accessibleDocuments.filter((d) => d.status === 'warning').length, [accessibleDocuments]);
-  const overdueCount = useMemo(() => accessibleDocuments.filter((d) => d.status === 'critical').length, [accessibleDocuments]);
+  const compliantCount = useMemo(
+    () => accessibleDocuments.filter((d) => d.status === 'ok').length,
+    [accessibleDocuments]
+  );
+  const dueSoonCount = useMemo(
+    () => accessibleDocuments.filter((d) => d.status === 'warning').length,
+    [accessibleDocuments]
+  );
+  const overdueCount = useMemo(
+    () => accessibleDocuments.filter((d) => d.status === 'critical').length,
+    [accessibleDocuments]
+  );
 
   // Handle file replacement
   const handleFilePickedForReplace = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -366,9 +384,12 @@ export default function DocsUploadClient() {
         <div className="w-16 h-16 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400 mb-4">
           <ShieldAlert size={32} />
         </div>
-        <h2 className="text-xl font-bold font-head text-foreground mb-2">Upload Vault Restricted</h2>
+        <h2 className="text-xl font-bold font-head text-foreground mb-2">
+          Upload Vault Restricted
+        </h2>
         <p className="text-sm text-muted-foreground max-w-md mb-6">
-          The Document Upload Vault is restricted for Viewers (L4). Viewers have read-only access to published documents in the Document Repository.
+          The Document Upload Vault is restricted for Viewers (L4). Viewers have read-only access to
+          published documents in the Document Repository.
         </p>
         <button
           onClick={() => router.push('/document-repository')}
@@ -401,7 +422,9 @@ export default function DocsUploadClient() {
             <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
               Compliant Documents
             </span>
-            <div className="text-2xl font-bold font-head text-emerald-400 mt-1">{compliantCount}</div>
+            <div className="text-2xl font-bold font-head text-emerald-400 mt-1">
+              {compliantCount}
+            </div>
             <span className="text-[11px] text-muted-foreground">Valid & Certified</span>
           </div>
           <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-emerald-500/15 text-emerald-400">
@@ -449,8 +472,12 @@ export default function DocsUploadClient() {
             <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
               Total Real Documents
             </span>
-            <div className="text-2xl font-bold font-head text-foreground mt-1">{documents.length}</div>
-            <span className="text-[11px] text-muted-foreground">Across All {liveProperties.length} Sites</span>
+            <div className="text-2xl font-bold font-head text-foreground mt-1">
+              {documents.length}
+            </div>
+            <span className="text-[11px] text-muted-foreground">
+              Across All {liveProperties.length} Sites
+            </span>
           </div>
           <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-white/[0.05] text-primary">
             <FolderOpen size={20} />
@@ -466,7 +493,10 @@ export default function DocsUploadClient() {
         {/* Action Header */}
         <div className="p-4 border-b border-border flex flex-wrap items-center justify-between gap-3">
           {/* Search Bar */}
-          <div className="flex items-center gap-2 px-3.5 py-2 rounded-xl border border-border flex-1 min-w-64 max-w-md" style={{ background: 'var(--surface2)' }}>
+          <div
+            className="flex items-center gap-2 px-3.5 py-2 rounded-xl border border-border flex-1 min-w-64 max-w-md"
+            style={{ background: 'var(--surface2)' }}
+          >
             <Search size={15} className="text-muted-foreground flex-shrink-0" />
             <input
               type="text"
@@ -476,7 +506,10 @@ export default function DocsUploadClient() {
               className="bg-transparent text-xs text-foreground outline-none w-full"
             />
             {search && (
-              <button onClick={() => setSearch('')} className="text-muted-foreground hover:text-foreground">
+              <button
+                onClick={() => setSearch('')}
+                className="text-muted-foreground hover:text-foreground"
+              >
                 <X size={13} />
               </button>
             )}
@@ -542,15 +575,17 @@ export default function DocsUploadClient() {
               <button
                 key={tab.id}
                 onClick={() => setFilterStatus(tab.id as any)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-2 transition-all cursor-pointer ${isActive
-                  ? 'bg-primary text-black font-bold shadow-sm'
-                  : 'text-muted-foreground hover:text-foreground hover:bg-white/[0.04]'
-                  }`}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-2 transition-all cursor-pointer ${
+                  isActive
+                    ? 'bg-primary text-black font-bold shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-white/[0.04]'
+                }`}
               >
                 <span>{tab.label}</span>
                 <span
-                  className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${isActive ? 'bg-black/20 text-black' : 'bg-white/10 text-muted-foreground'
-                    }`}
+                  className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
+                    isActive ? 'bg-black/20 text-black' : 'bg-white/10 text-muted-foreground'
+                  }`}
                   style={!isActive && tab.color ? { color: tab.color } : {}}
                 >
                   {tab.count}
@@ -564,7 +599,10 @@ export default function DocsUploadClient() {
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="border-b border-border text-[11px] font-bold text-muted-foreground uppercase tracking-wider" style={{ background: 'var(--surface2)' }}>
+              <tr
+                className="border-b border-border text-[11px] font-bold text-muted-foreground uppercase tracking-wider"
+                style={{ background: 'var(--surface2)' }}
+              >
                 <th className="py-3 px-4">Document Name</th>
                 <th className="py-3 px-4">Category</th>
                 <th className="py-3 px-4">Property / Site</th>
@@ -580,7 +618,9 @@ export default function DocsUploadClient() {
                 <tr>
                   <td colSpan={8} className="py-12 text-center text-muted-foreground">
                     <p className="font-medium">No documents found in this view.</p>
-                    <p className="text-[11px] mt-1">Try adjusting your filters or upload a new certificate.</p>
+                    <p className="text-[11px] mt-1">
+                      Try adjusting your filters or upload a new certificate.
+                    </p>
                   </td>
                 </tr>
               ) : (
@@ -606,7 +646,9 @@ export default function DocsUploadClient() {
                             <FileText size={14} />
                           </div>
                           <div>
-                            <span className="font-medium text-foreground block truncate max-w-xs">{doc.name}</span>
+                            <span className="font-medium text-foreground block truncate max-w-xs">
+                              {doc.name}
+                            </span>
                             <span className="text-[11px] text-muted-foreground font-mono block mt-0.5">
                               {doc.fileName || `${doc.name}.pdf`} &bull; {doc.size || '2.1 MB'}
                             </span>
@@ -616,7 +658,10 @@ export default function DocsUploadClient() {
 
                       {/* Category */}
                       <td className="py-3 px-4">
-                        <span className="text-[11px] px-2 py-0.5 rounded-full font-medium" style={{ background: 'var(--surface3)', color: 'var(--text2)' }}>
+                        <span
+                          className="text-[11px] px-2 py-0.5 rounded-full font-medium"
+                          style={{ background: 'var(--surface3)', color: 'var(--text2)' }}
+                        >
                           {doc.category}
                         </span>
                       </td>
@@ -634,7 +679,9 @@ export default function DocsUploadClient() {
                       {/* Uploaded Date */}
                       <td className="py-3 px-4 text-muted-foreground text-[11px]">
                         <div>{doc.uploaded || 'Recently'}</div>
-                        <div className="text-[10px] opacity-75 truncate max-w-[110px]">{doc.uploadedBy || 'Administrator'}</div>
+                        <div className="text-[10px] opacity-75 truncate max-w-[110px]">
+                          {doc.uploadedBy || 'Administrator'}
+                        </div>
                       </td>
 
                       {/* Expiry Date */}
@@ -652,7 +699,10 @@ export default function DocsUploadClient() {
                             border: `1px solid ${badgeColor}33`,
                           }}
                         >
-                          <span className="w-1.5 h-1.5 rounded-full" style={{ background: badgeColor }} />
+                          <span
+                            className="w-1.5 h-1.5 rounded-full"
+                            style={{ background: badgeColor }}
+                          />
                           {label}
                         </span>
                       </td>
@@ -748,15 +798,21 @@ export default function DocsUploadClient() {
             onClick={(e) => e.stopPropagation()}
           >
             {/* Modal Header */}
-            <div className="flex items-center justify-between px-6 py-4 border-b border-border" style={{ background: 'var(--surface2)' }}>
+            <div
+              className="flex items-center justify-between px-6 py-4 border-b border-border"
+              style={{ background: 'var(--surface2)' }}
+            >
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-primary/15 text-primary">
                   <FileText size={20} />
                 </div>
                 <div>
-                  <h3 className="font-head font-bold text-base text-foreground">{previewDoc.name}</h3>
+                  <h3 className="font-head font-bold text-base text-foreground">
+                    {previewDoc.name}
+                  </h3>
                   <p className="text-xs text-muted-foreground font-mono">
-                    {previewDoc.fileName || `${previewDoc.name}.pdf`} &bull; {previewDoc.site} &bull; {previewDoc.category}
+                    {previewDoc.fileName || `${previewDoc.name}.pdf`} &bull; {previewDoc.site}{' '}
+                    &bull; {previewDoc.category}
                   </p>
                 </div>
               </div>
@@ -772,29 +828,60 @@ export default function DocsUploadClient() {
             {/* Modal Body */}
             <div className="p-6 overflow-y-auto space-y-4 flex-1">
               {/* Meta Grid */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 p-3.5 rounded-xl border border-border" style={{ background: 'var(--surface2)' }}>
+              <div
+                className="grid grid-cols-2 md:grid-cols-4 gap-3 p-3.5 rounded-xl border border-border"
+                style={{ background: 'var(--surface2)' }}
+              >
                 <div>
-                  <span className="text-[11px] text-muted-foreground block uppercase font-semibold">Uploaded By</span>
-                  <span className="text-xs font-medium text-foreground">{previewDoc.uploadedBy || 'Administrator'}</span>
+                  <span className="text-[11px] text-muted-foreground block uppercase font-semibold">
+                    Uploaded By
+                  </span>
+                  <span className="text-xs font-medium text-foreground">
+                    {previewDoc.uploadedBy || 'Administrator'}
+                  </span>
                 </div>
                 <div>
-                  <span className="text-[11px] text-muted-foreground block uppercase font-semibold">Date Uploaded</span>
-                  <span className="text-xs font-medium text-foreground">{previewDoc.uploaded || 'Recently'}</span>
+                  <span className="text-[11px] text-muted-foreground block uppercase font-semibold">
+                    Date Uploaded
+                  </span>
+                  <span className="text-xs font-medium text-foreground">
+                    {previewDoc.uploaded || 'Recently'}
+                  </span>
                 </div>
                 <div>
-                  <span className="text-[11px] text-muted-foreground block uppercase font-semibold">Statutory Expiry</span>
-                  <span className="text-xs font-medium text-foreground font-mono">{previewDoc.expiry}</span>
+                  <span className="text-[11px] text-muted-foreground block uppercase font-semibold">
+                    Statutory Expiry
+                  </span>
+                  <span className="text-xs font-medium text-foreground font-mono">
+                    {previewDoc.expiry}
+                  </span>
                 </div>
                 <div>
-                  <span className="text-[11px] text-muted-foreground block uppercase font-semibold">Compliance Status</span>
+                  <span className="text-[11px] text-muted-foreground block uppercase font-semibold">
+                    Compliance Status
+                  </span>
                   <span
                     className="inline-block mt-0.5 text-xs font-bold px-2 py-0.5 rounded-full"
                     style={{
-                      background: previewDoc.status === 'ok' ? 'rgba(61,214,140,0.15)' : previewDoc.status === 'warning' ? 'rgba(245,158,11,0.15)' : 'rgba(244,63,94,0.15)',
-                      color: previewDoc.status === 'ok' ? '#3dd68c' : previewDoc.status === 'warning' ? '#f59e0b' : '#f43f5e',
+                      background:
+                        previewDoc.status === 'ok'
+                          ? 'rgba(61,214,140,0.15)'
+                          : previewDoc.status === 'warning'
+                            ? 'rgba(245,158,11,0.15)'
+                            : 'rgba(244,63,94,0.15)',
+                      color:
+                        previewDoc.status === 'ok'
+                          ? '#3dd68c'
+                          : previewDoc.status === 'warning'
+                            ? '#f59e0b'
+                            : '#f43f5e',
                     }}
                   >
-                    {previewDoc.status === 'ok' ? 'COMPLIANT' : previewDoc.status === 'warning' ? 'DUE SOON' : 'EXPIRED'}
+                    {previewDoc.status === 'ok'
+                      ? 'COMPLIANT'
+                      : previewDoc.status === 'warning'
+                        ? 'DUE SOON'
+                        : 'EXPIRED'}
                   </span>
                 </div>
               </div>
@@ -819,7 +906,10 @@ export default function DocsUploadClient() {
             </div>
 
             {/* Modal Footer with Actions */}
-            <div className="px-6 py-4 border-t border-border flex items-center justify-between flex-wrap gap-2" style={{ background: 'var(--surface2)' }}>
+            <div
+              className="px-6 py-4 border-t border-border flex items-center justify-between flex-wrap gap-2"
+              style={{ background: 'var(--surface2)' }}
+            >
               <div className="flex items-center gap-2">
                 {/* Replace Document Button */}
                 {canUpload && (
@@ -906,14 +996,21 @@ export default function DocsUploadClient() {
             style={{ background: 'var(--surface)' }}
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between px-6 py-4 border-b border-border" style={{ background: 'var(--surface2)' }}>
+            <div
+              className="flex items-center justify-between px-6 py-4 border-b border-border"
+              style={{ background: 'var(--surface2)' }}
+            >
               <div className="flex items-center gap-2.5">
                 <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-primary/20 text-primary">
                   <CloudUpload size={16} />
                 </div>
                 <div>
-                  <h3 className="font-head font-bold text-base text-foreground">Upload Compliance Document</h3>
-                  <p className="text-xs text-muted-foreground">Saves directly to live document vault across portfolio</p>
+                  <h3 className="font-head font-bold text-base text-foreground">
+                    Upload Compliance Document
+                  </h3>
+                  <p className="text-xs text-muted-foreground">
+                    Saves directly to live document vault across portfolio
+                  </p>
                 </div>
               </div>
               <button
@@ -945,7 +1042,8 @@ export default function DocsUploadClient() {
                         reader.onload = (ev) => {
                           setUploadForm({
                             ...uploadForm,
-                            name: uploadForm.name || f.name.replace(/\.[^/.]+$/, '').replace(/_/g, ' '),
+                            name:
+                              uploadForm.name || f.name.replace(/\.[^/.]+$/, '').replace(/_/g, ' '),
                             fileName: f.name,
                             fileSize: `${(f.size / (1024 * 1024)).toFixed(1)} MB`,
                             fileUrl: ev.target?.result as string,
@@ -959,10 +1057,14 @@ export default function DocsUploadClient() {
                 >
                   <CloudUpload size={26} className="mx-auto text-primary mb-1.5 opacity-80" />
                   <p className="text-xs font-medium text-foreground">
-                    {uploadForm.fileName ? uploadForm.fileName : 'Click to select PDF or drag & drop file here'}
+                    {uploadForm.fileName
+                      ? uploadForm.fileName
+                      : 'Click to select PDF or drag & drop file here'}
                   </p>
                   <p className="text-[11px] text-muted-foreground mt-0.5">
-                    {uploadForm.fileSize ? `Size: ${uploadForm.fileSize}` : 'PDF, DOC, XLS, PNG, JPG (Max 25MB)'}
+                    {uploadForm.fileSize
+                      ? `Size: ${uploadForm.fileSize}`
+                      : 'PDF, DOC, XLS, PNG, JPG (Max 25MB)'}
                   </p>
                 </div>
               </div>
@@ -1080,14 +1182,21 @@ export default function DocsUploadClient() {
             style={{ background: 'var(--surface)' }}
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between px-6 py-4 border-b border-border" style={{ background: 'var(--surface2)' }}>
+            <div
+              className="flex items-center justify-between px-6 py-4 border-b border-border"
+              style={{ background: 'var(--surface2)' }}
+            >
               <div className="flex items-center gap-2.5">
                 <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-primary/20 text-primary">
                   <Tag size={16} />
                 </div>
                 <div>
-                  <h3 className="font-head font-bold text-base text-foreground">Manage Document Categories</h3>
-                  <p className="text-xs text-muted-foreground">Add new categories or delete obsolete options across the app</p>
+                  <h3 className="font-head font-bold text-base text-foreground">
+                    Manage Document Categories
+                  </h3>
+                  <p className="text-xs text-muted-foreground">
+                    Add new categories or delete obsolete options across the app
+                  </p>
                 </div>
               </div>
               <button
@@ -1105,7 +1214,10 @@ export default function DocsUploadClient() {
                 <label className="block text-xs font-semibold text-muted-foreground mb-2 uppercase tracking-wide">
                   Active Categories ({allCategories.length})
                 </label>
-                <div className="flex flex-wrap gap-1.5 max-h-48 overflow-y-auto p-2 rounded-xl border border-border/70" style={{ background: 'var(--surface2)' }}>
+                <div
+                  className="flex flex-wrap gap-1.5 max-h-48 overflow-y-auto p-2 rounded-xl border border-border/70"
+                  style={{ background: 'var(--surface2)' }}
+                >
                   {allCategories.map((cat) => (
                     <span
                       key={cat}

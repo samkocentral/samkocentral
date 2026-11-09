@@ -13,9 +13,21 @@ import ConfirmDeleteModal from '@/components/modals/ConfirmDeleteModal';
 import { useLoadingPagination } from '@/hooks/useLoadingPagination';
 
 const PRESET_COLORS = [
-  '#e8c97a', '#60a5fa', '#a78bfa', '#34d399', '#f43f5e',
-  '#38bdf8', '#fb923c', '#f472b6', '#94a3b8', '#67e8f9',
-  '#4ade80', '#c084fc', '#6b7280', '#fbbf24', '#f87171',
+  '#e8c97a',
+  '#60a5fa',
+  '#a78bfa',
+  '#34d399',
+  '#f43f5e',
+  '#38bdf8',
+  '#fb923c',
+  '#f472b6',
+  '#94a3b8',
+  '#67e8f9',
+  '#4ade80',
+  '#c084fc',
+  '#6b7280',
+  '#fbbf24',
+  '#f87171',
 ];
 
 function ColorDot({ color, size = 12 }: { color: string; size?: number }) {
@@ -175,14 +187,14 @@ export default function CategoriesClient() {
       console.warn('Category created locally:', e);
     }
     if (typeof window !== 'undefined') {
-      window.dispatchEvent(new CustomEvent('samko:data-changed', { detail: { type: 'categories' } }));
+      window.dispatchEvent(
+        new CustomEvent('samko:data-changed', { detail: { type: 'categories' } })
+      );
     }
   };
 
   const handleEdit = async (id: string, data: Omit<AssetCategory, 'id'>) => {
-    setCategories((prev) =>
-      prev.map((c) => (c.id === id ? { ...c, ...data } : c))
-    );
+    setCategories((prev) => prev.map((c) => (c.id === id ? { ...c, ...data } : c)));
     setEditingId(null);
     toast.success('Category updated successfully', {
       description: `"${data.name}" changes saved.`,
@@ -194,7 +206,9 @@ export default function CategoriesClient() {
       console.warn('Category updated locally:', e);
     }
     if (typeof window !== 'undefined') {
-      window.dispatchEvent(new CustomEvent('samko:data-changed', { detail: { type: 'categories', id } }));
+      window.dispatchEvent(
+        new CustomEvent('samko:data-changed', { detail: { type: 'categories', id } })
+      );
     }
   };
 
@@ -213,11 +227,19 @@ export default function CategoriesClient() {
       console.warn('Category deleted locally:', e);
     }
     if (typeof window !== 'undefined') {
-      window.dispatchEvent(new CustomEvent('samko:data-changed', { detail: { type: 'categories', id, action: 'delete' } }));
+      window.dispatchEvent(
+        new CustomEvent('samko:data-changed', {
+          detail: { type: 'categories', id, action: 'delete' },
+        })
+      );
     }
   };
 
-  const { title: cmsTitle, subtitle: cmsSubtitle, primaryActionLabel: cmsPrimaryAction } = useDeepPageCms('categories');
+  const {
+    title: cmsTitle,
+    subtitle: cmsSubtitle,
+    primaryActionLabel: cmsPrimaryAction,
+  } = useDeepPageCms('categories');
   const totalAssets = liveAssets.length;
 
   const {
@@ -247,17 +269,25 @@ export default function CategoriesClient() {
           <PageCMSEditButton pageId="categories" pageName="Asset Categories" />
           {hasWriteAccess && (
             <button
-              onClick={() => { setShowAdd(true); setEditingId(null); }}
+              onClick={() => {
+                setShowAdd(true);
+                setEditingId(null);
+              }}
               className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold cursor-pointer"
               style={{ background: 'var(--primary)', color: '#000' }}
             >
-              <Plus size={15} /> {(cmsPrimaryAction || 'Add Category').replace(/^[\+\s]+/, '').trim()}
+              <Plus size={15} />{' '}
+              {(cmsPrimaryAction || 'Add Category').replace(/^[\+\s]+/, '').trim()}
             </button>
           )}
           {isViewer && (
             <span
               className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold"
-              style={{ background: 'rgba(148,163,184,0.12)', color: '#94a3b8', border: '1px solid rgba(148,163,184,0.25)' }}
+              style={{
+                background: 'rgba(148,163,184,0.12)',
+                color: '#94a3b8',
+                border: '1px solid rgba(148,163,184,0.25)',
+              }}
             >
               L4 · Read-Only Access
             </span>
@@ -283,7 +313,10 @@ export default function CategoriesClient() {
               </div>
             )}
 
-            <div className="grid gap-3" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))' }}>
+            <div
+              className="grid gap-3"
+              style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))' }}
+            >
               {paginatedCategories.map((cat) => {
                 const count = assetCountByCategory(cat.name);
                 const pct = totalAssets > 0 ? Math.round((count / totalAssets) * 100) : 0;
@@ -331,11 +364,18 @@ export default function CategoriesClient() {
                           {hasWriteAccess && (
                             <div className="flex items-center gap-1">
                               <button
-                                onClick={() => { setEditingId(cat.id); setShowAdd(false); }}
+                                onClick={() => {
+                                  setEditingId(cat.id);
+                                  setShowAdd(false);
+                                }}
                                 className="w-7 h-7 rounded-lg flex items-center justify-center transition-colors"
                                 style={{ color: 'var(--text2)' }}
-                                onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--surface2)')}
-                                onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+                                onMouseEnter={(e) =>
+                                  (e.currentTarget.style.background = 'var(--surface2)')
+                                }
+                                onMouseLeave={(e) =>
+                                  (e.currentTarget.style.background = 'transparent')
+                                }
                               >
                                 <Pencil size={13} />
                               </button>
@@ -344,8 +384,12 @@ export default function CategoriesClient() {
                                   onClick={() => setDeleteConfirm(cat.id)}
                                   className="w-7 h-7 rounded-lg flex items-center justify-center transition-colors"
                                   style={{ color: 'var(--text2)' }}
-                                  onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(244,63,94,0.1)')}
-                                  onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+                                  onMouseEnter={(e) =>
+                                    (e.currentTarget.style.background = 'rgba(244,63,94,0.1)')
+                                  }
+                                  onMouseLeave={(e) =>
+                                    (e.currentTarget.style.background = 'transparent')
+                                  }
                                 >
                                   <Trash2 size={13} />
                                 </button>
@@ -354,15 +398,23 @@ export default function CategoriesClient() {
                           )}
                         </div>
                         {/* Progress bar */}
-                        <div className="h-1.5 rounded-full overflow-hidden" style={{ background: 'var(--surface3)' }}>
+                        <div
+                          className="h-1.5 rounded-full overflow-hidden"
+                          style={{ background: 'var(--surface3)' }}
+                        >
                           <div
                             className="h-full rounded-full transition-all duration-500"
                             style={{ width: `${pct}%`, background: cat.color }}
                           />
                         </div>
                         <div className="flex items-center justify-between mt-1.5">
-                          <span className="text-xs text-muted-foreground">{pct}% of total assets</span>
-                          <div className="w-2.5 h-2.5 rounded-full" style={{ background: cat.color }} />
+                          <span className="text-xs text-muted-foreground">
+                            {pct}% of total assets
+                          </span>
+                          <div
+                            className="w-2.5 h-2.5 rounded-full"
+                            style={{ background: cat.color }}
+                          />
                         </div>
                       </>
                     )}
@@ -386,7 +438,10 @@ export default function CategoriesClient() {
 
           {/* Summary Panel */}
           <div className="flex flex-col gap-4">
-            <div className="rounded-xl border border-border p-5" style={{ background: 'var(--surface)' }}>
+            <div
+              className="rounded-xl border border-border p-5"
+              style={{ background: 'var(--surface)' }}
+            >
               <div className="font-head font-bold text-sm mb-4 uppercase tracking-wide text-muted-foreground">
                 Category Breakdown
               </div>
@@ -401,11 +456,19 @@ export default function CategoriesClient() {
                         <div className="flex items-center justify-between mb-1">
                           <div className="flex items-center gap-2">
                             <ColorDot color={cat.color} size={8} />
-                            <span className="text-xs font-medium truncate" style={{ maxWidth: 160 }}>{cat.name}</span>
+                            <span
+                              className="text-xs font-medium truncate"
+                              style={{ maxWidth: 160 }}
+                            >
+                              {cat.name}
+                            </span>
                           </div>
                           <span className="text-xs text-muted-foreground">{count}</span>
                         </div>
-                        <div className="h-1 rounded-full overflow-hidden" style={{ background: 'var(--surface3)' }}>
+                        <div
+                          className="h-1 rounded-full overflow-hidden"
+                          style={{ background: 'var(--surface3)' }}
+                        >
                           <div
                             className="h-full rounded-full"
                             style={{ width: `${pct}%`, background: cat.color }}
@@ -417,7 +480,10 @@ export default function CategoriesClient() {
               </div>
             </div>
 
-            <div className="rounded-xl border border-border p-5" style={{ background: 'var(--surface)' }}>
+            <div
+              className="rounded-xl border border-border p-5"
+              style={{ background: 'var(--surface)' }}
+            >
               <div className="font-head font-bold text-sm mb-3 uppercase tracking-wide text-muted-foreground">
                 Quick Stats
               </div>
@@ -425,12 +491,33 @@ export default function CategoriesClient() {
                 {[
                   { label: 'Total Categories', value: categories.length, color: '#60a5fa' },
                   { label: 'Total Assets', value: totalAssets, color: '#e8c97a' },
-                  { label: 'Largest Category', value: [...categories].sort((a, b) => assetCountByCategory(b.name) - assetCountByCategory(a.name))[0]?.name.split(' ')[0] || '—', color: '#3dd68c' },
-                  { label: 'Empty Categories', value: categories.filter((c) => assetCountByCategory(c.name) === 0).length, color: '#f59e0b' },
+                  {
+                    label: 'Largest Category',
+                    value:
+                      [...categories]
+                        .sort(
+                          (a, b) => assetCountByCategory(b.name) - assetCountByCategory(a.name)
+                        )[0]
+                        ?.name.split(' ')[0] || '—',
+                    color: '#3dd68c',
+                  },
+                  {
+                    label: 'Empty Categories',
+                    value: categories.filter((c) => assetCountByCategory(c.name) === 0).length,
+                    color: '#f59e0b',
+                  },
                 ].map((s) => (
-                  <div key={s.label} className="rounded-lg p-3" style={{ background: 'var(--surface2)' }}>
-                    <div className="font-head font-extrabold text-lg" style={{ color: s.color }}>{s.value}</div>
-                    <div className="text-xs text-muted-foreground mt-0.5 leading-tight">{s.label}</div>
+                  <div
+                    key={s.label}
+                    className="rounded-lg p-3"
+                    style={{ background: 'var(--surface2)' }}
+                  >
+                    <div className="font-head font-extrabold text-lg" style={{ color: s.color }}>
+                      {s.value}
+                    </div>
+                    <div className="text-xs text-muted-foreground mt-0.5 leading-tight">
+                      {s.label}
+                    </div>
                   </div>
                 ))}
               </div>
@@ -438,7 +525,7 @@ export default function CategoriesClient() {
           </div>
         </div>
       </div>
-    
+
       {/* Universal Delete Confirmation Modal */}
       <ConfirmDeleteModal
         isOpen={Boolean(deleteConfirm)}

@@ -53,7 +53,10 @@ export async function POST(req: NextRequest) {
     const contractName = body.contractName || body.title || body.name || '';
     const supplierName = body.supplierName || body.supplier || '';
     if (!contractName && !supplierName) {
-      return NextResponse.json({ success: false, error: 'Contract details are required' }, { status: 400 });
+      return NextResponse.json(
+        { success: false, error: 'Contract details are required' },
+        { status: 400 }
+      );
     }
 
     const contractId = body.contractId || `CON-${Date.now().toString().slice(-4)}`;
@@ -75,6 +78,9 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ success: true, data: newItem }, { status: 201 });
   } catch (error: any) {
-    return NextResponse.json({ success: false, error: error?.message || 'Failed to create contract' }, { status: 500 });
+    return NextResponse.json(
+      { success: false, error: error?.message || 'Failed to create contract' },
+      { status: 500 }
+    );
   }
 }

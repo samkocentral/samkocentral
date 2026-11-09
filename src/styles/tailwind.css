@@ -15,21 +15,21 @@
   --muted-foreground: #8892a4;
   --card: #111318;
   --card-foreground: #eef0f5;
-  --border: rgba(255,255,255,0.07);
-  --border-strong: rgba(255,255,255,0.12);
+  --border: rgba(255, 255, 255, 0.07);
+  --border-strong: rgba(255, 255, 255, 0.12);
   --input: #181c24;
   --ring: #e8c97a;
   --radius: 10px;
   --font-sans: 'DM Sans', sans-serif;
   --font-head: 'Syne', sans-serif;
   --ok: #3dd68c;
-  --ok-bg: rgba(61,214,140,0.10);
+  --ok-bg: rgba(61, 214, 140, 0.1);
   --warning: #f59e0b;
-  --warning-bg: rgba(245,158,11,0.10);
+  --warning-bg: rgba(245, 158, 11, 0.1);
   --critical: #f43f5e;
-  --critical-bg: rgba(244,63,94,0.12);
+  --critical-bg: rgba(244, 63, 94, 0.12);
   --info: #60a5fa;
-  --info-bg: rgba(96,165,250,0.10);
+  --info-bg: rgba(96, 165, 250, 0.1);
   --purple: #a78bfa;
   --surface: #11141a;
   --surface2: #181c24;
@@ -39,7 +39,9 @@
 }
 
 @layer base {
-  *, *::before, *::after {
+  *,
+  *::before,
+  *::after {
     box-sizing: border-box;
     border-color: var(--border);
   }
@@ -74,7 +76,7 @@
   }
 
   /* Standard form and filter selects that need a single built-in chevron icon */
-  select:not(.appearance-none):not([class*="appearance-none"]):not(.no-chevron) {
+  select:not(.appearance-none):not([class*='appearance-none']):not(.no-chevron) {
     border-radius: 10px !important;
     background-color: var(--surface2) !important;
     color: var(--foreground) !important;
@@ -87,7 +89,7 @@
 
   /* Prevent double chevrons: ensure selects with explicit appearance-none or custom Lucide sibling never show background chevron */
   select.appearance-none,
-  select[class*="appearance-none"],
+  select[class*='appearance-none'],
   select.no-chevron,
   .relative:has(> svg.lucide-chevron-down) > select,
   .relative:has(> svg) > select,
@@ -95,7 +97,8 @@
     background-image: none !important;
   }
 
-  select:focus, select:hover {
+  select:focus,
+  select:hover {
     border-color: rgba(232, 201, 122, 0.45) !important;
     box-shadow: 0 0 0 2px rgba(232, 201, 122, 0.12) !important;
   }
@@ -124,10 +127,18 @@
   .samko-modal-card {
     background-color: #11141a !important;
     border: 1px solid var(--border-strong) !important;
-    box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.9), 0 0 0 1px rgba(255, 255, 255, 0.06) !important;
+    box-shadow:
+      0 25px 60px -15px rgba(0, 0, 0, 0.9),
+      0 0 0 1px rgba(255, 255, 255, 0.06) !important;
   }
 
-  h1, h2, h3, h4, h5, h6, p {
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6,
+  p {
     margin: 0;
   }
 
@@ -152,26 +163,62 @@
     font-family: var(--font-head);
   }
 
-  .text-ok { color: var(--ok); }
-  .text-warning { color: var(--warning); }
-  .text-critical { color: var(--critical); }
-  .text-info { color: var(--info); }
-  .text-muted2 { color: var(--text2); }
-  .text-muted3 { color: var(--text3); }
-  .text-gold { color: var(--primary); }
+  .text-ok {
+    color: var(--ok);
+  }
+  .text-warning {
+    color: var(--warning);
+  }
+  .text-critical {
+    color: var(--critical);
+  }
+  .text-info {
+    color: var(--info);
+  }
+  .text-muted2 {
+    color: var(--text2);
+  }
+  .text-muted3 {
+    color: var(--text3);
+  }
+  .text-gold {
+    color: var(--primary);
+  }
 
-  .bg-surface2 { background-color: var(--surface2); }
-  .bg-surface3 { background-color: var(--surface3); }
-  .bg-ok-tint { background-color: var(--ok-bg); }
-  .bg-warning-tint { background-color: var(--warning-bg); }
-  .bg-critical-tint { background-color: var(--critical-bg); }
-  .bg-info-tint { background-color: var(--info-bg); }
+  .bg-surface2 {
+    background-color: var(--surface2);
+  }
+  .bg-surface3 {
+    background-color: var(--surface3);
+  }
+  .bg-ok-tint {
+    background-color: var(--ok-bg);
+  }
+  .bg-warning-tint {
+    background-color: var(--warning-bg);
+  }
+  .bg-critical-tint {
+    background-color: var(--critical-bg);
+  }
+  .bg-info-tint {
+    background-color: var(--info-bg);
+  }
 
-  .border-strong { border-color: var(--border-strong); }
-  .border-gold { border-color: var(--primary); }
-  .border-ok { border-color: var(--ok); }
-  .border-warning { border-color: var(--warning); }
-  .border-critical { border-color: var(--critical); }
+  .border-strong {
+    border-color: var(--border-strong);
+  }
+  .border-gold {
+    border-color: var(--primary);
+  }
+  .border-ok {
+    border-color: var(--ok);
+  }
+  .border-warning {
+    border-color: var(--warning);
+  }
+  .border-critical {
+    border-color: var(--critical);
+  }
 
   .tabular-nums {
     font-variant-numeric: tabular-nums;
@@ -182,7 +229,9 @@
   }
 
   .transition-sidebar {
-    transition: width 300ms ease, min-width 300ms ease;
+    transition:
+      width 300ms ease,
+      min-width 300ms ease;
   }
 
   .ring-fill-transition {
@@ -218,7 +267,9 @@
     font-size: 13px;
     cursor: pointer;
     border: none;
-    transition: background-color 0.15s ease, transform 0.1s ease;
+    transition:
+      background-color 0.15s ease,
+      transform 0.1s ease;
     font-family: var(--font-sans);
   }
   .samko-btn-primary:hover {
@@ -237,7 +288,10 @@
     padding: 8px 16px;
     font-size: 13px;
     cursor: pointer;
-    transition: background-color 0.15s ease, color 0.15s ease, transform 0.1s ease;
+    transition:
+      background-color 0.15s ease,
+      color 0.15s ease,
+      transform 0.1s ease;
     font-family: var(--font-sans);
   }
   .samko-btn-ghost:hover {
@@ -313,7 +367,7 @@
     color: var(--foreground);
   }
   .filter-chip-btn.active-chip {
-    background-color: rgba(232,201,122,0.12);
+    background-color: rgba(232, 201, 122, 0.12);
     border-color: var(--primary);
     color: var(--primary);
   }
@@ -378,23 +432,44 @@
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 @keyframes slideUp {
-  from { opacity: 0; transform: translateY(12px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 @keyframes scaleIn {
-  from { opacity: 0; transform: scale(0.95); }
-  to { opacity: 1; transform: scale(1); }
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
 @keyframes pulse-gold {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.5; }
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
 }
 
 /* ───────────────────────────────────────────────────────────── */
@@ -425,27 +500,33 @@
 /* ───────────────────────────────────────────────────────────── */
 /* 1. SUCCESS: Cool Emerald Green (Completions, Creations, Saves) */
 /* ───────────────────────────────────────────────────────────── */
-[data-sonner-toast][data-type="success"],
-.samko-toast[data-type="success"] {
-  background: linear-gradient(135deg, rgba(8, 28, 18, 0.96) 0%, rgba(4, 16, 10, 0.98) 100%) !important;
+[data-sonner-toast][data-type='success'],
+.samko-toast[data-type='success'] {
+  background: linear-gradient(
+    135deg,
+    rgba(8, 28, 18, 0.96) 0%,
+    rgba(4, 16, 10, 0.98) 100%
+  ) !important;
   border: 1.5px solid rgba(52, 211, 153, 0.45) !important;
-  box-shadow: 0 10px 32px rgba(16, 185, 129, 0.25), 0 4px 16px rgba(0, 0, 0, 0.6) !important;
+  box-shadow:
+    0 10px 32px rgba(16, 185, 129, 0.25),
+    0 4px 16px rgba(0, 0, 0, 0.6) !important;
   color: #34d399 !important;
 }
-[data-sonner-toast][data-type="success"] [data-icon],
-[data-sonner-toast][data-type="success"] [data-icon] svg {
+[data-sonner-toast][data-type='success'] [data-icon],
+[data-sonner-toast][data-type='success'] [data-icon] svg {
   color: #34d399 !important;
   stroke: #34d399 !important;
 }
-[data-sonner-toast][data-type="success"] [data-title],
-[data-sonner-toast][data-type="success"] .samko-toast-title {
+[data-sonner-toast][data-type='success'] [data-title],
+[data-sonner-toast][data-type='success'] .samko-toast-title {
   color: #34d399 !important;
   font-weight: 700 !important;
   font-size: 13.5px !important;
   letter-spacing: -0.01em !important;
 }
-[data-sonner-toast][data-type="success"] [data-description],
-[data-sonner-toast][data-type="success"] .samko-toast-desc {
+[data-sonner-toast][data-type='success'] [data-description],
+[data-sonner-toast][data-type='success'] .samko-toast-desc {
   color: #a7f3d0 !important;
   font-size: 12px !important;
   margin-top: 3px !important;
@@ -456,27 +537,33 @@
 /* ───────────────────────────────────────────────────────────── */
 /* 2. ERROR / DESTRUCTIVE / DELETE: Cool Rose Red (Not White!)  */
 /* ───────────────────────────────────────────────────────────── */
-[data-sonner-toast][data-type="error"],
-.samko-toast[data-type="error"] {
-  background: linear-gradient(135deg, rgba(38, 10, 18, 0.96) 0%, rgba(20, 5, 10, 0.98) 100%) !important;
+[data-sonner-toast][data-type='error'],
+.samko-toast[data-type='error'] {
+  background: linear-gradient(
+    135deg,
+    rgba(38, 10, 18, 0.96) 0%,
+    rgba(20, 5, 10, 0.98) 100%
+  ) !important;
   border: 1.5px solid rgba(244, 63, 94, 0.5) !important;
-  box-shadow: 0 10px 32px rgba(244, 63, 94, 0.28), 0 4px 16px rgba(0, 0, 0, 0.6) !important;
+  box-shadow:
+    0 10px 32px rgba(244, 63, 94, 0.28),
+    0 4px 16px rgba(0, 0, 0, 0.6) !important;
   color: #f43f5e !important;
 }
-[data-sonner-toast][data-type="error"] [data-icon],
-[data-sonner-toast][data-type="error"] [data-icon] svg {
+[data-sonner-toast][data-type='error'] [data-icon],
+[data-sonner-toast][data-type='error'] [data-icon] svg {
   color: #f43f5e !important;
   stroke: #f43f5e !important;
 }
-[data-sonner-toast][data-type="error"] [data-title],
-[data-sonner-toast][data-type="error"] .samko-toast-title {
+[data-sonner-toast][data-type='error'] [data-title],
+[data-sonner-toast][data-type='error'] .samko-toast-title {
   color: #f43f5e !important;
   font-weight: 700 !important;
   font-size: 13.5px !important;
   letter-spacing: -0.01em !important;
 }
-[data-sonner-toast][data-type="error"] [data-description],
-[data-sonner-toast][data-type="error"] .samko-toast-desc {
+[data-sonner-toast][data-type='error'] [data-description],
+[data-sonner-toast][data-type='error'] .samko-toast-desc {
   color: #fecdd3 !important;
   font-size: 12px !important;
   margin-top: 3px !important;
@@ -487,27 +574,33 @@
 /* ───────────────────────────────────────────────────────────── */
 /* 3. WARNING: Warm Amber Gold                                  */
 /* ───────────────────────────────────────────────────────────── */
-[data-sonner-toast][data-type="warning"],
-.samko-toast[data-type="warning"] {
-  background: linear-gradient(135deg, rgba(36, 22, 6, 0.96) 0%, rgba(18, 11, 3, 0.98) 100%) !important;
+[data-sonner-toast][data-type='warning'],
+.samko-toast[data-type='warning'] {
+  background: linear-gradient(
+    135deg,
+    rgba(36, 22, 6, 0.96) 0%,
+    rgba(18, 11, 3, 0.98) 100%
+  ) !important;
   border: 1.5px solid rgba(245, 158, 11, 0.5) !important;
-  box-shadow: 0 10px 32px rgba(245, 158, 11, 0.25), 0 4px 16px rgba(0, 0, 0, 0.6) !important;
+  box-shadow:
+    0 10px 32px rgba(245, 158, 11, 0.25),
+    0 4px 16px rgba(0, 0, 0, 0.6) !important;
   color: #fbbf24 !important;
 }
-[data-sonner-toast][data-type="warning"] [data-icon],
-[data-sonner-toast][data-type="warning"] [data-icon] svg {
+[data-sonner-toast][data-type='warning'] [data-icon],
+[data-sonner-toast][data-type='warning'] [data-icon] svg {
   color: #fbbf24 !important;
   stroke: #fbbf24 !important;
 }
-[data-sonner-toast][data-type="warning"] [data-title],
-[data-sonner-toast][data-type="warning"] .samko-toast-title {
+[data-sonner-toast][data-type='warning'] [data-title],
+[data-sonner-toast][data-type='warning'] .samko-toast-title {
   color: #fbbf24 !important;
   font-weight: 700 !important;
   font-size: 13.5px !important;
   letter-spacing: -0.01em !important;
 }
-[data-sonner-toast][data-type="warning"] [data-description],
-[data-sonner-toast][data-type="warning"] .samko-toast-desc {
+[data-sonner-toast][data-type='warning'] [data-description],
+[data-sonner-toast][data-type='warning'] .samko-toast-desc {
   color: #fef3c7 !important;
   font-size: 12px !important;
   margin-top: 3px !important;
@@ -518,27 +611,33 @@
 /* ───────────────────────────────────────────────────────────── */
 /* 4. INFO: Cool Sky Cyan (Reopen, Information, Notices)        */
 /* ───────────────────────────────────────────────────────────── */
-[data-sonner-toast][data-type="info"],
-.samko-toast[data-type="info"] {
-  background: linear-gradient(135deg, rgba(10, 26, 42, 0.96) 0%, rgba(5, 13, 22, 0.98) 100%) !important;
+[data-sonner-toast][data-type='info'],
+.samko-toast[data-type='info'] {
+  background: linear-gradient(
+    135deg,
+    rgba(10, 26, 42, 0.96) 0%,
+    rgba(5, 13, 22, 0.98) 100%
+  ) !important;
   border: 1.5px solid rgba(56, 189, 248, 0.5) !important;
-  box-shadow: 0 10px 32px rgba(56, 189, 248, 0.25), 0 4px 16px rgba(0, 0, 0, 0.6) !important;
+  box-shadow:
+    0 10px 32px rgba(56, 189, 248, 0.25),
+    0 4px 16px rgba(0, 0, 0, 0.6) !important;
   color: #38bdf8 !important;
 }
-[data-sonner-toast][data-type="info"] [data-icon],
-[data-sonner-toast][data-type="info"] [data-icon] svg {
+[data-sonner-toast][data-type='info'] [data-icon],
+[data-sonner-toast][data-type='info'] [data-icon] svg {
   color: #38bdf8 !important;
   stroke: #38bdf8 !important;
 }
-[data-sonner-toast][data-type="info"] [data-title],
-[data-sonner-toast][data-type="info"] .samko-toast-title {
+[data-sonner-toast][data-type='info'] [data-title],
+[data-sonner-toast][data-type='info'] .samko-toast-title {
   color: #38bdf8 !important;
   font-weight: 700 !important;
   font-size: 13.5px !important;
   letter-spacing: -0.01em !important;
 }
-[data-sonner-toast][data-type="info"] [data-description],
-[data-sonner-toast][data-type="info"] .samko-toast-desc {
+[data-sonner-toast][data-type='info'] [data-description],
+[data-sonner-toast][data-type='info'] .samko-toast-desc {
   color: #bae6fd !important;
   font-size: 12px !important;
   margin-top: 3px !important;
@@ -549,33 +648,39 @@
 /* ───────────────────────────────────────────────────────────── */
 /* 5. DEFAULT / BRAND TOAST: Samko Luxury Gold                  */
 /* ───────────────────────────────────────────────────────────── */
-[data-sonner-toast][data-type="default"],
+[data-sonner-toast][data-type='default'],
 [data-sonner-toast]:not([data-type]),
-.samko-toast[data-type="default"] {
-  background: linear-gradient(135deg, rgba(26, 22, 14, 0.96) 0%, rgba(14, 12, 8, 0.98) 100%) !important;
+.samko-toast[data-type='default'] {
+  background: linear-gradient(
+    135deg,
+    rgba(26, 22, 14, 0.96) 0%,
+    rgba(14, 12, 8, 0.98) 100%
+  ) !important;
   border: 1.5px solid rgba(232, 201, 122, 0.45) !important;
-  box-shadow: 0 10px 32px rgba(232, 201, 122, 0.22), 0 4px 16px rgba(0, 0, 0, 0.6) !important;
+  box-shadow:
+    0 10px 32px rgba(232, 201, 122, 0.22),
+    0 4px 16px rgba(0, 0, 0, 0.6) !important;
   color: #e8c97a !important;
 }
-[data-sonner-toast][data-type="default"] [data-icon],
+[data-sonner-toast][data-type='default'] [data-icon],
 [data-sonner-toast]:not([data-type]) [data-icon],
-[data-sonner-toast][data-type="default"] [data-icon] svg,
+[data-sonner-toast][data-type='default'] [data-icon] svg,
 [data-sonner-toast]:not([data-type]) [data-icon] svg {
   color: #e8c97a !important;
   stroke: #e8c97a !important;
 }
-[data-sonner-toast][data-type="default"] [data-title],
+[data-sonner-toast][data-type='default'] [data-title],
 [data-sonner-toast]:not([data-type]) [data-title],
-[data-sonner-toast][data-type="default"] .samko-toast-title,
+[data-sonner-toast][data-type='default'] .samko-toast-title,
 [data-sonner-toast]:not([data-type]) .samko-toast-title {
   color: #e8c97a !important;
   font-weight: 700 !important;
   font-size: 13.5px !important;
   letter-spacing: -0.01em !important;
 }
-[data-sonner-toast][data-type="default"] [data-description],
+[data-sonner-toast][data-type='default'] [data-description],
 [data-sonner-toast]:not([data-type]) [data-description],
-[data-sonner-toast][data-type="default"] .samko-toast-desc,
+[data-sonner-toast][data-type='default'] .samko-toast-desc,
 [data-sonner-toast]:not([data-type]) .samko-toast-desc {
   color: #fef3c7 !important;
   font-size: 12px !important;

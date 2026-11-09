@@ -77,16 +77,18 @@ export default function TaskManagerClient() {
           const parsed = JSON.parse(cached);
           if (Array.isArray(parsed) && parsed.length > 0) return parsed;
         }
-      } catch { }
+      } catch {}
     }
     return TASKS;
   });
   const [propertyList, setPropertyList] = useState<string[]>(() => {
-    return getLiveProperties().map((p) => p.name).filter(Boolean);
+    return getLiveProperties()
+      .map((p) => p.name)
+      .filter(Boolean);
   });
   const [loading, setLoading] = useState(false);
-  const [priorityFilter, setPriorityFilter] = useState<typeof PRIORITY_FILTERS[number]>('All');
-  const [statusFilter, setStatusFilter] = useState<typeof STATUS_FILTERS_TASK[number]>('All');
+  const [priorityFilter, setPriorityFilter] = useState<(typeof PRIORITY_FILTERS)[number]>('All');
+  const [statusFilter, setStatusFilter] = useState<(typeof STATUS_FILTERS_TASK)[number]>('All');
   const [search, setSearch] = useState('');
   const [createOpen, setCreateOpen] = useState(false);
   const [taskStatuses, setTaskStatuses] = useState<Record<string, TaskStatus>>({});
@@ -100,13 +102,23 @@ export default function TaskManagerClient() {
         api.properties.getAll(),
       ]);
 
-      if (tasksRes.status === 'fulfilled' && tasksRes.value.success && tasksRes.value.data && tasksRes.value.data.length > 0) {
+      if (
+        tasksRes.status === 'fulfilled' &&
+        tasksRes.value.success &&
+        tasksRes.value.data &&
+        tasksRes.value.data.length > 0
+      ) {
         setTasks(tasksRes.value.data);
         try {
           sessionStorage.setItem('samko_cache_tasks', JSON.stringify(tasksRes.value.data));
-        } catch { }
+        } catch {}
       }
-      if (propsRes.status === 'fulfilled' && propsRes.value.success && propsRes.value.data && propsRes.value.data.length > 0) {
+      if (
+        propsRes.status === 'fulfilled' &&
+        propsRes.value.success &&
+        propsRes.value.data &&
+        propsRes.value.data.length > 0
+      ) {
         setPropertyList(propsRes.value.data.map((p: any) => p.name));
       }
     } catch (err) {
@@ -147,7 +159,9 @@ export default function TaskManagerClient() {
   };
 
   const accessibleTasks = useMemo(() => {
-    return tasks.filter((t) => isPropertyAccessible(t.site || (t as any).property || (t as any).hotel));
+    return tasks.filter((t) =>
+      isPropertyAccessible(t.site || (t as any).property || (t as any).hotel)
+    );
   }, [tasks, isPropertyAccessible]);
 
   const filtered = useMemo(() => {
@@ -231,17 +245,25 @@ export default function TaskManagerClient() {
 
     const opts: { label: string; value: string; count: number }[] = [];
     ['urgent', 'high', 'medium', 'low'].forEach((p) => {
-      if (counts[`prio:${p}`]) opts.push({ label: `Priority: ${p}`, value: `prio:${p}`, count: counts[`prio:${p}`] });
+      if (counts[`prio:${p}`])
+        opts.push({ label: `Priority: ${p}`, value: `prio:${p}`, count: counts[`prio:${p}`] });
     });
     ['open', 'in-progress', 'completed'].forEach((s) => {
-      if (counts[`status:${s}`]) opts.push({ label: `Status: ${s}`, value: `status:${s}`, count: counts[`status:${s}`] });
+      if (counts[`status:${s}`])
+        opts.push({ label: `Status: ${s}`, value: `status:${s}`, count: counts[`status:${s}`] });
     });
     propertyList.forEach((site) => {
-      if (counts[`site:${site}`]) opts.push({ label: `Property: ${site}`, value: `site:${site}`, count: counts[`site:${site}`] });
+      if (counts[`site:${site}`])
+        opts.push({
+          label: `Property: ${site}`,
+          value: `site:${site}`,
+          count: counts[`site:${site}`],
+        });
     });
     const uniqueCategories = Array.from(new Set(tasks.map((t) => t.category).filter(Boolean)));
     uniqueCategories.forEach((cat) => {
-      if (counts[`cat:${cat}`]) opts.push({ label: `Category: ${cat}`, value: `cat:${cat}`, count: counts[`cat:${cat}`] });
+      if (counts[`cat:${cat}`])
+        opts.push({ label: `Category: ${cat}`, value: `cat:${cat}`, count: counts[`cat:${cat}`] });
     });
 
     return opts;
@@ -288,12 +310,15 @@ export default function TaskManagerClient() {
     }
   };
 
-  const taskCounts = useMemo(() => ({
-    urgent: accessibleTasks.filter((t) => t.priority === 'urgent').length,
-    open: accessibleTasks.filter((t) => getTaskStatus(t) === 'open').length,
-    inProgress: accessibleTasks.filter((t) => getTaskStatus(t) === 'in-progress').length,
-    completed: accessibleTasks.filter((t) => getTaskStatus(t) === 'completed').length,
-  }), [taskStatuses, accessibleTasks]);
+  const taskCounts = useMemo(
+    () => ({
+      urgent: accessibleTasks.filter((t) => t.priority === 'urgent').length,
+      open: accessibleTasks.filter((t) => getTaskStatus(t) === 'open').length,
+      inProgress: accessibleTasks.filter((t) => getTaskStatus(t) === 'in-progress').length,
+      completed: accessibleTasks.filter((t) => getTaskStatus(t) === 'completed').length,
+    }),
+    [taskStatuses, accessibleTasks]
+  );
 
   const handleStatusChange = async (taskId: string, newStatus: TaskStatus) => {
     setTaskStatuses((prev) => ({ ...prev, [taskId]: newStatus }));
@@ -331,7 +356,9 @@ export default function TaskManagerClient() {
         description: `"${data.title}" assigned to ${data.assignee || 'unassigned'}`,
       });
       if (typeof window !== 'undefined') {
-        window.dispatchEvent(new CustomEvent('samko:data-changed', { detail: { type: 'task-created' } }));
+        window.dispatchEvent(
+          new CustomEvent('samko:data-changed', { detail: { type: 'task-created' } })
+        );
       }
       reset();
       setCreateOpen(false);
@@ -345,20 +372,56 @@ export default function TaskManagerClient() {
       {/* KPI summary */}
       <div className="grid gap-4 mb-5" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
         {[
-          { label: 'Urgent Tasks', val: taskCounts.urgent, color: 'var(--critical)', bg: 'var(--critical-bg)', top: 'var(--critical)' },
-          { label: 'Open', val: taskCounts.open, color: 'var(--warning)', bg: 'var(--warning-bg)', top: 'var(--warning)' },
-          { label: 'In Progress', val: taskCounts.inProgress, color: 'var(--info)', bg: 'var(--info-bg)', top: 'var(--info)' },
-          { label: 'Completed', val: taskCounts.completed, color: 'var(--ok)', bg: 'var(--ok-bg)', top: 'var(--ok)' },
+          {
+            label: 'Urgent Tasks',
+            val: taskCounts.urgent,
+            color: 'var(--critical)',
+            bg: 'var(--critical-bg)',
+            top: 'var(--critical)',
+          },
+          {
+            label: 'Open',
+            val: taskCounts.open,
+            color: 'var(--warning)',
+            bg: 'var(--warning-bg)',
+            top: 'var(--warning)',
+          },
+          {
+            label: 'In Progress',
+            val: taskCounts.inProgress,
+            color: 'var(--info)',
+            bg: 'var(--info-bg)',
+            top: 'var(--info)',
+          },
+          {
+            label: 'Completed',
+            val: taskCounts.completed,
+            color: 'var(--ok)',
+            bg: 'var(--ok-bg)',
+            top: 'var(--ok)',
+          },
         ].map((kpi) => (
           <div
             key={`task-kpi-${kpi.label}`}
             className="samko-card"
             style={{ padding: '16px 18px', borderTop: `3px solid ${kpi.top}` }}
           >
-            <div className="text-muted-foreground font-head" style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 8 }}>
+            <div
+              className="text-muted-foreground font-head"
+              style={{
+                fontSize: 10,
+                fontWeight: 700,
+                letterSpacing: '0.08em',
+                textTransform: 'uppercase',
+                marginBottom: 8,
+              }}
+            >
               {kpi.label}
             </div>
-            <div className="font-head tabular-nums" style={{ fontSize: 30, fontWeight: 800, color: kpi.color, lineHeight: 1 }}>
+            <div
+              className="font-head tabular-nums"
+              style={{ fontSize: 30, fontWeight: 800, color: kpi.color, lineHeight: 1 }}
+            >
               {kpi.val}
             </div>
           </div>
@@ -395,7 +458,13 @@ export default function TaskManagerClient() {
           {search && (
             <button
               onClick={() => setSearch('')}
-              style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text3)', padding: 0 }}
+              style={{
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                color: 'var(--text3)',
+                padding: 0,
+              }}
             >
               <X size={13} />
             </button>
@@ -414,7 +483,11 @@ export default function TaskManagerClient() {
         ) : isViewer ? (
           <span
             className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold ml-auto"
-            style={{ background: 'rgba(148,163,184,0.12)', color: '#94a3b8', border: '1px solid rgba(148,163,184,0.25)' }}
+            style={{
+              background: 'rgba(148,163,184,0.12)',
+              color: '#94a3b8',
+              border: '1px solid rgba(148,163,184,0.25)',
+            }}
           >
             L4 · Read-Only Access
           </span>
@@ -423,19 +496,31 @@ export default function TaskManagerClient() {
 
       {/* Priority chips */}
       <div className="flex flex-wrap gap-2 mb-4">
-        <span className="text-muted-foreground" style={{ fontSize: 12, alignSelf: 'center' }}>Priority:</span>
+        <span className="text-muted-foreground" style={{ fontSize: 12, alignSelf: 'center' }}>
+          Priority:
+        </span>
         {PRIORITY_FILTERS.map((p) => (
           <button
             key={`priority-chip-${p}`}
             onClick={() => setPriorityFilter(p)}
             className={`filter-chip-btn ${priorityFilter === p ? 'active-chip' : ''}`}
           >
-            {p === 'urgent' ? '🔴' : p === 'high' ? '🟡' : p === 'medium' ? '🔵' : p === 'low' ? '⚪' : ''}
-            {' '}{p.charAt(0).toUpperCase() + p.slice(1)}
+            {p === 'urgent'
+              ? '🔴'
+              : p === 'high'
+                ? '🟡'
+                : p === 'medium'
+                  ? '🔵'
+                  : p === 'low'
+                    ? '⚪'
+                    : ''}{' '}
+            {p.charAt(0).toUpperCase() + p.slice(1)}
           </button>
         ))}
         <div style={{ width: 1, background: 'var(--border)', margin: '0 4px' }} />
-        <span className="text-muted-foreground" style={{ fontSize: 12, alignSelf: 'center' }}>Status:</span>
+        <span className="text-muted-foreground" style={{ fontSize: 12, alignSelf: 'center' }}>
+          Status:
+        </span>
         {STATUS_FILTERS_TASK.map((s) => (
           <button
             key={`status-task-chip-${s}`}
@@ -447,7 +532,8 @@ export default function TaskManagerClient() {
         ))}
 
         <p className="text-muted-foreground ml-auto" style={{ fontSize: 12, alignSelf: 'center' }}>
-          <span style={{ color: 'var(--foreground)', fontWeight: 600 }}>{filtered.length}</span> tasks
+          <span style={{ color: 'var(--foreground)', fontWeight: 600 }}>{filtered.length}</span>{' '}
+          tasks
         </p>
       </div>
 
@@ -474,66 +560,72 @@ export default function TaskManagerClient() {
         ) : (
           <>
             <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', minWidth: 860, borderCollapse: 'collapse' }}>
-              <thead>
-                <tr>
-                  {hasDeleteAccess && (
-                    <th className="table-header-cell" style={{ width: 44, textAlign: 'center' }}>
-                      <TableCheckbox
-                        checked={isAllTasksPageSelected}
-                        indeterminate={isSomeTasksPageSelected}
-                        onChange={handleToggleSelectAllTasksPage}
-                        title="Select all on this page"
-                      />
-                    </th>
-                  )}
-                  {activeColumns.map((col) => (
-                    <th key={`task-th-${col.id}`} className="table-header-cell">{col.label}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {paginatedTasks.map((task) => {
-                  const days = daysUntil(task.due);
-                  const currentStatus = getTaskStatus(task);
-                  const isDropdownOpen = openStatusDropdown === task.id;
+              <table style={{ width: '100%', minWidth: 860, borderCollapse: 'collapse' }}>
+                <thead>
+                  <tr>
+                    {hasDeleteAccess && (
+                      <th className="table-header-cell" style={{ width: 44, textAlign: 'center' }}>
+                        <TableCheckbox
+                          checked={isAllTasksPageSelected}
+                          indeterminate={isSomeTasksPageSelected}
+                          onChange={handleToggleSelectAllTasksPage}
+                          title="Select all on this page"
+                        />
+                      </th>
+                    )}
+                    {activeColumns.map((col) => (
+                      <th key={`task-th-${col.id}`} className="table-header-cell">
+                        {col.label}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {paginatedTasks.map((task) => {
+                    const days = daysUntil(task.due);
+                    const currentStatus = getTaskStatus(task);
+                    const isDropdownOpen = openStatusDropdown === task.id;
 
-                  return (
-                    <tr
-                      key={task.id}
-                      className={`table-row-hover ${selectedTaskIds.includes(task.id) ? 'bg-[#e8c97a]/5' : ''}`}
-                    >
-                      {hasDeleteAccess && (
-                        <td className="table-cell" style={{ textAlign: 'center', width: 44 }} onClick={(e) => e.stopPropagation()}>
-                          <TableCheckbox
-                            checked={selectedTaskIds.includes(task.id)}
-                            onChange={() => handleToggleTaskSelect(task.id)}
-                            title={`Select ${task.title}`}
-                          />
-                        </td>
-                      )}
-                      {activeColumns.map((col) => {
-                        const colKey = col.id.toLowerCase();
-                        if (colKey === 'priority') {
-                          return (
-                            <td key={col.id} className="table-cell">
-                              <div className="flex items-center gap-2">
-                                <span
-                                  className="rounded"
-                                  style={{
-                                    background: 'var(--surface3)',
-                                    color: 'var(--text2)',
-                                    fontSize: 10,
-                                    fontWeight: 600,
-                                    padding: '2px 8px',
-                                    display: 'inline-block',
-                                    whiteSpace: 'nowrap',
-                                  }}
-                                >
-                                  {task.category}
-                                </span>
-                              </div>
-                            </td>
+                    return (
+                      <tr
+                        key={task.id}
+                        className={`table-row-hover ${selectedTaskIds.includes(task.id) ? 'bg-[#e8c97a]/5' : ''}`}
+                      >
+                        {hasDeleteAccess && (
+                          <td
+                            className="table-cell"
+                            style={{ textAlign: 'center', width: 44 }}
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <TableCheckbox
+                              checked={selectedTaskIds.includes(task.id)}
+                              onChange={() => handleToggleTaskSelect(task.id)}
+                              title={`Select ${task.title}`}
+                            />
+                          </td>
+                        )}
+                        {activeColumns.map((col) => {
+                          const colKey = col.id.toLowerCase();
+                          if (colKey === 'priority') {
+                            return (
+                              <td key={col.id} className="table-cell">
+                                <div className="flex items-center gap-2">
+                                  <span
+                                    className="rounded"
+                                    style={{
+                                      background: 'var(--surface3)',
+                                      color: 'var(--text2)',
+                                      fontSize: 10,
+                                      fontWeight: 600,
+                                      padding: '2px 8px',
+                                      display: 'inline-block',
+                                      whiteSpace: 'nowrap',
+                                    }}
+                                  >
+                                    {task.category}
+                                  </span>
+                                </div>
+                              </td>
                             );
                           }
                           if (colKey === 'assignee') {
@@ -551,9 +643,16 @@ export default function TaskManagerClient() {
                                       fontWeight: 700,
                                     }}
                                   >
-                                    {task.assignee.split(' ').map((n) => n[0]).join('').slice(0, 2)}
+                                    {task.assignee
+                                      .split(' ')
+                                      .map((n) => n[0])
+                                      .join('')
+                                      .slice(0, 2)}
                                   </div>
-                                  <span className="text-muted2 whitespace-nowrap" style={{ fontSize: 12 }}>
+                                  <span
+                                    className="text-muted2 whitespace-nowrap"
+                                    style={{ fontSize: 12 }}
+                                  >
                                     {task.assignee}
                                   </span>
                                 </div>
@@ -566,11 +665,28 @@ export default function TaskManagerClient() {
                                 <StatusDropdown
                                   value={currentStatus}
                                   disabled={isViewer}
-                                  title={isViewer ? 'Read-only access (L4 Viewer)' : 'Change task status'}
+                                  title={
+                                    isViewer ? 'Read-only access (L4 Viewer)' : 'Change task status'
+                                  }
                                   options={[
-                                    { value: 'open', label: 'Open', color: '#f59e0b', bg: 'var(--warning-bg)' },
-                                    { value: 'in-progress', label: 'In Progress', color: '#60a5fa', bg: 'var(--info-bg)' },
-                                    { value: 'completed', label: 'Completed', color: '#3dd68c', bg: 'var(--ok-bg)' },
+                                    {
+                                      value: 'open',
+                                      label: 'Open',
+                                      color: '#f59e0b',
+                                      bg: 'var(--warning-bg)',
+                                    },
+                                    {
+                                      value: 'in-progress',
+                                      label: 'In Progress',
+                                      color: '#60a5fa',
+                                      bg: 'var(--info-bg)',
+                                    },
+                                    {
+                                      value: 'completed',
+                                      label: 'Completed',
+                                      color: '#3dd68c',
+                                      bg: 'var(--ok-bg)',
+                                    },
                                   ]}
                                   onChange={(val) => handleStatusChange(task.id, val as TaskStatus)}
                                 />
@@ -579,7 +695,11 @@ export default function TaskManagerClient() {
                           }
                           if (colKey === 'duedate' || colKey === 'due') {
                             return (
-                              <td key={col.id} className="table-cell text-muted2" style={{ fontSize: 12, whiteSpace: 'nowrap' }}>
+                              <td
+                                key={col.id}
+                                className="table-cell text-muted2"
+                                style={{ fontSize: 12, whiteSpace: 'nowrap' }}
+                              >
                                 {formatDateGB(task.due).split(' ').slice(0, 2).join(' ')}
                               </td>
                             );
@@ -611,8 +731,14 @@ export default function TaskManagerClient() {
                           // Dynamic custom columns
                           const val = (task as any)[col.id] ?? (task as any)[colKey];
                           return (
-                            <td key={col.id} className="table-cell text-muted2" style={{ fontSize: 12, whiteSpace: 'nowrap' }}>
-                              {val !== undefined && val !== null && String(val).trim() !== '' ? String(val) : '—'}
+                            <td
+                              key={col.id}
+                              className="table-cell text-muted2"
+                              style={{ fontSize: 12, whiteSpace: 'nowrap' }}
+                            >
+                              {val !== undefined && val !== null && String(val).trim() !== ''
+                                ? String(val)
+                                : '—'}
                             </td>
                           );
                         })}
@@ -658,7 +784,10 @@ export default function TaskManagerClient() {
       {/* Create Task Modal */}
       <Modal
         open={createOpen}
-        onClose={() => { setCreateOpen(false); reset(); }}
+        onClose={() => {
+          setCreateOpen(false);
+          reset();
+        }}
         title="Create Compliance Task"
         subtitle="Assign a new action item to a site manager or team member"
         width={560}
@@ -677,7 +806,9 @@ export default function TaskManagerClient() {
                 {...register('title', { required: 'Task title is required' })}
               />
               {errors.title && (
-                <p style={{ fontSize: 11, color: 'var(--critical)', marginTop: 4 }}>{errors.title.message}</p>
+                <p style={{ fontSize: 11, color: 'var(--critical)', marginTop: 4 }}>
+                  {errors.title.message}
+                </p>
               )}
             </div>
 
@@ -692,7 +823,7 @@ export default function TaskManagerClient() {
                   onChange={(val) => setValue('site', val)}
                   options={[
                     ...propertyList.map((propName) => ({ value: propName, label: propName })),
-                    { value: 'All Sites', label: 'All Sites' }
+                    { value: 'All Sites', label: 'All Sites' },
                   ]}
                   variant="form"
                   width="100%"
@@ -712,7 +843,7 @@ export default function TaskManagerClient() {
                     { value: 'urgent', label: 'Urgent', color: '#f43f5e' },
                     { value: 'high', label: 'High', color: '#f97316' },
                     { value: 'medium', label: 'Medium', color: '#3b82f6' },
-                    { value: 'low', label: 'Low', color: '#94a3b8' }
+                    { value: 'low', label: 'Low', color: '#94a3b8' },
                   ]}
                   variant="form"
                   width="100%"
@@ -730,7 +861,9 @@ export default function TaskManagerClient() {
                   {...register('due', { required: 'Due date is required' })}
                 />
                 {errors.due && (
-                  <p style={{ fontSize: 11, color: 'var(--critical)', marginTop: 4 }}>{errors.due.message}</p>
+                  <p style={{ fontSize: 11, color: 'var(--critical)', marginTop: 4 }}>
+                    {errors.due.message}
+                  </p>
                 )}
               </div>
 
@@ -742,9 +875,20 @@ export default function TaskManagerClient() {
                   id="task-category"
                   value={watch('category')}
                   onChange={(val) => setValue('category', val)}
-                  options={['H&S', 'Fire Safety', 'Gas Safety', 'Electrical', 'Insurance', 'Food Hygiene', 'Licenses', 'Vehicle', 'HR', 'Lease'].map((c) => ({
+                  options={[
+                    'H&S',
+                    'Fire Safety',
+                    'Gas Safety',
+                    'Electrical',
+                    'Insurance',
+                    'Food Hygiene',
+                    'Licenses',
+                    'Vehicle',
+                    'HR',
+                    'Lease',
+                  ].map((c) => ({
                     value: c,
-                    label: c
+                    label: c,
                   }))}
                   variant="form"
                   width="100%"
@@ -787,7 +931,10 @@ export default function TaskManagerClient() {
           <div className="flex items-center justify-end gap-3 mt-6 pt-5 border-t border-border">
             <button
               type="button"
-              onClick={() => { setCreateOpen(false); reset(); }}
+              onClick={() => {
+                setCreateOpen(false);
+                reset();
+              }}
               className="samko-btn-ghost"
             >
               Cancel
@@ -816,10 +963,7 @@ export default function TaskManagerClient() {
 
       {/* Click outside handler for status dropdown */}
       {openStatusDropdown && (
-        <div
-          className="fixed inset-0 z-10"
-          onClick={() => setOpenStatusDropdown(null)}
-        />
+        <div className="fixed inset-0 z-10" onClick={() => setOpenStatusDropdown(null)} />
       )}
 
       {/* Bulk Delete Tasks Modal */}

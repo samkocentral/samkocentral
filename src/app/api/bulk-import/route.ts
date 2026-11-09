@@ -19,17 +19,23 @@ export async function POST(req: Request) {
   try {
     const body = await req.json();
     const collection = body?.collection || 'assets';
-    const items = Array.isArray(body?.items) ? body.items : (Array.isArray(body) ? body : []);
+    const items = Array.isArray(body?.items) ? body.items : Array.isArray(body) ? body : [];
 
     if (!ALLOWED_COLLECTIONS.includes(collection)) {
       return NextResponse.json(
-        { success: false, error: `Invalid collection: ${collection}. Must be one of: ${ALLOWED_COLLECTIONS.join(', ')}` },
+        {
+          success: false,
+          error: `Invalid collection: ${collection}. Must be one of: ${ALLOWED_COLLECTIONS.join(', ')}`,
+        },
         { status: 400 }
       );
     }
 
     if (!items.length) {
-      return NextResponse.json({ success: false, error: 'No items provided for bulk upload' }, { status: 400 });
+      return NextResponse.json(
+        { success: false, error: 'No items provided for bulk upload' },
+        { status: 400 }
+      );
     }
 
     const result = await bulkCreateDocuments(collection, items);
@@ -57,13 +63,19 @@ export async function DELETE(req: Request) {
 
     if (!ALLOWED_COLLECTIONS.includes(collection)) {
       return NextResponse.json(
-        { success: false, error: `Invalid collection: ${collection}. Must be one of: ${ALLOWED_COLLECTIONS.join(', ')}` },
+        {
+          success: false,
+          error: `Invalid collection: ${collection}. Must be one of: ${ALLOWED_COLLECTIONS.join(', ')}`,
+        },
         { status: 400 }
       );
     }
 
     if (!ids.length) {
-      return NextResponse.json({ success: false, error: 'No IDs provided for bulk deletion' }, { status: 400 });
+      return NextResponse.json(
+        { success: false, error: 'No IDs provided for bulk deletion' },
+        { status: 400 }
+      );
     }
 
     const result = await bulkDeleteDocuments(collection, ids);

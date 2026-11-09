@@ -185,7 +185,7 @@ export default function AddItemModal({
                   { value: 'Inspection', label: 'Inspection (Technical PPM / Visual)' },
                   { value: 'Maintenance', label: 'Maintenance (Repair / Refurbishment)' },
                   { value: 'Compliance', label: 'Compliance (Statutory Obligation)' },
-                  { value: 'Audit Action', label: 'Audit Action (Audit Non-Conformance)' }
+                  { value: 'Audit Action', label: 'Audit Action (Audit Non-Conformance)' },
                 ]}
                 variant="form"
                 width="100%"
@@ -240,7 +240,7 @@ export default function AddItemModal({
                   options={[
                     { value: 'low', label: 'Low (Routine)', color: '#3dd68c' },
                     { value: 'medium', label: 'Medium (Standard)', color: '#f59e0b' },
-                    { value: 'urgent', label: 'Urgent / High (Critical)', color: '#f43f5e' }
+                    { value: 'urgent', label: 'Urgent / High (Critical)', color: '#f43f5e' },
                   ]}
                   variant="form"
                   width="100%"
@@ -284,7 +284,7 @@ export default function AddItemModal({
                 onChange={(val) => setAssigneeName(val)}
                 options={TASK_ASSIGNEES.map((a) => ({
                   value: a.name,
-                  label: `${a.name} (${a.role})`
+                  label: `${a.name} (${a.role})`,
                 }))}
                 placeholder="Select Assignee"
                 variant="form"

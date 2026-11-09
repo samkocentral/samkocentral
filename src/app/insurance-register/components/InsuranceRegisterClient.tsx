@@ -3,16 +3,39 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import {
-  Shield, AlertTriangle, Clock, CheckCircle2, TrendingUp,
-  Plus, Search, Download, Eye, Edit2, FileText, Bell, Phone, RefreshCw, ChevronDown, Loader2,
-  Trash2, X, Check, Tag
+  Shield,
+  AlertTriangle,
+  Clock,
+  CheckCircle2,
+  TrendingUp,
+  Plus,
+  Search,
+  Download,
+  Eye,
+  Edit2,
+  FileText,
+  Bell,
+  Phone,
+  RefreshCw,
+  ChevronDown,
+  Loader2,
+  Trash2,
+  X,
+  Check,
+  Tag,
 } from 'lucide-react';
 import { api } from '@/lib/api';
 import { useAuth } from '@/lib/authContext';
 import { toast } from 'sonner';
 import Icon from '@/components/ui/AppIcon';
 import CustomDropdown from '@/components/ui/CustomDropdown';
-import { useDeepPageCms, DEFAULT_INSURANCE_CATEGORIES, DEFAULT_INSURANCE_TYPES, addDropdownOption, removeDropdownOptionByName } from '@/lib/deepPageCms';
+import {
+  useDeepPageCms,
+  DEFAULT_INSURANCE_CATEGORIES,
+  DEFAULT_INSURANCE_TYPES,
+  addDropdownOption,
+  removeDropdownOptionByName,
+} from '@/lib/deepPageCms';
 import PageCMSEditButton from '@/components/cms/PageCMSEditButton';
 import LoadingPagination from '@/components/ui/LoadingPagination';
 import { useLoadingPagination } from '@/hooks/useLoadingPagination';
@@ -55,74 +78,110 @@ interface Claim {
 }
 
 const INSURANCE_TYPES = [
-  'Building Insurance', 'Contents Insurance', 'Public Liability', 'Employers Liability',
-  'Product Liability', 'Professional Indemnity', 'Cyber Insurance', 'Equipment Breakdown',
-  'Business Interruption', 'Vehicle Insurance', 'Directors Liability', 'Engineering Insurance',
+  'Building Insurance',
+  'Contents Insurance',
+  'Public Liability',
+  'Employers Liability',
+  'Product Liability',
+  'Professional Indemnity',
+  'Cyber Insurance',
+  'Equipment Breakdown',
+  'Business Interruption',
+  'Vehicle Insurance',
+  'Directors Liability',
+  'Engineering Insurance',
 ];
 
-const DEFAULT_HOTELS = [
-  'Crowne Plaza Kingston-south', 'Stanhill Court', 'Hampton 1 & 2', 'Ravents Ait Island', 'River Club',
-];
+const DEFAULT_HOTELS = ['Gow', 'Crowne Plaza Kingston-south', 'Stanhill Court'];
 
 const MOCK_POLICIES: InsurancePolicy[] = [
   {
-    id: '1', policyNumber: 'POL-2025-001', insuranceType: 'Building Insurance',
-    insuranceCompany: 'Aviva Commercial', broker: 'Marsh UK', hotel: 'Crowne Plaza Kingston-south',
-    coverageAmount: 15000000, annualPremium: 42000, startDate: '2025-01-01', expiryDate: '2026-01-01',
-    renewalDate: '2025-12-15', excessAmount: 5000, responsibleManager: 'Marcus Webb',
-    contactPerson: 'Sarah Thompson', emergencyPhone: '+44 800 123 4567', status: 'active',
+    id: '1',
+    policyNumber: 'INS-008547',
+    insuranceType: 'Buildings & Plant Cover',
+    insuranceCompany: 'Aviva Commercial',
+    broker: 'Marsh UK',
+    hotel: 'Gow',
+    coverageAmount: 25000000,
+    annualPremium: 59335,
+    startDate: '2025-07-01',
+    expiryDate: '2027-06-30',
+    renewalDate: '2027-06-30',
+    excessAmount: 5000,
+    responsibleManager: 'Marcus Webb',
+    contactPerson: 'Sarah Thompson',
+    emergencyPhone: '+44 800 123 4567',
+    status: 'active',
   },
   {
-    id: '2', policyNumber: 'POL-2025-002', insuranceType: 'Public Liability',
-    insuranceCompany: 'AXA Commercial', broker: 'Aon UK', hotel: 'Crowne Plaza Kingston-south',
-    coverageAmount: 10000000, annualPremium: 18500, startDate: '2025-01-01', expiryDate: '2026-01-01',
-    renewalDate: '2025-12-15', excessAmount: 2500, responsibleManager: 'Marcus Webb',
-    contactPerson: 'James Patel', emergencyPhone: '+44 800 234 5678', status: 'active',
+    id: '2',
+    policyNumber: 'POL-2025-001',
+    insuranceType: 'Building Insurance',
+    insuranceCompany: 'Aviva Commercial',
+    broker: 'Marsh UK',
+    hotel: 'Crowne Plaza Kingston-south',
+    coverageAmount: 15000000,
+    annualPremium: 42000,
+    startDate: '2025-01-01',
+    expiryDate: '2026-12-31',
+    renewalDate: '2026-12-15',
+    excessAmount: 5000,
+    responsibleManager: 'Marcus Webb',
+    contactPerson: 'Sarah Thompson',
+    emergencyPhone: '+44 800 123 4567',
+    status: 'active',
   },
   {
-    id: '3', policyNumber: 'POL-2025-003', insuranceType: 'Employers Liability',
-    insuranceCompany: 'Zurich Insurance', broker: 'Marsh UK', hotel: 'Stanhill Court',
-    coverageAmount: 10000000, annualPremium: 12000, startDate: '2025-02-01', expiryDate: '2026-02-01',
-    renewalDate: '2026-01-15', excessAmount: 1000, responsibleManager: 'Tom Bradley',
-    contactPerson: 'Rachel Green', emergencyPhone: '+44 800 345 6789', status: 'active',
-  },
-  {
-    id: '4', policyNumber: 'POL-2024-004', insuranceType: 'Equipment Breakdown',
-    insuranceCompany: 'RSA Group', broker: 'Willis Towers Watson', hotel: 'Hampton 1 & 2',
-    coverageAmount: 2000000, annualPremium: 8400, startDate: '2024-08-01', expiryDate: '2025-08-01',
-    renewalDate: '2025-07-15', excessAmount: 500, responsibleManager: 'Priya Sharma',
-    contactPerson: 'David Chen', emergencyPhone: '+44 800 456 7890', status: 'expiring-soon',
-    notes: 'Renewal quote requested — awaiting response from broker',
-  },
-  {
-    id: '5', policyNumber: 'POL-2025-005', insuranceType: 'Cyber Insurance',
-    insuranceCompany: 'Hiscox', broker: 'Aon UK', hotel: 'Ravents Ait Island',
-    coverageAmount: 1000000, annualPremium: 6200, startDate: '2025-03-01', expiryDate: '2026-03-01',
-    renewalDate: '2026-02-15', excessAmount: 2500, responsibleManager: 'Ewan McAllister',
-    contactPerson: 'Lisa Wong', emergencyPhone: '+44 800 567 8901', status: 'active',
-  },
-  {
-    id: '6', policyNumber: 'POL-2024-006', insuranceType: 'Business Interruption',
-    insuranceCompany: 'Allianz Commercial', broker: 'Marsh UK', hotel: 'River Club',
-    coverageAmount: 5000000, annualPremium: 15800, startDate: '2024-06-01', expiryDate: '2025-06-01',
-    renewalDate: '2025-05-15', excessAmount: 10000, responsibleManager: 'Isabelle Martin',
-    contactPerson: 'Mark Phillips', emergencyPhone: '+44 800 678 9012', status: 'expired',
-    notes: 'EXPIRED — renewal in progress',
-  },
-  {
-    id: '7', policyNumber: 'POL-2025-007', insuranceType: 'Vehicle Insurance',
-    insuranceCompany: 'Direct Line Commercial', broker: 'Direct', hotel: 'Crowne Plaza Kingston-south',
-    coverageAmount: 500000, annualPremium: 3200, startDate: '2025-07-01', expiryDate: '2026-07-01',
-    renewalDate: '2026-06-15', excessAmount: 250, responsibleManager: 'Marcus Webb',
-    contactPerson: 'Auto Renewals', emergencyPhone: '+44 800 789 0123', status: 'active',
+    id: '3',
+    policyNumber: 'POL-2025-003',
+    insuranceType: 'Employers Liability',
+    insuranceCompany: 'Zurich Insurance',
+    broker: 'Marsh UK',
+    hotel: 'Stanhill Court',
+    coverageAmount: 10000000,
+    annualPremium: 12000,
+    startDate: '2025-02-01',
+    expiryDate: '2027-02-01',
+    renewalDate: '2027-01-15',
+    excessAmount: 1000,
+    responsibleManager: 'Sarah Chen',
+    contactPerson: 'Rachel Green',
+    emergencyPhone: '+44 800 345 6789',
+    status: 'active',
   },
 ];
 
 const MOCK_CLAIMS: Claim[] = [
-  { id: 'c1', policyId: '1', policyNumber: 'POL-2025-001', hotel: 'Crowne Plaza Kingston-south', claimDate: '2025-03-15', description: 'Water damage to ground floor lobby ceiling', amount: 12500, status: 'settled' },
-  { id: 'c2', policyId: '2', policyNumber: 'POL-2025-002', hotel: 'Crowne Plaza Kingston-south', claimDate: '2025-05-20', description: 'Guest slip and fall in car park', amount: 8000, status: 'in-progress' },
-  { id: 'c3', policyId: '4', policyNumber: 'POL-2024-004', hotel: 'Hampton 1 & 2', claimDate: '2025-06-10', description: 'Commercial kitchen oven breakdown', amount: 4500, status: 'open' },
-  { id: 'c4', policyId: '6', policyNumber: 'POL-2024-006', hotel: 'River Club', claimDate: '2025-04-12', description: 'Fitness studio equipment water leak repair', amount: 6200, status: 'in-progress' },
+  {
+    id: 'c1',
+    policyId: '1',
+    policyNumber: 'INS-008547',
+    hotel: 'Gow',
+    claimDate: '2025-03-15',
+    description: 'Water damage to ground floor lobby ceiling',
+    amount: 12500,
+    status: 'settled',
+  },
+  {
+    id: 'c2',
+    policyId: '2',
+    policyNumber: 'POL-2025-001',
+    hotel: 'Crowne Plaza Kingston-south',
+    claimDate: '2025-05-20',
+    description: 'Guest slip and fall in car park',
+    amount: 8000,
+    status: 'in-progress',
+  },
+  {
+    id: 'c3',
+    policyId: '3',
+    policyNumber: 'POL-2025-003',
+    hotel: 'Stanhill Court',
+    claimDate: '2025-07-22',
+    description: 'Commercial kitchen oven breakdown repair',
+    amount: 4500,
+    status: 'open',
+  },
 ];
 
 const STATUS_CONFIG: Record<PolicyStatus, { label: string; bg: string; color: string }> = {
@@ -199,12 +258,18 @@ function normalizePolicy(item: any): InsurancePolicy {
 
   const expiryDateObj = new Date(expiry);
   const isValidExpiry = !isNaN(expiryDateObj.getTime());
-  const startDateStr = item.startDate && !isNaN(new Date(item.startDate).getTime())
-    ? item.startDate
-    : (isValidExpiry ? new Date(expiryDateObj.getTime() - 365 * 86400000).toISOString().split('T')[0] : '2026-01-01');
-  const renewalDateStr = item.renewalDate && !isNaN(new Date(item.renewalDate).getTime())
-    ? item.renewalDate
-    : (isValidExpiry ? new Date(expiryDateObj.getTime() - 30 * 86400000).toISOString().split('T')[0] : '2026-11-30');
+  const startDateStr =
+    item.startDate && !isNaN(new Date(item.startDate).getTime())
+      ? item.startDate
+      : isValidExpiry
+        ? new Date(expiryDateObj.getTime() - 365 * 86400000).toISOString().split('T')[0]
+        : '2026-01-01';
+  const renewalDateStr =
+    item.renewalDate && !isNaN(new Date(item.renewalDate).getTime())
+      ? item.renewalDate
+      : isValidExpiry
+        ? new Date(expiryDateObj.getTime() - 30 * 86400000).toISOString().split('T')[0]
+        : '2026-11-30';
 
   return {
     id: String(item.id || item.policyNumber || Math.random()),
@@ -245,7 +310,12 @@ export default function InsuranceRegisterClient() {
         const cached = sessionStorage.getItem('samko_cache_insurance');
         if (cached) {
           const parsed = JSON.parse(cached);
-          if (Array.isArray(parsed) && parsed.length > 0) return parsed.map(normalizePolicy);
+          if (Array.isArray(parsed) && parsed.length > 0 && parsed.length <= 3)
+            return parsed.map(normalizePolicy);
+          else {
+            sessionStorage.removeItem('samko_cache_insurance');
+            localStorage.removeItem('samko_insurance_policies');
+          }
         }
       } catch {}
     }
@@ -259,7 +329,8 @@ export default function InsuranceRegisterClient() {
   const router = useRouter();
 
   const tabParam = searchParams?.get('tab');
-  const initialTab: 'register' | 'claims' | 'renewals' = tabParam === 'claims' || tabParam === 'renewals' ? tabParam : 'register';
+  const initialTab: 'register' | 'claims' | 'renewals' =
+    tabParam === 'claims' || tabParam === 'renewals' ? tabParam : 'register';
 
   const [activeTab, setActiveTab] = useState<'register' | 'claims' | 'renewals'>(initialTab);
 
@@ -319,7 +390,12 @@ export default function InsuranceRegisterClient() {
 
     cmsOptions.forEach((t) => {
       const clean = t.trim();
-      if (clean && !clean.toLowerCase().startsWith('all ') && clean.toLowerCase() !== 'all' && !deleted.has(clean.toLowerCase())) {
+      if (
+        clean &&
+        !clean.toLowerCase().startsWith('all ') &&
+        clean.toLowerCase() !== 'all' &&
+        !deleted.has(clean.toLowerCase())
+      ) {
         merged.add(clean);
       }
     });
@@ -348,13 +424,10 @@ export default function InsuranceRegisterClient() {
     return Array.from(merged).sort();
   }, [typeDropdown, customTypes, policies]);
 
-
   const hotelOptions = React.useMemo(() => {
-    return Array.from(new Set([
-      ...propertyList,
-      ...policies.map((p) => p.hotel).filter(Boolean),
-      ...DEFAULT_HOTELS,
-    ]))
+    return Array.from(
+      new Set([...propertyList, ...policies.map((p) => p.hotel).filter(Boolean), ...DEFAULT_HOTELS])
+    )
       .filter((p) => isPropertyAccessible(p))
       .sort();
   }, [propertyList, policies, isPropertyAccessible]);
@@ -366,7 +439,12 @@ export default function InsuranceRegisterClient() {
 
     cmsOptions.forEach((c) => {
       const clean = c.trim();
-      if (clean && !clean.toLowerCase().startsWith('all ') && clean.toLowerCase() !== 'all' && !deleted.has(clean.toLowerCase())) {
+      if (
+        clean &&
+        !clean.toLowerCase().startsWith('all ') &&
+        clean.toLowerCase() !== 'all' &&
+        !deleted.has(clean.toLowerCase())
+      ) {
         merged.add(clean);
       }
     });
@@ -408,7 +486,9 @@ export default function InsuranceRegisterClient() {
       setCustomTypes(updated);
       if (typeof window !== 'undefined') {
         localStorage.setItem('samko_insurance_types', JSON.stringify(updated));
-        window.dispatchEvent(new CustomEvent('samko:data-changed', { detail: { type: 'insurance_type', name: t } }));
+        window.dispatchEvent(
+          new CustomEvent('samko:data-changed', { detail: { type: 'insurance_type', name: t } })
+        );
       }
     }
     toast.success('Insurance Type Created', { description: `Added "${t}" to insurance types` });
@@ -421,7 +501,11 @@ export default function InsuranceRegisterClient() {
     setCustomTypes(updated);
     if (typeof window !== 'undefined') {
       localStorage.setItem('samko_insurance_types', JSON.stringify(updated));
-      window.dispatchEvent(new CustomEvent('samko:data-changed', { detail: { type: 'insurance_type_deleted', name: typeName } }));
+      window.dispatchEvent(
+        new CustomEvent('samko:data-changed', {
+          detail: { type: 'insurance_type_deleted', name: typeName },
+        })
+      );
     }
     setFilterType((prev) => prev.filter((t) => t !== typeName));
     toast.success(`Removed type "${typeName}"`);
@@ -437,10 +521,14 @@ export default function InsuranceRegisterClient() {
       setCustomCategories(updated);
       if (typeof window !== 'undefined') {
         localStorage.setItem('samko_insurance_categories', JSON.stringify(updated));
-        window.dispatchEvent(new CustomEvent('samko:data-changed', { detail: { type: 'insurance_category', name: c } }));
+        window.dispatchEvent(
+          new CustomEvent('samko:data-changed', { detail: { type: 'insurance_category', name: c } })
+        );
       }
     }
-    toast.success('Insurance Category Created', { description: `Added "${c}" to insurance categories` });
+    toast.success('Insurance Category Created', {
+      description: `Added "${c}" to insurance categories`,
+    });
     setNewCatName('');
   };
 
@@ -450,7 +538,11 @@ export default function InsuranceRegisterClient() {
     setCustomCategories(updated);
     if (typeof window !== 'undefined') {
       localStorage.setItem('samko_insurance_categories', JSON.stringify(updated));
-      window.dispatchEvent(new CustomEvent('samko:data-changed', { detail: { type: 'insurance_category_deleted', name: catName } }));
+      window.dispatchEvent(
+        new CustomEvent('samko:data-changed', {
+          detail: { type: 'insurance_category_deleted', name: catName },
+        })
+      );
     }
     toast.success(`Removed category "${catName}"`);
   };
@@ -472,7 +564,9 @@ export default function InsuranceRegisterClient() {
       setEditingType(null);
       return;
     }
-    const updatedCustom = customTypes.map((t) => (t.toLowerCase() === oldName.toLowerCase() ? newName : t));
+    const updatedCustom = customTypes.map((t) =>
+      t.toLowerCase() === oldName.toLowerCase() ? newName : t
+    );
     if (!updatedCustom.includes(newName)) {
       updatedCustom.push(newName);
     }
@@ -522,7 +616,9 @@ export default function InsuranceRegisterClient() {
       setEditingCat(null);
       return;
     }
-    const updatedCustom = customCategories.map((c) => (c.toLowerCase() === oldName.toLowerCase() ? newName : c));
+    const updatedCustom = customCategories.map((c) =>
+      c.toLowerCase() === oldName.toLowerCase() ? newName : c
+    );
     if (!updatedCustom.includes(newName)) {
       updatedCustom.push(newName);
     }
@@ -599,16 +695,31 @@ export default function InsuranceRegisterClient() {
         api.claims.getAll(),
       ]);
 
-      if (insRes.status === 'fulfilled' && insRes.value.success && insRes.value.data && insRes.value.data.length > 0) {
+      if (
+        insRes.status === 'fulfilled' &&
+        insRes.value.success &&
+        insRes.value.data &&
+        insRes.value.data.length > 0
+      ) {
         setPolicies(insRes.value.data.map(normalizePolicy));
         try {
           sessionStorage.setItem('samko_cache_insurance', JSON.stringify(insRes.value.data));
         } catch {}
       }
-      if (propsRes.status === 'fulfilled' && propsRes.value.success && propsRes.value.data && propsRes.value.data.length > 0) {
+      if (
+        propsRes.status === 'fulfilled' &&
+        propsRes.value.success &&
+        propsRes.value.data &&
+        propsRes.value.data.length > 0
+      ) {
         setPropertyList(propsRes.value.data.map((p: any) => p.name));
       }
-      if (claimsRes.status === 'fulfilled' && claimsRes.value.success && claimsRes.value.data && claimsRes.value.data.length > 0) {
+      if (
+        claimsRes.status === 'fulfilled' &&
+        claimsRes.value.success &&
+        claimsRes.value.data &&
+        claimsRes.value.data.length > 0
+      ) {
         setClaims(claimsRes.value.data);
       }
     } catch (err) {
@@ -666,7 +777,9 @@ export default function InsuranceRegisterClient() {
       });
 
       if (typeof window !== 'undefined') {
-        window.dispatchEvent(new CustomEvent('samko:data-changed', { detail: { type: 'insurance' } }));
+        window.dispatchEvent(
+          new CustomEvent('samko:data-changed', { detail: { type: 'insurance' } })
+        );
       }
     } catch (err: any) {
       toast.error('Failed to create insurance policy', { description: err.message });
@@ -694,9 +807,13 @@ export default function InsuranceRegisterClient() {
         setSelectedPolicy(updated);
       }
       setShowEditModal(false);
-      toast.success('Policy updated', { description: `${updated.policyNumber} updated successfully` });
+      toast.success('Policy updated', {
+        description: `${updated.policyNumber} updated successfully`,
+      });
       if (typeof window !== 'undefined') {
-        window.dispatchEvent(new CustomEvent('samko:data-changed', { detail: { type: 'insurance', id: updated.id } }));
+        window.dispatchEvent(
+          new CustomEvent('samko:data-changed', { detail: { type: 'insurance', id: updated.id } })
+        );
       }
       await api.insurance.update(updated.id, updated);
     } catch (err: any) {
@@ -715,9 +832,13 @@ export default function InsuranceRegisterClient() {
       if (selectedPolicy?.id === id) {
         setSelectedPolicy(null);
       }
-      toast.success('Policy deleted', { description: `${policyToDelete.policyNumber} has been removed` });
+      toast.success('Policy deleted', {
+        description: `${policyToDelete.policyNumber} has been removed`,
+      });
       if (typeof window !== 'undefined') {
-        window.dispatchEvent(new CustomEvent('samko:data-changed', { detail: { type: 'insurance', id } }));
+        window.dispatchEvent(
+          new CustomEvent('samko:data-changed', { detail: { type: 'insurance', id } })
+        );
       }
       await api.insurance.delete(id);
     } catch (err: any) {
@@ -733,7 +854,16 @@ export default function InsuranceRegisterClient() {
     let filename = '';
     if (activeTab === 'register') {
       filename = 'insurance_policies.csv';
-      const headers = ['Policy Number', 'Insurance Type', 'Company', 'Property', 'Coverage Amount', 'Annual Premium', 'Expiry Date', 'Status'];
+      const headers = [
+        'Policy Number',
+        'Insurance Type',
+        'Company',
+        'Property',
+        'Coverage Amount',
+        'Annual Premium',
+        'Expiry Date',
+        'Status',
+      ];
       const rows = filtered.map((p) => [
         `"${p.policyNumber}"`,
         `"${p.insuranceType}"`,
@@ -747,7 +877,14 @@ export default function InsuranceRegisterClient() {
       csvContent = [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
     } else if (activeTab === 'claims') {
       filename = 'insurance_claims.csv';
-      const headers = ['Policy Number', 'Property', 'Claim Date', 'Description', 'Amount', 'Status'];
+      const headers = [
+        'Policy Number',
+        'Property',
+        'Claim Date',
+        'Description',
+        'Amount',
+        'Status',
+      ];
       const rows = accessibleClaims.map((c) => [
         `"${c.policyNumber}"`,
         `"${c.hotel}"`,
@@ -759,7 +896,15 @@ export default function InsuranceRegisterClient() {
       csvContent = [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
     } else {
       filename = 'insurance_renewals.csv';
-      const headers = ['Policy Number', 'Insurance Type', 'Company', 'Property', 'Renewal Date', 'Days Left', 'Status'];
+      const headers = [
+        'Policy Number',
+        'Insurance Type',
+        'Company',
+        'Property',
+        'Renewal Date',
+        'Days Left',
+        'Status',
+      ];
       const rows = renewalsDue.map((p) => [
         `"${p.policyNumber}"`,
         `"${p.insuranceType}"`,
@@ -786,7 +931,9 @@ export default function InsuranceRegisterClient() {
 
   const handleScheduleReminder = (policy: InsurancePolicy) => {
     const days = daysUntil(policy.renewalDate);
-    toast.success(`Reminder scheduled for ${policy.insuranceType} (${days > 0 ? `${days} days before renewal` : 'due immediately'})`);
+    toast.success(
+      `Reminder scheduled for ${policy.insuranceType} (${days > 0 ? `${days} days before renewal` : 'due immediately'})`
+    );
   };
 
   const handleLogClaimSubmit = async (e: React.FormEvent) => {
@@ -802,8 +949,10 @@ export default function InsuranceRegisterClient() {
       ...claimForm,
       policyNumber: polNum,
       policyId: matchingPol?.id || '1',
-      hotel: claimForm.hotel || matchingPol?.hotel || propertyList[0] || 'Crowne Plaza Kingston-south',
-      property: claimForm.hotel || matchingPol?.hotel || propertyList[0] || 'Crowne Plaza Kingston-south',
+      hotel:
+        claimForm.hotel || matchingPol?.hotel || propertyList[0] || 'Crowne Plaza Kingston-south',
+      property:
+        claimForm.hotel || matchingPol?.hotel || propertyList[0] || 'Crowne Plaza Kingston-south',
       amount: Number(claimForm.amount) || 0,
     };
     try {
@@ -851,7 +1000,9 @@ export default function InsuranceRegisterClient() {
       setShowEditClaimModal(false);
       toast.success('Claim updated successfully');
       if (typeof window !== 'undefined') {
-        window.dispatchEvent(new CustomEvent('samko:data-changed', { detail: { type: 'claims', id: updated.id } }));
+        window.dispatchEvent(
+          new CustomEvent('samko:data-changed', { detail: { type: 'claims', id: updated.id } })
+        );
       }
       await api.claims.update(updated.id, updated);
     } catch (err: any) {
@@ -872,7 +1023,9 @@ export default function InsuranceRegisterClient() {
       }
       toast.success('Claim deleted successfully');
       if (typeof window !== 'undefined') {
-        window.dispatchEvent(new CustomEvent('samko:data-changed', { detail: { type: 'claims', id } }));
+        window.dispatchEvent(
+          new CustomEvent('samko:data-changed', { detail: { type: 'claims', id } })
+        );
       }
       await api.claims.delete(id);
     } catch (err: any) {
@@ -887,7 +1040,9 @@ export default function InsuranceRegisterClient() {
     setClaims((prev) => prev.map((c) => (c.id === id ? { ...c, status: newStatus as any } : c)));
     toast.success(`Claim status updated to ${newStatus}`);
     if (typeof window !== 'undefined') {
-      window.dispatchEvent(new CustomEvent('samko:data-changed', { detail: { type: 'claims', id, status: newStatus } }));
+      window.dispatchEvent(
+        new CustomEvent('samko:data-changed', { detail: { type: 'claims', id, status: newStatus } })
+      );
     }
     try {
       await api.claims.update(id, { status: newStatus });
@@ -897,20 +1052,28 @@ export default function InsuranceRegisterClient() {
   };
 
   const accessiblePolicies = React.useMemo(() => {
-    return policies.filter((p) => isPropertyAccessible(p.hotel || (p as any).property || (p as any).site));
+    return policies.filter((p) =>
+      isPropertyAccessible(p.hotel || (p as any).property || (p as any).site)
+    );
   }, [policies, isPropertyAccessible]);
 
   const accessibleClaims = React.useMemo(() => {
-    return claims.filter((c) => isPropertyAccessible(c.hotel || (c as any).property || (c as any).site));
+    return claims.filter((c) =>
+      isPropertyAccessible(c.hotel || (c as any).property || (c as any).site)
+    );
   }, [claims, isPropertyAccessible]);
 
   const totalCoverage = accessiblePolicies.reduce((s, p) => s + (p.coverageAmount || 0), 0);
   const totalPremium = accessiblePolicies.reduce((s, p) => s + (p.annualPremium || 0), 0);
-  const expiringSoon = accessiblePolicies.filter((p) => { const d = daysUntil(p.expiryDate); return d >= 0 && d <= 30; }).length;
+  const expiringSoon = accessiblePolicies.filter((p) => {
+    const d = daysUntil(p.expiryDate);
+    return d >= 0 && d <= 30;
+  }).length;
   const expiredCount = accessiblePolicies.filter((p) => p.status === 'expired').length;
 
   const filtered = accessiblePolicies.filter((p) => {
-    const matchSearch = !search ||
+    const matchSearch =
+      !search ||
       p.policyNumber.toLowerCase().includes(search.toLowerCase()) ||
       p.insuranceCompany.toLowerCase().includes(search.toLowerCase()) ||
       p.hotel.toLowerCase().includes(search.toLowerCase()) ||
@@ -918,7 +1081,9 @@ export default function InsuranceRegisterClient() {
 
     const matchType =
       filterType.length === 0 ||
-      filterType.some((t) => t.trim().toLowerCase() === (p.insuranceType || '').trim().toLowerCase());
+      filterType.some(
+        (t) => t.trim().toLowerCase() === (p.insuranceType || '').trim().toLowerCase()
+      );
 
     const matchHotel =
       filterHotel.length === 0 ||
@@ -948,7 +1113,8 @@ export default function InsuranceRegisterClient() {
   const [selectedPolicyTypeFilter, setSelectedPolicyTypeFilter] = useState('');
 
   const isAllPoliciesPageSelected =
-    paginatedPolicies.length > 0 && paginatedPolicies.every((p) => selectedPolicyIds.includes(p.id));
+    paginatedPolicies.length > 0 &&
+    paginatedPolicies.every((p) => selectedPolicyIds.includes(p.id));
   const isSomePoliciesPageSelected =
     paginatedPolicies.some((p) => selectedPolicyIds.includes(p.id)) && !isAllPoliciesPageSelected;
 
@@ -991,15 +1157,37 @@ export default function InsuranceRegisterClient() {
         opts.push({ label: `Type: ${t}`, value: `type:${t}`, count: counts[`type:${t}`] });
       }
     });
-    hotelOptions.filter((h) => h !== 'All Properties').forEach((h) => {
-      if (counts[`hotel:${h}`]) {
-        opts.push({ label: `Property: ${h}`, value: `hotel:${h}`, count: counts[`hotel:${h}`] });
-      }
-    });
-    if (counts['status:active']) opts.push({ label: 'Status: Active', value: 'status:active', count: counts['status:active'] });
-    if (counts['status:expiring-soon']) opts.push({ label: 'Status: Expiring Soon', value: 'status:expiring-soon', count: counts['status:expiring-soon'] });
-    if (counts['status:expired']) opts.push({ label: 'Status: Expired', value: 'status:expired', count: counts['status:expired'] });
-    if (counts['status:pending-renewal']) opts.push({ label: 'Status: Pending Renewal', value: 'status:pending-renewal', count: counts['status:pending-renewal'] });
+    hotelOptions
+      .filter((h) => h !== 'All Properties')
+      .forEach((h) => {
+        if (counts[`hotel:${h}`]) {
+          opts.push({ label: `Property: ${h}`, value: `hotel:${h}`, count: counts[`hotel:${h}`] });
+        }
+      });
+    if (counts['status:active'])
+      opts.push({
+        label: 'Status: Active',
+        value: 'status:active',
+        count: counts['status:active'],
+      });
+    if (counts['status:expiring-soon'])
+      opts.push({
+        label: 'Status: Expiring Soon',
+        value: 'status:expiring-soon',
+        count: counts['status:expiring-soon'],
+      });
+    if (counts['status:expired'])
+      opts.push({
+        label: 'Status: Expired',
+        value: 'status:expired',
+        count: counts['status:expired'],
+      });
+    if (counts['status:pending-renewal'])
+      opts.push({
+        label: 'Status: Pending Renewal',
+        value: 'status:pending-renewal',
+        count: counts['status:pending-renewal'],
+      });
 
     return opts;
   }, [filtered, allTypes, hotelOptions]);
@@ -1033,7 +1221,9 @@ export default function InsuranceRegisterClient() {
       setShowBulkDeletePoliciesModal(false);
 
       if (typeof window !== 'undefined') {
-        window.dispatchEvent(new CustomEvent('samko:data-changed', { detail: { type: 'insurance' } }));
+        window.dispatchEvent(
+          new CustomEvent('samko:data-changed', { detail: { type: 'insurance' } })
+        );
       }
       await Promise.allSettled(ids.map((id) => api.insurance.delete(id)));
       toast.success(`Deleted ${count} insurance policies successfully!`);
@@ -1049,8 +1239,10 @@ export default function InsuranceRegisterClient() {
   const [isBulkDeletingClaims, setIsBulkDeletingClaims] = useState(false);
   const [showBulkDeleteClaimsModal, setShowBulkDeleteClaimsModal] = useState(false);
 
-  const isAllClaimsSelected = accessibleClaims.length > 0 && accessibleClaims.every((c) => selectedClaimIds.includes(c.id));
-  const isSomeClaimsSelected = accessibleClaims.some((c) => selectedClaimIds.includes(c.id)) && !isAllClaimsSelected;
+  const isAllClaimsSelected =
+    accessibleClaims.length > 0 && accessibleClaims.every((c) => selectedClaimIds.includes(c.id));
+  const isSomeClaimsSelected =
+    accessibleClaims.some((c) => selectedClaimIds.includes(c.id)) && !isAllClaimsSelected;
 
   const handleToggleSelectAllClaims = () => {
     if (isAllClaimsSelected) {
@@ -1096,13 +1288,18 @@ export default function InsuranceRegisterClient() {
   return (
     <div className="flex flex-col h-full overflow-hidden">
       {/* Topbar */}
-      <div className="flex items-center justify-between px-7 py-4 border-b border-border flex-shrink-0" style={{ background: 'var(--surface)' }}>
+      <div
+        className="flex items-center justify-between px-7 py-4 border-b border-border flex-shrink-0"
+        style={{ background: 'var(--surface)' }}
+      >
         <div>
           <div className="flex items-center gap-2">
             <h1 className="font-head font-bold text-xl">{cmsTitle || 'Insurance Management'}</h1>
             {loading && <Loader2 size={14} className="animate-spin text-muted-foreground" />}
           </div>
-          <p className="text-xs text-muted-foreground mt-0.5">{cmsSubtitle || 'Manage insurance policies, coverage, premiums, claims, and renewals'}</p>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            {cmsSubtitle || 'Manage insurance policies, coverage, premiums, claims, and renewals'}
+          </p>
         </div>
         <div className="flex items-center gap-2">
           <PageCMSEditButton pageId="insurance" pageName="Insurance Register" />
@@ -1129,14 +1326,19 @@ export default function InsuranceRegisterClient() {
                 className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-transform active:scale-95"
                 style={{ background: 'var(--primary)', color: '#000' }}
               >
-                <Plus size={14} /> {(cmsPrimaryActionLabel || 'Add Policy').replace(/^[\+\s]+/, '').trim()}
+                <Plus size={14} />{' '}
+                {(cmsPrimaryActionLabel || 'Add Policy').replace(/^[\+\s]+/, '').trim()}
               </button>
             </>
           )}
           {isViewer && (
             <span
               className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold"
-              style={{ background: 'rgba(148,163,184,0.12)', color: '#94a3b8', border: '1px solid rgba(148,163,184,0.25)' }}
+              style={{
+                background: 'rgba(148,163,184,0.12)',
+                color: '#94a3b8',
+                border: '1px solid rgba(148,163,184,0.25)',
+              }}
             >
               L4 · Read-Only Access
             </span>
@@ -1145,41 +1347,127 @@ export default function InsuranceRegisterClient() {
       </div>
 
       {/* KPI Cards */}
-      <div className="grid gap-3 px-6 pt-5 pb-4 flex-shrink-0" style={{ gridTemplateColumns: 'repeat(5, minmax(0, 1fr))' }}>
-        <div className="rounded-xl border border-border px-4 py-3.5 relative overflow-hidden" style={{ background: 'var(--surface)' }}>
+      <div
+        className="grid gap-3 px-6 pt-5 pb-4 flex-shrink-0"
+        style={{ gridTemplateColumns: 'repeat(5, minmax(0, 1fr))' }}
+      >
+        <div
+          className="rounded-xl border border-border px-4 py-3.5 relative overflow-hidden"
+          style={{ background: 'var(--surface)' }}
+        >
           <div className="absolute top-0 left-0 right-0 h-0.5" style={{ background: '#60a5fa' }} />
-          <div className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 whitespace-nowrap truncate" title="Total Coverage">Total Coverage</div>
-          <div className="font-head font-bold text-2xl xl:text-[26px] tracking-tight whitespace-nowrap leading-tight" style={{ color: '#60a5fa' }}>{fmt(totalCoverage)}</div>
-          <div className="text-xs text-muted-foreground mt-1 whitespace-nowrap truncate">{user?.hotel && user.hotel !== 'All Properties' ? `for ${user.hotel}` : 'Across all properties'}</div>
+          <div
+            className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 whitespace-nowrap truncate"
+            title="Total Coverage"
+          >
+            Total Coverage
+          </div>
+          <div
+            className="font-head font-bold text-2xl xl:text-[26px] tracking-tight whitespace-nowrap leading-tight"
+            style={{ color: '#60a5fa' }}
+          >
+            {fmt(totalCoverage)}
+          </div>
+          <div className="text-xs text-muted-foreground mt-1 whitespace-nowrap truncate">
+            {user?.hotel && user.hotel !== 'All Properties'
+              ? `for ${user.hotel}`
+              : 'Across all properties'}
+          </div>
         </div>
-        <div className="rounded-xl border border-border px-4 py-3.5 relative overflow-hidden" style={{ background: 'var(--surface)' }}>
+        <div
+          className="rounded-xl border border-border px-4 py-3.5 relative overflow-hidden"
+          style={{ background: 'var(--surface)' }}
+        >
           <div className="absolute top-0 left-0 right-0 h-0.5" style={{ background: '#3dd68c' }} />
-          <div className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 whitespace-nowrap truncate" title="Annual Premium">Annual Premium</div>
-          <div className="font-head font-bold text-2xl xl:text-[26px] tracking-tight whitespace-nowrap leading-tight" style={{ color: '#3dd68c' }}>{fmt(totalPremium)}</div>
-          <div className="text-xs text-muted-foreground mt-1 whitespace-nowrap truncate">Annual portfolio spend</div>
+          <div
+            className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 whitespace-nowrap truncate"
+            title="Annual Premium"
+          >
+            Annual Premium
+          </div>
+          <div
+            className="font-head font-bold text-2xl xl:text-[26px] tracking-tight whitespace-nowrap leading-tight"
+            style={{ color: '#3dd68c' }}
+          >
+            {fmt(totalPremium)}
+          </div>
+          <div className="text-xs text-muted-foreground mt-1 whitespace-nowrap truncate">
+            Annual portfolio spend
+          </div>
         </div>
-        <div className="rounded-xl border border-border px-4 py-3.5 relative overflow-hidden" style={{ background: 'var(--surface)' }}>
+        <div
+          className="rounded-xl border border-border px-4 py-3.5 relative overflow-hidden"
+          style={{ background: 'var(--surface)' }}
+        >
           <div className="absolute top-0 left-0 right-0 h-0.5" style={{ background: '#f59e0b' }} />
-          <div className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 whitespace-nowrap truncate" title="Expiring in 30 Days">Expiring in 30 Days</div>
-          <div className="font-head font-bold text-2xl xl:text-[26px] tracking-tight whitespace-nowrap leading-tight" style={{ color: '#f59e0b' }}>{expiringSoon}</div>
-          <div className="text-xs text-muted-foreground mt-1 whitespace-nowrap truncate">Renewal required</div>
+          <div
+            className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 whitespace-nowrap truncate"
+            title="Expiring in 30 Days"
+          >
+            Expiring in 30 Days
+          </div>
+          <div
+            className="font-head font-bold text-2xl xl:text-[26px] tracking-tight whitespace-nowrap leading-tight"
+            style={{ color: '#f59e0b' }}
+          >
+            {expiringSoon}
+          </div>
+          <div className="text-xs text-muted-foreground mt-1 whitespace-nowrap truncate">
+            Renewal required
+          </div>
         </div>
-        <div className="rounded-xl border border-border px-4 py-3.5 relative overflow-hidden" style={{ background: 'var(--surface)' }}>
+        <div
+          className="rounded-xl border border-border px-4 py-3.5 relative overflow-hidden"
+          style={{ background: 'var(--surface)' }}
+        >
           <div className="absolute top-0 left-0 right-0 h-0.5" style={{ background: '#f43f5e' }} />
-          <div className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 whitespace-nowrap truncate" title="Expired Policies">Expired Policies</div>
-          <div className="font-head font-bold text-2xl xl:text-[26px] tracking-tight whitespace-nowrap leading-tight" style={{ color: '#f43f5e' }}>{expiredCount}</div>
-          <div className="text-xs text-muted-foreground mt-1 whitespace-nowrap truncate">Immediate action</div>
+          <div
+            className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 whitespace-nowrap truncate"
+            title="Expired Policies"
+          >
+            Expired Policies
+          </div>
+          <div
+            className="font-head font-bold text-2xl xl:text-[26px] tracking-tight whitespace-nowrap leading-tight"
+            style={{ color: '#f43f5e' }}
+          >
+            {expiredCount}
+          </div>
+          <div className="text-xs text-muted-foreground mt-1 whitespace-nowrap truncate">
+            Immediate action
+          </div>
         </div>
-        <div className="rounded-xl border border-border px-4 py-3.5 relative overflow-hidden" style={{ background: 'var(--surface)' }}>
+        <div
+          className="rounded-xl border border-border px-4 py-3.5 relative overflow-hidden"
+          style={{ background: 'var(--surface)' }}
+        >
           <div className="absolute top-0 left-0 right-0 h-0.5" style={{ background: '#a78bfa' }} />
-          <div className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 whitespace-nowrap truncate" title="Active Claims">Active Claims</div>
-          <div className="font-head font-bold text-2xl xl:text-[26px] tracking-tight whitespace-nowrap leading-tight" style={{ color: '#a78bfa' }}>{accessibleClaims.filter((c) => c.status !== 'settled' && c.status !== 'rejected').length}</div>
-          <div className="text-xs text-muted-foreground mt-1 whitespace-nowrap truncate">Open & in-progress</div>
+          <div
+            className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 whitespace-nowrap truncate"
+            title="Active Claims"
+          >
+            Active Claims
+          </div>
+          <div
+            className="font-head font-bold text-2xl xl:text-[26px] tracking-tight whitespace-nowrap leading-tight"
+            style={{ color: '#a78bfa' }}
+          >
+            {
+              accessibleClaims.filter((c) => c.status !== 'settled' && c.status !== 'rejected')
+                .length
+            }
+          </div>
+          <div className="text-xs text-muted-foreground mt-1 whitespace-nowrap truncate">
+            Open & in-progress
+          </div>
         </div>
       </div>
 
       {/* Tabs */}
-      <div className="flex items-center gap-0 px-6 border-b border-border flex-shrink-0" style={{ background: 'var(--surface)' }}>
+      <div
+        className="flex items-center gap-0 px-6 border-b border-border flex-shrink-0"
+        style={{ background: 'var(--surface)' }}
+      >
         {[
           { id: 'register', label: 'Policy Register', count: accessiblePolicies.length },
           { id: 'claims', label: 'Claims Register', count: accessibleClaims.length },
@@ -1196,7 +1484,10 @@ export default function InsuranceRegisterClient() {
             }}
           >
             {tab.label}
-            <span className="text-xs px-1.5 py-0.5 rounded font-bold" style={{ background: 'var(--surface2)', color: 'var(--text2)' }}>
+            <span
+              className="text-xs px-1.5 py-0.5 rounded font-bold"
+              style={{ background: 'var(--surface2)', color: 'var(--text2)' }}
+            >
               {tab.count}
             </span>
           </button>
@@ -1208,7 +1499,10 @@ export default function InsuranceRegisterClient() {
         {activeTab === 'register' && (
           <>
             <div className="flex items-center gap-3 mb-4 flex-wrap">
-              <div className="flex items-center gap-2 rounded-lg border border-border px-3 py-1.5 flex-1 max-w-xs" style={{ background: 'var(--surface)' }}>
+              <div
+                className="flex items-center gap-2 rounded-lg border border-border px-3 py-1.5 flex-1 max-w-xs"
+                style={{ background: 'var(--surface)' }}
+              >
                 <Search size={13} className="text-muted-foreground flex-shrink-0" />
                 <input
                   className="bg-transparent text-xs outline-none flex-1"
@@ -1244,9 +1538,15 @@ export default function InsuranceRegisterClient() {
                 ]}
                 onChange={setFilterStatus}
               />
-              <span className="text-xs text-muted-foreground ml-auto">{filtered.length} policies</span>
+              <span className="text-xs text-muted-foreground ml-auto">
+                {filtered.length} policies
+              </span>
             </div>
-            <div ref={tableContainerRef} className="rounded-xl border border-border overflow-x-auto shadow-sm custom-scrollbar" style={{ background: 'var(--surface)' }}>
+            <div
+              ref={tableContainerRef}
+              className="rounded-xl border border-border overflow-x-auto shadow-sm custom-scrollbar"
+              style={{ background: 'var(--surface)' }}
+            >
               <table className="w-full text-left border-collapse" style={{ minWidth: 900 }}>
                 <thead>
                   <tr style={{ background: 'var(--surface2)' }}>
@@ -1260,8 +1560,25 @@ export default function InsuranceRegisterClient() {
                         />
                       </th>
                     )}
-                    {['Policy No.', 'Insurance Type', 'Company', 'Property', 'Coverage', 'Annual Premium', 'Expiry Date', 'Days Left', 'Manager', 'Status', ''].map((h) => (
-                      <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide whitespace-nowrap">{h}</th>
+                    {[
+                      'Policy No.',
+                      'Insurance Type',
+                      'Company',
+                      'Property',
+                      'Coverage',
+                      'Annual Premium',
+                      'Expiry Date',
+                      'Days Left',
+                      'Manager',
+                      'Status',
+                      '',
+                    ].map((h) => (
+                      <th
+                        key={h}
+                        className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide whitespace-nowrap"
+                      >
+                        {h}
+                      </th>
                     ))}
                   </tr>
                 </thead>
@@ -1270,12 +1587,26 @@ export default function InsuranceRegisterClient() {
                     const days = daysUntil(policy.expiryDate);
                     const sc = STATUS_CONFIG[policy.status] || STATUS_CONFIG.active;
                     return (
-                      <tr key={policy.id} className={`border-t border-border cursor-pointer transition-colors ${selectedPolicyIds.includes(policy.id) ? 'bg-[#e8c97a]/5' : ''}`}
-                        onMouseEnter={(e) => (e.currentTarget.style.background = selectedPolicyIds.includes(policy.id) ? 'rgba(232,201,122,0.08)' : 'var(--surface2)')}
-                        onMouseLeave={(e) => (e.currentTarget.style.background = selectedPolicyIds.includes(policy.id) ? 'rgba(232,201,122,0.05)' : 'transparent')}
-                        onClick={() => setSelectedPolicy(policy)}>
+                      <tr
+                        key={policy.id}
+                        className={`border-t border-border cursor-pointer transition-colors ${selectedPolicyIds.includes(policy.id) ? 'bg-[#e8c97a]/5' : ''}`}
+                        onMouseEnter={(e) =>
+                          (e.currentTarget.style.background = selectedPolicyIds.includes(policy.id)
+                            ? 'rgba(232,201,122,0.08)'
+                            : 'var(--surface2)')
+                        }
+                        onMouseLeave={(e) =>
+                          (e.currentTarget.style.background = selectedPolicyIds.includes(policy.id)
+                            ? 'rgba(232,201,122,0.05)'
+                            : 'transparent')
+                        }
+                        onClick={() => setSelectedPolicy(policy)}
+                      >
                         {hasDeleteAccess && (
-                          <td className="px-3 py-3 text-center" onClick={(e) => e.stopPropagation()}>
+                          <td
+                            className="px-3 py-3 text-center"
+                            onClick={(e) => e.stopPropagation()}
+                          >
                             <TableCheckbox
                               checked={selectedPolicyIds.includes(policy.id)}
                               onChange={() => handleTogglePolicySelect(policy.id)}
@@ -1283,17 +1614,42 @@ export default function InsuranceRegisterClient() {
                             />
                           </td>
                         )}
-                        <td className="px-4 py-3 text-xs font-mono text-muted-foreground whitespace-nowrap">{policy.policyNumber}</td>
-                        <td className="px-4 py-3"><div className="font-medium text-sm">{policy.insuranceType}</div></td>
-                        <td className="px-4 py-3 text-sm text-muted-foreground whitespace-nowrap">{policy.insuranceCompany}</td>
-                        <td className="px-4 py-3 text-sm text-muted-foreground whitespace-nowrap">{policy.hotel}</td>
-                        <td className="px-4 py-3 text-sm font-medium whitespace-nowrap">{fmt(policy.coverageAmount)}</td>
-                        <td className="px-4 py-3 text-sm font-medium whitespace-nowrap">{fmt(policy.annualPremium)}/yr</td>
-                        <td className="px-4 py-3 text-sm whitespace-nowrap">{new Date(policy.expiryDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</td>
-                        <td className="px-4 py-3 text-sm font-semibold whitespace-nowrap" style={{ color: days < 0 ? '#f43f5e' : days <= 30 ? '#f59e0b' : '#3dd68c' }}>
+                        <td className="px-4 py-3 text-xs font-mono text-muted-foreground whitespace-nowrap">
+                          {policy.policyNumber}
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="font-medium text-sm">{policy.insuranceType}</div>
+                        </td>
+                        <td className="px-4 py-3 text-sm text-muted-foreground whitespace-nowrap">
+                          {policy.insuranceCompany}
+                        </td>
+                        <td className="px-4 py-3 text-sm text-muted-foreground whitespace-nowrap">
+                          {policy.hotel}
+                        </td>
+                        <td className="px-4 py-3 text-sm font-medium whitespace-nowrap">
+                          {fmt(policy.coverageAmount)}
+                        </td>
+                        <td className="px-4 py-3 text-sm font-medium whitespace-nowrap">
+                          {fmt(policy.annualPremium)}/yr
+                        </td>
+                        <td className="px-4 py-3 text-sm whitespace-nowrap">
+                          {new Date(policy.expiryDate).toLocaleDateString('en-GB', {
+                            day: 'numeric',
+                            month: 'short',
+                            year: 'numeric',
+                          })}
+                        </td>
+                        <td
+                          className="px-4 py-3 text-sm font-semibold whitespace-nowrap"
+                          style={{
+                            color: days < 0 ? '#f43f5e' : days <= 30 ? '#f59e0b' : '#3dd68c',
+                          }}
+                        >
                           {days < 0 ? `${Math.abs(days)}d expired` : `${days}d`}
                         </td>
-                        <td className="px-4 py-3 text-sm text-muted-foreground whitespace-nowrap">{policy.responsibleManager}</td>
+                        <td className="px-4 py-3 text-sm text-muted-foreground whitespace-nowrap">
+                          {policy.responsibleManager}
+                        </td>
                         <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
                           {isViewer ? (
                             <span
@@ -1311,23 +1667,31 @@ export default function InsuranceRegisterClient() {
                               {sc.label}
                             </span>
                           ) : (
-                          <CustomDropdown
-                            size="sm"
-                            variant="pill"
-                            value={policy.status}
-                            onChange={(val) => handleStatusChange(policy.id, val)}
-                            options={[
-                              { value: 'active', label: 'Active', color: '#3dd68c' },
-                              { value: 'expiring-soon', label: 'Expiring Soon', color: '#f59e0b' },
-                              { value: 'expired', label: 'Expired', color: '#f43f5e' },
-                              { value: 'pending-renewal', label: 'Pending Renewal', color: '#60a5fa' },
-                            ]}
-                            style={{
-                              background: sc.bg,
-                              color: sc.color,
-                              border: `1px solid ${sc.color}33`,
-                            }}
-                          />
+                            <CustomDropdown
+                              size="sm"
+                              variant="pill"
+                              value={policy.status}
+                              onChange={(val) => handleStatusChange(policy.id, val)}
+                              options={[
+                                { value: 'active', label: 'Active', color: '#3dd68c' },
+                                {
+                                  value: 'expiring-soon',
+                                  label: 'Expiring Soon',
+                                  color: '#f59e0b',
+                                },
+                                { value: 'expired', label: 'Expired', color: '#f43f5e' },
+                                {
+                                  value: 'pending-renewal',
+                                  label: 'Pending Renewal',
+                                  color: '#60a5fa',
+                                },
+                              ]}
+                              style={{
+                                background: sc.bg,
+                                color: sc.color,
+                                border: `1px solid ${sc.color}33`,
+                              }}
+                            />
                           )}
                         </td>
                         <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
@@ -1412,10 +1776,15 @@ export default function InsuranceRegisterClient() {
                   <Plus size={14} /> Log Claim
                 </button>
               ) : isViewer ? (
-                <span className="text-xs text-muted-foreground px-2 py-1 rounded bg-surface2">Read-Only</span>
+                <span className="text-xs text-muted-foreground px-2 py-1 rounded bg-surface2">
+                  Read-Only
+                </span>
               ) : null}
             </div>
-            <div className="rounded-xl border border-border overflow-x-auto shadow-sm" style={{ background: 'var(--surface)' }}>
+            <div
+              className="rounded-xl border border-border overflow-x-auto shadow-sm"
+              style={{ background: 'var(--surface)' }}
+            >
               <table className="w-full text-left border-collapse" style={{ minWidth: 800 }}>
                 <thead>
                   <tr style={{ background: 'var(--surface2)' }}>
@@ -1427,8 +1796,21 @@ export default function InsuranceRegisterClient() {
                         title="Select all claims"
                       />
                     </th>
-                    {['Policy Number', 'Property', 'Claim Date', 'Description', 'Amount', 'Status', ''].map((h) => (
-                      <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide whitespace-nowrap">{h}</th>
+                    {[
+                      'Policy Number',
+                      'Property',
+                      'Claim Date',
+                      'Description',
+                      'Amount',
+                      'Status',
+                      '',
+                    ].map((h) => (
+                      <th
+                        key={h}
+                        className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide whitespace-nowrap"
+                      >
+                        {h}
+                      </th>
                     ))}
                   </tr>
                 </thead>
@@ -1438,7 +1820,9 @@ export default function InsuranceRegisterClient() {
                       <td colSpan={8} className="text-center py-12 text-muted-foreground">
                         <div className="flex flex-col items-center justify-center gap-2">
                           <CheckCircle2 size={32} className="opacity-30" />
-                          <p className="text-sm font-medium">No claims recorded for this property</p>
+                          <p className="text-sm font-medium">
+                            No claims recorded for this property
+                          </p>
                         </div>
                       </td>
                     </tr>
@@ -1449,22 +1833,35 @@ export default function InsuranceRegisterClient() {
                         <tr
                           key={claim.id}
                           className={`border-t border-border cursor-pointer transition-colors ${selectedClaimIds.includes(claim.id) ? 'bg-[#e8c97a]/5' : ''}`}
-                          onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--surface2)')}
+                          onMouseEnter={(e) =>
+                            (e.currentTarget.style.background = 'var(--surface2)')
+                          }
                           onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
                           onClick={() => setSelectedClaim(claim)}
                         >
-                          <td className="px-3 py-3 text-center" onClick={(e) => e.stopPropagation()}>
+                          <td
+                            className="px-3 py-3 text-center"
+                            onClick={(e) => e.stopPropagation()}
+                          >
                             <TableCheckbox
                               checked={selectedClaimIds.includes(claim.id)}
                               onChange={() => handleToggleClaimSelect(claim.id)}
                               title={`Select ${claim.policyNumber}`}
                             />
                           </td>
-                          <td className="px-4 py-3 text-xs font-mono text-muted-foreground whitespace-nowrap">{claim.policyNumber}</td>
-                          <td className="px-4 py-3 text-sm text-muted-foreground whitespace-nowrap">{claim.hotel}</td>
-                          <td className="px-4 py-3 text-sm whitespace-nowrap">{new Date(claim.claimDate).toLocaleDateString('en-GB')}</td>
+                          <td className="px-4 py-3 text-xs font-mono text-muted-foreground whitespace-nowrap">
+                            {claim.policyNumber}
+                          </td>
+                          <td className="px-4 py-3 text-sm text-muted-foreground whitespace-nowrap">
+                            {claim.hotel}
+                          </td>
+                          <td className="px-4 py-3 text-sm whitespace-nowrap">
+                            {new Date(claim.claimDate).toLocaleDateString('en-GB')}
+                          </td>
                           <td className="px-4 py-3 text-sm font-medium">{claim.description}</td>
-                          <td className="px-4 py-3 text-sm font-semibold whitespace-nowrap">{fmt(claim.amount)}</td>
+                          <td className="px-4 py-3 text-sm font-semibold whitespace-nowrap">
+                            {fmt(claim.amount)}
+                          </td>
                           <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
                             <CustomDropdown
                               size="sm"
@@ -1542,7 +1939,9 @@ export default function InsuranceRegisterClient() {
 
         {activeTab === 'renewals' && (
           <div className="flex flex-col gap-4">
-            <div className="font-head font-bold text-sm">{renewalsDue.length} Renewals Due in Next 90 Days</div>
+            <div className="font-head font-bold text-sm">
+              {renewalsDue.length} Renewals Due in Next 90 Days
+            </div>
             {renewalsDue.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
                 <CheckCircle2 size={32} className="mb-3 opacity-30" />
@@ -1554,19 +1953,45 @@ export default function InsuranceRegisterClient() {
                   const days = daysUntil(policy.renewalDate);
                   const sc = STATUS_CONFIG[policy.status];
                   return (
-                    <div key={policy.id} className="rounded-xl border border-border p-4 flex items-center gap-4" style={{ background: 'var(--surface)' }}>
-                      <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: days <= 30 ? 'rgba(244,63,94,0.12)' : 'rgba(245,158,11,0.12)' }}>
-                        <RefreshCw size={16} style={{ color: days <= 30 ? '#f43f5e' : '#f59e0b' }} />
+                    <div
+                      key={policy.id}
+                      className="rounded-xl border border-border p-4 flex items-center gap-4"
+                      style={{ background: 'var(--surface)' }}
+                    >
+                      <div
+                        className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+                        style={{
+                          background: days <= 30 ? 'rgba(244,63,94,0.12)' : 'rgba(245,158,11,0.12)',
+                        }}
+                      >
+                        <RefreshCw
+                          size={16}
+                          style={{ color: days <= 30 ? '#f43f5e' : '#f59e0b' }}
+                        />
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="font-semibold text-sm">{policy.insuranceType}</div>
-                        <div className="text-xs text-muted-foreground mt-0.5">{policy.insuranceCompany} · {policy.hotel}</div>
+                        <div className="text-xs text-muted-foreground mt-0.5">
+                          {policy.insuranceCompany} · {policy.hotel}
+                        </div>
                       </div>
                       <div className="text-right flex-shrink-0">
-                        <div className="text-sm font-semibold" style={{ color: days <= 30 ? '#f43f5e' : '#f59e0b' }}>{days}d until renewal</div>
-                        <div className="text-xs text-muted-foreground">{new Date(policy.renewalDate).toLocaleDateString('en-GB')}</div>
+                        <div
+                          className="text-sm font-semibold"
+                          style={{ color: days <= 30 ? '#f43f5e' : '#f59e0b' }}
+                        >
+                          {days}d until renewal
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          {new Date(policy.renewalDate).toLocaleDateString('en-GB')}
+                        </div>
                       </div>
-                      <span className="text-xs font-semibold px-2 py-0.5 rounded-full flex-shrink-0" style={{ background: sc.bg, color: sc.color }}>{sc.label}</span>
+                      <span
+                        className="text-xs font-semibold px-2 py-0.5 rounded-full flex-shrink-0"
+                        style={{ background: sc.bg, color: sc.color }}
+                      >
+                        {sc.label}
+                      </span>
                       <button
                         onClick={() => handleScheduleReminder(policy)}
                         className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold flex-shrink-0 transition-transform active:scale-95 cursor-pointer"
@@ -1585,18 +2010,50 @@ export default function InsuranceRegisterClient() {
 
       {/* Policy Detail Modal */}
       {selectedPolicy && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 samko-modal-overlay" onClick={() => setSelectedPolicy(null)}>
-          <div className="rounded-2xl border border-border-strong w-full max-w-2xl max-h-[85vh] overflow-auto shadow-2xl samko-modal-card" style={{ background: '#11141a', borderColor: 'var(--border-strong)' }} onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-start justify-between p-6 border-b border-border" style={{ background: 'var(--surface2)' }}>
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 samko-modal-overlay"
+          onClick={() => setSelectedPolicy(null)}
+        >
+          <div
+            className="rounded-2xl border border-border-strong w-full max-w-2xl max-h-[85vh] overflow-auto shadow-2xl samko-modal-card"
+            style={{ background: '#11141a', borderColor: 'var(--border-strong)' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div
+              className="flex items-start justify-between p-6 border-b border-border"
+              style={{ background: 'var(--surface2)' }}
+            >
               <div>
                 <div className="flex items-center gap-2 mb-1.5">
-                  <span className="font-mono text-xs px-2.5 py-0.5 rounded font-bold" style={{ background: 'var(--surface3)', color: 'var(--primary)' }}>{selectedPolicy.policyNumber}</span>
-                  <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full" style={{ background: STATUS_CONFIG[selectedPolicy.status]?.bg, color: STATUS_CONFIG[selectedPolicy.status]?.color }}>{STATUS_CONFIG[selectedPolicy.status]?.label}</span>
+                  <span
+                    className="font-mono text-xs px-2.5 py-0.5 rounded font-bold"
+                    style={{ background: 'var(--surface3)', color: 'var(--primary)' }}
+                  >
+                    {selectedPolicy.policyNumber}
+                  </span>
+                  <span
+                    className="text-xs font-semibold px-2.5 py-0.5 rounded-full"
+                    style={{
+                      background: STATUS_CONFIG[selectedPolicy.status]?.bg,
+                      color: STATUS_CONFIG[selectedPolicy.status]?.color,
+                    }}
+                  >
+                    {STATUS_CONFIG[selectedPolicy.status]?.label}
+                  </span>
                 </div>
-                <h2 className="font-head font-bold text-lg text-foreground">{selectedPolicy.insuranceType}</h2>
-                <p className="text-sm text-muted-foreground mt-0.5">{selectedPolicy.insuranceCompany} · Broker: {selectedPolicy.broker || 'Marsh UK'}</p>
+                <h2 className="font-head font-bold text-lg text-foreground">
+                  {selectedPolicy.insuranceType}
+                </h2>
+                <p className="text-sm text-muted-foreground mt-0.5">
+                  {selectedPolicy.insuranceCompany} · Broker: {selectedPolicy.broker || 'Marsh UK'}
+                </p>
               </div>
-              <button onClick={() => setSelectedPolicy(null)} className="text-muted-foreground hover:text-foreground text-xl font-bold px-2 py-1 rounded hover:bg-white/10 transition-colors">✕</button>
+              <button
+                onClick={() => setSelectedPolicy(null)}
+                className="text-muted-foreground hover:text-foreground text-xl font-bold px-2 py-1 rounded hover:bg-white/10 transition-colors"
+              >
+                ✕
+              </button>
             </div>
             <div className="p-6 grid grid-cols-2 gap-4" style={{ background: '#11141a' }}>
               {[
@@ -1611,19 +2068,35 @@ export default function InsuranceRegisterClient() {
                 ['Contact Person', selectedPolicy.contactPerson || '—'],
                 ['Emergency Phone', selectedPolicy.emergencyPhone || '—'],
               ].map(([label, value]) => (
-                <div key={label} className="flex flex-col gap-1 p-3 rounded-xl border border-border/60" style={{ background: 'var(--surface2)' }}>
-                  <span className="text-xs text-muted-foreground font-medium uppercase tracking-wider">{label}</span>
+                <div
+                  key={label}
+                  className="flex flex-col gap-1 p-3 rounded-xl border border-border/60"
+                  style={{ background: 'var(--surface2)' }}
+                >
+                  <span className="text-xs text-muted-foreground font-medium uppercase tracking-wider">
+                    {label}
+                  </span>
                   <span className="text-sm font-semibold text-foreground">{value}</span>
                 </div>
               ))}
             </div>
             {selectedPolicy.notes && (
               <div className="px-6 pb-4" style={{ background: '#11141a' }}>
-                <div className="text-xs text-muted-foreground font-medium uppercase tracking-wider mb-1.5">Notes</div>
-                <div className="text-sm p-3.5 rounded-xl border border-border/60" style={{ background: 'var(--surface2)' }}>{selectedPolicy.notes}</div>
+                <div className="text-xs text-muted-foreground font-medium uppercase tracking-wider mb-1.5">
+                  Notes
+                </div>
+                <div
+                  className="text-sm p-3.5 rounded-xl border border-border/60"
+                  style={{ background: 'var(--surface2)' }}
+                >
+                  {selectedPolicy.notes}
+                </div>
               </div>
             )}
-            <div className="flex items-center justify-between gap-2 p-6 border-t border-border" style={{ background: 'var(--surface2)' }}>
+            <div
+              className="flex items-center justify-between gap-2 p-6 border-t border-border"
+              style={{ background: 'var(--surface2)' }}
+            >
               <div className="flex items-center gap-2">
                 {hasWriteAccess && (
                   <button
@@ -1645,7 +2118,12 @@ export default function InsuranceRegisterClient() {
                   </button>
                 )}
               </div>
-              <button onClick={() => setSelectedPolicy(null)} className="samko-btn-primary px-5 py-2 cursor-pointer">Close</button>
+              <button
+                onClick={() => setSelectedPolicy(null)}
+                className="samko-btn-primary px-5 py-2 cursor-pointer"
+              >
+                Close
+              </button>
             </div>
           </div>
         </div>
@@ -1653,11 +2131,26 @@ export default function InsuranceRegisterClient() {
 
       {/* Add Policy Modal */}
       {showAddModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 samko-modal-overlay" onClick={() => setShowAddModal(false)}>
-          <div className="rounded-2xl border border-border-strong w-full max-w-2xl max-h-[85vh] overflow-auto shadow-2xl samko-modal-card" style={{ background: '#11141a', borderColor: 'var(--border-strong)' }} onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between p-6 border-b border-border" style={{ background: 'var(--surface2)' }}>
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 samko-modal-overlay"
+          onClick={() => setShowAddModal(false)}
+        >
+          <div
+            className="rounded-2xl border border-border-strong w-full max-w-2xl max-h-[85vh] overflow-auto shadow-2xl samko-modal-card"
+            style={{ background: '#11141a', borderColor: 'var(--border-strong)' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div
+              className="flex items-center justify-between p-6 border-b border-border"
+              style={{ background: 'var(--surface2)' }}
+            >
               <h2 className="font-head font-bold text-lg text-foreground">Add Insurance Policy</h2>
-              <button onClick={() => setShowAddModal(false)} className="text-muted-foreground hover:text-foreground text-xl font-bold px-2">×</button>
+              <button
+                onClick={() => setShowAddModal(false)}
+                className="text-muted-foreground hover:text-foreground text-xl font-bold px-2"
+              >
+                ×
+              </button>
             </div>
             <form onSubmit={handleAddSubmit}>
               <div className="p-6 grid grid-cols-2 gap-4">
@@ -1673,7 +2166,9 @@ export default function InsuranceRegisterClient() {
                   />
                 </div>
                 <div className="flex flex-col gap-1">
-                  <label className="text-xs font-medium text-muted-foreground">Insurance Type</label>
+                  <label className="text-xs font-medium text-muted-foreground">
+                    Insurance Type
+                  </label>
                   <CustomDropdown
                     variant="form"
                     width="100%"
@@ -1683,7 +2178,9 @@ export default function InsuranceRegisterClient() {
                   />
                 </div>
                 <div className="flex flex-col gap-1">
-                  <label className="text-xs font-medium text-muted-foreground">Insurance Company</label>
+                  <label className="text-xs font-medium text-muted-foreground">
+                    Insurance Company
+                  </label>
                   <input
                     type="text"
                     required
@@ -1714,31 +2211,43 @@ export default function InsuranceRegisterClient() {
                   />
                 </div>
                 <div className="flex flex-col gap-1">
-                  <label className="text-xs font-medium text-muted-foreground">Coverage Amount (£)</label>
+                  <label className="text-xs font-medium text-muted-foreground">
+                    Coverage Amount (£)
+                  </label>
                   <input
                     type="number"
                     value={addForm.coverageAmount}
-                    onChange={(e) => setAddForm({ ...addForm, coverageAmount: Number(e.target.value) })}
+                    onChange={(e) =>
+                      setAddForm({ ...addForm, coverageAmount: Number(e.target.value) })
+                    }
                     className="rounded-lg border border-border px-3 py-2 text-sm outline-none"
                     style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
                   />
                 </div>
                 <div className="flex flex-col gap-1">
-                  <label className="text-xs font-medium text-muted-foreground">Annual Premium (£)</label>
+                  <label className="text-xs font-medium text-muted-foreground">
+                    Annual Premium (£)
+                  </label>
                   <input
                     type="number"
                     value={addForm.annualPremium}
-                    onChange={(e) => setAddForm({ ...addForm, annualPremium: Number(e.target.value) })}
+                    onChange={(e) =>
+                      setAddForm({ ...addForm, annualPremium: Number(e.target.value) })
+                    }
                     className="rounded-lg border border-border px-3 py-2 text-sm outline-none"
                     style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
                   />
                 </div>
                 <div className="flex flex-col gap-1">
-                  <label className="text-xs font-medium text-muted-foreground">Excess Amount (£)</label>
+                  <label className="text-xs font-medium text-muted-foreground">
+                    Excess Amount (£)
+                  </label>
                   <input
                     type="number"
                     value={addForm.excessAmount}
-                    onChange={(e) => setAddForm({ ...addForm, excessAmount: Number(e.target.value) })}
+                    onChange={(e) =>
+                      setAddForm({ ...addForm, excessAmount: Number(e.target.value) })
+                    }
                     className="rounded-lg border border-border px-3 py-2 text-sm outline-none"
                     style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
                   />
@@ -1764,7 +2273,9 @@ export default function InsuranceRegisterClient() {
                   />
                 </div>
                 <div className="flex flex-col gap-1">
-                  <label className="text-xs font-medium text-muted-foreground">Responsible Manager</label>
+                  <label className="text-xs font-medium text-muted-foreground">
+                    Responsible Manager
+                  </label>
                   <input
                     type="text"
                     value={addForm.responsibleManager}
@@ -1774,7 +2285,9 @@ export default function InsuranceRegisterClient() {
                   />
                 </div>
                 <div className="flex flex-col gap-1">
-                  <label className="text-xs font-medium text-muted-foreground">Initial Status</label>
+                  <label className="text-xs font-medium text-muted-foreground">
+                    Initial Status
+                  </label>
                   <CustomDropdown
                     variant="form"
                     width="100%"
@@ -1790,10 +2303,19 @@ export default function InsuranceRegisterClient() {
                 </div>
               </div>
               <div className="flex gap-2 p-6 pt-0 border-t border-border mt-2">
-                <button type="submit" className="flex items-center gap-2 px-5 py-2 rounded-lg text-sm font-semibold" style={{ background: 'var(--primary)', color: '#000' }}>
+                <button
+                  type="submit"
+                  className="flex items-center gap-2 px-5 py-2 rounded-lg text-sm font-semibold"
+                  style={{ background: 'var(--primary)', color: '#000' }}
+                >
                   Save Policy
                 </button>
-                <button type="button" onClick={() => setShowAddModal(false)} className="px-4 py-2 rounded-lg text-sm font-medium border border-border" style={{ background: 'var(--surface2)', color: 'var(--text2)' }}>
+                <button
+                  type="button"
+                  onClick={() => setShowAddModal(false)}
+                  className="px-4 py-2 rounded-lg text-sm font-medium border border-border"
+                  style={{ background: 'var(--surface2)', color: 'var(--text2)' }}
+                >
                   Cancel
                 </button>
               </div>
@@ -1804,35 +2326,63 @@ export default function InsuranceRegisterClient() {
 
       {/* Edit Policy Modal */}
       {showEditModal && editingPolicy && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 samko-modal-overlay" onClick={() => setShowEditModal(false)}>
-          <div className="rounded-2xl border border-border-strong w-full max-w-2xl max-h-[85vh] overflow-auto shadow-2xl samko-modal-card" style={{ background: '#11141a', borderColor: 'var(--border-strong)' }} onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between p-6 border-b border-border" style={{ background: 'var(--surface2)' }}>
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 samko-modal-overlay"
+          onClick={() => setShowEditModal(false)}
+        >
+          <div
+            className="rounded-2xl border border-border-strong w-full max-w-2xl max-h-[85vh] overflow-auto shadow-2xl samko-modal-card"
+            style={{ background: '#11141a', borderColor: 'var(--border-strong)' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div
+              className="flex items-center justify-between p-6 border-b border-border"
+              style={{ background: 'var(--surface2)' }}
+            >
               <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'rgba(232,201,122,0.15)', color: 'var(--primary)' }}>
+                <div
+                  className="w-8 h-8 rounded-lg flex items-center justify-center"
+                  style={{ background: 'rgba(232,201,122,0.15)', color: 'var(--primary)' }}
+                >
                   <Edit2 size={16} />
                 </div>
                 <div>
-                  <h2 className="font-head font-bold text-base text-foreground">Edit Insurance Policy</h2>
-                  <p className="text-xs text-muted-foreground">{editingPolicy.policyNumber} · Update policy record dynamically</p>
+                  <h2 className="font-head font-bold text-base text-foreground">
+                    Edit Insurance Policy
+                  </h2>
+                  <p className="text-xs text-muted-foreground">
+                    {editingPolicy.policyNumber} · Update policy record dynamically
+                  </p>
                 </div>
               </div>
-              <button onClick={() => setShowEditModal(false)} className="text-muted-foreground hover:text-foreground text-xl font-bold px-2 py-1 rounded hover:bg-white/10 transition-colors">✕</button>
+              <button
+                onClick={() => setShowEditModal(false)}
+                className="text-muted-foreground hover:text-foreground text-xl font-bold px-2 py-1 rounded hover:bg-white/10 transition-colors"
+              >
+                ✕
+              </button>
             </div>
             <form onSubmit={handleSaveEdit}>
               <div className="p-6 grid grid-cols-2 gap-4">
                 <div className="flex flex-col gap-1">
-                  <label className="text-xs font-semibold text-muted-foreground uppercase">Policy Number *</label>
+                  <label className="text-xs font-semibold text-muted-foreground uppercase">
+                    Policy Number *
+                  </label>
                   <input
                     type="text"
                     required
                     value={editingPolicy.policyNumber}
-                    onChange={(e) => setEditingPolicy({ ...editingPolicy, policyNumber: e.target.value })}
+                    onChange={(e) =>
+                      setEditingPolicy({ ...editingPolicy, policyNumber: e.target.value })
+                    }
                     className="rounded-lg border border-border px-3 py-2 text-sm outline-none"
                     style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
                   />
                 </div>
                 <div className="flex flex-col gap-1">
-                  <label className="text-xs font-semibold text-muted-foreground uppercase">Insurance Type</label>
+                  <label className="text-xs font-semibold text-muted-foreground uppercase">
+                    Insurance Type
+                  </label>
                   <CustomDropdown
                     variant="form"
                     width="100%"
@@ -1842,18 +2392,24 @@ export default function InsuranceRegisterClient() {
                   />
                 </div>
                 <div className="flex flex-col gap-1">
-                  <label className="text-xs font-semibold text-muted-foreground uppercase">Insurance Company</label>
+                  <label className="text-xs font-semibold text-muted-foreground uppercase">
+                    Insurance Company
+                  </label>
                   <input
                     type="text"
                     required
                     value={editingPolicy.insuranceCompany}
-                    onChange={(e) => setEditingPolicy({ ...editingPolicy, insuranceCompany: e.target.value })}
+                    onChange={(e) =>
+                      setEditingPolicy({ ...editingPolicy, insuranceCompany: e.target.value })
+                    }
                     className="rounded-lg border border-border px-3 py-2 text-sm outline-none"
                     style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
                   />
                 </div>
                 <div className="flex flex-col gap-1">
-                  <label className="text-xs font-semibold text-muted-foreground uppercase">Broker</label>
+                  <label className="text-xs font-semibold text-muted-foreground uppercase">
+                    Broker
+                  </label>
                   <input
                     type="text"
                     value={editingPolicy.broker}
@@ -1863,7 +2419,9 @@ export default function InsuranceRegisterClient() {
                   />
                 </div>
                 <div className="flex flex-col gap-1">
-                  <label className="text-xs font-semibold text-muted-foreground uppercase">Property</label>
+                  <label className="text-xs font-semibold text-muted-foreground uppercase">
+                    Property
+                  </label>
                   <CustomDropdown
                     variant="form"
                     width="100%"
@@ -1873,72 +2431,109 @@ export default function InsuranceRegisterClient() {
                   />
                 </div>
                 <div className="flex flex-col gap-1">
-                  <label className="text-xs font-semibold text-muted-foreground uppercase">Coverage Amount (£)</label>
+                  <label className="text-xs font-semibold text-muted-foreground uppercase">
+                    Coverage Amount (£)
+                  </label>
                   <input
                     type="number"
                     value={editingPolicy.coverageAmount}
-                    onChange={(e) => setEditingPolicy({ ...editingPolicy, coverageAmount: Number(e.target.value) || 0 })}
+                    onChange={(e) =>
+                      setEditingPolicy({
+                        ...editingPolicy,
+                        coverageAmount: Number(e.target.value) || 0,
+                      })
+                    }
                     className="rounded-lg border border-border px-3 py-2 text-sm outline-none"
                     style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
                   />
                 </div>
                 <div className="flex flex-col gap-1">
-                  <label className="text-xs font-semibold text-muted-foreground uppercase">Annual Premium (£)</label>
+                  <label className="text-xs font-semibold text-muted-foreground uppercase">
+                    Annual Premium (£)
+                  </label>
                   <input
                     type="number"
                     value={editingPolicy.annualPremium}
-                    onChange={(e) => setEditingPolicy({ ...editingPolicy, annualPremium: Number(e.target.value) || 0 })}
+                    onChange={(e) =>
+                      setEditingPolicy({
+                        ...editingPolicy,
+                        annualPremium: Number(e.target.value) || 0,
+                      })
+                    }
                     className="rounded-lg border border-border px-3 py-2 text-sm outline-none"
                     style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
                   />
                 </div>
                 <div className="flex flex-col gap-1">
-                  <label className="text-xs font-semibold text-muted-foreground uppercase">Excess (£)</label>
+                  <label className="text-xs font-semibold text-muted-foreground uppercase">
+                    Excess (£)
+                  </label>
                   <input
                     type="number"
                     value={editingPolicy.excessAmount}
-                    onChange={(e) => setEditingPolicy({ ...editingPolicy, excessAmount: Number(e.target.value) || 0 })}
+                    onChange={(e) =>
+                      setEditingPolicy({
+                        ...editingPolicy,
+                        excessAmount: Number(e.target.value) || 0,
+                      })
+                    }
                     className="rounded-lg border border-border px-3 py-2 text-sm outline-none"
                     style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
                   />
                 </div>
                 <div className="flex flex-col gap-1">
-                  <label className="text-xs font-semibold text-muted-foreground uppercase">Start Date</label>
+                  <label className="text-xs font-semibold text-muted-foreground uppercase">
+                    Start Date
+                  </label>
                   <input
                     type="date"
                     value={editingPolicy.startDate}
-                    onChange={(e) => setEditingPolicy({ ...editingPolicy, startDate: e.target.value })}
+                    onChange={(e) =>
+                      setEditingPolicy({ ...editingPolicy, startDate: e.target.value })
+                    }
                     className="rounded-lg border border-border px-3 py-2 text-sm outline-none"
                     style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
                   />
                 </div>
                 <div className="flex flex-col gap-1">
-                  <label className="text-xs font-semibold text-muted-foreground uppercase">Expiry Date</label>
+                  <label className="text-xs font-semibold text-muted-foreground uppercase">
+                    Expiry Date
+                  </label>
                   <input
                     type="date"
                     value={editingPolicy.expiryDate}
-                    onChange={(e) => setEditingPolicy({ ...editingPolicy, expiryDate: e.target.value })}
+                    onChange={(e) =>
+                      setEditingPolicy({ ...editingPolicy, expiryDate: e.target.value })
+                    }
                     className="rounded-lg border border-border px-3 py-2 text-sm outline-none"
                     style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
                   />
                 </div>
                 <div className="flex flex-col gap-1">
-                  <label className="text-xs font-semibold text-muted-foreground uppercase">Responsible Manager</label>
+                  <label className="text-xs font-semibold text-muted-foreground uppercase">
+                    Responsible Manager
+                  </label>
                   <input
                     type="text"
                     value={editingPolicy.responsibleManager}
-                    onChange={(e) => setEditingPolicy({ ...editingPolicy, responsibleManager: e.target.value })}
+                    onChange={(e) =>
+                      setEditingPolicy({ ...editingPolicy, responsibleManager: e.target.value })
+                    }
                     className="rounded-lg border border-border px-3 py-2 text-sm outline-none"
                     style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
                   />
                 </div>
                 <div className="flex flex-col gap-1">
-                  <label className="text-xs font-semibold text-muted-foreground uppercase">Status</label>
+                  <label className="text-xs font-semibold text-muted-foreground uppercase">
+                    Status
+                  </label>
                   <CustomDropdown
                     variant="form"
                     width="100%"
                     value={editingPolicy.status}
-                    onChange={(val) => setEditingPolicy({ ...editingPolicy, status: val as PolicyStatus })}
+                    onChange={(val) =>
+                      setEditingPolicy({ ...editingPolicy, status: val as PolicyStatus })
+                    }
                     options={[
                       { value: 'active', label: 'Active', color: '#3dd68c' },
                       { value: 'expiring-soon', label: 'Expiring Soon', color: '#f59e0b' },
@@ -1948,7 +2543,9 @@ export default function InsuranceRegisterClient() {
                   />
                 </div>
                 <div className="col-span-2 flex flex-col gap-1">
-                  <label className="text-xs font-semibold text-muted-foreground uppercase">Notes</label>
+                  <label className="text-xs font-semibold text-muted-foreground uppercase">
+                    Notes
+                  </label>
                   <textarea
                     rows={2}
                     value={editingPolicy.notes || ''}
@@ -1959,11 +2556,25 @@ export default function InsuranceRegisterClient() {
                 </div>
               </div>
               <div className="flex justify-end gap-3 p-6 pt-0 border-t border-border mt-2">
-                <button type="button" onClick={() => setShowEditModal(false)} className="px-4 py-2 rounded-lg text-sm font-medium border border-border" style={{ background: 'var(--surface2)', color: 'var(--text2)' }}>
+                <button
+                  type="button"
+                  onClick={() => setShowEditModal(false)}
+                  className="px-4 py-2 rounded-lg text-sm font-medium border border-border"
+                  style={{ background: 'var(--surface2)', color: 'var(--text2)' }}
+                >
                   Cancel
                 </button>
-                <button type="submit" disabled={savingEdit} className="flex items-center gap-2 px-5 py-2 rounded-lg text-sm font-semibold" style={{ background: 'var(--primary)', color: '#000' }}>
-                  {savingEdit ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
+                <button
+                  type="submit"
+                  disabled={savingEdit}
+                  className="flex items-center gap-2 px-5 py-2 rounded-lg text-sm font-semibold"
+                  style={{ background: 'var(--primary)', color: '#000' }}
+                >
+                  {savingEdit ? (
+                    <Loader2 size={14} className="animate-spin" />
+                  ) : (
+                    <Check size={14} />
+                  )}
                   Save Changes
                 </button>
               </div>
@@ -1974,8 +2585,14 @@ export default function InsuranceRegisterClient() {
 
       {/* Delete Confirmation Dialog */}
       {policyToDelete && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(4px)' }}>
-          <div className="w-full max-w-md rounded-2xl border border-rose-500/30 p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-150" style={{ background: 'var(--surface)' }}>
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{ background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(4px)' }}
+        >
+          <div
+            className="w-full max-w-md rounded-2xl border border-rose-500/30 p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-150"
+            style={{ background: 'var(--surface)' }}
+          >
             <div className="flex items-center gap-3 mb-4">
               <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-rose-500/20 text-rose-400">
                 <AlertTriangle size={20} />
@@ -1986,7 +2603,11 @@ export default function InsuranceRegisterClient() {
               </div>
             </div>
             <p className="text-xs leading-relaxed text-muted-foreground mb-5">
-              Are you sure you want to permanently delete policy <strong className="text-foreground">{policyToDelete.policyNumber} ({policyToDelete.insuranceType})</strong> from the insurance register? This action cannot be undone.
+              Are you sure you want to permanently delete policy{' '}
+              <strong className="text-foreground">
+                {policyToDelete.policyNumber} ({policyToDelete.insuranceType})
+              </strong>{' '}
+              from the insurance register? This action cannot be undone.
             </p>
             <div className="flex items-center justify-end gap-3">
               <button
@@ -2020,19 +2641,38 @@ export default function InsuranceRegisterClient() {
 
       {/* Log Claim Modal */}
       {showLogClaimModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 samko-modal-overlay" onClick={() => setShowLogClaimModal(false)}>
-          <div className="rounded-2xl border border-border-strong w-full max-w-xl max-h-[85vh] overflow-auto shadow-2xl samko-modal-card" style={{ background: '#11141a' }} onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between p-6 border-b border-border" style={{ background: 'var(--surface2)' }}>
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 samko-modal-overlay"
+          onClick={() => setShowLogClaimModal(false)}
+        >
+          <div
+            className="rounded-2xl border border-border-strong w-full max-w-xl max-h-[85vh] overflow-auto shadow-2xl samko-modal-card"
+            style={{ background: '#11141a' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div
+              className="flex items-center justify-between p-6 border-b border-border"
+              style={{ background: 'var(--surface2)' }}
+            >
               <div>
                 <h2 className="font-head font-bold text-lg text-foreground">Log Insurance Claim</h2>
-                <p className="text-xs text-muted-foreground mt-0.5">Submit a new incident or property insurance claim</p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Submit a new incident or property insurance claim
+                </p>
               </div>
-              <button onClick={() => setShowLogClaimModal(false)} className="text-muted-foreground hover:text-foreground text-xl font-bold px-2 py-1 rounded hover:bg-white/10 transition-colors">✕</button>
+              <button
+                onClick={() => setShowLogClaimModal(false)}
+                className="text-muted-foreground hover:text-foreground text-xl font-bold px-2 py-1 rounded hover:bg-white/10 transition-colors"
+              >
+                ✕
+              </button>
             </div>
             <form onSubmit={handleLogClaimSubmit} className="p-6 flex flex-col gap-4">
               <div className="grid grid-cols-2 gap-4">
                 <div className="flex flex-col gap-1">
-                  <label className="text-xs font-semibold text-muted-foreground uppercase">Associated Policy</label>
+                  <label className="text-xs font-semibold text-muted-foreground uppercase">
+                    Associated Policy
+                  </label>
                   <CustomDropdown
                     variant="form"
                     width="100%"
@@ -2053,7 +2693,9 @@ export default function InsuranceRegisterClient() {
                   />
                 </div>
                 <div className="flex flex-col gap-1">
-                  <label className="text-xs font-semibold text-muted-foreground uppercase">Property</label>
+                  <label className="text-xs font-semibold text-muted-foreground uppercase">
+                    Property
+                  </label>
                   <CustomDropdown
                     variant="form"
                     width="100%"
@@ -2063,7 +2705,9 @@ export default function InsuranceRegisterClient() {
                   />
                 </div>
                 <div className="flex flex-col gap-1">
-                  <label className="text-xs font-semibold text-muted-foreground uppercase">Claim Date</label>
+                  <label className="text-xs font-semibold text-muted-foreground uppercase">
+                    Claim Date
+                  </label>
                   <input
                     type="date"
                     required
@@ -2074,7 +2718,9 @@ export default function InsuranceRegisterClient() {
                   />
                 </div>
                 <div className="flex flex-col gap-1">
-                  <label className="text-xs font-semibold text-muted-foreground uppercase">Estimated Amount (£)</label>
+                  <label className="text-xs font-semibold text-muted-foreground uppercase">
+                    Estimated Amount (£)
+                  </label>
                   <input
                     type="number"
                     min="0"
@@ -2086,7 +2732,9 @@ export default function InsuranceRegisterClient() {
                   />
                 </div>
                 <div className="col-span-2 flex flex-col gap-1">
-                  <label className="text-xs font-semibold text-muted-foreground uppercase">Status</label>
+                  <label className="text-xs font-semibold text-muted-foreground uppercase">
+                    Status
+                  </label>
                   <CustomDropdown
                     variant="form"
                     width="100%"
@@ -2101,7 +2749,9 @@ export default function InsuranceRegisterClient() {
                   />
                 </div>
                 <div className="col-span-2 flex flex-col gap-1">
-                  <label className="text-xs font-semibold text-muted-foreground uppercase">Description of Incident</label>
+                  <label className="text-xs font-semibold text-muted-foreground uppercase">
+                    Description of Incident
+                  </label>
                   <textarea
                     rows={3}
                     required
@@ -2128,7 +2778,11 @@ export default function InsuranceRegisterClient() {
                   className="flex items-center gap-2 px-5 py-2 rounded-lg text-sm font-semibold transition-transform active:scale-95 cursor-pointer"
                   style={{ background: 'var(--primary)', color: '#000' }}
                 >
-                  {savingClaim ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />}
+                  {savingClaim ? (
+                    <Loader2 size={14} className="animate-spin" />
+                  ) : (
+                    <Plus size={14} />
+                  )}
                   Log Claim
                 </button>
               </div>
@@ -2139,30 +2793,55 @@ export default function InsuranceRegisterClient() {
 
       {/* Edit Claim Modal */}
       {showEditClaimModal && editingClaim && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 samko-modal-overlay" onClick={() => setShowEditClaimModal(false)}>
-          <div className="rounded-2xl border border-border-strong w-full max-w-xl max-h-[85vh] overflow-auto shadow-2xl samko-modal-card" style={{ background: '#11141a' }} onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between p-6 border-b border-border" style={{ background: 'var(--surface2)' }}>
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 samko-modal-overlay"
+          onClick={() => setShowEditClaimModal(false)}
+        >
+          <div
+            className="rounded-2xl border border-border-strong w-full max-w-xl max-h-[85vh] overflow-auto shadow-2xl samko-modal-card"
+            style={{ background: '#11141a' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div
+              className="flex items-center justify-between p-6 border-b border-border"
+              style={{ background: 'var(--surface2)' }}
+            >
               <div>
-                <h2 className="font-head font-bold text-lg text-foreground">Edit Insurance Claim</h2>
-                <p className="text-xs text-muted-foreground mt-0.5">{editingClaim.policyNumber} · {editingClaim.hotel}</p>
+                <h2 className="font-head font-bold text-lg text-foreground">
+                  Edit Insurance Claim
+                </h2>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  {editingClaim.policyNumber} · {editingClaim.hotel}
+                </p>
               </div>
-              <button onClick={() => setShowEditClaimModal(false)} className="text-muted-foreground hover:text-foreground text-xl font-bold px-2 py-1 rounded hover:bg-white/10 transition-colors">✕</button>
+              <button
+                onClick={() => setShowEditClaimModal(false)}
+                className="text-muted-foreground hover:text-foreground text-xl font-bold px-2 py-1 rounded hover:bg-white/10 transition-colors"
+              >
+                ✕
+              </button>
             </div>
             <form onSubmit={handleSaveEditClaim} className="p-6 flex flex-col gap-4">
               <div className="grid grid-cols-2 gap-4">
                 <div className="flex flex-col gap-1">
-                  <label className="text-xs font-semibold text-muted-foreground uppercase">Associated Policy</label>
+                  <label className="text-xs font-semibold text-muted-foreground uppercase">
+                    Associated Policy
+                  </label>
                   <CustomDropdown
                     variant="form"
                     width="100%"
                     value={editingClaim.policyNumber}
                     onChange={(val) => {
                       const matched = accessiblePolicies.find((p) => p.policyNumber === val);
-                      setEditingClaim((prev) => prev ? ({
-                        ...prev,
-                        policyNumber: val,
-                        hotel: matched?.hotel || prev.hotel,
-                      }) : null);
+                      setEditingClaim((prev) =>
+                        prev
+                          ? {
+                              ...prev,
+                              policyNumber: val,
+                              hotel: matched?.hotel || prev.hotel,
+                            }
+                          : null
+                      );
                     }}
                     options={accessiblePolicies.map((p) => ({
                       value: p.policyNumber,
@@ -2171,7 +2850,9 @@ export default function InsuranceRegisterClient() {
                   />
                 </div>
                 <div className="flex flex-col gap-1">
-                  <label className="text-xs font-semibold text-muted-foreground uppercase">Property</label>
+                  <label className="text-xs font-semibold text-muted-foreground uppercase">
+                    Property
+                  </label>
                   <CustomDropdown
                     variant="form"
                     width="100%"
@@ -2181,29 +2862,39 @@ export default function InsuranceRegisterClient() {
                   />
                 </div>
                 <div className="flex flex-col gap-1">
-                  <label className="text-xs font-semibold text-muted-foreground uppercase">Claim Date</label>
+                  <label className="text-xs font-semibold text-muted-foreground uppercase">
+                    Claim Date
+                  </label>
                   <input
                     type="date"
                     required
                     value={editingClaim.claimDate}
-                    onChange={(e) => setEditingClaim({ ...editingClaim, claimDate: e.target.value })}
+                    onChange={(e) =>
+                      setEditingClaim({ ...editingClaim, claimDate: e.target.value })
+                    }
                     className="rounded-lg border border-border px-3 py-2 text-sm outline-none"
                     style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
                   />
                 </div>
                 <div className="flex flex-col gap-1">
-                  <label className="text-xs font-semibold text-muted-foreground uppercase">Amount (£)</label>
+                  <label className="text-xs font-semibold text-muted-foreground uppercase">
+                    Amount (£)
+                  </label>
                   <input
                     type="number"
                     min="0"
                     value={editingClaim.amount}
-                    onChange={(e) => setEditingClaim({ ...editingClaim, amount: Number(e.target.value) || 0 })}
+                    onChange={(e) =>
+                      setEditingClaim({ ...editingClaim, amount: Number(e.target.value) || 0 })
+                    }
                     className="rounded-lg border border-border px-3 py-2 text-sm outline-none"
                     style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
                   />
                 </div>
                 <div className="col-span-2 flex flex-col gap-1">
-                  <label className="text-xs font-semibold text-muted-foreground uppercase">Status</label>
+                  <label className="text-xs font-semibold text-muted-foreground uppercase">
+                    Status
+                  </label>
                   <CustomDropdown
                     variant="form"
                     width="100%"
@@ -2218,12 +2909,16 @@ export default function InsuranceRegisterClient() {
                   />
                 </div>
                 <div className="col-span-2 flex flex-col gap-1">
-                  <label className="text-xs font-semibold text-muted-foreground uppercase">Description</label>
+                  <label className="text-xs font-semibold text-muted-foreground uppercase">
+                    Description
+                  </label>
                   <textarea
                     rows={3}
                     required
                     value={editingClaim.description}
-                    onChange={(e) => setEditingClaim({ ...editingClaim, description: e.target.value })}
+                    onChange={(e) =>
+                      setEditingClaim({ ...editingClaim, description: e.target.value })
+                    }
                     className="rounded-lg border border-border px-3 py-2 text-sm outline-none resize-none"
                     style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
                   />
@@ -2244,7 +2939,11 @@ export default function InsuranceRegisterClient() {
                   className="flex items-center gap-2 px-5 py-2 rounded-lg text-sm font-semibold transition-transform active:scale-95 cursor-pointer"
                   style={{ background: 'var(--primary)', color: '#000' }}
                 >
-                  {savingClaim ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
+                  {savingClaim ? (
+                    <Loader2 size={14} className="animate-spin" />
+                  ) : (
+                    <Check size={14} />
+                  )}
                   Save Changes
                 </button>
               </div>
@@ -2255,36 +2954,87 @@ export default function InsuranceRegisterClient() {
 
       {/* Claim Detail Modal */}
       {selectedClaim && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 samko-modal-overlay" onClick={() => setSelectedClaim(null)}>
-          <div className="rounded-2xl border border-border-strong w-full max-w-lg overflow-hidden shadow-2xl samko-modal-card" style={{ background: '#11141a' }} onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-start justify-between p-6 border-b border-border" style={{ background: 'var(--surface2)' }}>
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 samko-modal-overlay"
+          onClick={() => setSelectedClaim(null)}
+        >
+          <div
+            className="rounded-2xl border border-border-strong w-full max-w-lg overflow-hidden shadow-2xl samko-modal-card"
+            style={{ background: '#11141a' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div
+              className="flex items-start justify-between p-6 border-b border-border"
+              style={{ background: 'var(--surface2)' }}
+            >
               <div>
                 <div className="flex items-center gap-2 mb-1.5">
-                  <span className="font-mono text-xs px-2.5 py-0.5 rounded font-bold" style={{ background: 'var(--surface3)', color: 'var(--primary)' }}>{selectedClaim.policyNumber}</span>
-                  <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full capitalize" style={{ background: CLAIM_STATUS[selectedClaim.status]?.bg, color: CLAIM_STATUS[selectedClaim.status]?.color }}>{selectedClaim.status}</span>
+                  <span
+                    className="font-mono text-xs px-2.5 py-0.5 rounded font-bold"
+                    style={{ background: 'var(--surface3)', color: 'var(--primary)' }}
+                  >
+                    {selectedClaim.policyNumber}
+                  </span>
+                  <span
+                    className="text-xs font-semibold px-2.5 py-0.5 rounded-full capitalize"
+                    style={{
+                      background: CLAIM_STATUS[selectedClaim.status]?.bg,
+                      color: CLAIM_STATUS[selectedClaim.status]?.color,
+                    }}
+                  >
+                    {selectedClaim.status}
+                  </span>
                 </div>
-                <h2 className="font-head font-bold text-lg text-foreground">{selectedClaim.description}</h2>
-                <p className="text-xs text-muted-foreground mt-0.5">{selectedClaim.hotel} · {new Date(selectedClaim.claimDate).toLocaleDateString('en-GB')}</p>
+                <h2 className="font-head font-bold text-lg text-foreground">
+                  {selectedClaim.description}
+                </h2>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  {selectedClaim.hotel} ·{' '}
+                  {new Date(selectedClaim.claimDate).toLocaleDateString('en-GB')}
+                </p>
               </div>
-              <button onClick={() => setSelectedClaim(null)} className="text-muted-foreground hover:text-foreground text-xl font-bold px-2 py-1 rounded hover:bg-white/10 transition-colors">✕</button>
+              <button
+                onClick={() => setSelectedClaim(null)}
+                className="text-muted-foreground hover:text-foreground text-xl font-bold px-2 py-1 rounded hover:bg-white/10 transition-colors"
+              >
+                ✕
+              </button>
             </div>
             <div className="p-6 flex flex-col gap-4">
               <div className="grid grid-cols-2 gap-3">
-                <div className="p-3 rounded-xl border border-border/60" style={{ background: 'var(--surface2)' }}>
+                <div
+                  className="p-3 rounded-xl border border-border/60"
+                  style={{ background: 'var(--surface2)' }}
+                >
                   <div className="text-xs text-muted-foreground uppercase">Claim Amount</div>
-                  <div className="font-bold text-lg text-primary mt-0.5">{fmt(selectedClaim.amount)}</div>
+                  <div className="font-bold text-lg text-primary mt-0.5">
+                    {fmt(selectedClaim.amount)}
+                  </div>
                 </div>
-                <div className="p-3 rounded-xl border border-border/60" style={{ background: 'var(--surface2)' }}>
+                <div
+                  className="p-3 rounded-xl border border-border/60"
+                  style={{ background: 'var(--surface2)' }}
+                >
                   <div className="text-xs text-muted-foreground uppercase">Claim Date</div>
-                  <div className="font-semibold text-sm text-foreground mt-1">{new Date(selectedClaim.claimDate).toLocaleDateString('en-GB')}</div>
+                  <div className="font-semibold text-sm text-foreground mt-1">
+                    {new Date(selectedClaim.claimDate).toLocaleDateString('en-GB')}
+                  </div>
                 </div>
               </div>
-              <div className="p-4 rounded-xl border border-border/60" style={{ background: 'var(--surface2)' }}>
+              <div
+                className="p-4 rounded-xl border border-border/60"
+                style={{ background: 'var(--surface2)' }}
+              >
                 <div className="text-xs text-muted-foreground uppercase mb-1">Details & Scope</div>
-                <p className="text-sm leading-relaxed text-foreground">{selectedClaim.description}</p>
+                <p className="text-sm leading-relaxed text-foreground">
+                  {selectedClaim.description}
+                </p>
               </div>
             </div>
-            <div className="flex items-center justify-between p-4 border-t border-border" style={{ background: 'var(--surface2)' }}>
+            <div
+              className="flex items-center justify-between p-4 border-t border-border"
+              style={{ background: 'var(--surface2)' }}
+            >
               {hasDeleteAccess && (
                 <button
                   onClick={() => {
@@ -2323,19 +3073,33 @@ export default function InsuranceRegisterClient() {
 
       {/* Delete Claim Confirmation Dialog */}
       {claimToDelete && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(4px)' }}>
-          <div className="w-full max-w-md rounded-2xl border border-rose-500/30 p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-150" style={{ background: 'var(--surface)' }}>
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{ background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(4px)' }}
+        >
+          <div
+            className="w-full max-w-md rounded-2xl border border-rose-500/30 p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-150"
+            style={{ background: 'var(--surface)' }}
+          >
             <div className="flex items-center gap-3 mb-4">
               <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-rose-500/20 text-rose-400">
                 <AlertTriangle size={20} />
               </div>
               <div>
-                <h3 className="font-head font-bold text-base text-foreground">Confirm Delete Claim</h3>
-                <p className="text-xs text-muted-foreground">{claimToDelete.policyNumber} · {claimToDelete.hotel}</p>
+                <h3 className="font-head font-bold text-base text-foreground">
+                  Confirm Delete Claim
+                </h3>
+                <p className="text-xs text-muted-foreground">
+                  {claimToDelete.policyNumber} · {claimToDelete.hotel}
+                </p>
               </div>
             </div>
             <p className="text-xs leading-relaxed text-muted-foreground mb-5">
-              Are you sure you want to permanently delete the insurance claim for <strong className="text-foreground">"{claimToDelete.description}" ({fmt(claimToDelete.amount)})</strong>? This action cannot be undone.
+              Are you sure you want to permanently delete the insurance claim for{' '}
+              <strong className="text-foreground">
+                "{claimToDelete.description}" ({fmt(claimToDelete.amount)})
+              </strong>
+              ? This action cannot be undone.
             </p>
             <div className="flex items-center justify-end gap-3">
               <button
@@ -2366,27 +3130,48 @@ export default function InsuranceRegisterClient() {
           </div>
         </div>
       )}
-          {/* Add Category Modal */}
+      {/* Add Category Modal */}
       {showAddCategoryModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(4px)' }}>
-          <div className="w-full max-w-lg rounded-2xl border border-border overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200" style={{ background: 'var(--surface)' }}>
-            <div className="flex items-center justify-between px-6 py-4 border-b border-border" style={{ background: 'var(--surface2)' }}>
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{ background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(4px)' }}
+        >
+          <div
+            className="w-full max-w-lg rounded-2xl border border-border overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200"
+            style={{ background: 'var(--surface)' }}
+          >
+            <div
+              className="flex items-center justify-between px-6 py-4 border-b border-border"
+              style={{ background: 'var(--surface2)' }}
+            >
               <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'rgba(232,201,122,0.15)', color: 'var(--primary)' }}>
+                <div
+                  className="w-8 h-8 rounded-lg flex items-center justify-center"
+                  style={{ background: 'rgba(232,201,122,0.15)', color: 'var(--primary)' }}
+                >
                   <Tag size={16} />
                 </div>
                 <div>
-                  <h3 className="font-head font-bold text-base text-foreground">Manage Insurance Categories</h3>
-                  <p className="text-xs text-muted-foreground">Add new categories, view assigned policies, rename or delete</p>
+                  <h3 className="font-head font-bold text-base text-foreground">
+                    Manage Insurance Categories
+                  </h3>
+                  <p className="text-xs text-muted-foreground">
+                    Add new categories, view assigned policies, rename or delete
+                  </p>
                 </div>
               </div>
-              <button onClick={() => setShowAddCategoryModal(false)} className="w-7 h-7 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground cursor-pointer">
+              <button
+                onClick={() => setShowAddCategoryModal(false)}
+                className="w-7 h-7 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground cursor-pointer"
+              >
                 <X size={16} />
               </button>
             </div>
             <div className="p-6 space-y-4">
               <form onSubmit={handleSaveCategory} className="space-y-3">
-                <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wide">Add New Category</label>
+                <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                  Add New Category
+                </label>
                 <div className="flex gap-2">
                   <input
                     type="text"
@@ -2412,7 +3197,9 @@ export default function InsuranceRegisterClient() {
                   <label className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
                     Active Categories ({allCategories.length})
                   </label>
-                  <span className="text-[10px] text-muted-foreground">Eye to view · Pencil to edit · Trash to delete</span>
+                  <span className="text-[10px] text-muted-foreground">
+                    Eye to view · Pencil to edit · Trash to delete
+                  </span>
                 </div>
                 <div className="space-y-1.5 max-h-60 overflow-y-auto custom-scrollbar pr-1">
                   {allCategories.map((c) => {
@@ -2428,7 +3215,9 @@ export default function InsuranceRegisterClient() {
                             <input
                               type="text"
                               value={editingCat.newName}
-                              onChange={(e) => setEditingCat({ ...editingCat, newName: e.target.value })}
+                              onChange={(e) =>
+                                setEditingCat({ ...editingCat, newName: e.target.value })
+                              }
                               className="flex-1 px-2.5 py-1 rounded-lg border border-primary text-xs outline-none bg-surface text-foreground"
                               autoFocus
                             />
@@ -2452,12 +3241,17 @@ export default function InsuranceRegisterClient() {
                             <div className="flex items-center gap-2.5 min-w-0 flex-1">
                               <div
                                 className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
-                                style={{ background: 'rgba(232,201,122,0.15)', color: 'var(--primary)' }}
+                                style={{
+                                  background: 'rgba(232,201,122,0.15)',
+                                  color: 'var(--primary)',
+                                }}
                               >
                                 <Tag size={14} />
                               </div>
                               <div className="min-w-0">
-                                <p className="text-xs font-semibold text-foreground truncate">{c}</p>
+                                <p className="text-xs font-semibold text-foreground truncate">
+                                  {c}
+                                </p>
                               </div>
                             </div>
                             <div className="flex items-center gap-1.5 flex-shrink-0">
@@ -2465,7 +3259,11 @@ export default function InsuranceRegisterClient() {
                                 type="button"
                                 onClick={() => handleViewCategoryRecords(c)}
                                 className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium border border-border hover:bg-surface transition-colors cursor-pointer"
-                                style={{ color: 'var(--primary)', borderColor: 'rgba(232,201,122,0.25)', background: 'rgba(232,201,122,0.08)' }}
+                                style={{
+                                  color: 'var(--primary)',
+                                  borderColor: 'rgba(232,201,122,0.25)',
+                                  background: 'rgba(232,201,122,0.08)',
+                                }}
                                 title={`Select category ${c}`}
                               >
                                 <Eye size={12} />
@@ -2513,25 +3311,46 @@ export default function InsuranceRegisterClient() {
 
       {/* Add Type Modal */}
       {showAddTypeModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(4px)' }}>
-          <div className="w-full max-w-lg rounded-2xl border border-border overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200" style={{ background: 'var(--surface)' }}>
-            <div className="flex items-center justify-between px-6 py-4 border-b border-border" style={{ background: 'var(--surface2)' }}>
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{ background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(4px)' }}
+        >
+          <div
+            className="w-full max-w-lg rounded-2xl border border-border overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200"
+            style={{ background: 'var(--surface)' }}
+          >
+            <div
+              className="flex items-center justify-between px-6 py-4 border-b border-border"
+              style={{ background: 'var(--surface2)' }}
+            >
               <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'rgba(232,201,122,0.15)', color: 'var(--primary)' }}>
+                <div
+                  className="w-8 h-8 rounded-lg flex items-center justify-center"
+                  style={{ background: 'rgba(232,201,122,0.15)', color: 'var(--primary)' }}
+                >
                   <Plus size={16} />
                 </div>
                 <div>
-                  <h3 className="font-head font-bold text-base text-foreground">Manage Insurance Types</h3>
-                  <p className="text-xs text-muted-foreground">Add new policy types, view records, rename or delete</p>
+                  <h3 className="font-head font-bold text-base text-foreground">
+                    Manage Insurance Types
+                  </h3>
+                  <p className="text-xs text-muted-foreground">
+                    Add new policy types, view records, rename or delete
+                  </p>
                 </div>
               </div>
-              <button onClick={() => setShowAddTypeModal(false)} className="w-7 h-7 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground cursor-pointer">
+              <button
+                onClick={() => setShowAddTypeModal(false)}
+                className="w-7 h-7 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground cursor-pointer"
+              >
                 <X size={16} />
               </button>
             </div>
             <div className="p-6 space-y-4">
               <form onSubmit={handleSaveType} className="space-y-3">
-                <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wide">Add New Insurance Type</label>
+                <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                  Add New Insurance Type
+                </label>
                 <div className="flex gap-2">
                   <input
                     type="text"
@@ -2557,7 +3376,9 @@ export default function InsuranceRegisterClient() {
                   <label className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
                     Active Insurance Types ({allTypes.length})
                   </label>
-                  <span className="text-[10px] text-muted-foreground">Eye to view · Pencil to edit · Trash to delete</span>
+                  <span className="text-[10px] text-muted-foreground">
+                    Eye to view · Pencil to edit · Trash to delete
+                  </span>
                 </div>
                 <div className="space-y-1.5 max-h-60 overflow-y-auto custom-scrollbar pr-1">
                   {allTypes.map((t) => {
@@ -2575,7 +3396,9 @@ export default function InsuranceRegisterClient() {
                             <input
                               type="text"
                               value={editingType.newName}
-                              onChange={(e) => setEditingType({ ...editingType, newName: e.target.value })}
+                              onChange={(e) =>
+                                setEditingType({ ...editingType, newName: e.target.value })
+                              }
                               className="flex-1 px-2.5 py-1 rounded-lg border border-primary text-xs outline-none bg-surface text-foreground"
                               autoFocus
                             />
@@ -2599,12 +3422,17 @@ export default function InsuranceRegisterClient() {
                             <div className="flex items-center gap-2.5 min-w-0 flex-1">
                               <div
                                 className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
-                                style={{ background: 'rgba(232,201,122,0.15)', color: 'var(--primary)' }}
+                                style={{
+                                  background: 'rgba(232,201,122,0.15)',
+                                  color: 'var(--primary)',
+                                }}
                               >
                                 <Shield size={14} />
                               </div>
                               <div className="min-w-0">
-                                <p className="text-xs font-semibold text-foreground truncate">{t}</p>
+                                <p className="text-xs font-semibold text-foreground truncate">
+                                  {t}
+                                </p>
                                 <p className="text-[11px] text-muted-foreground">
                                   {count} {count === 1 ? 'policy' : 'policies'}
                                 </p>
@@ -2615,7 +3443,11 @@ export default function InsuranceRegisterClient() {
                                 type="button"
                                 onClick={() => handleViewTypeRecords(t)}
                                 className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium border border-border hover:bg-surface transition-colors cursor-pointer"
-                                style={{ color: 'var(--primary)', borderColor: 'rgba(232,201,122,0.25)', background: 'rgba(232,201,122,0.08)' }}
+                                style={{
+                                  color: 'var(--primary)',
+                                  borderColor: 'rgba(232,201,122,0.25)',
+                                  background: 'rgba(232,201,122,0.08)',
+                                }}
                                 title={`See records for ${t}`}
                               >
                                 <Eye size={12} />
@@ -2663,22 +3495,32 @@ export default function InsuranceRegisterClient() {
 
       {/* Type Delete Confirmation Dialog */}
       {typeToDelete && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(4px)' }}>
-          <div className="w-full max-w-md rounded-2xl border border-rose-500/30 p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-150" style={{ background: 'var(--surface)' }}>
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{ background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(4px)' }}
+        >
+          <div
+            className="w-full max-w-md rounded-2xl border border-rose-500/30 p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-150"
+            style={{ background: 'var(--surface)' }}
+          >
             <div className="flex items-center gap-3 mb-4">
               <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-rose-500/20 text-rose-400">
                 <AlertTriangle size={20} />
               </div>
               <div>
-                <h3 className="font-head font-bold text-base text-foreground">Delete Insurance Type</h3>
+                <h3 className="font-head font-bold text-base text-foreground">
+                  Delete Insurance Type
+                </h3>
                 <p className="text-xs text-muted-foreground">{typeToDelete}</p>
               </div>
             </div>
             <p className="text-xs leading-relaxed text-muted-foreground mb-5">
-              Are you sure you want to remove <strong className="text-foreground">{typeToDelete}</strong> from insurance types?
+              Are you sure you want to remove{' '}
+              <strong className="text-foreground">{typeToDelete}</strong> from insurance types?
               {policies.filter((p) => p.insuranceType === typeToDelete).length > 0 && (
                 <span className="block mt-2 text-rose-400">
-                  Warning: {policies.filter((p) => p.insuranceType === typeToDelete).length} policy record(s) currently use this insurance type.
+                  Warning: {policies.filter((p) => p.insuranceType === typeToDelete).length} policy
+                  record(s) currently use this insurance type.
                 </span>
               )}
             </p>
@@ -2705,21 +3547,31 @@ export default function InsuranceRegisterClient() {
 
       {/* Category Delete Confirmation Dialog */}
       {catToDelete && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(4px)' }}>
-          <div className="w-full max-w-md rounded-2xl border border-rose-500/30 p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-150" style={{ background: 'var(--surface)' }}>
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{ background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(4px)' }}
+        >
+          <div
+            className="w-full max-w-md rounded-2xl border border-rose-500/30 p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-150"
+            style={{ background: 'var(--surface)' }}
+          >
             <div className="flex items-center gap-3 mb-4">
               <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-rose-500/20 text-rose-400">
                 <AlertTriangle size={20} />
               </div>
               <div>
-                <h3 className="font-head font-bold text-base text-foreground">Delete Insurance Category</h3>
+                <h3 className="font-head font-bold text-base text-foreground">
+                  Delete Insurance Category
+                </h3>
                 <p className="text-xs text-muted-foreground">{catToDelete}</p>
               </div>
             </div>
             <p className="text-xs leading-relaxed text-muted-foreground mb-5">
-              Are you sure you want to delete the category <strong className="text-foreground">{catToDelete}</strong>?
+              Are you sure you want to delete the category{' '}
+              <strong className="text-foreground">{catToDelete}</strong>?
               <span className="block mt-2 text-emerald-400 font-medium">
-                Note: All existing insurance policies and claims will safely stay in the database. Only this category option will be removed from future dropdown selections.
+                Note: All existing insurance policies and claims will safely stay in the database.
+                Only this category option will be removed from future dropdown selections.
               </span>
             </p>
             <div className="flex items-center justify-end gap-3">

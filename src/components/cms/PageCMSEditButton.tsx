@@ -2,7 +2,17 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { Sparkles, X, Save, Eye, EyeOff, ExternalLink, RefreshCw, Settings, Sliders } from 'lucide-react';
+import {
+  Sparkles,
+  X,
+  Save,
+  Eye,
+  EyeOff,
+  ExternalLink,
+  RefreshCw,
+  Settings,
+  Sliders,
+} from 'lucide-react';
 import { useAuth } from '@/lib/authContext';
 import {
   useDeepPageCms,
@@ -21,7 +31,11 @@ interface PageCMSEditButtonProps {
   className?: string;
 }
 
-export default function PageCMSEditButton({ pageId, pageName, className = '' }: PageCMSEditButtonProps) {
+export default function PageCMSEditButton({
+  pageId,
+  pageName,
+  className = '',
+}: PageCMSEditButtonProps) {
   const { isDigitalBot } = useAuth();
   const isAllowed = Boolean(isDigitalBot);
 
@@ -124,7 +138,10 @@ export default function PageCMSEditButton({ pageId, pageName, className = '' }: 
               <div className="flex items-center gap-3">
                 <div
                   className="w-8 h-8 rounded-lg flex items-center justify-center"
-                  style={{ background: 'linear-gradient(135deg, #e8c97a 0%, #b89340 100%)', color: '#121316' }}
+                  style={{
+                    background: 'linear-gradient(135deg, #e8c97a 0%, #b89340 100%)',
+                    color: '#121316',
+                  }}
                 >
                   <Sparkles size={16} />
                 </div>
@@ -217,7 +234,9 @@ export default function PageCMSEditButton({ pageId, pageName, className = '' }: 
                   </div>
 
                   <div className="flex flex-col gap-1.5">
-                    <label className="text-xs font-bold text-foreground">Subtitle / Managed Description</label>
+                    <label className="text-xs font-bold text-foreground">
+                      Subtitle / Managed Description
+                    </label>
                     <input
                       type="text"
                       value={form.subtitle}
@@ -228,7 +247,9 @@ export default function PageCMSEditButton({ pageId, pageName, className = '' }: 
                   </div>
 
                   <div className="flex flex-col gap-1.5">
-                    <label className="text-xs font-bold text-foreground">Search Bar Placeholder</label>
+                    <label className="text-xs font-bold text-foreground">
+                      Search Bar Placeholder
+                    </label>
                     <input
                       type="text"
                       value={form.searchPlaceholder}
@@ -240,7 +261,9 @@ export default function PageCMSEditButton({ pageId, pageName, className = '' }: 
 
                   <div className="grid grid-cols-2 gap-3">
                     <div className="flex flex-col gap-1.5">
-                      <label className="text-xs font-bold text-foreground">Primary Action Button</label>
+                      <label className="text-xs font-bold text-foreground">
+                        Primary Action Button
+                      </label>
                       <input
                         type="text"
                         value={form.primaryActionLabel}
@@ -250,7 +273,9 @@ export default function PageCMSEditButton({ pageId, pageName, className = '' }: 
                       />
                     </div>
                     <div className="flex flex-col gap-1.5">
-                      <label className="text-xs font-bold text-foreground">Secondary Button (optional)</label>
+                      <label className="text-xs font-bold text-foreground">
+                        Secondary Button (optional)
+                      </label>
                       <input
                         type="text"
                         value={form.secondaryActionLabel}

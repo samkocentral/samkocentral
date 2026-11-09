@@ -2,21 +2,43 @@
 
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { Zap, Flame, Droplets, Search, Plus, Download, Eye, AlertTriangle, CheckCircle2, Clock, RefreshCw, ChevronDown, Loader2, Trash2, X, Check, Edit2, Tag } from 'lucide-react';
+import {
+  Zap,
+  Flame,
+  Droplets,
+  Search,
+  Plus,
+  Download,
+  Eye,
+  AlertTriangle,
+  CheckCircle2,
+  Clock,
+  RefreshCw,
+  ChevronDown,
+  Loader2,
+  Trash2,
+  X,
+  Check,
+  Edit2,
+  Tag,
+} from 'lucide-react';
 import Icon from '@/components/ui/AppIcon';
 import CustomDropdown from '@/components/ui/CustomDropdown';
 import { api } from '@/lib/api';
 import { useAuth } from '@/lib/authContext';
 import { toast } from 'sonner';
 import PageCMSEditButton from '@/components/cms/PageCMSEditButton';
-import { useDeepPageCms, addDropdownOption, removeDropdownOptionByName, type ColumnDefinition } from '@/lib/deepPageCms';
+import {
+  useDeepPageCms,
+  addDropdownOption,
+  removeDropdownOptionByName,
+  type ColumnDefinition,
+} from '@/lib/deepPageCms';
 import LoadingPagination from '@/components/ui/LoadingPagination';
 import { useLoadingPagination } from '@/hooks/useLoadingPagination';
 import TableCheckbox from '@/components/ui/TableCheckbox';
 import BulkActionBar from '@/components/ui/BulkActionBar';
 import ConfirmDeleteModal from '@/components/modals/ConfirmDeleteModal';
-
-
 
 type UtilityType = 'Electricity' | 'Gas' | 'Water' | string;
 type UtilityStatus = 'active' | 'expiring-soon' | 'expired' | 'incomplete';
@@ -43,230 +65,59 @@ interface UtilityAccount {
 
 // ─── REAL DATA — Seeded from Samko_Holdings_Utilities_Master ─────────────────
 const UTILITIES: UtilityAccount[] = [
-  // ── SUN HOTEL (CROWNE PLAZA KINGSTON) ──
   {
-    id: 'u-001', property: 'Crowne Plaza Kingston-south', utilityType: 'Electricity',
-    supplier: 'EDF Energy', accountNumber: '3898198541', meterReference: 'MPAN: 1900092859450 / Meter: E24BG03134_P272',
-    contractStart: '2025-11-01', contractEnd: '2026-10-31', annualCost: 0, monthlyCost: 213,
-    tariffRate: '20.0878p/kWh; Standing: £40.14/day', portalLogin: 'Accounts@cplondonkingston.co.uk',
-    supplierPhone: '0845 366 3664', supplierEmail: 'remittanceadvices@edfenergy.com',
-    status: 'expiring-soon', notes: 'Contract: Q_2225032. Fixed Fully Inclusive (Half-Hourly). Renewal due Oct 2026.',
-    flags: ['Renewal Due Oct 2026'],
+    id: 'u-001',
+    property: 'Gow',
+    utilityType: 'Electricity',
+    supplier: 'British Gas Business',
+    accountNumber: 'BG-GOW-001',
+    meterReference: 'MPAN: 190002847192 / Meter: E19BG001',
+    contractStart: '2025-01-01',
+    contractEnd: '2027-12-31',
+    annualCost: 28400,
+    monthlyCost: 2367,
+    tariffRate: '21.5p/kWh; Standing: £1.85/day',
+    portalLogin: 'accounts@samkocentral.com',
+    supplierPhone: '+44 800 048 0202',
+    supplierEmail: 'business@britishgas.co.uk',
+    status: 'active',
+    notes: 'Main 3-phase electricity supply for Gow site.',
   },
   {
-    id: 'u-002', property: 'Crowne Plaza Kingston-south', utilityType: 'Gas',
-    supplier: 'SEFE Energy', accountNumber: '100091219', meterReference: 'MPRN: 9209299704 / Meter: M100K0079408D6',
-    contractStart: '2026-03-01', contractEnd: '2028-02-29', annualCost: 13508, monthlyCost: 1126,
-    tariffRate: '3.8431p/kWh; Standing: £5.607/day', portalLogin: 'Accounts@cplondonkingston.co.uk',
-    supplierPhone: '0161 837 3395', supplierEmail: 'enquiries@sefe-energy.com',
-    status: 'active', notes: 'Contract: AG08104881. Fixed 2-year SEFE Energy Shield. AQ: 298,269 kWh. Signed 09-Feb-2026.',
+    id: 'u-002',
+    property: 'Crowne Plaza Kingston-south',
+    utilityType: 'Gas',
+    supplier: 'SEFE Energy',
+    accountNumber: '100091219',
+    meterReference: 'MPRN: 9209299704 / Meter: M100K0079408D6',
+    contractStart: '2026-03-01',
+    contractEnd: '2028-02-29',
+    annualCost: 13508,
+    monthlyCost: 1126,
+    tariffRate: '3.8431p/kWh; Standing: £5.607/day',
+    portalLogin: 'Accounts@cplondonkingston.co.uk',
+    supplierPhone: '0161 837 3395',
+    supplierEmail: 'enquiries@sefe-energy.com',
+    status: 'active',
+    notes: 'Contract: AG08104881. Fixed 2-year SEFE Energy Shield.',
   },
   {
-    id: 'u-003', property: 'Crowne Plaza Kingston-south', utilityType: 'Water',
-    supplier: 'Everflow', accountNumber: 'EFW293246-0', meterReference: 'SPID: 3010968825 / Meter: 319025069',
-    contractStart: '2023-07-10', contractEnd: '2026-07-09', annualCost: 35240, monthlyCost: 2937,
-    tariffRate: 'Water: £2.7346/m³; Waste: £1.5496/m³; Fixed: £1,202.56/yr', portalLogin: 'EFW293246-0',
-    supplierPhone: '0330 6600 137', supplierEmail: 'customer.services@everflowutilities.com',
-    status: 'expired', notes: 'CONTRACT RENEWAL DUE — expired 09-Jul-2026. Address: Holiday Inn, Portsmouth Rd, Surbiton KT6 5QQ.',
-    flags: ['⚠️ CONTRACT EXPIRED — Renewal Required'],
-  },
-
-  // ── WARREN HOUSE ──
-  {
-    id: 'u-004', property: 'Warren House', utilityType: 'Electricity',
-    supplier: 'EDF Energy', accountNumber: '0506000000', meterReference: 'MPAN: 1200010214798 / Top: 00 845 072',
-    contractStart: '2026-05-01', contractEnd: '2027-04-30', annualCost: 100198, monthlyCost: 8350,
-    tariffRate: 'Day: 21.3419p/kWh; Night: 15.6863p/kWh; Standing: £13.04/day; Availability: 7.257p/kVA/day',
-    portalLogin: 'accounts@warrenhouse.com (portal login email not recorded)',
-    supplierPhone: '0845 366 3664', supplierEmail: 'Anete.Painter@edfenergy.com',
-    status: 'active', notes: 'Contract: Q-52926-R1L7P0. Annual volume: 459,826 kWh. Signed 04-Feb-2026. Broker: Nationwide Utilities Ltd. EDF Relationship Manager: Anete Painter — 020 8186 1382.',
-    flags: ['Portal login email not recorded'],
-  },
-  {
-    id: 'u-005', property: 'Warren House', utilityType: 'Gas',
-    supplier: 'SEFE Energy', accountNumber: '100093919', meterReference: 'MPRN: 10473207 / Meter: M160A0004412A7',
-    contractStart: '2026-05-01', contractEnd: '2028-04-30', annualCost: 30397, monthlyCost: 2533,
-    tariffRate: '3.4765p/kWh; Standing: £13.167/day', portalLogin: 'accounts@warrenhouse.com',
-    supplierPhone: '0161 837 3395', supplierEmail: 'enquiries@sefe-energy.com',
-    status: 'active', notes: 'Contract: AG08019270. Fixed 2-year SEFE Energy Shield. AQ: 736,171 kWh. Signed 04-Feb-2026.',
-  },
-  {
-    id: 'u-006', property: 'Warren House', utilityType: 'Water',
-    supplier: 'Everflow', accountNumber: 'EFW232342-0', meterReference: 'SPID: 3010981651 (waste-only) + SPID: 3011506736 (water+waste)',
-    contractStart: '2023-07-10', contractEnd: '2026-10-02', annualCost: 21509, monthlyCost: 954,
-    tariffRate: 'Water: £1.7760/m³; Waste: £1.0544/m³; Fixed: £676.44/yr per SPID', portalLogin: 'EFW232342-0',
-    supplierPhone: '0330 6600 137', supplierEmail: 'customer.services@everflowutilities.com',
-    status: 'expiring-soon', notes: 'Contract renewal due Oct 2026. ⚠️ Outstanding balance £9,007.52 — ACTION REQUIRED. Annual forecast: £21,509.15 net.',
-    flags: ['⚠️ Renewal Due Oct 2026', '⚠️ Outstanding Balance £9,007.52'],
-  },
-
-  // ── STANHILL COURT ──
-  {
-    id: 'u-007', property: 'Stanhill Court', utilityType: 'Electricity',
-    supplier: 'SSE Energy Solutions', accountNumber: '8701889865', meterReference: 'MPAN: 1900018001128 / Meter: K20A002284',
-    contractStart: '2026-02-12', contractEnd: '2027-01-31', annualCost: 0, monthlyCost: 0,
-    tariffRate: 'Fixed Green Protect HH Non-Energy Only', portalLogin: 'ab@stanhillcourthotel.co.uk',
-    supplierPhone: '0345 725 2526', supplierEmail: 'businesscontracts@sse.com',
-    status: 'active', notes: 'Contract: AGR5408710. Portal: my.sseenergysolutions.co.uk. Tariff/rate details not yet recorded.',
-  },
-  {
-    id: 'u-008', property: 'Stanhill Court', utilityType: 'Gas',
-    supplier: 'Calor Gas', accountNumber: 'N/A', meterReference: 'N/A',
-    contractStart: '', contractEnd: '', annualCost: 0, monthlyCost: 0,
-    tariffRate: 'LPG/Calor — rate not recorded', portalLogin: 'SH1881',
-    supplierPhone: 'N/A', supplierEmail: 'N/A',
-    status: 'incomplete', notes: '⚠️ Portal not working. Account details to be provided via WhatsApp. All fields require updating.',
-    flags: ['⚠️ Incomplete — Portal not working'],
-  },
-  {
-    id: 'u-009', property: 'Stanhill Court', utilityType: 'Water',
-    supplier: 'Everflow', accountNumber: 'EFW364357-0', meterReference: 'SPID: 3026521701 / Meter: 5069925',
-    contractStart: '', contractEnd: '2026-01-27', annualCost: 0, monthlyCost: 0,
-    tariffRate: 'Rate not recorded', portalLogin: 'EFW364357-0',
-    supplierPhone: '0330 6600 137', supplierEmail: 'customer.services@everflowutilities.com',
-    status: 'expired', notes: '⚠️ Contract end date 27-Jan-2026 has already passed. Renewal action required.',
-    flags: ['⚠️ CONTRACT EXPIRED — Renewal Required'],
-  },
-
-  // ── THE RIVER CLUB ──
-  {
-    id: 'u-010', property: 'River Club', utilityType: 'Electricity',
-    supplier: 'SSE Energy Solutions', accountNumber: '880000068119', meterReference: 'MPANs: 1900029038809 / 1900031000016 / 1900070285553 / 1900090295272',
-    contractStart: '2025-09-01', contractEnd: '2026-08-31', annualCost: 21082, monthlyCost: 1757,
-    tariffRate: 'NHH: 20.5107p/kWh; Day: 23.6805p/kWh; Night: 16.2019p/kWh; Eve: 17.9279p/kWh',
-    portalLogin: 'david@theriverclub.co.uk',
-    supplierPhone: '0345 072 9402', supplierEmail: 'cmt.commercial@sse.com',
-    status: 'expiring-soon', notes: 'Contract: AGR3464675. 4 MPANs total. Annual volume: ~89,604 kWh. Signed 09/07/2025. ⚠️ Legacy invoice IV04388495 for £89,837.19 (Revenue Protection 2018–2025) — VERIFY/DISPUTE.',
-    flags: ['Renewal Due Aug 2026', '⚠️ Legacy Invoice £89,837.19 — Verify/Dispute'],
-  },
-  {
-    id: 'u-011', property: 'River Club', utilityType: 'Gas',
-    supplier: 'SEFE Energy', accountNumber: '100022228', meterReference: 'MPRN: 9116667904 / Meter: M016A0564215A6',
-    contractStart: '2027-01-01', contractEnd: '2027-09-30', annualCost: 20329, monthlyCost: 1694,
-    tariffRate: '3.8114p/kWh (from Jan-27); Standing: £5.756/day; Current rate: 6.8508p/kWh',
-    portalLogin: 'david@theriverclub.co.uk',
-    supplierPhone: '0161 837 3395', supplierEmail: 'enquiries@sefe-energy.com',
-    status: 'active', notes: 'Contract: AG07576924. AQ: 478,165 kWh. Signed 09/07/2025. New contract starts Jan-27.',
-  },
-  {
-    id: 'u-012', property: 'River Club', utilityType: 'Water',
-    supplier: 'Everflow', accountNumber: 'EFW292393-0', meterReference: 'SPID: 3012811532 / Meter: 150005643',
-    contractStart: '', contractEnd: '2027-10-06', annualCost: 0, monthlyCost: 1420,
-    tariffRate: 'Wholesale + Retail — full tariff to be extracted from invoice', portalLogin: 'EFW292393-0',
-    supplierPhone: '0330 6600 137', supplierEmail: 'customer.services@everflowutilities.com',
-    status: 'active', notes: 'Contract end: 06-Oct-2027. Latest invoice: £1,420.06 net (May 2026).',
-  },
-
-  // ── HAMPTON APARTMENTS 1 (SUN TV) ──
-  {
-    id: 'u-013', property: 'Hampton 1 & 2', utilityType: 'Electricity',
-    supplier: 'ENGIE Power', accountNumber: '10314633', meterReference: 'MPAN: 1900026425412 / Meter: 44651946',
-    contractStart: '', contractEnd: '2027-05-31', annualCost: 0, monthlyCost: 2465,
-    tariffRate: '65.2243p/kWh; Standing: £5.0718/day; CCL: 0.801p/kWh',
-    portalLogin: 'Portal login not yet available',
-    supplierPhone: 'N/A', supplierEmail: 'N/A',
-    status: 'active', notes: 'Account: Sampath Kumar Mallaya & Sun TV UK Limited (T/A Hampton Suites). Next contract ends 31-Mar-2029 — notice required by 01-Mar-2029.',
-    flags: ['Portal login not yet available'],
-  },
-  {
-    id: 'u-014', property: 'Hampton 1 & 2', utilityType: 'Water',
-    supplier: 'Castle Water', accountNumber: '2578329', meterReference: 'Meter/SPID awaiting from main invoice',
-    contractStart: '', contractEnd: '', annualCost: 0, monthlyCost: 0,
-    tariffRate: 'Awaiting full tariff sheet', portalLogin: 'Not recorded',
-    supplierPhone: 'N/A', supplierEmail: 'N/A',
-    status: 'incomplete', notes: '⚠️ Outstanding balance £1,029.50 (due 06/05/2026) — investigate late payment charge. Meter/SPID and full tariff awaiting main invoice.',
-    flags: ['⚠️ Outstanding Balance £1,029.50', 'Meter/SPID Awaiting'],
-  },
-
-  // ── RAVENS AIT (4YOU HOSPITALITY / 4YOU INVESTMENTS) ──
-  {
-    id: 'u-015', property: 'Ravens Ait Island', utilityType: 'Electricity',
-    supplier: 'EDF Energy', accountNumber: 'A-7F0A5110', meterReference: 'MPAN: 1900034424274 / Meter: A7471465',
-    contractStart: '', contractEnd: '', annualCost: 36518, monthlyCost: 3480,
-    tariffRate: '45.550p/kWh; Standing: £1.86/day; CCL: 0.801p/kWh',
-    portalLogin: 'Not recorded',
-    supplierPhone: '0845 366 3664', supplierEmail: 'remittanceadvices@edfenergy.com',
-    status: 'incomplete', notes: '⚠️ On variable Freedom tariff — no fixed-rate contract on file. REVIEW FOR FIXED-RATE PROCUREMENT. Account Holder: 4You Investments Ltd. Annual estimated usage: 78,710 kWh.',
-    flags: ['⚠️ Variable Tariff — Review for Fixed-Rate', 'Portal Login Not Recorded'],
-  },
-  {
-    id: 'u-016', property: 'Ravens Ait Island', utilityType: 'Water',
-    supplier: 'Castle Water', accountNumber: '2531103', meterReference: 'Water SPID: 3011855706W14 / Waste SPID: 3011855706S11 / Meter: 131612389',
-    contractStart: '', contractEnd: '', annualCost: 0, monthlyCost: 319,
-    tariffRate: 'Water: £2.9534/m³; Foul Sewerage: £1.7046/m³; Fixed: £2.039/day',
-    portalLogin: 'Not recorded',
-    supplierPhone: 'N/A', supplierEmail: 'N/A',
-    status: 'incomplete', notes: 'Account Holder: 4You Hospitality Services Limited. Meter size: 40mm. Latest invoice: £319.34 (May 2026).',
-    flags: ['Portal Login Not Recorded'],
-  },
-
-  // ── CLAPHAM APARTMENT ──
-  {
-    id: 'u-017', property: 'Clapham Apartment', utilityType: 'Electricity',
-    supplier: 'Not recorded', accountNumber: 'N/A', meterReference: 'N/A',
-    contractStart: '', contractEnd: '', annualCost: 0, monthlyCost: 0,
-    tariffRate: 'N/A', portalLogin: 'N/A',
-    supplierPhone: 'N/A', supplierEmail: 'N/A',
-    status: 'incomplete', notes: 'No supplier documentation on file. Placeholder — all details required.',
-    flags: ['⚠️ No Documentation on File'],
-  },
-  {
-    id: 'u-018', property: 'Clapham Apartment', utilityType: 'Gas',
-    supplier: 'Not recorded', accountNumber: 'N/A', meterReference: 'N/A',
-    contractStart: '', contractEnd: '', annualCost: 0, monthlyCost: 0,
-    tariffRate: 'N/A', portalLogin: 'N/A',
-    supplierPhone: 'N/A', supplierEmail: 'N/A',
-    status: 'incomplete', notes: 'No supplier documentation on file. Placeholder — all details required.',
-    flags: ['⚠️ No Documentation on File'],
-  },
-  {
-    id: 'u-019', property: 'Clapham Apartment', utilityType: 'Water',
-    supplier: 'Not recorded', accountNumber: 'N/A', meterReference: 'N/A',
-    contractStart: '', contractEnd: '', annualCost: 0, monthlyCost: 0,
-    tariffRate: 'N/A', portalLogin: 'N/A',
-    supplierPhone: 'N/A', supplierEmail: 'N/A',
-    status: 'incomplete', notes: 'No supplier documentation on file. Placeholder — all details required.',
-    flags: ['⚠️ No Documentation on File'],
-  },
-
-  // ── SHARNBROOK ──
-  {
-    id: 'u-020', property: 'Sharnbrook', utilityType: 'Electricity',
-    supplier: 'Not recorded', accountNumber: 'N/A', meterReference: 'N/A',
-    contractStart: '', contractEnd: '', annualCost: 0, monthlyCost: 0,
-    tariffRate: 'N/A', portalLogin: 'N/A',
-    supplierPhone: 'N/A', supplierEmail: 'N/A',
-    status: 'incomplete', notes: 'Placeholder — awaiting documents.',
-    flags: ['⚠️ No Documentation on File'],
-  },
-  {
-    id: 'u-021', property: 'Sharnbrook', utilityType: 'Gas',
-    supplier: 'Not recorded', accountNumber: 'N/A', meterReference: 'N/A',
-    contractStart: '', contractEnd: '', annualCost: 0, monthlyCost: 0,
-    tariffRate: 'N/A', portalLogin: 'N/A',
-    supplierPhone: 'N/A', supplierEmail: 'N/A',
-    status: 'incomplete', notes: 'Placeholder — awaiting documents.',
-    flags: ['⚠️ No Documentation on File'],
-  },
-  {
-    id: 'u-022', property: 'Sharnbrook', utilityType: 'Water',
-    supplier: 'Not recorded', accountNumber: 'N/A', meterReference: 'N/A',
-    contractStart: '', contractEnd: '', annualCost: 0, monthlyCost: 0,
-    tariffRate: 'N/A', portalLogin: 'N/A',
-    supplierPhone: 'N/A', supplierEmail: 'N/A',
-    status: 'incomplete', notes: 'Placeholder — awaiting documents.',
-    flags: ['⚠️ No Documentation on File'],
-  },
-
-  // ── HAMPTON APARTMENTS 2 (MAX MERIDIAN) ──
-  {
-    id: 'u-023', property: 'Hampton 1 & 2', utilityType: 'Gas',
-    supplier: 'Not recorded', accountNumber: 'N/A', meterReference: 'N/A',
-    contractStart: '', contractEnd: '', annualCost: 0, monthlyCost: 0,
-    tariffRate: 'N/A', portalLogin: 'N/A',
-    supplierPhone: 'N/A', supplierEmail: 'N/A',
-    status: 'incomplete', notes: 'Hampton Apartments 2 (Max Meridian) — awaiting documents.',
-    flags: ['⚠️ No Documentation on File'],
+    id: 'u-003',
+    property: 'Stanhill Court',
+    utilityType: 'Water',
+    supplier: 'Thames Water Commercial',
+    accountNumber: 'TW-SC-003',
+    meterReference: 'SPID: 301928471 / Meter: 5069925',
+    contractStart: '2025-04-01',
+    contractEnd: '2027-09-30',
+    annualCost: 14800,
+    monthlyCost: 1233,
+    tariffRate: 'Water: £2.45/m³; Waste: £1.35/m³',
+    portalLogin: 'facilities@stanhillcourt.com',
+    supplierPhone: '+44 800 980 8800',
+    supplierEmail: 'commercial@thameswater.co.uk',
+    status: 'active',
+    notes: 'Commercial water and wastewater services.',
   },
 ];
 
@@ -291,35 +142,79 @@ const STATUS_CONFIG: Record<UtilityStatus, { label: string; bg: string; color: s
 
 const PROPERTIES = Array.from(new Set(UTILITIES.map((u) => u.property))).sort();
 
-function fmt(n: number) { return n > 0 ? `£${n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',')}` : '—'; }
+function fmt(n: number) {
+  return n > 0 ? `£${n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',')}` : '—';
+}
 
 function fmtDate(dateStr: string): string {
   if (!dateStr) return '—';
   const d = new Date(dateStr);
   if (isNaN(d.getTime())) return '—';
   const day = String(d.getUTCDate()).padStart(2, '0');
-  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const months = [
+    'Jan',
+    'Feb',
+    'Mar',
+    'Apr',
+    'May',
+    'Jun',
+    'Jul',
+    'Aug',
+    'Sep',
+    'Oct',
+    'Nov',
+    'Dec',
+  ];
   return `${day} ${months[d.getUTCMonth()]} ${d.getUTCFullYear()}`;
 }
 
-function KPICard({ label, value, sub, color, icon: Icon }: { label: string; value: number | string; sub: string; color: string; icon: React.ElementType }) {
+function KPICard({
+  label,
+  value,
+  sub,
+  color,
+  icon: Icon,
+}: {
+  label: string;
+  value: number | string;
+  sub: string;
+  color: string;
+  icon: React.ElementType;
+}) {
   return (
-    <div className="rounded-xl border border-border px-3.5 py-3 relative overflow-hidden" style={{ background: 'var(--surface)' }}>
+    <div
+      className="rounded-xl border border-border px-3.5 py-3 relative overflow-hidden"
+      style={{ background: 'var(--surface)' }}
+    >
       <div className="absolute top-0 left-0 right-0 h-0.5" style={{ background: color }} />
       <div className="flex items-start justify-between gap-1.5">
         <div className="min-w-0 flex-1">
-          <div className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1 whitespace-nowrap truncate" title={label}>{label}</div>
-          <div className="font-head font-bold text-xl xl:text-2xl tracking-tight whitespace-nowrap leading-tight truncate" style={{ color }}>{value}</div>
-          <div className="text-[11px] text-muted-foreground mt-0.5 whitespace-nowrap truncate">{sub}</div>
+          <div
+            className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1 whitespace-nowrap truncate"
+            title={label}
+          >
+            {label}
+          </div>
+          <div
+            className="font-head font-bold text-xl xl:text-2xl tracking-tight whitespace-nowrap leading-tight truncate"
+            style={{ color }}
+          >
+            {value}
+          </div>
+          <div className="text-[11px] text-muted-foreground mt-0.5 whitespace-nowrap truncate">
+            {sub}
+          </div>
         </div>
-        <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: `${color}18` }}>
+        <div
+          className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+          style={{ background: `${color}18` }}
+        >
           <Icon size={14} style={{ color }} />
         </div>
       </div>
     </div>
   );
 }
-
 
 const DEFAULT_UTILITY_TYPES = ['Electricity', 'Gas', 'Water', 'Solar', 'Biomass', 'Telecoms'];
 const DEFAULT_UTILITY_CATEGORIES = [
@@ -351,13 +246,49 @@ export default function UtilitiesRegisterClient() {
       cols = [...cmsColumns].sort((a, b) => a.order - b.order).filter((c) => c.visible !== false);
     } else {
       cols = [
-        { id: 'property', label: 'Property / Site', visible: true, order: 1, originalLabel: 'Property / Site' },
-        { id: 'utilityType', label: 'Utility Type', visible: true, order: 2, originalLabel: 'Utility Type' },
+        {
+          id: 'property',
+          label: 'Property / Site',
+          visible: true,
+          order: 1,
+          originalLabel: 'Property / Site',
+        },
+        {
+          id: 'utilityType',
+          label: 'Utility Type',
+          visible: true,
+          order: 2,
+          originalLabel: 'Utility Type',
+        },
         { id: 'supplier', label: 'Supplier', visible: true, order: 3, originalLabel: 'Supplier' },
-        { id: 'accountNumber', label: 'Account Number', visible: true, order: 4, originalLabel: 'Account Number' },
-        { id: 'meterReference', label: 'Meter Reference', visible: true, order: 5, originalLabel: 'Meter Reference' },
-        { id: 'contractEnd', label: 'Contract End', visible: true, order: 6, originalLabel: 'Contract End' },
-        { id: 'annualCost', label: 'Annual Cost', visible: true, order: 7, originalLabel: 'Annual Cost' },
+        {
+          id: 'accountNumber',
+          label: 'Account Number',
+          visible: true,
+          order: 4,
+          originalLabel: 'Account Number',
+        },
+        {
+          id: 'meterReference',
+          label: 'Meter Reference',
+          visible: true,
+          order: 5,
+          originalLabel: 'Meter Reference',
+        },
+        {
+          id: 'contractEnd',
+          label: 'Contract End',
+          visible: true,
+          order: 6,
+          originalLabel: 'Contract End',
+        },
+        {
+          id: 'annualCost',
+          label: 'Annual Cost',
+          visible: true,
+          order: 7,
+          originalLabel: 'Annual Cost',
+        },
         { id: 'status', label: 'Status', visible: true, order: 8, originalLabel: 'Status' },
         { id: 'actions', label: 'Actions', visible: true, order: 9, originalLabel: 'Actions' },
       ];
@@ -366,13 +297,25 @@ export default function UtilitiesRegisterClient() {
     // Always guarantee status column exists
     if (!cols.some((c) => c.id.toLowerCase() === 'status')) {
       const maxOrder = cols.reduce((max, c) => Math.max(max, c.order || 0), 0);
-      cols.push({ id: 'status', label: 'Status', visible: true, order: maxOrder + 1, originalLabel: 'Status' });
+      cols.push({
+        id: 'status',
+        label: 'Status',
+        visible: true,
+        order: maxOrder + 1,
+        originalLabel: 'Status',
+      });
     }
 
     // Always guarantee actions column exists
     if (!cols.some((c) => c.id.toLowerCase() === 'actions')) {
       const maxOrder = cols.reduce((max, c) => Math.max(max, c.order || 0), 0);
-      cols.push({ id: 'actions', label: 'Actions', visible: true, order: maxOrder + 1, originalLabel: 'Actions' });
+      cols.push({
+        id: 'actions',
+        label: 'Actions',
+        visible: true,
+        order: maxOrder + 1,
+        originalLabel: 'Actions',
+      });
     }
 
     return cols;
@@ -384,7 +327,10 @@ export default function UtilitiesRegisterClient() {
         const cached = sessionStorage.getItem('samko_cache_utilities');
         if (cached) {
           const parsed = JSON.parse(cached);
-          if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+          if (Array.isArray(parsed) && parsed.length > 0 && parsed.length <= 3) return parsed;
+          else {
+            sessionStorage.removeItem('samko_cache_utilities');
+          }
         }
       } catch {}
     }
@@ -406,16 +352,18 @@ export default function UtilitiesRegisterClient() {
 
   const typeParam = searchParams?.get('type')?.toLowerCase();
   const initialType: 'all' | UtilityType =
-    typeParam === 'electricity' ? 'Electricity' :
-    typeParam === 'gas' ? 'Gas' :
-    typeParam === 'water' ? 'Water' : 'all';
+    typeParam === 'electricity'
+      ? 'Electricity'
+      : typeParam === 'gas'
+        ? 'Gas'
+        : typeParam === 'water'
+          ? 'Water'
+          : 'all';
 
   const [search, setSearch] = useState('');
   const [filterTypes, setFilterTypes] = useState<string[]>(() => {
     return initialType && initialType !== 'all' ? [initialType] : [];
   });
-
-
 
   const handleFilterTypeChange = (type: 'all' | UtilityType) => {
     if (type === 'all') {
@@ -425,7 +373,10 @@ export default function UtilitiesRegisterClient() {
       setFilterTypes((prev) => {
         const isSelected = prev.length === 1 && prev[0].toLowerCase() === type.toLowerCase();
         const next = isSelected ? [] : [type];
-        const url = next.length > 0 ? `/utilities-register?type=${next[0].toLowerCase()}` : '/utilities-register';
+        const url =
+          next.length > 0
+            ? `/utilities-register?type=${next[0].toLowerCase()}`
+            : '/utilities-register';
         router.push(url, { scroll: false });
         return next;
       });
@@ -471,7 +422,12 @@ export default function UtilitiesRegisterClient() {
 
     cmsOptions.forEach((t) => {
       const clean = t.trim();
-      if (clean && !clean.toLowerCase().startsWith('all ') && clean.toLowerCase() !== 'all' && !deleted.has(clean.toLowerCase())) {
+      if (
+        clean &&
+        !clean.toLowerCase().startsWith('all ') &&
+        clean.toLowerCase() !== 'all' &&
+        !deleted.has(clean.toLowerCase())
+      ) {
         merged.add(clean);
       }
     });
@@ -518,7 +474,12 @@ export default function UtilitiesRegisterClient() {
 
     cmsOptions.forEach((c) => {
       const clean = c.trim();
-      if (clean && !clean.toLowerCase().startsWith('all ') && clean.toLowerCase() !== 'all' && !deleted.has(clean.toLowerCase())) {
+      if (
+        clean &&
+        !clean.toLowerCase().startsWith('all ') &&
+        clean.toLowerCase() !== 'all' &&
+        !deleted.has(clean.toLowerCase())
+      ) {
         merged.add(clean);
       }
     });
@@ -567,7 +528,9 @@ export default function UtilitiesRegisterClient() {
       setEditingType(null);
       return;
     }
-    const updatedCustom = customTypes.map((t) => (t.toLowerCase() === oldName.toLowerCase() ? newName : t));
+    const updatedCustom = customTypes.map((t) =>
+      t.toLowerCase() === oldName.toLowerCase() ? newName : t
+    );
     if (!updatedCustom.includes(newName)) {
       updatedCustom.push(newName);
     }
@@ -593,10 +556,16 @@ export default function UtilitiesRegisterClient() {
       } catch {}
     }
 
-    setFilterTypes((prev) => prev.map((t) => (t.toLowerCase() === oldName.toLowerCase() ? newName : t)));
+    setFilterTypes((prev) =>
+      prev.map((t) => (t.toLowerCase() === oldName.toLowerCase() ? newName : t))
+    );
 
     if (typeof window !== 'undefined') {
-      window.dispatchEvent(new CustomEvent('samko:data-changed', { detail: { type: 'utility_type_renamed', oldName, newName } }));
+      window.dispatchEvent(
+        new CustomEvent('samko:data-changed', {
+          detail: { type: 'utility_type_renamed', oldName, newName },
+        })
+      );
     }
 
     toast.success('Utility Type Updated', {
@@ -615,7 +584,9 @@ export default function UtilitiesRegisterClient() {
       setCustomTypes(updated);
       if (typeof window !== 'undefined') {
         localStorage.setItem('samko_utility_types', JSON.stringify(updated));
-        window.dispatchEvent(new CustomEvent('samko:data-changed', { detail: { type: 'utility_type', name: t } }));
+        window.dispatchEvent(
+          new CustomEvent('samko:data-changed', { detail: { type: 'utility_type', name: t } })
+        );
       }
     }
     toast.success('Utility Type Created', { description: `Added "${t}" to utility types` });
@@ -628,7 +599,11 @@ export default function UtilitiesRegisterClient() {
     setCustomTypes(updated);
     if (typeof window !== 'undefined') {
       localStorage.setItem('samko_utility_types', JSON.stringify(updated));
-      window.dispatchEvent(new CustomEvent('samko:data-changed', { detail: { type: 'utility_type_deleted', name: typeName } }));
+      window.dispatchEvent(
+        new CustomEvent('samko:data-changed', {
+          detail: { type: 'utility_type_deleted', name: typeName },
+        })
+      );
     }
     setFilterTypes((prev) => prev.filter((t) => t.toLowerCase() !== typeName.toLowerCase()));
     toast.success(`Removed type "${typeName}"`);
@@ -644,10 +619,14 @@ export default function UtilitiesRegisterClient() {
       setCustomCategories(updated);
       if (typeof window !== 'undefined') {
         localStorage.setItem('samko_utility_categories', JSON.stringify(updated));
-        window.dispatchEvent(new CustomEvent('samko:data-changed', { detail: { type: 'utility_category', name: c } }));
+        window.dispatchEvent(
+          new CustomEvent('samko:data-changed', { detail: { type: 'utility_category', name: c } })
+        );
       }
     }
-    toast.success('Utility Category Created', { description: `Added "${c}" to utility categories` });
+    toast.success('Utility Category Created', {
+      description: `Added "${c}" to utility categories`,
+    });
     setNewCatName('');
   };
 
@@ -657,7 +636,11 @@ export default function UtilitiesRegisterClient() {
     setCustomCategories(updated);
     if (typeof window !== 'undefined') {
       localStorage.setItem('samko_utility_categories', JSON.stringify(updated));
-      window.dispatchEvent(new CustomEvent('samko:data-changed', { detail: { type: 'utility_category_deleted', name: catName } }));
+      window.dispatchEvent(
+        new CustomEvent('samko:data-changed', {
+          detail: { type: 'utility_category_deleted', name: catName },
+        })
+      );
     }
     setCategoryFilter((prev) => prev.filter((c) => c !== catName));
     toast.success(`Removed category "${catName}"`);
@@ -679,7 +662,9 @@ export default function UtilitiesRegisterClient() {
       setEditingCat(null);
       return;
     }
-    const updatedCustom = customCategories.map((c) => (c.toLowerCase() === oldName.toLowerCase() ? newName : c));
+    const updatedCustom = customCategories.map((c) =>
+      c.toLowerCase() === oldName.toLowerCase() ? newName : c
+    );
     if (!updatedCustom.includes(newName)) {
       updatedCustom.push(newName);
     }
@@ -765,19 +750,19 @@ export default function UtilitiesRegisterClient() {
   }, [fetchUtilitiesData]);
 
   const propertyOptions = useMemo(() => {
-    return Array.from(new Set([
-      ...properties.map((p) => p.name),
-      ...accounts.map((a) => a.property).filter(Boolean),
-      ...PROPERTIES,
-    ]))
+    return Array.from(
+      new Set([
+        ...properties.map((p) => p.name),
+        ...accounts.map((a) => a.property).filter(Boolean),
+        ...PROPERTIES,
+      ])
+    )
       .filter((p) => isPropertyAccessible(p))
       .sort();
   }, [properties, accounts, isPropertyAccessible]);
 
   const handleStatusChange = async (id: string, newStatus: UtilityStatus) => {
-    setAccounts((prev) =>
-      prev.map((u) => (u.id === id ? { ...u, status: newStatus } : u))
-    );
+    setAccounts((prev) => prev.map((u) => (u.id === id ? { ...u, status: newStatus } : u)));
     if (selectedAccount && selectedAccount.id === id) {
       setSelectedAccount((prev) => (prev ? { ...prev, status: newStatus } : null));
     }
@@ -867,9 +852,13 @@ export default function UtilitiesRegisterClient() {
         setSelectedAccount(updated);
       }
       setShowEditModal(false);
-      toast.success('Utility updated', { description: `${updated.property} (${updated.utilityType}) updated` });
+      toast.success('Utility updated', {
+        description: `${updated.property} (${updated.utilityType}) updated`,
+      });
       if (typeof window !== 'undefined') {
-        window.dispatchEvent(new CustomEvent('samko:data-changed', { detail: { type: 'utilities', id: updated.id } }));
+        window.dispatchEvent(
+          new CustomEvent('samko:data-changed', { detail: { type: 'utilities', id: updated.id } })
+        );
       }
       await api.utilities.update(updated.id, updated);
     } catch (err: any) {
@@ -888,9 +877,13 @@ export default function UtilitiesRegisterClient() {
       if (selectedAccount?.id === id) {
         setSelectedAccount(null);
       }
-      toast.success('Account deleted', { description: `${accountToDelete.supplier} account removed` });
+      toast.success('Account deleted', {
+        description: `${accountToDelete.supplier} account removed`,
+      });
       if (typeof window !== 'undefined') {
-        window.dispatchEvent(new CustomEvent('samko:data-changed', { detail: { type: 'utilities', id } }));
+        window.dispatchEvent(
+          new CustomEvent('samko:data-changed', { detail: { type: 'utilities', id } })
+        );
       }
       await api.utilities.delete(id);
     } catch (err: any) {
@@ -902,19 +895,24 @@ export default function UtilitiesRegisterClient() {
   };
 
   const accessibleAccounts = useMemo(() => {
-    return accounts.filter((u) => isPropertyAccessible(u.property || (u as any).hotel || (u as any).site));
+    return accounts.filter((u) =>
+      isPropertyAccessible(u.property || (u as any).hotel || (u as any).site)
+    );
   }, [accounts, isPropertyAccessible]);
 
   const activeCount = accessibleAccounts.filter((u) => u.status === 'active').length;
   const expiringSoon = accessibleAccounts.filter((u) => u.status === 'expiring-soon').length;
   const expiredCount = accessibleAccounts.filter((u) => u.status === 'expired').length;
   const incompleteCount = accessibleAccounts.filter((u) => u.status === 'incomplete').length;
-  const totalAnnual = accessibleAccounts.filter((u) => u.annualCost > 0).reduce((sum, u) => sum + u.annualCost, 0);
+  const totalAnnual = accessibleAccounts
+    .filter((u) => u.annualCost > 0)
+    .reduce((sum, u) => sum + u.annualCost, 0);
   const flaggedCount = accessibleAccounts.filter((u) => u.flags && u.flags.length > 0).length;
 
   const filtered = useMemo(() => {
     return accessibleAccounts.filter((u) => {
-      const matchSearch = !search ||
+      const matchSearch =
+        !search ||
         (u.property || '').toLowerCase().includes(search.toLowerCase()) ||
         (u.supplier || '').toLowerCase().includes(search.toLowerCase()) ||
         (u.accountNumber || '').toLowerCase().includes(search.toLowerCase()) ||
@@ -923,11 +921,15 @@ export default function UtilitiesRegisterClient() {
 
       const matchType =
         filterTypes.length === 0 ||
-        filterTypes.some((t) => t.trim().toLowerCase() === (u.utilityType || '').trim().toLowerCase());
+        filterTypes.some(
+          (t) => t.trim().toLowerCase() === (u.utilityType || '').trim().toLowerCase()
+        );
 
       const matchProperty =
         filterProperty.length === 0 ||
-        filterProperty.some((p) => p.trim().toLowerCase() === (u.property || '').trim().toLowerCase());
+        filterProperty.some(
+          (p) => p.trim().toLowerCase() === (u.property || '').trim().toLowerCase()
+        );
 
       const matchStatus =
         filterStatus.length === 0 ||
@@ -959,7 +961,8 @@ export default function UtilitiesRegisterClient() {
   const [selectedAccountTypeFilter, setSelectedAccountTypeFilter] = useState('');
 
   const isAllAccountsPageSelected =
-    paginatedAccounts.length > 0 && paginatedAccounts.every((u) => selectedAccountIds.includes(u.id));
+    paginatedAccounts.length > 0 &&
+    paginatedAccounts.every((u) => selectedAccountIds.includes(u.id));
   const isSomeAccountsPageSelected =
     paginatedAccounts.some((u) => selectedAccountIds.includes(u.id)) && !isAllAccountsPageSelected;
 
@@ -998,14 +1001,31 @@ export default function UtilitiesRegisterClient() {
 
     const opts: { label: string; value: string; count: number }[] = [];
     ['Electricity', 'Gas', 'Water'].forEach((t) => {
-      if (counts[`type:${t}`]) opts.push({ label: `Type: ${t}`, value: `type:${t}`, count: counts[`type:${t}`] });
+      if (counts[`type:${t}`])
+        opts.push({ label: `Type: ${t}`, value: `type:${t}`, count: counts[`type:${t}`] });
     });
     PROPERTIES.forEach((h: string) => {
-      if (counts[`prop:${h}`]) opts.push({ label: `Property: ${h}`, value: `prop:${h}`, count: counts[`prop:${h}`] });
+      if (counts[`prop:${h}`])
+        opts.push({ label: `Property: ${h}`, value: `prop:${h}`, count: counts[`prop:${h}`] });
     });
-    if (counts['status:active']) opts.push({ label: 'Status: Active', value: 'status:active', count: counts['status:active'] });
-    if (counts['status:expiring-soon']) opts.push({ label: 'Status: Expiring Soon', value: 'status:expiring-soon', count: counts['status:expiring-soon'] });
-    if (counts['status:expired']) opts.push({ label: 'Status: Expired', value: 'status:expired', count: counts['status:expired'] });
+    if (counts['status:active'])
+      opts.push({
+        label: 'Status: Active',
+        value: 'status:active',
+        count: counts['status:active'],
+      });
+    if (counts['status:expiring-soon'])
+      opts.push({
+        label: 'Status: Expiring Soon',
+        value: 'status:expiring-soon',
+        count: counts['status:expiring-soon'],
+      });
+    if (counts['status:expired'])
+      opts.push({
+        label: 'Status: Expired',
+        value: 'status:expired',
+        count: counts['status:expired'],
+      });
 
     return opts;
   }, [filtered]);
@@ -1024,7 +1044,9 @@ export default function UtilitiesRegisterClient() {
       return false;
     });
     setSelectedAccountIds(matched.map((u) => u.id));
-    toast.info(`Selected ${matched.length} utility accounts matching ${typeKey.replace(':', ': ')}`);
+    toast.info(
+      `Selected ${matched.length} utility accounts matching ${typeKey.replace(':', ': ')}`
+    );
   };
 
   const handleConfirmBulkDeleteAccounts = async () => {
@@ -1039,7 +1061,9 @@ export default function UtilitiesRegisterClient() {
       setShowBulkDeleteAccountsModal(false);
 
       if (typeof window !== 'undefined') {
-        window.dispatchEvent(new CustomEvent('samko:data-changed', { detail: { type: 'utilities' } }));
+        window.dispatchEvent(
+          new CustomEvent('samko:data-changed', { detail: { type: 'utilities' } })
+        );
       }
       await Promise.allSettled(ids.map((id) => api.utilities.delete(id)));
       toast.success(`Deleted ${count} utility accounts successfully!`);
@@ -1051,7 +1075,18 @@ export default function UtilitiesRegisterClient() {
   };
 
   const handleExport = () => {
-    const headers = ['Property', 'Utility Type', 'Supplier', 'Account Number', 'Meter Reference', 'Annual Cost', 'Monthly Cost', 'Contract Start', 'Contract End', 'Status'];
+    const headers = [
+      'Property',
+      'Utility Type',
+      'Supplier',
+      'Account Number',
+      'Meter Reference',
+      'Annual Cost',
+      'Monthly Cost',
+      'Contract Start',
+      'Contract End',
+      'Status',
+    ];
     const rows = filtered.map((u: any) => [
       `"${u.property || ''}"`,
       `"${u.utilityType || ''}"`,
@@ -1080,13 +1115,19 @@ export default function UtilitiesRegisterClient() {
   return (
     <div className="flex flex-col h-full overflow-hidden">
       {/* Topbar */}
-      <div className="flex items-center justify-between px-6 py-3.5 border-b border-border flex-shrink-0" style={{ background: 'var(--surface)' }}>
+      <div
+        className="flex items-center justify-between px-6 py-3.5 border-b border-border flex-shrink-0"
+        style={{ background: 'var(--surface)' }}
+      >
         <div>
           <div className="flex items-center gap-2">
             <h1 className="font-head font-bold text-xl">{cmsTitle || 'Utilities Register'}</h1>
             {loading && <Loader2 size={14} className="animate-spin text-muted-foreground" />}
           </div>
-          <p className="text-xs text-muted-foreground mt-0.5">{cmsSubtitle || `Centralised utility account management across all properties — ${accounts.length} accounts`}</p>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            {cmsSubtitle ||
+              `Centralised utility account management across all properties — ${accounts.length} accounts`}
+          </p>
         </div>
         <div className="flex items-center gap-2">
           <PageCMSEditButton pageId="utilities" pageName="Utilities Register" />
@@ -1116,15 +1157,24 @@ export default function UtilitiesRegisterClient() {
                 <Plus size={13} style={{ color: 'var(--primary)' }} />
                 Add Type
               </button>
-              <button onClick={() => setShowAddModal(true)} className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-transform active:scale-95 cursor-pointer" style={{ background: 'var(--primary)', color: '#000' }}>
-                <Plus size={14} /> {(cmsPrimaryActionLabel || 'Add Account').replace(/^[\+\s]+/, '').trim()}
+              <button
+                onClick={() => setShowAddModal(true)}
+                className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-transform active:scale-95 cursor-pointer"
+                style={{ background: 'var(--primary)', color: '#000' }}
+              >
+                <Plus size={14} />{' '}
+                {(cmsPrimaryActionLabel || 'Add Account').replace(/^[\+\s]+/, '').trim()}
               </button>
             </>
           )}
           {isViewer && (
             <span
               className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold"
-              style={{ background: 'rgba(148,163,184,0.12)', color: '#94a3b8', border: '1px solid rgba(148,163,184,0.25)' }}
+              style={{
+                background: 'rgba(148,163,184,0.12)',
+                color: '#94a3b8',
+                border: '1px solid rgba(148,163,184,0.25)',
+              }}
             >
               L4 · Read-Only Access
             </span>
@@ -1133,37 +1183,95 @@ export default function UtilitiesRegisterClient() {
       </div>
 
       {/* KPI Cards */}
-      <div className="grid gap-2.5 px-6 pt-5 pb-4 flex-shrink-0" style={{ gridTemplateColumns: 'repeat(6, minmax(0, 1fr))' }}>
-        <KPICard label="Active Accounts" value={activeCount} sub="Fully documented" color="#3dd68c" icon={CheckCircle2} />
-        <KPICard label="Expiring Soon" value={expiringSoon} sub="Renewal required" color="#f59e0b" icon={Clock} />
-        <KPICard label="Expired" value={expiredCount} sub="Action required" color="#f43f5e" icon={AlertTriangle} />
-        <KPICard label="Incomplete" value={incompleteCount} sub="Awaiting documents" color="#94a3b8" icon={RefreshCw} />
-        <KPICard label="Flagged" value={flaggedCount} sub="Require attention" color="#f97316" icon={AlertTriangle} />
-        <KPICard label="Annual Cost" value={`£${(totalAnnual / 1000).toFixed(0)}k`} sub="Documented accounts" color="#a78bfa" icon={Zap} />
+      <div
+        className="grid gap-2.5 px-6 pt-5 pb-4 flex-shrink-0"
+        style={{ gridTemplateColumns: 'repeat(6, minmax(0, 1fr))' }}
+      >
+        <KPICard
+          label="Active Accounts"
+          value={activeCount}
+          sub="Fully documented"
+          color="#3dd68c"
+          icon={CheckCircle2}
+        />
+        <KPICard
+          label="Expiring Soon"
+          value={expiringSoon}
+          sub="Renewal required"
+          color="#f59e0b"
+          icon={Clock}
+        />
+        <KPICard
+          label="Expired"
+          value={expiredCount}
+          sub="Action required"
+          color="#f43f5e"
+          icon={AlertTriangle}
+        />
+        <KPICard
+          label="Incomplete"
+          value={incompleteCount}
+          sub="Awaiting documents"
+          color="#94a3b8"
+          icon={RefreshCw}
+        />
+        <KPICard
+          label="Flagged"
+          value={flaggedCount}
+          sub="Require attention"
+          color="#f97316"
+          icon={AlertTriangle}
+        />
+        <KPICard
+          label="Annual Cost"
+          value={`£${(totalAnnual / 1000).toFixed(0)}k`}
+          sub="Documented accounts"
+          color="#a78bfa"
+          icon={Zap}
+        />
       </div>
 
       {/* Utility Type Summary */}
-      <div className="grid gap-3 px-7 pb-4 flex-shrink-0" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
+      <div
+        className="grid gap-3 px-7 pb-4 flex-shrink-0"
+        style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}
+      >
         {(['Electricity', 'Gas', 'Water'] as UtilityType[]).map((type) => {
           const typeAccounts = accessibleAccounts.filter((u) => u.utilityType === type);
           const typeActive = typeAccounts.filter((u) => u.status === 'active').length;
-          const typeAnnual = typeAccounts.filter((u) => u.annualCost > 0).reduce((sum, u) => sum + u.annualCost, 0);
+          const typeAnnual = typeAccounts
+            .filter((u) => u.annualCost > 0)
+            .reduce((sum, u) => sum + u.annualCost, 0);
           const TypeIcon = UTILITY_ICONS[type];
           const color = UTILITY_COLORS[type];
-          const isCardActive = filterTypes.length === 1 && filterTypes[0].toLowerCase() === type.toLowerCase();
+          const isCardActive =
+            filterTypes.length === 1 && filterTypes[0].toLowerCase() === type.toLowerCase();
           return (
-            <button key={type} onClick={() => handleFilterTypeChange(isCardActive ? 'all' : type)}
+            <button
+              key={type}
+              onClick={() => handleFilterTypeChange(isCardActive ? 'all' : type)}
               className="rounded-xl border p-4 flex items-center gap-4 transition-all"
-              style={{ background: isCardActive ? `${color}10` : 'var(--surface)', borderColor: isCardActive ? color : 'var(--border)' }}>
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: `${color}18` }}>
+              style={{
+                background: isCardActive ? `${color}10` : 'var(--surface)',
+                borderColor: isCardActive ? color : 'var(--border)',
+              }}
+            >
+              <div
+                className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+                style={{ background: `${color}18` }}
+              >
                 <TypeIcon size={18} style={{ color }} />
               </div>
               <div className="flex-1 text-left">
                 <div className="font-head font-bold text-sm">{type}</div>
-                <div className="text-xs text-muted-foreground">{typeAccounts.length} accounts · {typeActive} active</div>
+                <div className="text-xs text-muted-foreground">
+                  {typeAccounts.length} accounts · {typeActive} active
+                </div>
               </div>
               <div className="text-right">
-                <div className="font-head font-bold text-sm" style={{ color }}>{typeAnnual > 0 ? `£${(typeAnnual / 1000).toFixed(0)}k/yr` : '—'}</div>
+                <div className="font-head font-bold text-sm" style={{ color }}>
+                  {typeAnnual > 0 ? `£${(typeAnnual / 1000).toFixed(0)}k/yr` : '—'}
+                </div>
                 <div className="text-xs text-muted-foreground">Annual cost</div>
               </div>
             </button>
@@ -1173,9 +1281,17 @@ export default function UtilitiesRegisterClient() {
 
       {/* Filters */}
       <div className="flex items-center gap-3 px-6 pb-3 flex-shrink-0 flex-wrap">
-        <div className="flex items-center gap-2 rounded-lg border border-border px-3 py-1.5 flex-1 min-w-48" style={{ background: 'var(--surface)' }}>
+        <div
+          className="flex items-center gap-2 rounded-lg border border-border px-3 py-1.5 flex-1 min-w-48"
+          style={{ background: 'var(--surface)' }}
+        >
           <Search size={13} className="text-muted-foreground flex-shrink-0" />
-          <input className="bg-transparent text-sm outline-none flex-1 text-foreground placeholder:text-muted-foreground" placeholder={cmsSearchPlaceholder || 'Search by property, supplier, account…'} value={search} onChange={(e) => setSearch(e.target.value)} />
+          <input
+            className="bg-transparent text-sm outline-none flex-1 text-foreground placeholder:text-muted-foreground"
+            placeholder={cmsSearchPlaceholder || 'Search by property, supplier, account…'}
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
         </div>
         <CustomDropdown
           label="All Utility Types"
@@ -1215,7 +1331,10 @@ export default function UtilitiesRegisterClient() {
 
       {/* Table */}
       <div className="flex-1 overflow-auto px-6 pb-6">
-        <div className="rounded-xl border border-border overflow-x-auto shadow-sm" style={{ background: 'var(--surface)' }}>
+        <div
+          className="rounded-xl border border-border overflow-x-auto shadow-sm"
+          style={{ background: 'var(--surface)' }}
+        >
           <table className="w-full text-left border-collapse" style={{ minWidth: 1050 }}>
             <thead>
               <tr style={{ background: 'var(--surface2)' }}>
@@ -1247,10 +1366,21 @@ export default function UtilitiesRegisterClient() {
                 const color = UTILITY_COLORS[account.utilityType] || '#e8c97a';
                 const sc = STATUS_CONFIG[account.status] || STATUS_CONFIG.active;
                 return (
-                  <tr key={account.id} className={`border-t border-border cursor-pointer transition-colors ${selectedAccountIds.includes(account.id) ? 'bg-[#e8c97a]/5' : ''}`}
-                    onMouseEnter={(e) => (e.currentTarget.style.background = selectedAccountIds.includes(account.id) ? 'rgba(232,201,122,0.08)' : 'var(--surface2)')}
-                    onMouseLeave={(e) => (e.currentTarget.style.background = selectedAccountIds.includes(account.id) ? 'rgba(232,201,122,0.05)' : 'transparent')}
-                    onClick={() => setSelectedAccount(account)}>
+                  <tr
+                    key={account.id}
+                    className={`border-t border-border cursor-pointer transition-colors ${selectedAccountIds.includes(account.id) ? 'bg-[#e8c97a]/5' : ''}`}
+                    onMouseEnter={(e) =>
+                      (e.currentTarget.style.background = selectedAccountIds.includes(account.id)
+                        ? 'rgba(232,201,122,0.08)'
+                        : 'var(--surface2)')
+                    }
+                    onMouseLeave={(e) =>
+                      (e.currentTarget.style.background = selectedAccountIds.includes(account.id)
+                        ? 'rgba(232,201,122,0.05)'
+                        : 'transparent')
+                    }
+                    onClick={() => setSelectedAccount(account)}
+                  >
                     {hasDeleteAccess && (
                       <td className="px-3 py-3 text-center" onClick={(e) => e.stopPropagation()}>
                         <TableCheckbox
@@ -1264,7 +1394,12 @@ export default function UtilitiesRegisterClient() {
                       const colKey = col.id.toLowerCase();
                       if (colKey === 'property') {
                         return (
-                          <td key={col.id} className="px-4 py-3 font-medium text-sm whitespace-nowrap">{account.property}</td>
+                          <td
+                            key={col.id}
+                            className="px-4 py-3 font-medium text-sm whitespace-nowrap"
+                          >
+                            {account.property}
+                          </td>
                         );
                       }
                       if (colKey === 'utilitytype' || colKey === 'type') {
@@ -1272,24 +1407,41 @@ export default function UtilitiesRegisterClient() {
                           <td key={col.id} className="px-4 py-3">
                             <div className="flex items-center gap-1.5">
                               <TypeIcon size={13} style={{ color }} />
-                              <span className="text-sm font-medium" style={{ color }}>{account.utilityType}</span>
+                              <span className="text-sm font-medium" style={{ color }}>
+                                {account.utilityType}
+                              </span>
                             </div>
                           </td>
                         );
                       }
                       if (colKey === 'supplier') {
                         return (
-                          <td key={col.id} className="px-4 py-3 text-sm text-muted-foreground whitespace-nowrap">{account.supplier}</td>
+                          <td
+                            key={col.id}
+                            className="px-4 py-3 text-sm text-muted-foreground whitespace-nowrap"
+                          >
+                            {account.supplier}
+                          </td>
                         );
                       }
                       if (colKey === 'accountnumber' || colKey === 'accountno') {
                         return (
-                          <td key={col.id} className="px-4 py-3 text-xs font-mono text-muted-foreground whitespace-nowrap">{account.accountNumber}</td>
+                          <td
+                            key={col.id}
+                            className="px-4 py-3 text-xs font-mono text-muted-foreground whitespace-nowrap"
+                          >
+                            {account.accountNumber}
+                          </td>
                         );
                       }
                       if (colKey === 'meterreference' || colKey === 'meter') {
                         return (
-                          <td key={col.id} className="px-4 py-3 text-xs text-muted-foreground max-w-48 truncate">{account.meterReference}</td>
+                          <td
+                            key={col.id}
+                            className="px-4 py-3 text-xs text-muted-foreground max-w-48 truncate"
+                          >
+                            {account.meterReference}
+                          </td>
                         );
                       }
                       if (colKey === 'contractend') {
@@ -1301,22 +1453,38 @@ export default function UtilitiesRegisterClient() {
                       }
                       if (colKey === 'annualcost') {
                         return (
-                          <td key={col.id} className="px-4 py-3 text-sm font-medium whitespace-nowrap">{fmt(account.annualCost)}</td>
+                          <td
+                            key={col.id}
+                            className="px-4 py-3 text-sm font-medium whitespace-nowrap"
+                          >
+                            {fmt(account.annualCost)}
+                          </td>
                         );
                       }
                       if (colKey === 'monthlycost') {
                         return (
-                          <td key={col.id} className="px-4 py-3 text-sm whitespace-nowrap">{fmt(account.monthlyCost)}</td>
+                          <td key={col.id} className="px-4 py-3 text-sm whitespace-nowrap">
+                            {fmt(account.monthlyCost)}
+                          </td>
                         );
                       }
                       if (colKey === 'tariffrate' || colKey === 'tariff') {
                         return (
-                          <td key={col.id} className="px-4 py-3 text-xs text-muted-foreground max-w-40 truncate">{account.tariffRate}</td>
+                          <td
+                            key={col.id}
+                            className="px-4 py-3 text-xs text-muted-foreground max-w-40 truncate"
+                          >
+                            {account.tariffRate}
+                          </td>
                         );
                       }
                       if (colKey === 'status') {
                         return (
-                          <td key={col.id} className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
+                          <td
+                            key={col.id}
+                            className="px-4 py-3"
+                            onClick={(e) => e.stopPropagation()}
+                          >
                             {isViewer ? (
                               <span
                                 className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold capitalize select-none"
@@ -1333,23 +1501,29 @@ export default function UtilitiesRegisterClient() {
                                 {account.status.replace('-', ' ')}
                               </span>
                             ) : (
-                            <CustomDropdown
-                              size="sm"
-                              variant="pill"
-                              value={account.status}
-                              onChange={(val) => handleStatusChange(account.id, val as UtilityStatus)}
-                              options={[
-                                { value: 'active', label: 'Active', color: '#3dd68c' },
-                                { value: 'expiring-soon', label: 'Expiring Soon', color: '#f59e0b' },
-                                { value: 'expired', label: 'Expired', color: '#f43f5e' },
-                                { value: 'incomplete', label: 'Incomplete', color: '#94a3b8' },
-                              ]}
-                              style={{
-                                background: sc.bg,
-                                color: sc.color,
-                                border: `1px solid ${sc.color}33`,
-                              }}
-                            />
+                              <CustomDropdown
+                                size="sm"
+                                variant="pill"
+                                value={account.status}
+                                onChange={(val) =>
+                                  handleStatusChange(account.id, val as UtilityStatus)
+                                }
+                                options={[
+                                  { value: 'active', label: 'Active', color: '#3dd68c' },
+                                  {
+                                    value: 'expiring-soon',
+                                    label: 'Expiring Soon',
+                                    color: '#f59e0b',
+                                  },
+                                  { value: 'expired', label: 'Expired', color: '#f43f5e' },
+                                  { value: 'incomplete', label: 'Incomplete', color: '#94a3b8' },
+                                ]}
+                                style={{
+                                  background: sc.bg,
+                                  color: sc.color,
+                                  border: `1px solid ${sc.color}33`,
+                                }}
+                              />
                             )}
                           </td>
                         );
@@ -1360,7 +1534,9 @@ export default function UtilitiesRegisterClient() {
                             {account.flags && account.flags.length > 0 && (
                               <div className="flex items-center gap-1">
                                 <AlertTriangle size={12} className="text-amber-400 flex-shrink-0" />
-                                <span className="text-xs text-amber-400">{account.flags.length} flag{account.flags.length > 1 ? 's' : ''}</span>
+                                <span className="text-xs text-amber-400">
+                                  {account.flags.length} flag{account.flags.length > 1 ? 's' : ''}
+                                </span>
                               </div>
                             )}
                           </td>
@@ -1368,12 +1544,20 @@ export default function UtilitiesRegisterClient() {
                       }
                       if (colKey === 'actions') {
                         return (
-                          <td key={col.id} className="px-4 py-3 text-right" onClick={(e) => e.stopPropagation()}>
+                          <td
+                            key={col.id}
+                            className="px-4 py-3 text-right"
+                            onClick={(e) => e.stopPropagation()}
+                          >
                             <div className="flex items-center justify-end gap-1.5 whitespace-nowrap">
                               <button
                                 type="button"
                                 className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-colors hover:bg-surface2 cursor-pointer"
-                                style={{ background: 'rgba(232,201,122,0.12)', color: 'var(--primary)', border: '1px solid rgba(232,201,122,0.25)' }}
+                                style={{
+                                  background: 'rgba(232,201,122,0.12)',
+                                  color: 'var(--primary)',
+                                  border: '1px solid rgba(232,201,122,0.25)',
+                                }}
                                 title="View Details"
                                 onClick={() => setSelectedAccount(account)}
                               >
@@ -1408,8 +1592,13 @@ export default function UtilitiesRegisterClient() {
                       // Dynamic custom columns
                       const val = (account as any)[col.id] ?? (account as any)[colKey];
                       return (
-                        <td key={col.id} className="px-4 py-3 text-sm text-foreground whitespace-nowrap">
-                          {val !== undefined && val !== null && String(val).trim() !== '' ? String(val) : '—'}
+                        <td
+                          key={col.id}
+                          className="px-4 py-3 text-sm text-foreground whitespace-nowrap"
+                        >
+                          {val !== undefined && val !== null && String(val).trim() !== ''
+                            ? String(val)
+                            : '—'}
                         </td>
                       );
                     })}
@@ -1452,12 +1641,31 @@ export default function UtilitiesRegisterClient() {
 
       {/* Account Detail Modal */}
       {selectedAccount && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: 'rgba(0,0,0,0.6)' }} onClick={() => setSelectedAccount(null)}>
-          <div className="rounded-2xl border border-border w-full max-w-2xl max-h-[85vh] overflow-auto" style={{ background: 'var(--surface)' }} onClick={(e) => e.stopPropagation()}>
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center"
+          style={{ background: 'rgba(0,0,0,0.6)' }}
+          onClick={() => setSelectedAccount(null)}
+        >
+          <div
+            className="rounded-2xl border border-border w-full max-w-2xl max-h-[85vh] overflow-auto"
+            style={{ background: 'var(--surface)' }}
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="flex items-start justify-between p-6 border-b border-border">
               <div>
                 <div className="flex items-center gap-2 mb-1">
-                  {(() => { const TypeIcon = UTILITY_ICONS[selectedAccount.utilityType]; const color = UTILITY_COLORS[selectedAccount.utilityType]; return <div className="flex items-center gap-1.5"><TypeIcon size={14} style={{ color }} /><span className="text-sm font-semibold" style={{ color }}>{selectedAccount.utilityType}</span></div>; })()}
+                  {(() => {
+                    const TypeIcon = UTILITY_ICONS[selectedAccount.utilityType];
+                    const color = UTILITY_COLORS[selectedAccount.utilityType];
+                    return (
+                      <div className="flex items-center gap-1.5">
+                        <TypeIcon size={14} style={{ color }} />
+                        <span className="text-sm font-semibold" style={{ color }}>
+                          {selectedAccount.utilityType}
+                        </span>
+                      </div>
+                    );
+                  })()}
                   <CustomDropdown
                     size="sm"
                     variant="pill"
@@ -1470,7 +1678,8 @@ export default function UtilitiesRegisterClient() {
                       { value: 'incomplete', label: 'Incomplete', color: '#94a3b8' },
                     ]}
                     style={{
-                      background: (STATUS_CONFIG[selectedAccount.status] || STATUS_CONFIG.active).bg,
+                      background: (STATUS_CONFIG[selectedAccount.status] || STATUS_CONFIG.active)
+                        .bg,
                       color: (STATUS_CONFIG[selectedAccount.status] || STATUS_CONFIG.active).color,
                       border: `1px solid ${(STATUS_CONFIG[selectedAccount.status] || STATUS_CONFIG.active).color}33`,
                     }}
@@ -1479,7 +1688,12 @@ export default function UtilitiesRegisterClient() {
                 <h2 className="font-head font-bold text-lg">{selectedAccount.property}</h2>
                 <p className="text-sm text-muted-foreground mt-0.5">{selectedAccount.supplier}</p>
               </div>
-              <button onClick={() => setSelectedAccount(null)} className="text-muted-foreground hover:text-foreground text-xl font-bold px-2">×</button>
+              <button
+                onClick={() => setSelectedAccount(null)}
+                className="text-muted-foreground hover:text-foreground text-xl font-bold px-2"
+              >
+                ×
+              </button>
             </div>
             <div className="p-6 grid grid-cols-2 gap-4">
               {[
@@ -1508,7 +1722,11 @@ export default function UtilitiesRegisterClient() {
                 <div className="text-xs text-muted-foreground mb-2">Action Flags</div>
                 <div className="flex flex-col gap-1.5">
                   {selectedAccount.flags.map((flag, i) => (
-                    <div key={i} className="flex items-center gap-2 text-sm p-2.5 rounded-lg" style={{ background: 'rgba(245,158,11,0.08)', color: '#f59e0b' }}>
+                    <div
+                      key={i}
+                      className="flex items-center gap-2 text-sm p-2.5 rounded-lg"
+                      style={{ background: 'rgba(245,158,11,0.08)', color: '#f59e0b' }}
+                    >
                       <AlertTriangle size={13} />
                       {flag}
                     </div>
@@ -1519,10 +1737,15 @@ export default function UtilitiesRegisterClient() {
             {selectedAccount.notes && (
               <div className="px-6 pb-6">
                 <div className="text-xs text-muted-foreground mb-1">Notes</div>
-                <div className="text-sm p-3 rounded-lg" style={{ background: 'var(--surface2)' }}>{selectedAccount.notes}</div>
+                <div className="text-sm p-3 rounded-lg" style={{ background: 'var(--surface2)' }}>
+                  {selectedAccount.notes}
+                </div>
               </div>
             )}
-            <div className="flex items-center justify-between gap-2 p-6 border-t border-border" style={{ background: 'var(--surface2)' }}>
+            <div
+              className="flex items-center justify-between gap-2 p-6 border-t border-border"
+              style={{ background: 'var(--surface2)' }}
+            >
               <div className="flex items-center gap-2">
                 {hasWriteAccess && (
                   <button
@@ -1559,12 +1782,26 @@ export default function UtilitiesRegisterClient() {
 
       {/* Add Account Modal */}
       {showAddModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: 'rgba(0,0,0,0.6)' }} onClick={() => setShowAddModal(false)}>
-          <div className="rounded-2xl border border-border w-full max-w-2xl max-h-[85vh] overflow-auto" style={{ background: 'var(--surface)' }} onClick={(e) => e.stopPropagation()}>
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center"
+          style={{ background: 'rgba(0,0,0,0.6)' }}
+          onClick={() => setShowAddModal(false)}
+        >
+          <div
+            className="rounded-2xl border border-border w-full max-w-2xl max-h-[85vh] overflow-auto"
+            style={{ background: 'var(--surface)' }}
+            onClick={(e) => e.stopPropagation()}
+          >
             <form onSubmit={handleAddAccount}>
               <div className="flex items-center justify-between p-6 border-b border-border">
                 <h2 className="font-head font-bold text-lg">Add Utility Account</h2>
-                <button type="button" onClick={() => setShowAddModal(false)} className="text-muted-foreground hover:text-foreground text-xl font-bold px-2">×</button>
+                <button
+                  type="button"
+                  onClick={() => setShowAddModal(false)}
+                  className="text-muted-foreground hover:text-foreground text-xl font-bold px-2"
+                >
+                  ×
+                </button>
               </div>
               <div className="p-6 grid grid-cols-2 gap-4">
                 <div className="flex flex-col gap-1">
@@ -1578,12 +1815,16 @@ export default function UtilitiesRegisterClient() {
                   />
                 </div>
                 <div className="flex flex-col gap-1">
-                  <label className="text-xs font-medium text-muted-foreground">Utility Type *</label>
+                  <label className="text-xs font-medium text-muted-foreground">
+                    Utility Type *
+                  </label>
                   <CustomDropdown
                     variant="form"
                     width="100%"
                     value={formData.utilityType}
-                    onChange={(val) => setFormData({ ...formData, utilityType: val as UtilityType })}
+                    onChange={(val) =>
+                      setFormData({ ...formData, utilityType: val as UtilityType })
+                    }
                     options={allTypes}
                   />
                 </div>
@@ -1599,7 +1840,9 @@ export default function UtilitiesRegisterClient() {
                   />
                 </div>
                 <div className="flex flex-col gap-1">
-                  <label className="text-xs font-medium text-muted-foreground">Account Number *</label>
+                  <label className="text-xs font-medium text-muted-foreground">
+                    Account Number *
+                  </label>
                   <input
                     type="text"
                     required
@@ -1610,7 +1853,9 @@ export default function UtilitiesRegisterClient() {
                   />
                 </div>
                 <div className="flex flex-col gap-1">
-                  <label className="text-xs font-medium text-muted-foreground">Meter Reference / MPAN / MPRN</label>
+                  <label className="text-xs font-medium text-muted-foreground">
+                    Meter Reference / MPAN / MPRN
+                  </label>
                   <input
                     type="text"
                     value={formData.meterReference}
@@ -1620,7 +1865,9 @@ export default function UtilitiesRegisterClient() {
                   />
                 </div>
                 <div className="flex flex-col gap-1">
-                  <label className="text-xs font-medium text-muted-foreground">Contract Start</label>
+                  <label className="text-xs font-medium text-muted-foreground">
+                    Contract Start
+                  </label>
                   <input
                     type="date"
                     value={formData.contractStart}
@@ -1640,7 +1887,9 @@ export default function UtilitiesRegisterClient() {
                   />
                 </div>
                 <div className="flex flex-col gap-1">
-                  <label className="text-xs font-medium text-muted-foreground">Annual Cost (£)</label>
+                  <label className="text-xs font-medium text-muted-foreground">
+                    Annual Cost (£)
+                  </label>
                   <input
                     type="number"
                     value={formData.annualCost}
@@ -1650,7 +1899,9 @@ export default function UtilitiesRegisterClient() {
                   />
                 </div>
                 <div className="flex flex-col gap-1">
-                  <label className="text-xs font-medium text-muted-foreground">Monthly Cost (£)</label>
+                  <label className="text-xs font-medium text-muted-foreground">
+                    Monthly Cost (£)
+                  </label>
                   <input
                     type="number"
                     value={formData.monthlyCost}
@@ -1680,7 +1931,9 @@ export default function UtilitiesRegisterClient() {
                   />
                 </div>
                 <div className="flex flex-col gap-1">
-                  <label className="text-xs font-medium text-muted-foreground">Supplier Phone</label>
+                  <label className="text-xs font-medium text-muted-foreground">
+                    Supplier Phone
+                  </label>
                   <input
                     type="text"
                     value={formData.supplierPhone}
@@ -1690,7 +1943,9 @@ export default function UtilitiesRegisterClient() {
                   />
                 </div>
                 <div className="flex flex-col gap-1">
-                  <label className="text-xs font-medium text-muted-foreground">Supplier Email</label>
+                  <label className="text-xs font-medium text-muted-foreground">
+                    Supplier Email
+                  </label>
                   <input
                     type="email"
                     value={formData.supplierEmail}
@@ -1751,24 +2006,50 @@ export default function UtilitiesRegisterClient() {
 
       {/* Edit Utility Account Modal */}
       {showEditModal && editingAccount && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(4px)' }} onClick={() => setShowEditModal(false)}>
-          <div className="rounded-2xl border border-border w-full max-w-2xl max-h-[85vh] overflow-auto shadow-2xl animate-in zoom-in-95 duration-150" style={{ background: 'var(--surface)' }} onClick={(e) => e.stopPropagation()}>
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{ background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(4px)' }}
+          onClick={() => setShowEditModal(false)}
+        >
+          <div
+            className="rounded-2xl border border-border w-full max-w-2xl max-h-[85vh] overflow-auto shadow-2xl animate-in zoom-in-95 duration-150"
+            style={{ background: 'var(--surface)' }}
+            onClick={(e) => e.stopPropagation()}
+          >
             <form onSubmit={handleSaveEdit}>
-              <div className="flex items-center justify-between p-6 border-b border-border" style={{ background: 'var(--surface2)' }}>
+              <div
+                className="flex items-center justify-between p-6 border-b border-border"
+                style={{ background: 'var(--surface2)' }}
+              >
                 <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'rgba(232,201,122,0.15)', color: 'var(--primary)' }}>
+                  <div
+                    className="w-8 h-8 rounded-lg flex items-center justify-center"
+                    style={{ background: 'rgba(232,201,122,0.15)', color: 'var(--primary)' }}
+                  >
                     <Edit2 size={16} />
                   </div>
                   <div>
-                    <h2 className="font-head font-bold text-base text-foreground">Edit Utility Account</h2>
-                    <p className="text-xs text-muted-foreground">{editingAccount.accountNumber} · Update utility record dynamically</p>
+                    <h2 className="font-head font-bold text-base text-foreground">
+                      Edit Utility Account
+                    </h2>
+                    <p className="text-xs text-muted-foreground">
+                      {editingAccount.accountNumber} · Update utility record dynamically
+                    </p>
                   </div>
                 </div>
-                <button type="button" onClick={() => setShowEditModal(false)} className="text-muted-foreground hover:text-foreground text-xl font-bold px-2">×</button>
+                <button
+                  type="button"
+                  onClick={() => setShowEditModal(false)}
+                  className="text-muted-foreground hover:text-foreground text-xl font-bold px-2"
+                >
+                  ×
+                </button>
               </div>
               <div className="p-6 grid grid-cols-2 gap-4">
                 <div className="flex flex-col gap-1">
-                  <label className="text-xs font-semibold text-muted-foreground uppercase">Property *</label>
+                  <label className="text-xs font-semibold text-muted-foreground uppercase">
+                    Property *
+                  </label>
                   <CustomDropdown
                     variant="form"
                     width="100%"
@@ -1778,54 +2059,74 @@ export default function UtilitiesRegisterClient() {
                   />
                 </div>
                 <div className="flex flex-col gap-1">
-                  <label className="text-xs font-semibold text-muted-foreground uppercase">Utility Type *</label>
+                  <label className="text-xs font-semibold text-muted-foreground uppercase">
+                    Utility Type *
+                  </label>
                   <CustomDropdown
                     variant="form"
                     width="100%"
                     value={editingAccount.utilityType}
-                    onChange={(val) => setEditingAccount({ ...editingAccount, utilityType: val as UtilityType })}
+                    onChange={(val) =>
+                      setEditingAccount({ ...editingAccount, utilityType: val as UtilityType })
+                    }
                     options={allTypes}
                   />
                 </div>
                 <div className="flex flex-col gap-1">
-                  <label className="text-xs font-semibold text-muted-foreground uppercase">Supplier *</label>
+                  <label className="text-xs font-semibold text-muted-foreground uppercase">
+                    Supplier *
+                  </label>
                   <input
                     required
                     type="text"
                     value={editingAccount.supplier}
-                    onChange={(e) => setEditingAccount({ ...editingAccount, supplier: e.target.value })}
+                    onChange={(e) =>
+                      setEditingAccount({ ...editingAccount, supplier: e.target.value })
+                    }
                     className="rounded-lg border border-border px-3 py-2 text-sm outline-none"
                     style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
                   />
                 </div>
                 <div className="flex flex-col gap-1">
-                  <label className="text-xs font-semibold text-muted-foreground uppercase">Account Number *</label>
+                  <label className="text-xs font-semibold text-muted-foreground uppercase">
+                    Account Number *
+                  </label>
                   <input
                     required
                     type="text"
                     value={editingAccount.accountNumber}
-                    onChange={(e) => setEditingAccount({ ...editingAccount, accountNumber: e.target.value })}
+                    onChange={(e) =>
+                      setEditingAccount({ ...editingAccount, accountNumber: e.target.value })
+                    }
                     className="rounded-lg border border-border px-3 py-2 text-sm outline-none"
                     style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
                   />
                 </div>
                 <div className="flex flex-col gap-1">
-                  <label className="text-xs font-semibold text-muted-foreground uppercase">Meter Reference (MPAN / MPRN / SPID)</label>
+                  <label className="text-xs font-semibold text-muted-foreground uppercase">
+                    Meter Reference (MPAN / MPRN / SPID)
+                  </label>
                   <input
                     type="text"
                     value={editingAccount.meterReference}
-                    onChange={(e) => setEditingAccount({ ...editingAccount, meterReference: e.target.value })}
+                    onChange={(e) =>
+                      setEditingAccount({ ...editingAccount, meterReference: e.target.value })
+                    }
                     className="rounded-lg border border-border px-3 py-2 text-sm outline-none"
                     style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
                   />
                 </div>
                 <div className="flex flex-col gap-1">
-                  <label className="text-xs font-semibold text-muted-foreground uppercase">Status</label>
+                  <label className="text-xs font-semibold text-muted-foreground uppercase">
+                    Status
+                  </label>
                   <CustomDropdown
                     variant="form"
                     width="100%"
                     value={editingAccount.status}
-                    onChange={(val) => setEditingAccount({ ...editingAccount, status: val as UtilityStatus })}
+                    onChange={(val) =>
+                      setEditingAccount({ ...editingAccount, status: val as UtilityStatus })
+                    }
                     options={[
                       { value: 'active', label: 'Active', color: '#3dd68c' },
                       { value: 'expiring-soon', label: 'Expiring Soon', color: '#f59e0b' },
@@ -1835,81 +2136,119 @@ export default function UtilitiesRegisterClient() {
                   />
                 </div>
                 <div className="flex flex-col gap-1">
-                  <label className="text-xs font-semibold text-muted-foreground uppercase">Contract Start</label>
+                  <label className="text-xs font-semibold text-muted-foreground uppercase">
+                    Contract Start
+                  </label>
                   <input
                     type="date"
                     value={editingAccount.contractStart}
-                    onChange={(e) => setEditingAccount({ ...editingAccount, contractStart: e.target.value })}
+                    onChange={(e) =>
+                      setEditingAccount({ ...editingAccount, contractStart: e.target.value })
+                    }
                     className="rounded-lg border border-border px-3 py-2 text-sm outline-none"
                     style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
                   />
                 </div>
                 <div className="flex flex-col gap-1">
-                  <label className="text-xs font-semibold text-muted-foreground uppercase">Contract End</label>
+                  <label className="text-xs font-semibold text-muted-foreground uppercase">
+                    Contract End
+                  </label>
                   <input
                     type="date"
                     value={editingAccount.contractEnd}
-                    onChange={(e) => setEditingAccount({ ...editingAccount, contractEnd: e.target.value })}
+                    onChange={(e) =>
+                      setEditingAccount({ ...editingAccount, contractEnd: e.target.value })
+                    }
                     className="rounded-lg border border-border px-3 py-2 text-sm outline-none"
                     style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
                   />
                 </div>
                 <div className="flex flex-col gap-1">
-                  <label className="text-xs font-semibold text-muted-foreground uppercase">Annual Cost (£)</label>
+                  <label className="text-xs font-semibold text-muted-foreground uppercase">
+                    Annual Cost (£)
+                  </label>
                   <input
                     type="number"
                     value={editingAccount.annualCost}
-                    onChange={(e) => setEditingAccount({ ...editingAccount, annualCost: Number(e.target.value) || 0 })}
+                    onChange={(e) =>
+                      setEditingAccount({
+                        ...editingAccount,
+                        annualCost: Number(e.target.value) || 0,
+                      })
+                    }
                     className="rounded-lg border border-border px-3 py-2 text-sm outline-none"
                     style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
                   />
                 </div>
                 <div className="flex flex-col gap-1">
-                  <label className="text-xs font-semibold text-muted-foreground uppercase">Monthly Cost (£)</label>
+                  <label className="text-xs font-semibold text-muted-foreground uppercase">
+                    Monthly Cost (£)
+                  </label>
                   <input
                     type="number"
                     value={editingAccount.monthlyCost}
-                    onChange={(e) => setEditingAccount({ ...editingAccount, monthlyCost: Number(e.target.value) || 0 })}
+                    onChange={(e) =>
+                      setEditingAccount({
+                        ...editingAccount,
+                        monthlyCost: Number(e.target.value) || 0,
+                      })
+                    }
                     className="rounded-lg border border-border px-3 py-2 text-sm outline-none"
                     style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
                   />
                 </div>
                 <div className="col-span-2 flex flex-col gap-1">
-                  <label className="text-xs font-semibold text-muted-foreground uppercase">Tariff / Rate Details</label>
+                  <label className="text-xs font-semibold text-muted-foreground uppercase">
+                    Tariff / Rate Details
+                  </label>
                   <input
                     type="text"
                     value={editingAccount.tariffRate}
-                    onChange={(e) => setEditingAccount({ ...editingAccount, tariffRate: e.target.value })}
+                    onChange={(e) =>
+                      setEditingAccount({ ...editingAccount, tariffRate: e.target.value })
+                    }
                     className="rounded-lg border border-border px-3 py-2 text-sm outline-none"
                     style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
                   />
                 </div>
                 <div className="flex flex-col gap-1">
-                  <label className="text-xs font-semibold text-muted-foreground uppercase">Supplier Phone</label>
+                  <label className="text-xs font-semibold text-muted-foreground uppercase">
+                    Supplier Phone
+                  </label>
                   <input
                     type="text"
                     value={editingAccount.supplierPhone}
-                    onChange={(e) => setEditingAccount({ ...editingAccount, supplierPhone: e.target.value })}
+                    onChange={(e) =>
+                      setEditingAccount({ ...editingAccount, supplierPhone: e.target.value })
+                    }
                     className="rounded-lg border border-border px-3 py-2 text-sm outline-none"
                     style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
                   />
                 </div>
                 <div className="flex flex-col gap-1">
-                  <label className="text-xs font-semibold text-muted-foreground uppercase">Supplier Email</label>
+                  <label className="text-xs font-semibold text-muted-foreground uppercase">
+                    Supplier Email
+                  </label>
                   <input
                     type="text"
                     value={editingAccount.supplierEmail}
-                    onChange={(e) => setEditingAccount({ ...editingAccount, supplierEmail: e.target.value })}
+                    onChange={(e) =>
+                      setEditingAccount({ ...editingAccount, supplierEmail: e.target.value })
+                    }
                     className="rounded-lg border border-border px-3 py-2 text-sm outline-none"
                     style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
                   />
                 </div>
                 <div className="col-span-2 flex flex-col gap-1">
-                  <label className="text-xs font-semibold text-muted-foreground uppercase">Notes / Contract Details</label>
+                  <label className="text-xs font-semibold text-muted-foreground uppercase">
+                    Notes / Contract Details
+                  </label>
                   <textarea
                     rows={2}
                     value={editingAccount.notes || ''}
-                    onChange={(e) => setEditingAccount({ ...editingAccount, notes: e.target.value })}
+                    onChange={(e) =>
+                      setEditingAccount({ ...editingAccount, notes: e.target.value })
+                    }
                     className="rounded-lg border border-border px-3 py-2 text-sm outline-none resize-none"
                     style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
                   />
@@ -1930,7 +2269,11 @@ export default function UtilitiesRegisterClient() {
                   className="flex items-center gap-2 px-5 py-2 rounded-lg text-sm font-semibold transition-transform active:scale-95"
                   style={{ background: 'var(--primary)', color: '#000' }}
                 >
-                  {savingEdit ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
+                  {savingEdit ? (
+                    <Loader2 size={14} className="animate-spin" />
+                  ) : (
+                    <Check size={14} />
+                  )}
                   Save Changes
                 </button>
               </div>
@@ -1941,19 +2284,31 @@ export default function UtilitiesRegisterClient() {
 
       {/* Delete Confirmation Dialog */}
       {accountToDelete && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(4px)' }}>
-          <div className="w-full max-w-md rounded-2xl border border-rose-500/30 p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-150" style={{ background: 'var(--surface)' }}>
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{ background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(4px)' }}
+        >
+          <div
+            className="w-full max-w-md rounded-2xl border border-rose-500/30 p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-150"
+            style={{ background: 'var(--surface)' }}
+          >
             <div className="flex items-center gap-3 mb-4">
               <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-rose-500/20 text-rose-400">
                 <AlertTriangle size={20} />
               </div>
               <div>
                 <h3 className="font-head font-bold text-base text-foreground">Confirm Deletion</h3>
-                <p className="text-xs text-muted-foreground">{accountToDelete.accountNumber} · {accountToDelete.supplier}</p>
+                <p className="text-xs text-muted-foreground">
+                  {accountToDelete.accountNumber} · {accountToDelete.supplier}
+                </p>
               </div>
             </div>
             <p className="text-xs leading-relaxed text-muted-foreground mb-5">
-              Are you sure you want to permanently delete the <strong className="text-foreground">{accountToDelete.utilityType} account for {accountToDelete.property}</strong> from the utilities register? This action cannot be undone.
+              Are you sure you want to permanently delete the{' '}
+              <strong className="text-foreground">
+                {accountToDelete.utilityType} account for {accountToDelete.property}
+              </strong>{' '}
+              from the utilities register? This action cannot be undone.
             </p>
             <div className="flex items-center justify-end gap-3">
               <button
@@ -1984,27 +2339,48 @@ export default function UtilitiesRegisterClient() {
           </div>
         </div>
       )}
-          {/* Add Utility Category Modal */}
+      {/* Add Utility Category Modal */}
       {showAddCategoryModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(4px)' }}>
-          <div className="w-full max-w-lg rounded-2xl border border-border overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200" style={{ background: 'var(--surface)' }}>
-            <div className="flex items-center justify-between px-6 py-4 border-b border-border" style={{ background: 'var(--surface2)' }}>
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{ background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(4px)' }}
+        >
+          <div
+            className="w-full max-w-lg rounded-2xl border border-border overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200"
+            style={{ background: 'var(--surface)' }}
+          >
+            <div
+              className="flex items-center justify-between px-6 py-4 border-b border-border"
+              style={{ background: 'var(--surface2)' }}
+            >
               <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'rgba(232,201,122,0.15)', color: 'var(--primary)' }}>
+                <div
+                  className="w-8 h-8 rounded-lg flex items-center justify-center"
+                  style={{ background: 'rgba(232,201,122,0.15)', color: 'var(--primary)' }}
+                >
                   <Tag size={16} />
                 </div>
                 <div>
-                  <h3 className="font-head font-bold text-base text-foreground">Manage Utility Categories</h3>
-                  <p className="text-xs text-muted-foreground">Add new categories, rename or delete existing categories</p>
+                  <h3 className="font-head font-bold text-base text-foreground">
+                    Manage Utility Categories
+                  </h3>
+                  <p className="text-xs text-muted-foreground">
+                    Add new categories, rename or delete existing categories
+                  </p>
                 </div>
               </div>
-              <button onClick={() => setShowAddCategoryModal(false)} className="w-7 h-7 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground cursor-pointer">
+              <button
+                onClick={() => setShowAddCategoryModal(false)}
+                className="w-7 h-7 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground cursor-pointer"
+              >
                 <X size={16} />
               </button>
             </div>
             <div className="p-6 space-y-4">
               <form onSubmit={handleSaveCategory} className="space-y-3">
-                <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wide">Add New Category</label>
+                <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                  Add New Category
+                </label>
                 <div className="flex gap-2">
                   <input
                     type="text"
@@ -2030,7 +2406,9 @@ export default function UtilitiesRegisterClient() {
                   <label className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
                     Active Categories ({allCategories.length})
                   </label>
-                  <span className="text-[10px] text-muted-foreground">Eye to view · Pencil to edit · Trash to delete</span>
+                  <span className="text-[10px] text-muted-foreground">
+                    Eye to view · Pencil to edit · Trash to delete
+                  </span>
                 </div>
                 <div className="space-y-1.5 max-h-60 overflow-y-auto custom-scrollbar pr-1">
                   {allCategories.map((c) => {
@@ -2046,7 +2424,9 @@ export default function UtilitiesRegisterClient() {
                             <input
                               type="text"
                               value={editingCat.newName}
-                              onChange={(e) => setEditingCat({ ...editingCat, newName: e.target.value })}
+                              onChange={(e) =>
+                                setEditingCat({ ...editingCat, newName: e.target.value })
+                              }
                               className="flex-1 px-2.5 py-1 rounded-lg border border-primary text-xs outline-none bg-surface text-foreground"
                               autoFocus
                             />
@@ -2070,12 +2450,17 @@ export default function UtilitiesRegisterClient() {
                             <div className="flex items-center gap-2.5 min-w-0 flex-1">
                               <div
                                 className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
-                                style={{ background: 'rgba(232,201,122,0.15)', color: 'var(--primary)' }}
+                                style={{
+                                  background: 'rgba(232,201,122,0.15)',
+                                  color: 'var(--primary)',
+                                }}
                               >
                                 <Tag size={14} />
                               </div>
                               <div className="min-w-0">
-                                <p className="text-xs font-semibold text-foreground truncate">{c}</p>
+                                <p className="text-xs font-semibold text-foreground truncate">
+                                  {c}
+                                </p>
                               </div>
                             </div>
                             <div className="flex items-center gap-1.5 flex-shrink-0">
@@ -2083,7 +2468,11 @@ export default function UtilitiesRegisterClient() {
                                 type="button"
                                 onClick={() => handleViewCategoryRecords(c)}
                                 className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium border border-border hover:bg-surface transition-colors cursor-pointer"
-                                style={{ color: 'var(--primary)', borderColor: 'rgba(232,201,122,0.25)', background: 'rgba(232,201,122,0.08)' }}
+                                style={{
+                                  color: 'var(--primary)',
+                                  borderColor: 'rgba(232,201,122,0.25)',
+                                  background: 'rgba(232,201,122,0.08)',
+                                }}
                                 title={`Select category ${c}`}
                               >
                                 <Eye size={12} />
@@ -2131,21 +2520,31 @@ export default function UtilitiesRegisterClient() {
 
       {/* Category Delete Confirmation Dialog */}
       {catToDelete && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(4px)' }}>
-          <div className="w-full max-w-md rounded-2xl border border-rose-500/30 p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-150" style={{ background: 'var(--surface)' }}>
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{ background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(4px)' }}
+        >
+          <div
+            className="w-full max-w-md rounded-2xl border border-rose-500/30 p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-150"
+            style={{ background: 'var(--surface)' }}
+          >
             <div className="flex items-center gap-3 mb-4">
               <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-rose-500/20 text-rose-400">
                 <AlertTriangle size={20} />
               </div>
               <div>
-                <h3 className="font-head font-bold text-base text-foreground">Delete Utility Category</h3>
+                <h3 className="font-head font-bold text-base text-foreground">
+                  Delete Utility Category
+                </h3>
                 <p className="text-xs text-muted-foreground">{catToDelete}</p>
               </div>
             </div>
             <p className="text-xs leading-relaxed text-muted-foreground mb-5">
-              Are you sure you want to delete the category <strong className="text-foreground">{catToDelete}</strong>?
+              Are you sure you want to delete the category{' '}
+              <strong className="text-foreground">{catToDelete}</strong>?
               <span className="block mt-2 text-emerald-400 font-medium">
-                Note: All existing utility meters and invoices will safely stay in the database. Only this category option will be removed from future dropdown selections.
+                Note: All existing utility meters and invoices will safely stay in the database.
+                Only this category option will be removed from future dropdown selections.
               </span>
             </p>
             <div className="flex items-center justify-end gap-3">
@@ -2171,8 +2570,14 @@ export default function UtilitiesRegisterClient() {
 
       {/* Delete Utility Type Confirmation Dialog */}
       {typeToDelete && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(4px)' }}>
-          <div className="w-full max-w-md rounded-2xl border border-rose-500/30 p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-150" style={{ background: 'var(--surface)' }}>
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{ background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(4px)' }}
+        >
+          <div
+            className="w-full max-w-md rounded-2xl border border-rose-500/30 p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-150"
+            style={{ background: 'var(--surface)' }}
+          >
             <div className="flex items-center gap-3 mb-4">
               <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-rose-500/20 text-rose-400">
                 <AlertTriangle size={20} />
@@ -2183,10 +2588,12 @@ export default function UtilitiesRegisterClient() {
               </div>
             </div>
             <p className="text-xs leading-relaxed text-muted-foreground mb-5">
-              Are you sure you want to permanently delete the utility type <strong className="text-foreground">"{typeToDelete}"</strong>?
+              Are you sure you want to permanently delete the utility type{' '}
+              <strong className="text-foreground">"{typeToDelete}"</strong>?
               {accounts.filter((u) => u.utilityType === typeToDelete).length > 0 && (
                 <span className="block mt-2 text-amber-400">
-                  Note: There are {accounts.filter((u) => u.utilityType === typeToDelete).length} account(s) currently assigned to this type.
+                  Note: There are {accounts.filter((u) => u.utilityType === typeToDelete).length}{' '}
+                  account(s) currently assigned to this type.
                 </span>
               )}
             </p>
@@ -2213,25 +2620,46 @@ export default function UtilitiesRegisterClient() {
 
       {/* Add Utility Type Modal */}
       {showAddTypeModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(4px)' }}>
-          <div className="w-full max-w-lg rounded-2xl border border-border overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200" style={{ background: 'var(--surface)' }}>
-            <div className="flex items-center justify-between px-6 py-4 border-b border-border" style={{ background: 'var(--surface2)' }}>
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{ background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(4px)' }}
+        >
+          <div
+            className="w-full max-w-lg rounded-2xl border border-border overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200"
+            style={{ background: 'var(--surface)' }}
+          >
+            <div
+              className="flex items-center justify-between px-6 py-4 border-b border-border"
+              style={{ background: 'var(--surface2)' }}
+            >
               <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'rgba(232,201,122,0.15)', color: 'var(--primary)' }}>
+                <div
+                  className="w-8 h-8 rounded-lg flex items-center justify-center"
+                  style={{ background: 'rgba(232,201,122,0.15)', color: 'var(--primary)' }}
+                >
                   <Plus size={16} />
                 </div>
                 <div>
-                  <h3 className="font-head font-bold text-base text-foreground">Manage Utility Types</h3>
-                  <p className="text-xs text-muted-foreground">Add new utility types or delete existing types</p>
+                  <h3 className="font-head font-bold text-base text-foreground">
+                    Manage Utility Types
+                  </h3>
+                  <p className="text-xs text-muted-foreground">
+                    Add new utility types or delete existing types
+                  </p>
                 </div>
               </div>
-              <button onClick={() => setShowAddTypeModal(false)} className="w-7 h-7 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground cursor-pointer">
+              <button
+                onClick={() => setShowAddTypeModal(false)}
+                className="w-7 h-7 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground cursor-pointer"
+              >
                 <X size={16} />
               </button>
             </div>
             <div className="p-6 space-y-4">
               <form onSubmit={handleSaveType} className="space-y-3">
-                <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wide">Add New Utility Type</label>
+                <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                  Add New Utility Type
+                </label>
                 <div className="flex gap-2">
                   <input
                     type="text"
@@ -2277,7 +2705,9 @@ export default function UtilitiesRegisterClient() {
                             <input
                               type="text"
                               value={editingType.newName}
-                              onChange={(e) => setEditingType({ ...editingType, newName: e.target.value })}
+                              onChange={(e) =>
+                                setEditingType({ ...editingType, newName: e.target.value })
+                              }
                               className="flex-1 px-2.5 py-1 rounded-lg border border-primary text-xs outline-none bg-surface text-foreground"
                               autoFocus
                             />
@@ -2306,8 +2736,12 @@ export default function UtilitiesRegisterClient() {
                                 <IconComponent size={14} />
                               </div>
                               <div className="min-w-0">
-                                <span className="font-semibold text-xs text-foreground block truncate">{t}</span>
-                                <span className="text-[11px] text-muted-foreground">{count} {count === 1 ? 'account' : 'accounts'}</span>
+                                <span className="font-semibold text-xs text-foreground block truncate">
+                                  {t}
+                                </span>
+                                <span className="text-[11px] text-muted-foreground">
+                                  {count} {count === 1 ? 'account' : 'accounts'}
+                                </span>
                               </div>
                             </div>
                             <div className="flex items-center gap-1.5 flex-shrink-0">
@@ -2316,7 +2750,11 @@ export default function UtilitiesRegisterClient() {
                                 type="button"
                                 onClick={() => handleViewTypeRecords(t)}
                                 className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium border border-border hover:bg-surface transition-colors cursor-pointer"
-                                style={{ color: 'var(--primary)', borderColor: 'rgba(232,201,122,0.25)', background: 'rgba(232,201,122,0.08)' }}
+                                style={{
+                                  color: 'var(--primary)',
+                                  borderColor: 'rgba(232,201,122,0.25)',
+                                  background: 'rgba(232,201,122,0.08)',
+                                }}
                                 title={`See records for ${t}`}
                               >
                                 <Eye size={12} />
@@ -2379,4 +2817,3 @@ export default function UtilitiesRegisterClient() {
     </div>
   );
 }
-

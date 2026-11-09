@@ -22,7 +22,13 @@ function AssetDetailInner({ params }: Props) {
 
 export default function AssetDetailPage({ params }: Props) {
   return (
-    <Suspense fallback={<div className="flex items-center justify-center h-screen text-muted-foreground text-sm">Loading asset…</div>}>
+    <Suspense
+      fallback={
+        <div className="flex items-center justify-center h-screen text-muted-foreground text-sm">
+          Loading asset…
+        </div>
+      }
+    >
       <AssetDetailInner params={params} />
     </Suspense>
   );

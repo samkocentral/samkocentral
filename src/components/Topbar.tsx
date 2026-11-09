@@ -46,7 +46,12 @@ interface TopbarProps {
   hideDefaultActions?: boolean;
 }
 
-export default function Topbar({ title, subtitle, actions, hideDefaultActions = false }: TopbarProps) {
+export default function Topbar({
+  title,
+  subtitle,
+  actions,
+  hideDefaultActions = false,
+}: TopbarProps) {
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [notifOpen, setNotifOpen] = useState(false);
   const [notifFilter, setNotifFilter] = useState<'all' | 'critical' | 'warning' | 'unread'>('all');
@@ -74,7 +79,11 @@ export default function Topbar({ title, subtitle, actions, hideDefaultActions = 
     return () => window.removeEventListener('samko:data-changed', fetchUsers);
   }, []);
   const pathname = usePathname();
-  const { dashboard: cmsDashboard, recentLogs: cmsRecentLogs, importExport: cmsImportExport } = useAppCms();
+  const {
+    dashboard: cmsDashboard,
+    recentLogs: cmsRecentLogs,
+    importExport: cmsImportExport,
+  } = useAppCms();
   const [cmsOverride, setCmsOverride] = useState<{
     title?: string;
     subtitle?: string;
@@ -114,7 +123,7 @@ export default function Topbar({ title, subtitle, actions, hideDefaultActions = 
             return;
           }
         }
-      } catch (e) { }
+      } catch (e) {}
       setTasksList(getInitialTasks());
     };
     syncTasks();
@@ -143,18 +152,40 @@ export default function Topbar({ title, subtitle, actions, hideDefaultActions = 
   }, [notifications, isPropertyAccessible]);
 
   const accessibleTasks = useMemo(() => {
-    return tasksList.filter((t: TaskItem) => !t.property && !(t as any).hotel ? true : isPropertyAccessible(t.property || (t as any).hotel));
+    return tasksList.filter((t: TaskItem) =>
+      !t.property && !(t as any).hotel ? true : isPropertyAccessible(t.property || (t as any).hotel)
+    );
   }, [tasksList, isPropertyAccessible]);
 
   // Compute live alarm / notification metrics
   const unreadCount = accessibleNotifications.filter((n: AppNotification) => !n.read).length;
-  const criticalList = accessibleNotifications.filter((n: AppNotification) => n.type === 'critical');
+  const criticalList = accessibleNotifications.filter(
+    (n: AppNotification) => n.type === 'critical'
+  );
   const warningList = accessibleNotifications.filter((n: AppNotification) => n.type === 'warning');
-  const unreadCriticalCount = accessibleNotifications.filter((n: AppNotification) => n.type === 'critical' && !n.read).length;
-  const unreadWarningCount = accessibleNotifications.filter((n: AppNotification) => n.type === 'warning' && !n.read).length;
+  const unreadCriticalCount = accessibleNotifications.filter(
+    (n: AppNotification) => n.type === 'critical' && !n.read
+  ).length;
+  const unreadWarningCount = accessibleNotifications.filter(
+    (n: AppNotification) => n.type === 'warning' && !n.read
+  ).length;
 
-  const displayCriticalCount = criticalList.length > 0 ? (unreadCriticalCount > 0 ? unreadCriticalCount : criticalList.length) : (isSuperAdmin ? 3 : 0);
-  const displayWarningCount = warningList.length > 0 ? (unreadWarningCount > 0 ? unreadWarningCount : warningList.length) : (isSuperAdmin ? 3 : 0);
+  const displayCriticalCount =
+    criticalList.length > 0
+      ? unreadCriticalCount > 0
+        ? unreadCriticalCount
+        : criticalList.length
+      : isSuperAdmin
+        ? 3
+        : 0;
+  const displayWarningCount =
+    warningList.length > 0
+      ? unreadWarningCount > 0
+        ? unreadWarningCount
+        : warningList.length
+      : isSuperAdmin
+        ? 3
+        : 0;
 
   // Filtered notifications for popover
   const filteredNotifications = accessibleNotifications.filter((n: AppNotification) => {
@@ -174,7 +205,9 @@ export default function Topbar({ title, subtitle, actions, hideDefaultActions = 
           setCmsOverride({
             title: ovCfg.title,
             subtitle: ovCfg.subtitle || undefined,
-            primaryActionLabel: ovCfg.primaryActionLabel ? ovCfg.primaryActionLabel.replace(/^[\+\s]+/, '').trim() : undefined,
+            primaryActionLabel: ovCfg.primaryActionLabel
+              ? ovCfg.primaryActionLabel.replace(/^[\+\s]+/, '').trim()
+              : undefined,
             secondaryActionLabel: ovCfg.secondaryActionLabel || undefined,
           });
           return;
@@ -190,7 +223,8 @@ export default function Topbar({ title, subtitle, actions, hideDefaultActions = 
       if (pathname === '/recent-logs') {
         setCmsOverride({
           title: 'Audit Logs',
-          subtitle: 'Live audit trail of real platform operations, compliance checks, and user activities',
+          subtitle:
+            'Live audit trail of real platform operations, compliance checks, and user activities',
         });
         return;
       }
@@ -231,7 +265,9 @@ export default function Topbar({ title, subtitle, actions, hideDefaultActions = 
             setCmsOverride({
               title: cfg.title,
               subtitle: cfg.subtitle || undefined,
-              primaryActionLabel: cfg.primaryActionLabel ? cfg.primaryActionLabel.replace(/^[\+\s]+/, '').trim() : undefined,
+              primaryActionLabel: cfg.primaryActionLabel
+                ? cfg.primaryActionLabel.replace(/^[\+\s]+/, '').trim()
+                : undefined,
               secondaryActionLabel: cfg.secondaryActionLabel || undefined,
             });
           }
@@ -400,24 +436,24 @@ export default function Topbar({ title, subtitle, actions, hideDefaultActions = 
           >
             <Bell
               size={15}
-              className={`transition-colors ${unreadCriticalCount > 0
-                ? 'text-rose-400 animate-bounce'
-                : unreadCount > 0
-                  ? 'text-primary'
-                  : 'text-muted-foreground group-hover:text-foreground'
-                }`}
+              className={`transition-colors ${
+                unreadCriticalCount > 0
+                  ? 'text-rose-400 animate-bounce'
+                  : unreadCount > 0
+                    ? 'text-primary'
+                    : 'text-muted-foreground group-hover:text-foreground'
+              }`}
             />
-            <span className="text-xs font-bold text-foreground hidden sm:inline">
-              Alerts
-            </span>
+            <span className="text-xs font-bold text-foreground hidden sm:inline">Alerts</span>
 
             {/* Counter Badge */}
             {unreadCount > 0 && (
               <span
-                className={`min-w-[18px] h-[18px] px-1 rounded-full flex items-center justify-center text-[10px] font-black text-white ${unreadCriticalCount > 0
-                  ? 'bg-rose-500 shadow-md shadow-rose-500/50'
-                  : 'bg-amber-500 shadow-md shadow-amber-500/40'
-                  }`}
+                className={`min-w-[18px] h-[18px] px-1 rounded-full flex items-center justify-center text-[10px] font-black text-white ${
+                  unreadCriticalCount > 0
+                    ? 'bg-rose-500 shadow-md shadow-rose-500/50'
+                    : 'bg-amber-500 shadow-md shadow-amber-500/40'
+                }`}
               >
                 {unreadCount > 9 ? '9+' : unreadCount}
               </span>
@@ -532,7 +568,9 @@ export default function Topbar({ title, subtitle, actions, hideDefaultActions = 
                       style={{
                         background: isActive ? 'var(--surface2)' : 'transparent',
                         color: isActive ? 'var(--primary)' : 'var(--text2)',
-                        borderBottom: isActive ? '2px solid var(--primary)' : '2px solid transparent',
+                        borderBottom: isActive
+                          ? '2px solid var(--primary)'
+                          : '2px solid transparent',
                       }}
                     >
                       <span>{tab.label}</span>
@@ -555,7 +593,9 @@ export default function Topbar({ title, subtitle, actions, hideDefaultActions = 
                 {filteredNotifications.length === 0 ? (
                   <div className="py-10 text-center flex flex-col items-center justify-center">
                     <Shield size={34} className="text-emerald-500/70 mb-2" />
-                    <p className="text-xs font-bold text-foreground">All Systems Operating Normally</p>
+                    <p className="text-xs font-bold text-foreground">
+                      All Systems Operating Normally
+                    </p>
                     <p className="text-[11px] text-muted-foreground mt-1 max-w-[240px]">
                       No active notifications under this filter. New alerts appear here dynamically.
                     </p>
@@ -567,10 +607,11 @@ export default function Topbar({ title, subtitle, actions, hideDefaultActions = 
                     return (
                       <div
                         key={notif.id}
-                        className={`relative p-3 rounded-xl border transition-all ${notif.read
-                          ? 'bg-surface/60 border-border opacity-85 hover:opacity-100'
-                          : 'bg-surface2 border-border-strong shadow-md'
-                          }`}
+                        className={`relative p-3 rounded-xl border transition-all ${
+                          notif.read
+                            ? 'bg-surface/60 border-border opacity-85 hover:opacity-100'
+                            : 'bg-surface2 border-border-strong shadow-md'
+                        }`}
                         style={{
                           borderLeftWidth: 4,
                           borderLeftColor: isCrit
@@ -586,12 +627,13 @@ export default function Topbar({ title, subtitle, actions, hideDefaultActions = 
                         <div className="flex items-center justify-between gap-2">
                           <div className="flex items-center gap-1.5 flex-wrap">
                             <span
-                              className={`px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-wider ${isCrit
-                                ? 'bg-rose-500/20 text-rose-300 border border-rose-500/30'
-                                : isWarn
-                                  ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
-                                  : 'bg-blue-500/20 text-blue-300 border border-blue-500/30'
-                                }`}
+                              className={`px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-wider ${
+                                isCrit
+                                  ? 'bg-rose-500/20 text-rose-300 border border-rose-500/30'
+                                  : isWarn
+                                    ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+                                    : 'bg-blue-500/20 text-blue-300 border border-blue-500/30'
+                              }`}
                             >
                               {notif.source || notif.type}
                             </span>
@@ -626,8 +668,9 @@ export default function Topbar({ title, subtitle, actions, hideDefaultActions = 
                         {/* Title & Description */}
                         <div className="mt-1.5">
                           <p
-                            className={`text-xs font-bold leading-tight ${isCrit ? 'text-rose-300' : 'text-foreground'
-                              }`}
+                            className={`text-xs font-bold leading-tight ${
+                              isCrit ? 'text-rose-300' : 'text-foreground'
+                            }`}
                           >
                             {notif.title}
                           </p>
@@ -715,9 +758,7 @@ export default function Topbar({ title, subtitle, actions, hideDefaultActions = 
                 size={14}
                 className="text-amber-400 group-hover:text-primary transition-colors"
               />
-              <span className="text-xs font-bold text-foreground hidden sm:inline">
-                Tasks
-              </span>
+              <span className="text-xs font-bold text-foreground hidden sm:inline">Tasks</span>
 
               {/* Dynamic Task Count Badge */}
               <span
@@ -756,7 +797,8 @@ export default function Topbar({ title, subtitle, actions, hideDefaultActions = 
                           Operational Tasks & Workflows
                         </span>
                         <span className="px-1.5 py-0.5 rounded-full text-[10px] font-black bg-amber-500/20 text-amber-300 border border-amber-500/30">
-                          {accessibleTasks.filter((t: TaskItem) => t.status !== 'completed').length} open
+                          {accessibleTasks.filter((t: TaskItem) => t.status !== 'completed').length}{' '}
+                          open
                         </span>
                       </div>
                       <p className="text-[10px] text-muted-foreground mt-0.5">
@@ -781,8 +823,17 @@ export default function Topbar({ title, subtitle, actions, hideDefaultActions = 
                 >
                   {[
                     { key: 'all', label: 'All Tasks', count: accessibleTasks.length },
-                    { key: 'urgent', label: 'Urgent', count: accessibleTasks.filter((t: TaskItem) => t.priority === 'urgent').length },
-                    { key: 'open', label: 'Open', count: accessibleTasks.filter((t: TaskItem) => t.status === 'open').length },
+                    {
+                      key: 'urgent',
+                      label: 'Urgent',
+                      count: accessibleTasks.filter((t: TaskItem) => t.priority === 'urgent')
+                        .length,
+                    },
+                    {
+                      key: 'open',
+                      label: 'Open',
+                      count: accessibleTasks.filter((t: TaskItem) => t.status === 'open').length,
+                    },
                   ].map((tab) => {
                     const isActive = tasksFilter === tab.key;
                     return (
@@ -794,7 +845,9 @@ export default function Topbar({ title, subtitle, actions, hideDefaultActions = 
                         style={{
                           background: isActive ? 'var(--surface2)' : 'transparent',
                           color: isActive ? 'var(--primary)' : 'var(--text2)',
-                          borderBottom: isActive ? '2px solid var(--primary)' : '2px solid transparent',
+                          borderBottom: isActive
+                            ? '2px solid var(--primary)'
+                            : '2px solid transparent',
                         }}
                       >
                         <span>{tab.label}</span>
@@ -914,7 +967,9 @@ export default function Topbar({ title, subtitle, actions, hideDefaultActions = 
             style={{ padding: '6px 12px', fontSize: 12 }}
           >
             <Upload size={13} />
-            <span className="hidden sm:inline">{cmsOverride.secondaryActionLabel || 'Upload Doc'}</span>
+            <span className="hidden sm:inline">
+              {cmsOverride.secondaryActionLabel || 'Upload Doc'}
+            </span>
           </Link>
         )}
 
@@ -985,7 +1040,9 @@ export default function Topbar({ title, subtitle, actions, hideDefaultActions = 
                     <span className="flex items-center gap-1.5">
                       <LogOut size={13} /> Return to Super Admin
                     </span>
-                    <span className="text-[10px] uppercase font-extrabold bg-black/20 px-1.5 py-0.5 rounded">Exit</span>
+                    <span className="text-[10px] uppercase font-extrabold bg-black/20 px-1.5 py-0.5 rounded">
+                      Exit
+                    </span>
                   </button>
                 </div>
               )}
@@ -1028,46 +1085,63 @@ export default function Topbar({ title, subtitle, actions, hideDefaultActions = 
                           {isActive ? (
                             <Check size={12} className="text-primary flex-shrink-0" />
                           ) : (
-                            <span className="text-[10px] text-muted-foreground uppercase">Switch</span>
+                            <span className="text-[10px] text-muted-foreground uppercase">
+                              Switch
+                            </span>
                           )}
                         </button>
                       );
                     })}
 
-                    {systemUsers.filter((su) => !DEMO_CREDENTIALS.some((c) => c.user.id === su.id || c.user.email?.toLowerCase() === su.email?.toLowerCase())).map((su) => {
-                      const isActive = user.email === su.email;
-                      const roleColor =
-                        su.roleLevel === 'L1' ? '#f43f5e' :
-                        su.roleLevel === 'L2' ? '#60a5fa' :
-                        su.roleLevel === 'L3' ? '#10b981' : '#94a3b8';
-                      return (
-                        <button
-                          key={su.id}
-                          type="button"
-                          onClick={() => {
-                            switchUser(su);
-                            setUserMenuOpen(false);
-                          }}
-                          className="w-full flex items-center justify-between px-3 py-1.5 rounded-lg text-left text-xs transition-colors hover:bg-surface2"
-                          style={{ background: isActive ? 'var(--surface2)' : 'transparent' }}
-                        >
-                          <div className="flex items-center gap-2 min-w-0">
-                            <span
-                              className="w-2 h-2 rounded-full flex-shrink-0"
-                              style={{ background: roleColor }}
-                            />
-                            <span className="truncate text-foreground font-medium">
-                              {su.name} ({su.roleLevel} · {su.roleTitle || su.role})
-                            </span>
-                          </div>
-                          {isActive ? (
-                            <Check size={12} className="text-primary flex-shrink-0" />
-                          ) : (
-                            <span className="text-[10px] text-muted-foreground uppercase">Switch</span>
-                          )}
-                        </button>
-                      );
-                    })}
+                    {systemUsers
+                      .filter(
+                        (su) =>
+                          !DEMO_CREDENTIALS.some(
+                            (c) =>
+                              c.user.id === su.id ||
+                              c.user.email?.toLowerCase() === su.email?.toLowerCase()
+                          )
+                      )
+                      .map((su) => {
+                        const isActive = user.email === su.email;
+                        const roleColor =
+                          su.roleLevel === 'L1'
+                            ? '#f43f5e'
+                            : su.roleLevel === 'L2'
+                              ? '#60a5fa'
+                              : su.roleLevel === 'L3'
+                                ? '#10b981'
+                                : '#94a3b8';
+                        return (
+                          <button
+                            key={su.id}
+                            type="button"
+                            onClick={() => {
+                              switchUser(su);
+                              setUserMenuOpen(false);
+                            }}
+                            className="w-full flex items-center justify-between px-3 py-1.5 rounded-lg text-left text-xs transition-colors hover:bg-surface2"
+                            style={{ background: isActive ? 'var(--surface2)' : 'transparent' }}
+                          >
+                            <div className="flex items-center gap-2 min-w-0">
+                              <span
+                                className="w-2 h-2 rounded-full flex-shrink-0"
+                                style={{ background: roleColor }}
+                              />
+                              <span className="truncate text-foreground font-medium">
+                                {su.name} ({su.roleLevel} · {su.roleTitle || su.role})
+                              </span>
+                            </div>
+                            {isActive ? (
+                              <Check size={12} className="text-primary flex-shrink-0" />
+                            ) : (
+                              <span className="text-[10px] text-muted-foreground uppercase">
+                                Switch
+                              </span>
+                            )}
+                          </button>
+                        );
+                      })}
                   </div>
                 </>
               )}

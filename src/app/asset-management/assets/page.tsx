@@ -9,7 +9,7 @@ function AssetsPageInner() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const queryStr = searchParams?.toString();
-  const fullPath = queryStr ? `${pathname}?${queryStr}` : (pathname || '/asset-management/assets');
+  const fullPath = queryStr ? `${pathname}?${queryStr}` : pathname || '/asset-management/assets';
   return (
     <AppLayout currentPath={fullPath}>
       <AssetsClient />
@@ -19,7 +19,13 @@ function AssetsPageInner() {
 
 export default function AssetsPage() {
   return (
-    <Suspense fallback={<div className="flex items-center justify-center h-screen text-muted-foreground text-sm">Loading assets…</div>}>
+    <Suspense
+      fallback={
+        <div className="flex items-center justify-center h-screen text-muted-foreground text-sm">
+          Loading assets…
+        </div>
+      }
+    >
       <AssetsPageInner />
     </Suspense>
   );

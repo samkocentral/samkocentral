@@ -39,7 +39,11 @@ export async function GET(req: NextRequest) {
       try {
         const snap = await getDoc(doc(clientDb, 'cms', 'app_cms'));
         if (snap.exists()) {
-          return NextResponse.json({ success: true, data: snap.data(), source: 'firestore-client' });
+          return NextResponse.json({
+            success: true,
+            data: snap.data(),
+            source: 'firestore-client',
+          });
         }
       } catch (e) {
         console.warn('[api/cms] Client get app_cms failed:', e);
@@ -123,7 +127,11 @@ export async function POST(req: NextRequest) {
         }
       }
 
-      return NextResponse.json({ success: true, message: 'Saved app CMS directly to database', source: 'database' });
+      return NextResponse.json({
+        success: true,
+        message: 'Saved app CMS directly to database',
+        source: 'database',
+      });
     }
 
     // Default Deep Page CMS
@@ -144,8 +152,15 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    return NextResponse.json({ success: true, message: 'Saved deep CMS directly to database', source: 'database' });
+    return NextResponse.json({
+      success: true,
+      message: 'Saved deep CMS directly to database',
+      source: 'database',
+    });
   } catch (err: any) {
-    return NextResponse.json({ success: false, error: err?.message || String(err) }, { status: 500 });
+    return NextResponse.json(
+      { success: false, error: err?.message || String(err) },
+      { status: 500 }
+    );
   }
 }

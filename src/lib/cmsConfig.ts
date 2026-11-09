@@ -62,7 +62,12 @@ export const DEFAULT_CMS_FORMS: CMSForm[] = [
         helpText: 'Primary service classification for contract categorisation and reporting',
         options: [
           { id: 'opt_c1', value: 'Lift Maintenance', label: 'Lift Maintenance', color: '#60a5fa' },
-          { id: 'opt_c2', value: 'Fire Alarm Maintenance', label: 'Fire Alarm Maintenance', color: '#f43f5e' },
+          {
+            id: 'opt_c2',
+            value: 'Fire Alarm Maintenance',
+            label: 'Fire Alarm Maintenance',
+            color: '#f43f5e',
+          },
           { id: 'opt_c3', value: 'HVAC', label: 'HVAC', color: '#38bdf8' },
           { id: 'opt_c4', value: 'Pest Control', label: 'Pest Control', color: '#f59e0b' },
           { id: 'opt_c5', value: 'Cleaning', label: 'Cleaning', color: '#34d399' },
@@ -70,22 +75,52 @@ export const DEFAULT_CMS_FORMS: CMSForm[] = [
           { id: 'opt_c7', value: 'Waste Collection', label: 'Waste Collection', color: '#a78bfa' },
           { id: 'opt_c8', value: 'Security', label: 'Security', color: '#e879f9' },
           { id: 'opt_c9', value: 'Landscaping', label: 'Landscaping', color: '#4ade80' },
-          { id: 'opt_c10', value: 'Catering Equipment', label: 'Catering Equipment', color: '#fb923c' },
+          {
+            id: 'opt_c10',
+            value: 'Catering Equipment',
+            label: 'Catering Equipment',
+            color: '#fb923c',
+          },
           { id: 'opt_c11', value: 'IT Support', label: 'IT Support', color: '#38bdf8' },
           { id: 'opt_c12', value: 'Internet', label: 'Internet & Connectivity', color: '#2dd4bf' },
           { id: 'opt_c13', value: 'Telephone', label: 'Telephone & VOIP', color: '#2dd4bf' },
           { id: 'opt_c14', value: 'Utilities', label: 'Utilities & Power', color: '#eab308' },
-          { id: 'opt_c15', value: 'Building Maintenance', label: 'Building Maintenance', color: '#94a3b8' },
+          {
+            id: 'opt_c15',
+            value: 'Building Maintenance',
+            label: 'Building Maintenance',
+            color: '#94a3b8',
+          },
           { id: 'opt_c16', value: 'Roofing', label: 'Roofing & Cladding', color: '#a3a3a3' },
           { id: 'opt_c17', value: 'Plumbing', label: 'Plumbing & Drainage', color: '#0ea5e9' },
-          { id: 'opt_c18', value: 'Electrical', label: 'Electrical Infrastructure', color: '#facc15' },
-          { id: 'opt_c19', value: 'Kitchen Equipment', label: 'Commercial Kitchen Equipment', color: '#f97316' },
+          {
+            id: 'opt_c18',
+            value: 'Electrical',
+            label: 'Electrical Infrastructure',
+            color: '#facc15',
+          },
+          {
+            id: 'opt_c19',
+            value: 'Kitchen Equipment',
+            label: 'Commercial Kitchen Equipment',
+            color: '#f97316',
+          },
           { id: 'opt_c20', value: 'Generator', label: 'Standby Generator', color: '#ef4444' },
           { id: 'opt_c21', value: 'Licensing', label: 'Licensing & Copyright', color: '#c084fc' },
-          { id: 'opt_c22', value: 'Professional Services', label: 'Professional Services', color: '#818cf8' },
+          {
+            id: 'opt_c22',
+            value: 'Professional Services',
+            label: 'Professional Services',
+            color: '#818cf8',
+          },
           { id: 'opt_c23', value: 'F&B Supply', label: 'F&B Supply Agreements', color: '#fbbf24' },
           { id: 'opt_c24', value: 'HR & Payroll', label: 'HR & Payroll Systems', color: '#f472b6' },
-          { id: 'opt_c25', value: 'Housekeeping', label: 'Housekeeping Services', color: '#22c55e' },
+          {
+            id: 'opt_c25',
+            value: 'Housekeeping',
+            label: 'Housekeeping Services',
+            color: '#22c55e',
+          },
         ],
       },
       {
@@ -99,7 +134,12 @@ export const DEFAULT_CMS_FORMS: CMSForm[] = [
           { id: 'opt_s1', value: 'active', label: 'Active', color: '#3dd68c' },
           { id: 'opt_s2', value: 'expiring-soon', label: 'Expiring Soon', color: '#f59e0b' },
           { id: 'opt_s3', value: 'expired', label: 'Expired', color: '#f43f5e' },
-          { id: 'opt_s4', value: 'pending', label: 'Pending Signature / Approval', color: '#60a5fa' },
+          {
+            id: 'opt_s4',
+            value: 'pending',
+            label: 'Pending Signature / Approval',
+            color: '#60a5fa',
+          },
           { id: 'opt_s5', value: 'terminated', label: 'Terminated', color: '#94a3b8' },
         ],
       },
@@ -110,7 +150,11 @@ export const DEFAULT_CMS_FORMS: CMSForm[] = [
         required: true,
         order: 3,
         options: [
-          { id: 'opt_h1', value: 'Crowne Plaza Kingston-south', label: 'Crowne Plaza Kingston-south' },
+          {
+            id: 'opt_h1',
+            value: 'Crowne Plaza Kingston-south',
+            label: 'Crowne Plaza Kingston-south',
+          },
           { id: 'opt_h2', value: 'Stanhill Court', label: 'Stanhill Court Hotel' },
           { id: 'opt_h3', value: 'Hampton 1 & 2', label: 'Hampton 1 & 2' },
           { id: 'opt_h4', value: 'Ravens Ait Island', label: 'Ravens Ait Island' },
@@ -163,7 +207,11 @@ export const DEFAULT_CMS_FORMS: CMSForm[] = [
         options: [
           { id: 'opt_dep1', value: 'Finance', label: 'Finance' },
           { id: 'opt_dep2', value: 'Operations', label: 'Operations' },
-          { id: 'opt_dep3', value: 'Engineering & Maintenance', label: 'Engineering & Maintenance' },
+          {
+            id: 'opt_dep3',
+            value: 'Engineering & Maintenance',
+            label: 'Engineering & Maintenance',
+          },
           { id: 'opt_dep4', value: 'IT & Systems', label: 'IT & Systems' },
           { id: 'opt_dep5', value: 'General Management', label: 'General Management' },
           { id: 'opt_dep6', value: 'Revenue & Sales', label: 'Revenue & Sales' },
@@ -179,7 +227,8 @@ export const DEFAULT_CMS_FORMS: CMSForm[] = [
     title: 'Compliance Register Form & Dropdowns',
     pagePath: '/compliance-register',
     category: 'Safety & Compliance',
-    description: 'Statutory compliance tracking, inspections, certificates, audits and risk management',
+    description:
+      'Statutory compliance tracking, inspections, certificates, audits and risk management',
     fields: [
       {
         id: 'category',
@@ -188,15 +237,60 @@ export const DEFAULT_CMS_FORMS: CMSForm[] = [
         required: true,
         order: 1,
         options: [
-          { id: 'comp_c1', value: 'Fire Safety', label: 'Fire Safety (Extinguishers, Alarms, Doors)', color: '#f43f5e' },
-          { id: 'comp_c2', value: 'Water Safety (Legionella)', label: 'Water Safety & Legionella Control', color: '#0ea5e9' },
-          { id: 'comp_c3', value: 'Electrical & Gas', label: 'Electrical Installation & Gas Safety', color: '#f59e0b' },
-          { id: 'comp_c4', value: 'Health & Safety', label: 'Health, Safety & Welfare', color: '#10b981' },
-          { id: 'comp_c5', value: 'Asbestos', label: 'Asbestos Survey & Register', color: '#64748b' },
-          { id: 'comp_c6', value: 'Lifts & Lifting', label: 'LOLER Lifts & Lifting Equipment', color: '#8b5cf6' },
-          { id: 'comp_c7', value: 'Food Safety & Hygiene', label: 'Food Safety, HACCP & Hygiene', color: '#ec4899' },
-          { id: 'comp_c8', value: 'Environmental & Waste', label: 'Environmental, EPA & Waste Transfer', color: '#84cc16' },
-          { id: 'comp_c9', value: 'Insurance & Licensing', label: 'Premises Licensing & Statutory Insurance', color: '#e8c97a' },
+          {
+            id: 'comp_c1',
+            value: 'Fire Safety',
+            label: 'Fire Safety (Extinguishers, Alarms, Doors)',
+            color: '#f43f5e',
+          },
+          {
+            id: 'comp_c2',
+            value: 'Water Safety (Legionella)',
+            label: 'Water Safety & Legionella Control',
+            color: '#0ea5e9',
+          },
+          {
+            id: 'comp_c3',
+            value: 'Electrical & Gas',
+            label: 'Electrical Installation & Gas Safety',
+            color: '#f59e0b',
+          },
+          {
+            id: 'comp_c4',
+            value: 'Health & Safety',
+            label: 'Health, Safety & Welfare',
+            color: '#10b981',
+          },
+          {
+            id: 'comp_c5',
+            value: 'Asbestos',
+            label: 'Asbestos Survey & Register',
+            color: '#64748b',
+          },
+          {
+            id: 'comp_c6',
+            value: 'Lifts & Lifting',
+            label: 'LOLER Lifts & Lifting Equipment',
+            color: '#8b5cf6',
+          },
+          {
+            id: 'comp_c7',
+            value: 'Food Safety & Hygiene',
+            label: 'Food Safety, HACCP & Hygiene',
+            color: '#ec4899',
+          },
+          {
+            id: 'comp_c8',
+            value: 'Environmental & Waste',
+            label: 'Environmental, EPA & Waste Transfer',
+            color: '#84cc16',
+          },
+          {
+            id: 'comp_c9',
+            value: 'Insurance & Licensing',
+            label: 'Premises Licensing & Statutory Insurance',
+            color: '#e8c97a',
+          },
         ],
       },
       {
@@ -208,8 +302,18 @@ export const DEFAULT_CMS_FORMS: CMSForm[] = [
         options: [
           { id: 'comp_s1', value: 'Compliant', label: 'Compliant / Certified', color: '#3dd68c' },
           { id: 'comp_s2', value: 'Overdue', label: 'Statutory Overdue', color: '#f43f5e' },
-          { id: 'comp_s3', value: 'Action Required', label: 'Action / Remedial Required', color: '#f59e0b' },
-          { id: 'comp_s4', value: 'Scheduled', label: 'Scheduled / Under Review', color: '#60a5fa' },
+          {
+            id: 'comp_s3',
+            value: 'Action Required',
+            label: 'Action / Remedial Required',
+            color: '#f59e0b',
+          },
+          {
+            id: 'comp_s4',
+            value: 'Scheduled',
+            label: 'Scheduled / Under Review',
+            color: '#60a5fa',
+          },
           { id: 'comp_s5', value: 'Exempt', label: 'Exempt / Not Applicable', color: '#94a3b8' },
         ],
       },
@@ -250,7 +354,8 @@ export const DEFAULT_CMS_FORMS: CMSForm[] = [
     title: 'Asset Management Register Form & Dropdowns',
     pagePath: '/asset-management/assets',
     category: 'Asset Management',
-    description: 'Fixed Plant & Machinery, loose equipment, lifecycle condition tracking and warranties',
+    description:
+      'Fixed Plant & Machinery, loose equipment, lifecycle condition tracking and warranties',
     fields: [
       {
         id: 'category',
@@ -259,16 +364,61 @@ export const DEFAULT_CMS_FORMS: CMSForm[] = [
         required: true,
         order: 1,
         options: [
-          { id: 'ast_c1', value: 'Mechanical & Electrical', label: 'Mechanical & Electrical (M&E)', color: '#38bdf8' },
+          {
+            id: 'ast_c1',
+            value: 'Mechanical & Electrical',
+            label: 'Mechanical & Electrical (M&E)',
+            color: '#38bdf8',
+          },
           { id: 'ast_c2', value: 'HVAC', label: 'HVAC & Air Conditioning', color: '#0ea5e9' },
-          { id: 'ast_c3', value: 'Kitchen Equipment', label: 'Commercial Kitchen & Catering', color: '#f97316' },
-          { id: 'ast_c4', value: 'Fire & Life Safety', label: 'Fire & Life Safety Systems', color: '#f43f5e' },
-          { id: 'ast_c5', value: 'Plumbing & Water', label: 'Plumbing, Pumps & Boilers', color: '#06b6d4' },
-          { id: 'ast_c6', value: 'IT & Telecoms', label: 'IT, Servers, Wi-Fi & Telecoms', color: '#818cf8' },
-          { id: 'ast_c7', value: 'Furniture & Fixtures', label: 'Furniture, Fixtures & Fittings (FF&E)', color: '#d97706' },
-          { id: 'ast_c8', value: 'Lifts & Escalators', label: 'Lifts & Passenger Elevators', color: '#8b5cf6' },
-          { id: 'ast_c9', value: 'Laundry & Housekeeping', label: 'Commercial Laundry Machinery', color: '#10b981' },
-          { id: 'ast_c10', value: 'Building Fabric', label: 'Roof, Building Fabric & Windows', color: '#94a3b8' },
+          {
+            id: 'ast_c3',
+            value: 'Kitchen Equipment',
+            label: 'Commercial Kitchen & Catering',
+            color: '#f97316',
+          },
+          {
+            id: 'ast_c4',
+            value: 'Fire & Life Safety',
+            label: 'Fire & Life Safety Systems',
+            color: '#f43f5e',
+          },
+          {
+            id: 'ast_c5',
+            value: 'Plumbing & Water',
+            label: 'Plumbing, Pumps & Boilers',
+            color: '#06b6d4',
+          },
+          {
+            id: 'ast_c6',
+            value: 'IT & Telecoms',
+            label: 'IT, Servers, Wi-Fi & Telecoms',
+            color: '#818cf8',
+          },
+          {
+            id: 'ast_c7',
+            value: 'Furniture & Fixtures',
+            label: 'Furniture, Fixtures & Fittings (FF&E)',
+            color: '#d97706',
+          },
+          {
+            id: 'ast_c8',
+            value: 'Lifts & Escalators',
+            label: 'Lifts & Passenger Elevators',
+            color: '#8b5cf6',
+          },
+          {
+            id: 'ast_c9',
+            value: 'Laundry & Housekeeping',
+            label: 'Commercial Laundry Machinery',
+            color: '#10b981',
+          },
+          {
+            id: 'ast_c10',
+            value: 'Building Fabric',
+            label: 'Roof, Building Fabric & Windows',
+            color: '#94a3b8',
+          },
         ],
       },
       {
@@ -279,10 +429,20 @@ export const DEFAULT_CMS_FORMS: CMSForm[] = [
         order: 2,
         options: [
           { id: 'ast_cd1', value: 'Excellent', label: 'Excellent (Like New)', color: '#3dd68c' },
-          { id: 'ast_cd2', value: 'Good', label: 'Good (Operational & Maintained)', color: '#10b981' },
+          {
+            id: 'ast_cd2',
+            value: 'Good',
+            label: 'Good (Operational & Maintained)',
+            color: '#10b981',
+          },
           { id: 'ast_cd3', value: 'Fair', label: 'Fair (Minor Wear & Tear)', color: '#f59e0b' },
           { id: 'ast_cd4', value: 'Poor', label: 'Poor (High Repair Needed)', color: '#f97316' },
-          { id: 'ast_cd5', value: 'Critical', label: 'Critical / Needs Immediate Replacement', color: '#f43f5e' },
+          {
+            id: 'ast_cd5',
+            value: 'Critical',
+            label: 'Critical / Needs Immediate Replacement',
+            color: '#f43f5e',
+          },
         ],
       },
       {
@@ -293,10 +453,25 @@ export const DEFAULT_CMS_FORMS: CMSForm[] = [
         order: 3,
         options: [
           { id: 'ast_st1', value: 'In Service', label: 'In Service (Active)', color: '#3dd68c' },
-          { id: 'ast_st2', value: 'Under Maintenance', label: 'Under Maintenance / Repair', color: '#f59e0b' },
+          {
+            id: 'ast_st2',
+            value: 'Under Maintenance',
+            label: 'Under Maintenance / Repair',
+            color: '#f59e0b',
+          },
           { id: 'ast_st3', value: 'Standby', label: 'Standby / Redundant', color: '#60a5fa' },
-          { id: 'ast_st4', value: 'Out of Service', label: 'Out of Service (Breakdown)', color: '#f43f5e' },
-          { id: 'ast_st5', value: 'Decommissioned', label: 'Decommissioned / Scrapped', color: '#94a3b8' },
+          {
+            id: 'ast_st4',
+            value: 'Out of Service',
+            label: 'Out of Service (Breakdown)',
+            color: '#f43f5e',
+          },
+          {
+            id: 'ast_st5',
+            value: 'Decommissioned',
+            label: 'Decommissioned / Scrapped',
+            color: '#94a3b8',
+          },
         ],
       },
       {
@@ -322,8 +497,18 @@ export const DEFAULT_CMS_FORMS: CMSForm[] = [
         required: false,
         order: 5,
         options: [
-          { id: 'ast_cr1', value: 'High', label: 'High (Guest Critical / Revenue Impacting)', color: '#f43f5e' },
-          { id: 'ast_cr2', value: 'Medium', label: 'Medium (Operational Impact)', color: '#f59e0b' },
+          {
+            id: 'ast_cr1',
+            value: 'High',
+            label: 'High (Guest Critical / Revenue Impacting)',
+            color: '#f43f5e',
+          },
+          {
+            id: 'ast_cr2',
+            value: 'Medium',
+            label: 'Medium (Operational Impact)',
+            color: '#f59e0b',
+          },
           { id: 'ast_cr3', value: 'Low', label: 'Low (Non-Critical)', color: '#3dd68c' },
         ],
       },
@@ -334,7 +519,8 @@ export const DEFAULT_CMS_FORMS: CMSForm[] = [
     title: 'Planned Preventive Maintenance (PPM) Form',
     pagePath: '/asset-management/maintenance',
     category: 'Maintenance & Works',
-    description: 'Routine servicing schedules, contractor task assignments, and breakdown work orders',
+    description:
+      'Routine servicing schedules, contractor task assignments, and breakdown work orders',
     fields: [
       {
         id: 'priority',
@@ -385,9 +571,17 @@ export const DEFAULT_CMS_FORMS: CMSForm[] = [
         order: 4,
         options: [
           { id: 'maint_sp1', value: 'In-House Engineering', label: 'In-House Engineering Team' },
-          { id: 'maint_sp2', value: 'External Specialist SLA', label: 'External Specialist SLA Contractor' },
+          {
+            id: 'maint_sp2',
+            value: 'External Specialist SLA',
+            label: 'External Specialist SLA Contractor',
+          },
           { id: 'maint_sp3', value: 'OEM Manufacturer', label: 'OEM Manufacturer Tech' },
-          { id: 'maint_sp4', value: 'Local Emergency Contractor', label: 'Local Emergency Contractor' },
+          {
+            id: 'maint_sp4',
+            value: 'Local Emergency Contractor',
+            label: 'Local Emergency Contractor',
+          },
         ],
       },
     ],
@@ -397,7 +591,8 @@ export const DEFAULT_CMS_FORMS: CMSForm[] = [
     title: 'Utilities Register Form & Dropdowns',
     pagePath: '/utilities-register',
     category: 'Energy & Sustainability',
-    description: 'Utility meters, billing reconciliations, consumption tracking and carbon reporting',
+    description:
+      'Utility meters, billing reconciliations, consumption tracking and carbon reporting',
     fields: [
       {
         id: 'utilityType',
@@ -423,9 +618,17 @@ export const DEFAULT_CMS_FORMS: CMSForm[] = [
         options: [
           { id: 'ut_tf1', value: 'Fixed Rate', label: 'Fixed Price Contract' },
           { id: 'ut_tf2', value: 'Flexible Day/Night', label: 'Flexible Day / Night Economy' },
-          { id: 'ut_tf3', value: 'Half-Hourly Settlement', label: 'Half-Hourly (HH) Market Settlement' },
+          {
+            id: 'ut_tf3',
+            value: 'Half-Hourly Settlement',
+            label: 'Half-Hourly (HH) Market Settlement',
+          },
           { id: 'ut_tf4', value: 'Pass-Through', label: 'Pass-Through Commodity' },
-          { id: 'ut_tf5', value: 'Green REGO Certified', label: '100% Green REGO Certified Tariff' },
+          {
+            id: 'ut_tf5',
+            value: 'Green REGO Certified',
+            label: '100% Green REGO Certified Tariff',
+          },
         ],
       },
       {
@@ -435,9 +638,24 @@ export const DEFAULT_CMS_FORMS: CMSForm[] = [
         required: true,
         order: 3,
         options: [
-          { id: 'ut_b1', value: 'Paid & Verified', label: 'Paid & Meter Verified', color: '#3dd68c' },
-          { id: 'ut_b2', value: 'Pending Approval', label: 'Pending GM Approval', color: '#f59e0b' },
-          { id: 'ut_b3', value: 'In Dispute', label: 'In Dispute (Estimate Discrepancy)', color: '#f43f5e' },
+          {
+            id: 'ut_b1',
+            value: 'Paid & Verified',
+            label: 'Paid & Meter Verified',
+            color: '#3dd68c',
+          },
+          {
+            id: 'ut_b2',
+            value: 'Pending Approval',
+            label: 'Pending GM Approval',
+            color: '#f59e0b',
+          },
+          {
+            id: 'ut_b3',
+            value: 'In Dispute',
+            label: 'In Dispute (Estimate Discrepancy)',
+            color: '#f43f5e',
+          },
           { id: 'ut_b4', value: 'Overdue', label: 'Overdue Payment', color: '#e11d48' },
         ],
       },
@@ -448,7 +666,8 @@ export const DEFAULT_CMS_FORMS: CMSForm[] = [
     title: 'Insurance Register Form & Dropdowns',
     pagePath: '/insurance-register',
     category: 'Risk & Governance',
-    description: 'Corporate property policies, public liability, claims tracking and underwriting dates',
+    description:
+      'Corporate property policies, public liability, claims tracking and underwriting dates',
     fields: [
       {
         id: 'policyType',
@@ -457,12 +676,20 @@ export const DEFAULT_CMS_FORMS: CMSForm[] = [
         required: true,
         order: 1,
         options: [
-          { id: 'ins_p1', value: 'Property Damage & BI', label: 'Property Damage & Business Interruption (BI)' },
+          {
+            id: 'ins_p1',
+            value: 'Property Damage & BI',
+            label: 'Property Damage & Business Interruption (BI)',
+          },
           { id: 'ins_p2', value: 'Public Liability', label: 'Public & Products Liability' },
           { id: 'ins_p3', value: 'Employers Liability', label: 'Employers Liability (£10M)' },
           { id: 'ins_p4', value: 'Directors & Officers', label: 'Directors & Officers (D&O)' },
           { id: 'ins_p5', value: 'Cyber Liability', label: 'Cyber & Data Privacy Insurance' },
-          { id: 'ins_p6', value: 'Engineering & Inspection', label: 'Engineering Breakdown & Statutory Inspection' },
+          {
+            id: 'ins_p6',
+            value: 'Engineering & Inspection',
+            label: 'Engineering Breakdown & Statutory Inspection',
+          },
           { id: 'ins_p7', value: 'Terrorism', label: 'Pool Re Terrorism Coverage' },
         ],
       },
@@ -474,7 +701,12 @@ export const DEFAULT_CMS_FORMS: CMSForm[] = [
         order: 2,
         options: [
           { id: 'ins_s1', value: 'Active', label: 'Active & In Force', color: '#3dd68c' },
-          { id: 'ins_s2', value: 'Renewal Pending', label: 'Renewal Terms Pending', color: '#f59e0b' },
+          {
+            id: 'ins_s2',
+            value: 'Renewal Pending',
+            label: 'Renewal Terms Pending',
+            color: '#f59e0b',
+          },
           { id: 'ins_s3', value: 'Expired', label: 'Expired / Lapsed', color: '#f43f5e' },
           { id: 'ins_s4', value: 'Cancelled', label: 'Cancelled Policy', color: '#94a3b8' },
         ],
@@ -495,13 +727,29 @@ export const DEFAULT_CMS_FORMS: CMSForm[] = [
         required: true,
         order: 1,
         options: [
-          { id: 'doc_c1', value: 'Compliance Certificates', label: 'Compliance & Statutory Certificates' },
+          {
+            id: 'doc_c1',
+            value: 'Compliance Certificates',
+            label: 'Compliance & Statutory Certificates',
+          },
           { id: 'doc_c2', value: 'Service Contracts', label: 'Supplier & Service Contracts' },
-          { id: 'doc_c3', value: 'As-Built Drawings', label: 'As-Built CAD & Architectural Drawings' },
+          {
+            id: 'doc_c3',
+            value: 'As-Built Drawings',
+            label: 'As-Built CAD & Architectural Drawings',
+          },
           { id: 'doc_c4', value: 'O&M Manuals', label: 'Operation & Maintenance (O&M) Manuals' },
-          { id: 'doc_c5', value: 'Health & Safety', label: 'Health & Safety Risk Assessments (RAMS)' },
+          {
+            id: 'doc_c5',
+            value: 'Health & Safety',
+            label: 'Health & Safety Risk Assessments (RAMS)',
+          },
           { id: 'doc_c6', value: 'Insurance Policies', label: 'Insurance Schedules & Wordings' },
-          { id: 'doc_c7', value: 'Lease & Property Deeds', label: 'Leases, Title Deeds & Planning Consents' },
+          {
+            id: 'doc_c7',
+            value: 'Lease & Property Deeds',
+            label: 'Leases, Title Deeds & Planning Consents',
+          },
         ],
       },
       {
@@ -513,8 +761,18 @@ export const DEFAULT_CMS_FORMS: CMSForm[] = [
         options: [
           { id: 'doc_cf1', value: 'Public Internal', label: 'General Internal (All Users)' },
           { id: 'doc_cf2', value: 'Department Only', label: 'Department Restricted' },
-          { id: 'doc_cf3', value: 'Management Only', label: 'Management Confidential (L1 & L2)', color: '#f59e0b' },
-          { id: 'doc_cf4', value: 'Board Restricted', label: 'Super Admin / Board Only (L1)', color: '#f43f5e' },
+          {
+            id: 'doc_cf3',
+            value: 'Management Only',
+            label: 'Management Confidential (L1 & L2)',
+            color: '#f59e0b',
+          },
+          {
+            id: 'doc_cf4',
+            value: 'Board Restricted',
+            label: 'Super Admin / Board Only (L1)',
+            color: '#f43f5e',
+          },
         ],
       },
     ],
@@ -670,10 +928,7 @@ export function updateCMSField(
   return true;
 }
 
-export function addCMSField(
-  formId: string,
-  newField: Omit<CMSField, 'order'>
-): CMSField | null {
+export function addCMSField(formId: string, newField: Omit<CMSField, 'order'>): CMSField | null {
   const forms = getCMSForms();
   const formIndex = forms.findIndex((f) => f.id === formId);
   if (formIndex === -1) return null;
@@ -721,9 +976,7 @@ export function addOptionToField(
   const cleanLabel = option.label.trim();
   if (!cleanVal || !cleanLabel) return null;
 
-  const exists = field.options.some(
-    (o) => o.value.toLowerCase() === cleanVal.toLowerCase()
-  );
+  const exists = field.options.some((o) => o.value.toLowerCase() === cleanVal.toLowerCase());
   if (exists) return null;
 
   const newOption: CMSOption = {
@@ -763,11 +1016,7 @@ export function updateOptionInField(
   return true;
 }
 
-export function deleteOptionFromField(
-  formId: string,
-  fieldId: string,
-  optionId: string
-): boolean {
+export function deleteOptionFromField(formId: string, fieldId: string, optionId: string): boolean {
   const forms = getCMSForms();
   const form = forms.find((f) => f.id === formId);
   if (!form) return false;

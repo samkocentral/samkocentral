@@ -4,12 +4,47 @@ import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import Link from 'next/link';
 import { usePathname, useSearchParams } from 'next/navigation';
 import {
-  LayoutDashboard, ShieldCheck, Settings, ChevronLeft, ChevronRight, AlertTriangle,
-  Package, Building2, ChevronDown, BarChart3, Upload, BarChart2, Shield,
-  FileCheck, Flame, ScrollText, Users, FileBarChart, Calendar, CheckSquare,
-  AlertCircle, RefreshCw, Handshake, Star, Zap, History, Eye, ClipboardList,
-  Tag, FolderOpen, ClipboardCheck, QrCode, Globe, SlidersHorizontal, ArrowRightLeft,
-  Copy, Layers, Check, Search, Plus, CloudUpload
+  LayoutDashboard,
+  ShieldCheck,
+  Settings,
+  ChevronLeft,
+  ChevronRight,
+  AlertTriangle,
+  Package,
+  Building2,
+  ChevronDown,
+  BarChart3,
+  Upload,
+  BarChart2,
+  Shield,
+  FileCheck,
+  Flame,
+  ScrollText,
+  Users,
+  FileBarChart,
+  Calendar,
+  CheckSquare,
+  AlertCircle,
+  RefreshCw,
+  Handshake,
+  Star,
+  Zap,
+  History,
+  Eye,
+  ClipboardList,
+  Tag,
+  FolderOpen,
+  ClipboardCheck,
+  QrCode,
+  Globe,
+  SlidersHorizontal,
+  ArrowRightLeft,
+  Copy,
+  Layers,
+  Check,
+  Search,
+  Plus,
+  CloudUpload,
 } from 'lucide-react';
 import { ALERTS, TASKS } from '@/lib/mockData';
 import { MAINTENANCE_RECORDS } from '@/lib/assetData';
@@ -43,7 +78,10 @@ interface NavItem {
   badgeTag?: string;
 }
 
-const SECTION_BADGE_STYLES: Record<TabSectionLocation, { label: string; badgeBg: string; color: string }> = {
+const SECTION_BADGE_STYLES: Record<
+  TabSectionLocation,
+  { label: string; badgeBg: string; color: string }
+> = {
   propco: { label: 'PROPCO', badgeBg: 'rgba(232,201,122,0.15)', color: '#e8c97a' },
   opco: { label: 'OPCO', badgeBg: 'rgba(96,165,250,0.15)', color: '#60a5fa' },
   both: { label: 'PROPCO & OPCO', badgeBg: 'rgba(61,214,140,0.15)', color: '#3dd68c' },
@@ -70,7 +108,19 @@ export default function Sidebar({ currentPath }: SidebarProps) {
     }
   }, [activeRoutePath]);
 
-  const { user, isDigitalBot, activePortal, setActivePortal, roleBadgeColor, canManageUsers, canAccessSettings, isViewer, isTabEnabled, getTabAccess, isPropertyAccessible } = useAuth();
+  const {
+    user,
+    isDigitalBot,
+    activePortal,
+    setActivePortal,
+    roleBadgeColor,
+    canManageUsers,
+    canAccessSettings,
+    isViewer,
+    isTabEnabled,
+    getTabAccess,
+    isPropertyAccessible,
+  } = useAuth();
   const isSuperAdmin = user.roleLevel === 'L1';
   const isSuperAdminOrBot =
     user.roleLevel === 'L1' ||
@@ -259,7 +309,10 @@ export default function Sidebar({ currentPath }: SidebarProps) {
   const [newTabIcon, setNewTabIcon] = useState<string>('Package');
 
   const updateSuggestedPath = (name: string, target: string) => {
-    const slug = name.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-');
+    const slug = name
+      .toLowerCase()
+      .replace(/[^a-z0-9]/g, '-')
+      .replace(/-+/g, '-');
     if (!slug) return;
     if (target === 'root') {
       setNewTabPath(`/${slug}`);
@@ -330,8 +383,14 @@ export default function Sidebar({ currentPath }: SidebarProps) {
     if (!s && (tabId === 'non-fixed' || tabId === 'non-fixed-assets')) {
       s = sectionMapping['non-fixed'] || sectionMapping['non-fixed-assets'];
     }
-    if (!s && (tabId === 'reports' || tabId === 'contract-reports' || tabId === 'maintenance-reports')) {
-      s = sectionMapping['reports'] || sectionMapping['contract-reports'] || sectionMapping['maintenance-reports'];
+    if (
+      !s &&
+      (tabId === 'reports' || tabId === 'contract-reports' || tabId === 'maintenance-reports')
+    ) {
+      s =
+        sectionMapping['reports'] ||
+        sectionMapping['contract-reports'] ||
+        sectionMapping['maintenance-reports'];
     }
     if (!s && tabId === 'tasks') {
       s = sectionMapping['tasks'];
@@ -369,9 +428,12 @@ export default function Sidebar({ currentPath }: SidebarProps) {
           if (typeof parsed.propco === 'boolean') saved.propco = parsed.propco;
           if (typeof parsed.opco === 'boolean') saved.opco = parsed.opco;
         }
-      } catch (e) { }
+      } catch (e) {}
     }
-    const p = typeof window !== 'undefined' ? (window.location.pathname + window.location.search) : (currentPath || '');
+    const p =
+      typeof window !== 'undefined'
+        ? window.location.pathname + window.location.search
+        : currentPath || '';
     if (
       p.includes('type=non-fixed') ||
       p.startsWith('/asset-management/maintenance') ||
@@ -405,18 +467,24 @@ export default function Sidebar({ currentPath }: SidebarProps) {
       compliance: false,
       utilities: false,
     };
-    const p = typeof window !== 'undefined' ? (window.location.pathname + window.location.search) : (currentPath || '');
+    const p =
+      typeof window !== 'undefined'
+        ? window.location.pathname + window.location.search
+        : currentPath || '';
     // Only expand a subdropdown if the user is currently actively viewing one of its child pages!
     if (p.startsWith('/insurance-register')) saved.insurance = true;
     if (p.startsWith('/contracts-register')) saved.contracts = true;
     if (p.startsWith('/asset-management/maintenance')) saved.maintenance = true;
-    if (p.startsWith('/compliance-register') || p.startsWith('/compliance-tracker')) saved.compliance = true;
+    if (p.startsWith('/compliance-register') || p.startsWith('/compliance-tracker'))
+      saved.compliance = true;
     if (p.startsWith('/utilities-register')) saved.utilities = true;
     return saved;
   };
 
   const [openPortals, setOpenPortals] = useState<Record<string, boolean>>(getInitialOpenPortals);
-  const [openSubDropdowns, setOpenSubDropdowns] = useState<Record<string, boolean>>(getInitialOpenSubDropdowns);
+  const [openSubDropdowns, setOpenSubDropdowns] = useState<Record<string, boolean>>(
+    getInitialOpenSubDropdowns
+  );
 
   // Synchronize open state and portal context whenever activeRoutePath changes
   useEffect(() => {
@@ -424,28 +492,36 @@ export default function Sidebar({ currentPath }: SidebarProps) {
     if (!p) return;
 
     const isNonFixed = p.includes('type=non-fixed');
-    const isMaintenance = p.startsWith('/asset-management/maintenance') || p.includes('type=maintenance');
-    const isCompliance = p.startsWith('/compliance-register') || p.startsWith('/compliance-tracker');
+    const isMaintenance =
+      p.startsWith('/asset-management/maintenance') || p.includes('type=maintenance');
+    const isCompliance =
+      p.startsWith('/compliance-register') || p.startsWith('/compliance-tracker');
     const isOpcoTasks = p.startsWith('/tasks') || p.startsWith('/task-manager');
     const isUtilities = p.startsWith('/utilities-register');
     const isOpcoDashboard = p.includes('portal=opco');
 
-    const isOpCoRoute = isNonFixed || isMaintenance || isCompliance || isOpcoTasks || isUtilities || isOpcoDashboard;
+    const isOpCoRoute =
+      isNonFixed || isMaintenance || isCompliance || isOpcoTasks || isUtilities || isOpcoDashboard;
 
-    const isProperties = p.startsWith('/asset-management/properties') || p.startsWith('/asset-management/hotels');
+    const isProperties =
+      p.startsWith('/asset-management/properties') || p.startsWith('/asset-management/hotels');
     const isFixedAssets = p.startsWith('/asset-management/assets') && !isNonFixed;
     const isInsurance = p.startsWith('/insurance-register');
     const isContracts = p.startsWith('/contracts-register') || p.includes('type=contracts');
     const isPropcoDashboard = p.includes('portal=propco');
 
-    const isPropCoRoute = isProperties || isFixedAssets || isInsurance || isContracts || isPropcoDashboard;
+    const isPropCoRoute =
+      isProperties || isFixedAssets || isInsurance || isContracts || isPropcoDashboard;
 
     if (isOpCoRoute) {
       // In OpCo route: keep OpCo open and collapse PropCo so OpCo stays at the top and never scrolls off-screen
       setOpenPortals({ propco: false, opco: true });
       try {
-        localStorage.setItem('samko:sidebar_open_portals', JSON.stringify({ propco: false, opco: true }));
-      } catch (e) { }
+        localStorage.setItem(
+          'samko:sidebar_open_portals',
+          JSON.stringify({ propco: false, opco: true })
+        );
+      } catch (e) {}
       if (activePortal !== 'opco' && setActivePortal) {
         setActivePortal('opco');
       }
@@ -453,8 +529,11 @@ export default function Sidebar({ currentPath }: SidebarProps) {
       // In PropCo route: keep PropCo open and collapse OpCo
       setOpenPortals({ propco: true, opco: false });
       try {
-        localStorage.setItem('samko:sidebar_open_portals', JSON.stringify({ propco: true, opco: false }));
-      } catch (e) { }
+        localStorage.setItem(
+          'samko:sidebar_open_portals',
+          JSON.stringify({ propco: true, opco: false })
+        );
+      } catch (e) {}
       if (activePortal !== 'propco' && setActivePortal) {
         setActivePortal('propco');
       }
@@ -464,7 +543,8 @@ export default function Sidebar({ currentPath }: SidebarProps) {
     if (p.startsWith('/insurance-register')) openSub.insurance = true;
     if (p.startsWith('/contracts-register')) openSub.contracts = true;
     if (p.startsWith('/asset-management/maintenance')) openSub.maintenance = true;
-    if (p.startsWith('/compliance-register') || p.startsWith('/compliance-tracker')) openSub.compliance = true;
+    if (p.startsWith('/compliance-register') || p.startsWith('/compliance-tracker'))
+      openSub.compliance = true;
     if (p.startsWith('/utilities-register')) openSub.utilities = true;
 
     if (Object.keys(openSub).length > 0) {
@@ -472,7 +552,7 @@ export default function Sidebar({ currentPath }: SidebarProps) {
         const next = { ...prev, ...openSub };
         try {
           localStorage.setItem('samko:sidebar_open_subdropdowns', JSON.stringify(next));
-        } catch (e) { }
+        } catch (e) {}
         return next;
       });
     }
@@ -498,14 +578,18 @@ export default function Sidebar({ currentPath }: SidebarProps) {
         const comp = compRes.value.data.filter((c: any) =>
           isPropertyAccessible(c.property || c.hotelName || c.hotel || c.propertyName || c.site)
         );
-        setCriticalCount(comp.filter((c: any) => c.status === 'Expired' || c.status === 'Action Required').length);
+        setCriticalCount(
+          comp.filter((c: any) => c.status === 'Expired' || c.status === 'Action Required').length
+        );
       }
 
       if (tasksRes.status === 'fulfilled' && tasksRes.value.success && tasksRes.value.data) {
         const tasks = tasksRes.value.data.filter((t: any) =>
           isPropertyAccessible(t.hotel || t.property || t.hotelName || t.propertyName || t.site)
         );
-        setOpenTaskCount(tasks.filter((t: any) => t.status === 'open' || t.status === 'in-progress').length);
+        setOpenTaskCount(
+          tasks.filter((t: any) => t.status === 'open' || t.status === 'in-progress').length
+        );
       }
     } catch (e) {
       console.error('Error fetching dynamic counts:', e);
@@ -515,7 +599,13 @@ export default function Sidebar({ currentPath }: SidebarProps) {
   useEffect(() => {
     const updateLocalCounts = () => {
       const accAlerts = ALERTS.filter((a) =>
-        isPropertyAccessible((a as any).property || (a as any).hotelName || (a as any).hotel || (a as any).propertyName || (a as any).site)
+        isPropertyAccessible(
+          (a as any).property ||
+            (a as any).hotelName ||
+            (a as any).hotel ||
+            (a as any).propertyName ||
+            (a as any).site
+        )
       );
       setCriticalCount(accAlerts.filter((a) => a.type === 'critical').length);
       setWarningCount(accAlerts.filter((a) => a.type === 'warning').length);
@@ -531,10 +621,14 @@ export default function Sidebar({ currentPath }: SidebarProps) {
       const accTasks = allTasks.filter((t) =>
         isPropertyAccessible(t.hotel || t.property || t.hotelName || t.propertyName || t.site)
       );
-      setOpenTaskCount(accTasks.filter((t) => t.status === 'open' || t.status === 'in-progress').length);
+      setOpenTaskCount(
+        accTasks.filter((t) => t.status === 'open' || t.status === 'in-progress').length
+      );
 
       const accMaint = MAINTENANCE_RECORDS.filter((m) =>
-        isPropertyAccessible(m.hotelName || m.hotelId || (m as any).property || (m as any).propertyName)
+        isPropertyAccessible(
+          m.hotelName || m.hotelId || (m as any).property || (m as any).propertyName
+        )
       );
       setOverdueCount(accMaint.filter((m) => m.status === 'overdue').length);
       setDueTodayCount(accMaint.filter((m) => m.status === 'due-today').length);
@@ -545,11 +639,19 @@ export default function Sidebar({ currentPath }: SidebarProps) {
           const parsed = JSON.parse(cached);
           if (Array.isArray(parsed)) {
             const count = parsed
-              .filter((d: any) => isPropertyAccessible(d.site || d.property || d.propertyName || d.hotelName || d.hotel))
+              .filter((d: any) =>
+                isPropertyAccessible(
+                  d.site || d.property || d.propertyName || d.hotelName || d.hotel
+                )
+              )
               .filter((d: any) => {
-                const isFood = (d.name && d.name.toLowerCase().includes('food')) || (d.category && d.category.toLowerCase().includes('food'));
-                const isUserUpload = String(d.id).startsWith('doc-17') || String(d.id).startsWith('doc-food');
-                const status = d.approvalStatus || (isFood || isUserUpload ? 'pending' : 'approved');
+                const isFood =
+                  (d.name && d.name.toLowerCase().includes('food')) ||
+                  (d.category && d.category.toLowerCase().includes('food'));
+                const isUserUpload =
+                  String(d.id).startsWith('doc-17') || String(d.id).startsWith('doc-food');
+                const status =
+                  d.approvalStatus || (isFood || isUserUpload ? 'pending' : 'approved');
                 return status === 'pending' || status === 'hold';
               }).length;
             setPendingApprovalsCount(count);
@@ -597,7 +699,7 @@ export default function Sidebar({ currentPath }: SidebarProps) {
       const next = { ...s, [portalKey]: nextIsOpen };
       try {
         localStorage.setItem('samko:sidebar_open_portals', JSON.stringify(next));
-      } catch (e) { }
+      } catch (e) {}
       return next;
     });
 
@@ -609,12 +711,16 @@ export default function Sidebar({ currentPath }: SidebarProps) {
         if (!activeRoutePath.startsWith('/contracts-register')) next.contracts = false;
       } else if (portalKey === 'opco') {
         if (!activeRoutePath.startsWith('/asset-management/maintenance')) next.maintenance = false;
-        if (!activeRoutePath.startsWith('/compliance-register') && !activeRoutePath.startsWith('/compliance-tracker')) next.compliance = false;
+        if (
+          !activeRoutePath.startsWith('/compliance-register') &&
+          !activeRoutePath.startsWith('/compliance-tracker')
+        )
+          next.compliance = false;
         if (!activeRoutePath.startsWith('/utilities-register')) next.utilities = false;
       }
       try {
         localStorage.setItem('samko:sidebar_open_subdropdowns', JSON.stringify(next));
-      } catch (e) { }
+      } catch (e) {}
       return next;
     });
   };
@@ -624,7 +730,7 @@ export default function Sidebar({ currentPath }: SidebarProps) {
       const next = { ...s, [key]: !s[key] };
       try {
         localStorage.setItem('samko:sidebar_open_subdropdowns', JSON.stringify(next));
-      } catch (e) { }
+      } catch (e) {}
       return next;
     });
   };
@@ -634,7 +740,9 @@ export default function Sidebar({ currentPath }: SidebarProps) {
 
     if (!effectiveCurrent || !href) return false;
     if (href === '/') {
-      return (effectiveCurrent === '/' || currentPath === '/') && !effectiveCurrent.includes('portal=');
+      return (
+        (effectiveCurrent === '/' || currentPath === '/') && !effectiveCurrent.includes('portal=')
+      );
     }
 
     const [hPath, hQuery] = href.split('?');
@@ -753,9 +861,7 @@ export default function Sidebar({ currentPath }: SidebarProps) {
 
     const isOpCo = portalContext === 'opco';
     const activeColor = isOpCo ? '#60a5fa' : '#e8c97a';
-    const activeBg = isOpCo
-      ? 'rgba(96, 165, 250, 0.16)'
-      : 'rgba(232, 201, 122, 0.16)';
+    const activeBg = isOpCo ? 'rgba(96, 165, 250, 0.16)' : 'rgba(232, 201, 122, 0.16)';
     const activeBorder = isOpCo
       ? '1px solid rgba(96, 165, 250, 0.40)'
       : '1px solid rgba(232, 201, 122, 0.40)';
@@ -775,14 +881,20 @@ export default function Sidebar({ currentPath }: SidebarProps) {
             if (setActivePortal) setActivePortal('propco');
             setOpenPortals({ propco: true, opco: false });
             try {
-              localStorage.setItem('samko:sidebar_open_portals', JSON.stringify({ propco: true, opco: false }));
-            } catch (e) { }
+              localStorage.setItem(
+                'samko:sidebar_open_portals',
+                JSON.stringify({ propco: true, opco: false })
+              );
+            } catch (e) {}
           } else if (portalContext === 'opco') {
             if (setActivePortal) setActivePortal('opco');
             setOpenPortals({ propco: false, opco: true });
             try {
-              localStorage.setItem('samko:sidebar_open_portals', JSON.stringify({ propco: false, opco: true }));
-            } catch (e) { }
+              localStorage.setItem(
+                'samko:sidebar_open_portals',
+                JSON.stringify({ propco: false, opco: true })
+              );
+            } catch (e) {}
           }
         }}
         className="flex items-center gap-2 rounded-lg transition-all duration-150 group relative"
@@ -799,7 +911,9 @@ export default function Sidebar({ currentPath }: SidebarProps) {
         }}
         onMouseEnter={(e) => {
           if (!active) {
-            e.currentTarget.style.background = isOpCo ? 'rgba(96, 165, 250, 0.08)' : 'rgba(232, 201, 122, 0.08)';
+            e.currentTarget.style.background = isOpCo
+              ? 'rgba(96, 165, 250, 0.08)'
+              : 'rgba(232, 201, 122, 0.08)';
             e.currentTarget.style.color = isOpCo ? '#93c5fd' : '#fde68a';
           }
         }}
@@ -810,12 +924,17 @@ export default function Sidebar({ currentPath }: SidebarProps) {
           }
         }}
       >
-        <span className="flex-shrink-0" style={{ color: active ? activeColor : undefined }}>{item.icon}</span>
+        <span className="flex-shrink-0" style={{ color: active ? activeColor : undefined }}>
+          {item.icon}
+        </span>
         {!collapsed && (
           <>
             <span className="flex-1 truncate">{item.label}</span>
             {isReadOnly && user.roleLevel !== 'L1' && user.roleLevel !== 'L4' && (
-              <span className="text-[10px] text-muted-foreground opacity-60" title="Read Only Access">
+              <span
+                className="text-[10px] text-muted-foreground opacity-60"
+                title="Read Only Access"
+              >
                 <Eye size={11} />
               </span>
             )}
@@ -827,7 +946,10 @@ export default function Sidebar({ currentPath }: SidebarProps) {
             {item.badgeCount !== undefined && item.badgeCount > 0 && (
               <span
                 className={item.badgeVariant === 'critical' ? 'nav-badge-count' : 'nav-badge-warn'}
-                style={{ transition: 'opacity 0.4s ease', opacity: item.badgeVariant === 'critical' ? (pulse ? 1 : 0.55) : 1 }}
+                style={{
+                  transition: 'opacity 0.4s ease',
+                  opacity: item.badgeVariant === 'critical' ? (pulse ? 1 : 0.55) : 1,
+                }}
               >
                 {item.badgeCount}
               </span>
@@ -847,7 +969,12 @@ export default function Sidebar({ currentPath }: SidebarProps) {
         {collapsed && (
           <span
             className="absolute left-full ml-2 px-2 py-1 rounded text-xs font-medium pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-150 whitespace-nowrap z-50"
-            style={{ background: 'var(--surface3)', color: 'var(--foreground)', border: '1px solid var(--border-strong)', fontSize: 12 }}
+            style={{
+              background: 'var(--surface3)',
+              color: 'var(--foreground)',
+              border: '1px solid var(--border-strong)',
+              fontSize: 12,
+            }}
           >
             {item.label}
             {isReadOnly && ' (Read Only)'}
@@ -876,7 +1003,9 @@ export default function Sidebar({ currentPath }: SidebarProps) {
     const isOpCo = portalContext === 'opco';
     const activeColor = isOpCo ? '#60a5fa' : '#e8c97a';
     const activeBg = isOpCo ? 'rgba(96, 165, 250, 0.12)' : 'rgba(232, 201, 122, 0.12)';
-    const activeBorder = isOpCo ? '1px solid rgba(96, 165, 250, 0.30)' : '1px solid rgba(232, 201, 122, 0.30)';
+    const activeBorder = isOpCo
+      ? '1px solid rgba(96, 165, 250, 0.30)'
+      : '1px solid rgba(232, 201, 122, 0.30)';
 
     if (collapsed) {
       return (
@@ -902,7 +1031,9 @@ export default function Sidebar({ currentPath }: SidebarProps) {
           }}
           onMouseEnter={(e) => {
             if (!isChildActive) {
-              e.currentTarget.style.background = isOpCo ? 'rgba(96, 165, 250, 0.08)' : 'rgba(232, 201, 122, 0.08)';
+              e.currentTarget.style.background = isOpCo
+                ? 'rgba(96, 165, 250, 0.08)'
+                : 'rgba(232, 201, 122, 0.08)';
               e.currentTarget.style.color = isOpCo ? '#93c5fd' : '#fde68a';
             }
           }}
@@ -913,12 +1044,22 @@ export default function Sidebar({ currentPath }: SidebarProps) {
             }
           }}
         >
-          <span className="flex-shrink-0" style={{ color: isChildActive ? activeColor : undefined }}>{icon}</span>
-          <span className="flex-1 truncate" style={{ fontSize: 13 }}>{label}</span>
+          <span
+            className="flex-shrink-0"
+            style={{ color: isChildActive ? activeColor : undefined }}
+          >
+            {icon}
+          </span>
+          <span className="flex-1 truncate" style={{ fontSize: 13 }}>
+            {label}
+          </span>
           {badgeCount !== undefined && badgeCount > 0 && (
             <span
               className={badgeVariant === 'critical' ? 'nav-badge-count' : 'nav-badge-warn'}
-              style={{ transition: 'opacity 0.4s ease', opacity: badgeVariant === 'critical' ? (pulse ? 1 : 0.55) : 1 }}
+              style={{
+                transition: 'opacity 0.4s ease',
+                opacity: badgeVariant === 'critical' ? (pulse ? 1 : 0.55) : 1,
+              }}
             >
               {badgeCount}
             </span>
@@ -935,7 +1076,9 @@ export default function Sidebar({ currentPath }: SidebarProps) {
             className="border-l ml-4 pl-1.5 flex flex-col gap-0.5 my-0.5 transition-colors"
             style={{
               borderColor: isChildActive
-                ? (isOpCo ? 'rgba(96, 165, 250, 0.40)' : 'rgba(232, 201, 122, 0.40)')
+                ? isOpCo
+                  ? 'rgba(96, 165, 250, 0.40)'
+                  : 'rgba(232, 201, 122, 0.40)'
                 : 'rgba(255, 255, 255, 0.10)',
             }}
           >
@@ -946,12 +1089,26 @@ export default function Sidebar({ currentPath }: SidebarProps) {
     );
   };
 
-  const renderPropCoNavItem = (item: NavItem, isIndented = false) => renderNavItem(item, isIndented, 'propco');
-  const renderOpCoNavItem = (item: NavItem, isIndented = false) => renderNavItem(item, isIndented, 'opco');
-  const renderPropCoSubDropdown = (id: string, label: string, icon: React.ReactNode, items: NavItem[], badgeCount?: number, badgeVariant?: 'critical' | 'warning') =>
-    renderSubDropdown(id, label, icon, items, badgeCount, badgeVariant, 'propco');
-  const renderOpCoSubDropdown = (id: string, label: string, icon: React.ReactNode, items: NavItem[], badgeCount?: number, badgeVariant?: 'critical' | 'warning') =>
-    renderSubDropdown(id, label, icon, items, badgeCount, badgeVariant, 'opco');
+  const renderPropCoNavItem = (item: NavItem, isIndented = false) =>
+    renderNavItem(item, isIndented, 'propco');
+  const renderOpCoNavItem = (item: NavItem, isIndented = false) =>
+    renderNavItem(item, isIndented, 'opco');
+  const renderPropCoSubDropdown = (
+    id: string,
+    label: string,
+    icon: React.ReactNode,
+    items: NavItem[],
+    badgeCount?: number,
+    badgeVariant?: 'critical' | 'warning'
+  ) => renderSubDropdown(id, label, icon, items, badgeCount, badgeVariant, 'propco');
+  const renderOpCoSubDropdown = (
+    id: string,
+    label: string,
+    icon: React.ReactNode,
+    items: NavItem[],
+    badgeCount?: number,
+    badgeVariant?: 'critical' | 'warning'
+  ) => renderSubDropdown(id, label, icon, items, badgeCount, badgeVariant, 'opco');
 
   const renderPortalHeader = (
     portalKey: 'propco' | 'opco',
@@ -1037,30 +1194,52 @@ export default function Sidebar({ currentPath }: SidebarProps) {
 
   const getTabIcon = (tabId: string): React.ReactNode => {
     switch (tabId) {
-      case 'dashboard': return <LayoutDashboard size={15} />;
-      case 'properties': return <Building2 size={15} />;
-      case 'multi-site': return <Globe size={15} />;
+      case 'dashboard':
+        return <LayoutDashboard size={15} />;
+      case 'properties':
+        return <Building2 size={15} />;
+      case 'multi-site':
+        return <Globe size={15} />;
       case 'fixed-assets':
-      case 'all-assets': return <Package size={15} />;
+      case 'all-assets':
+        return <Package size={15} />;
       case 'non-fixed-assets':
-      case 'non-fixed': return <Package size={15} />;
-      case 'categories': return <Tag size={15} />;
-      case 'maintenance': return <Calendar size={15} />;
-      case 'compliance': return <ShieldCheck size={15} />;
-      case 'compliance-tracker': return <Calendar size={15} />;
-      case 'insurance': return <Shield size={15} />;
-      case 'contracts': return <ScrollText size={15} />;
-      case 'utilities': return <Zap size={15} />;
-      case 'tasks': return <CheckSquare size={15} />;
-      case 'documents': return <FolderOpen size={15} />;
-      case 'reports': return <BarChart3 size={15} />;
-      case 'inspections': return <ClipboardCheck size={15} />;
-      case 'qr-codes': return <QrCode size={15} />;
-      case 'import': return <Upload size={15} />;
-      case 'recent-logs': return <History size={15} />;
-      case 'users': return <Users size={15} />;
-      case 'settings': return <Settings size={15} />;
-      default: return <Package size={15} />;
+      case 'non-fixed':
+        return <Package size={15} />;
+      case 'categories':
+        return <Tag size={15} />;
+      case 'maintenance':
+        return <Calendar size={15} />;
+      case 'compliance':
+        return <ShieldCheck size={15} />;
+      case 'compliance-tracker':
+        return <Calendar size={15} />;
+      case 'insurance':
+        return <Shield size={15} />;
+      case 'contracts':
+        return <ScrollText size={15} />;
+      case 'utilities':
+        return <Zap size={15} />;
+      case 'tasks':
+        return <CheckSquare size={15} />;
+      case 'documents':
+        return <FolderOpen size={15} />;
+      case 'reports':
+        return <BarChart3 size={15} />;
+      case 'inspections':
+        return <ClipboardCheck size={15} />;
+      case 'qr-codes':
+        return <QrCode size={15} />;
+      case 'import':
+        return <Upload size={15} />;
+      case 'recent-logs':
+        return <History size={15} />;
+      case 'users':
+        return <Users size={15} />;
+      case 'settings':
+        return <Settings size={15} />;
+      default:
+        return <Package size={15} />;
     }
   };
 
@@ -1171,7 +1350,11 @@ export default function Sidebar({ currentPath }: SidebarProps) {
         badgeVariant: 'warning',
       });
     }
-    if (canAccessDocsUpload && (isInBottom('docs-upload') || isInBottom('documents')) && (isNavVisible('docs-upload') || isNavVisible('documents'))) {
+    if (
+      canAccessDocsUpload &&
+      (isInBottom('docs-upload') || isInBottom('documents')) &&
+      (isNavVisible('docs-upload') || isNavVisible('documents'))
+    ) {
       items.push({
         id: 'docs-upload',
         label: getNavLabel('docs-upload', getNavLabel('documents', 'Docs Upload')),
@@ -1279,7 +1462,12 @@ export default function Sidebar({ currentPath }: SidebarProps) {
             <div className="min-w-0 flex-1 overflow-visible pr-1">
               <div
                 className="font-head text-primary leading-tight whitespace-nowrap overflow-visible"
-                style={{ fontSize: 15.5, fontWeight: 800, letterSpacing: '-0.2px', paddingRight: 4 }}
+                style={{
+                  fontSize: 15.5,
+                  fontWeight: 800,
+                  letterSpacing: '-0.2px',
+                  paddingRight: 4,
+                }}
               >
                 SamkoCentral
               </div>
@@ -1330,7 +1518,8 @@ export default function Sidebar({ currentPath }: SidebarProps) {
             {(openPortals.propco || collapsed) && (
               <div className="flex flex-col gap-0.5 mb-2 pl-0.5">
                 {/* PropCo Dashboard */}
-                {isInPropCo('propco-dashboard') && isTabVisibleInCms('propco', 'propco-dashboard') &&
+                {isInPropCo('propco-dashboard') &&
+                  isTabVisibleInCms('propco', 'propco-dashboard') &&
                   renderPropCoNavItem({
                     id: 'propco-dashboard',
                     label: getTabLabel('propco', 'propco-dashboard', 'PropCo Dashboard'),
@@ -1339,7 +1528,8 @@ export default function Sidebar({ currentPath }: SidebarProps) {
                   })}
 
                 {/* Properties */}
-                {isInPropCo('properties') && isTabVisibleInCms('propco', 'properties') &&
+                {isInPropCo('properties') &&
+                  isTabVisibleInCms('propco', 'properties') &&
                   renderPropCoNavItem({
                     id: 'properties',
                     label: getTabLabel('propco', 'properties', 'Properties'),
@@ -1348,7 +1538,8 @@ export default function Sidebar({ currentPath }: SidebarProps) {
                   })}
 
                 {/* Fixed Assets */}
-                {(isInPropCo('all-assets') || isInPropCo('fixed-assets')) && isTabVisibleInCms('propco', 'all-assets') &&
+                {(isInPropCo('all-assets') || isInPropCo('fixed-assets')) &&
+                  isTabVisibleInCms('propco', 'all-assets') &&
                   renderPropCoNavItem({
                     id: 'all-assets',
                     label: getTabLabel('propco', 'all-assets', 'Fixed Assets'),
@@ -1361,7 +1552,11 @@ export default function Sidebar({ currentPath }: SidebarProps) {
                   renderPropCoNavItem({
                     id: 'non-fixed',
                     label: getTabLabel('opco', 'non-fixed', 'Non-Fixed Assets'),
-                    href: getTabPath('opco', 'non-fixed', '/asset-management/assets?type=non-fixed'),
+                    href: getTabPath(
+                      'opco',
+                      'non-fixed',
+                      '/asset-management/assets?type=non-fixed'
+                    ),
                     icon: <Package size={15} />,
                   })}
 
@@ -1372,10 +1567,34 @@ export default function Sidebar({ currentPath }: SidebarProps) {
                     getTabLabel('opco', 'maintenance', 'Maintenance'),
                     <Calendar size={15} />,
                     [
-                      { id: 'maintenance-scheduled', label: getTabLabel('opco', 'maintenance-scheduled', 'Scheduled'), href: '/asset-management/maintenance?filter=scheduled', icon: <Calendar size={13} /> },
-                      { id: 'maintenance-due', label: getTabLabel('opco', 'maintenance-due', 'Due Today'), href: '/asset-management/maintenance?filter=due-today', icon: <AlertCircle size={13} />, badgeCount: dueTodayCount, badgeVariant: 'warning' },
-                      { id: 'maintenance-overdue', label: getTabLabel('opco', 'maintenance-overdue', 'Overdue'), href: '/asset-management/maintenance?filter=overdue', icon: <AlertTriangle size={13} />, badgeCount: overdueCount, badgeVariant: 'critical' },
-                      { id: 'maintenance-completed', label: getTabLabel('opco', 'maintenance-completed', 'Completed'), href: '/asset-management/maintenance?filter=completed', icon: <CheckSquare size={13} /> },
+                      {
+                        id: 'maintenance-scheduled',
+                        label: getTabLabel('opco', 'maintenance-scheduled', 'Scheduled'),
+                        href: '/asset-management/maintenance?filter=scheduled',
+                        icon: <Calendar size={13} />,
+                      },
+                      {
+                        id: 'maintenance-due',
+                        label: getTabLabel('opco', 'maintenance-due', 'Due Today'),
+                        href: '/asset-management/maintenance?filter=due-today',
+                        icon: <AlertCircle size={13} />,
+                        badgeCount: dueTodayCount,
+                        badgeVariant: 'warning',
+                      },
+                      {
+                        id: 'maintenance-overdue',
+                        label: getTabLabel('opco', 'maintenance-overdue', 'Overdue'),
+                        href: '/asset-management/maintenance?filter=overdue',
+                        icon: <AlertTriangle size={13} />,
+                        badgeCount: overdueCount,
+                        badgeVariant: 'critical',
+                      },
+                      {
+                        id: 'maintenance-completed',
+                        label: getTabLabel('opco', 'maintenance-completed', 'Completed'),
+                        href: '/asset-management/maintenance?filter=completed',
+                        icon: <CheckSquare size={13} />,
+                      },
                     ],
                     overdueCount > 0 ? overdueCount : dueTodayCount > 0 ? dueTodayCount : undefined,
                     overdueCount > 0 ? 'critical' : 'warning'
@@ -1388,39 +1607,98 @@ export default function Sidebar({ currentPath }: SidebarProps) {
                     getTabLabel('opco', 'compliance', 'Compliance'),
                     <ShieldCheck size={15} />,
                     [
-                      { id: 'compliance-register', label: getTabLabel('opco', 'compliance-register', 'Compliance Register'), href: '/compliance-register', icon: <ShieldCheck size={13} />, badgeCount: criticalCount, badgeVariant: 'critical' },
-                      { id: 'certifications', label: getTabLabel('opco', 'certifications', 'Certifications'), href: '/compliance-register?tab=certifications', icon: <FileCheck size={13} /> },
-                      { id: 'statutory', label: getTabLabel('opco', 'statutory', 'Statutory Inspections'), href: '/compliance-register?tab=statutory', icon: <Flame size={13} /> },
-                      { id: 'expiry-dashboard', label: getTabLabel('opco', 'expiry-dashboard', 'Expiry Dashboard'), href: '/compliance-tracker', icon: <AlertTriangle size={13} /> },
+                      {
+                        id: 'compliance-register',
+                        label: getTabLabel('opco', 'compliance-register', 'Compliance Register'),
+                        href: '/compliance-register',
+                        icon: <ShieldCheck size={13} />,
+                        badgeCount: criticalCount,
+                        badgeVariant: 'critical',
+                      },
+                      {
+                        id: 'certifications',
+                        label: getTabLabel('opco', 'certifications', 'Certifications'),
+                        href: '/compliance-register?tab=certifications',
+                        icon: <FileCheck size={13} />,
+                      },
+                      {
+                        id: 'statutory',
+                        label: getTabLabel('opco', 'statutory', 'Statutory Inspections'),
+                        href: '/compliance-register?tab=statutory',
+                        icon: <Flame size={13} />,
+                      },
+                      {
+                        id: 'expiry-dashboard',
+                        label: getTabLabel('opco', 'expiry-dashboard', 'Expiry Dashboard'),
+                        href: '/compliance-tracker',
+                        icon: <AlertTriangle size={13} />,
+                      },
                     ],
                     criticalCount > 0 ? criticalCount : undefined,
                     'critical'
                   )}
 
                 {/* Insurance Tab / Dropdown */}
-                {isInPropCo('insurance') && isTabVisibleInCms('propco', 'insurance') &&
+                {isInPropCo('insurance') &&
+                  isTabVisibleInCms('propco', 'insurance') &&
                   renderPropCoSubDropdown(
                     'insurance',
                     getTabLabel('propco', 'insurance', 'Insurance'),
                     <Shield size={15} />,
                     getDropdownNavItems('propco', 'insurance', [
-                      { id: 'insurance-register', label: 'Insurance Register', href: '/insurance-register', icon: <Shield size={13} /> },
-                      { id: 'claims', label: 'Claims', href: '/insurance-register?tab=claims', icon: <FileBarChart size={13} /> },
-                      { id: 'insurance-renewals', label: 'Renewals', href: '/insurance-register?tab=renewals', icon: <RefreshCw size={13} /> },
+                      {
+                        id: 'insurance-register',
+                        label: 'Insurance Register',
+                        href: '/insurance-register',
+                        icon: <Shield size={13} />,
+                      },
+                      {
+                        id: 'claims',
+                        label: 'Claims',
+                        href: '/insurance-register?tab=claims',
+                        icon: <FileBarChart size={13} />,
+                      },
+                      {
+                        id: 'insurance-renewals',
+                        label: 'Renewals',
+                        href: '/insurance-register?tab=renewals',
+                        icon: <RefreshCw size={13} />,
+                      },
                     ])
                   )}
 
                 {/* Contracts Tab / Dropdown */}
-                {isInPropCo('contracts') && isTabVisibleInCms('propco', 'contracts') &&
+                {isInPropCo('contracts') &&
+                  isTabVisibleInCms('propco', 'contracts') &&
                   renderPropCoSubDropdown(
                     'contracts',
                     getTabLabel('propco', 'contracts', 'Contracts'),
                     <ScrollText size={15} />,
                     getDropdownNavItems('propco', 'contracts', [
-                      { id: 'contracts-register', label: 'Contracts Register', href: '/contracts-register', icon: <ScrollText size={13} /> },
-                      { id: 'suppliers', label: 'Suppliers', href: '/contracts-register?tab=suppliers', icon: <Handshake size={13} /> },
-                      { id: 'contracts-renewals', label: 'Renewals', href: '/contracts-register?tab=renewals', icon: <RefreshCw size={13} /> },
-                      { id: 'slas', label: 'SLAs', href: '/contracts-register?tab=slas', icon: <Star size={13} /> },
+                      {
+                        id: 'contracts-register',
+                        label: 'Contracts Register',
+                        href: '/contracts-register',
+                        icon: <ScrollText size={13} />,
+                      },
+                      {
+                        id: 'suppliers',
+                        label: 'Suppliers',
+                        href: '/contracts-register?tab=suppliers',
+                        icon: <Handshake size={13} />,
+                      },
+                      {
+                        id: 'contracts-renewals',
+                        label: 'Renewals',
+                        href: '/contracts-register?tab=renewals',
+                        icon: <RefreshCw size={13} />,
+                      },
+                      {
+                        id: 'slas',
+                        label: 'SLAs',
+                        href: '/contracts-register?tab=slas',
+                        icon: <Star size={13} />,
+                      },
                     ])
                   )}
 
@@ -1442,22 +1720,39 @@ export default function Sidebar({ currentPath }: SidebarProps) {
                     getTabLabel('opco', 'utilities', 'Utility'),
                     <Zap size={15} />,
                     [
-                      { id: 'utilities-register', label: getTabLabel('opco', 'utilities-register', 'Utilities Register'), href: '/utilities-register', icon: <Zap size={13} /> },
-                      { id: 'utilities-energy', label: getTabLabel('opco', 'utilities-energy', 'Energy & Water Accounts'), href: '/utilities-register?type=electricity', icon: <Zap size={13} /> },
+                      {
+                        id: 'utilities-register',
+                        label: getTabLabel('opco', 'utilities-register', 'Utilities Register'),
+                        href: '/utilities-register',
+                        icon: <Zap size={13} />,
+                      },
+                      {
+                        id: 'utilities-energy',
+                        label: getTabLabel('opco', 'utilities-energy', 'Energy & Water Accounts'),
+                        href: '/utilities-register?type=electricity',
+                        icon: <Zap size={13} />,
+                      },
                     ]
                   )}
 
                 {/* Reports */}
-                {isInPropCo('reports') && isTabVisibleInCms('propco', 'reports') &&
+                {isInPropCo('reports') &&
+                  isTabVisibleInCms('propco', 'reports') &&
                   renderPropCoNavItem({
                     id: 'contract-reports',
                     label: getTabLabel('propco', 'reports', 'Reports'),
-                    href: getTabPath('propco', 'reports', '/asset-management/reports?type=contracts'),
+                    href: getTabPath(
+                      'propco',
+                      'reports',
+                      '/asset-management/reports?type=contracts'
+                    ),
                     icon: <BarChart3 size={15} />,
                   })}
 
                 {/* Approvals (when moved to PropCo - Restricted to Super Admin & Digital Bot) */}
-                {canAccessApprovals && isInPropCo('approvals') && isNavVisible('approvals') &&
+                {canAccessApprovals &&
+                  isInPropCo('approvals') &&
+                  isNavVisible('approvals') &&
                   renderPropCoNavItem({
                     id: 'approvals',
                     label: getNavLabel('approvals', 'Approvals'),
@@ -1467,10 +1762,9 @@ export default function Sidebar({ currentPath }: SidebarProps) {
                     badgeVariant: 'warning',
                   })}
 
-
-
                 {/* Recent Logs (when moved to PropCo) */}
-                {isInPropCo('recent-logs') && isNavVisible('recent-logs') &&
+                {isInPropCo('recent-logs') &&
+                  isNavVisible('recent-logs') &&
                   renderPropCoNavItem({
                     id: 'recent-logs',
                     label: getNavLabel('recent-logs', 'Audit Logs'),
@@ -1479,7 +1773,8 @@ export default function Sidebar({ currentPath }: SidebarProps) {
                   })}
 
                 {/* Import (when moved to PropCo) */}
-                {isInPropCo('import') && isNavVisible('import') &&
+                {isInPropCo('import') &&
+                  isNavVisible('import') &&
                   renderPropCoNavItem({
                     id: 'import',
                     label: getNavLabel('import', 'Import / Export'),
@@ -1488,7 +1783,9 @@ export default function Sidebar({ currentPath }: SidebarProps) {
                   })}
 
                 {/* Users (when moved to PropCo) */}
-                {canManageUsers && isInPropCo('users') && isNavVisible('users') &&
+                {canManageUsers &&
+                  isInPropCo('users') &&
+                  isNavVisible('users') &&
                   renderPropCoNavItem({
                     id: 'users',
                     label: getNavLabel('users', 'Users & Roles'),
@@ -1497,7 +1794,9 @@ export default function Sidebar({ currentPath }: SidebarProps) {
                   })}
 
                 {/* Settings (when moved to PropCo) */}
-                {canAccessSettings && isInPropCo('settings') && isNavVisible('settings') &&
+                {canAccessSettings &&
+                  isInPropCo('settings') &&
+                  isNavVisible('settings') &&
                   renderPropCoNavItem({
                     id: 'settings',
                     label: getNavLabel('settings', 'Settings'),
@@ -1536,7 +1835,8 @@ export default function Sidebar({ currentPath }: SidebarProps) {
             {(openPortals.opco || collapsed) && (
               <div className="flex flex-col gap-0.5 mb-2 pl-0.5">
                 {/* OpCo Dashboard */}
-                {isInOpCo('opco-dashboard') && isTabVisibleInCms('opco', 'opco-dashboard') &&
+                {isInOpCo('opco-dashboard') &&
+                  isTabVisibleInCms('opco', 'opco-dashboard') &&
                   renderOpCoNavItem({
                     id: 'opco-dashboard',
                     label: getTabLabel('opco', 'opco-dashboard', 'OpCo Dashboard'),
@@ -1563,41 +1863,94 @@ export default function Sidebar({ currentPath }: SidebarProps) {
                   })}
 
                 {/* 1. Non-Fixed Assets */}
-                {(isInOpCo('non-fixed') || isInOpCo('non-fixed-assets')) && isTabVisibleInCms('opco', 'non-fixed') &&
+                {(isInOpCo('non-fixed') || isInOpCo('non-fixed-assets')) &&
+                  isTabVisibleInCms('opco', 'non-fixed') &&
                   renderOpCoNavItem({
                     id: 'non-fixed',
                     label: getTabLabel('opco', 'non-fixed', 'Non-Fixed Assets'),
-                    href: getTabPath('opco', 'non-fixed', '/asset-management/assets?type=non-fixed'),
+                    href: getTabPath(
+                      'opco',
+                      'non-fixed',
+                      '/asset-management/assets?type=non-fixed'
+                    ),
                     icon: <Package size={15} />,
                   })}
 
                 {/* 2. Maintenance Dropdown */}
-                {isInOpCo('maintenance') && isTabVisibleInCms('opco', 'maintenance') &&
+                {isInOpCo('maintenance') &&
+                  isTabVisibleInCms('opco', 'maintenance') &&
                   renderOpCoSubDropdown(
                     'maintenance',
                     getTabLabel('opco', 'maintenance', 'Maintenance'),
                     <Calendar size={15} />,
                     getDropdownNavItems('opco', 'maintenance', [
-                      { id: 'maintenance-scheduled', label: 'Scheduled', href: '/asset-management/maintenance?filter=scheduled', icon: <Calendar size={13} /> },
-                      { id: 'maintenance-due', label: 'Due Today', href: '/asset-management/maintenance?filter=due-today', icon: <AlertCircle size={13} />, badgeCount: dueTodayCount, badgeVariant: 'warning' },
-                      { id: 'maintenance-overdue', label: 'Overdue', href: '/asset-management/maintenance?filter=overdue', icon: <AlertTriangle size={13} />, badgeCount: overdueCount, badgeVariant: 'critical' },
-                      { id: 'maintenance-completed', label: 'Completed', href: '/asset-management/maintenance?filter=completed', icon: <CheckSquare size={13} /> },
+                      {
+                        id: 'maintenance-scheduled',
+                        label: 'Scheduled',
+                        href: '/asset-management/maintenance?filter=scheduled',
+                        icon: <Calendar size={13} />,
+                      },
+                      {
+                        id: 'maintenance-due',
+                        label: 'Due Today',
+                        href: '/asset-management/maintenance?filter=due-today',
+                        icon: <AlertCircle size={13} />,
+                        badgeCount: dueTodayCount,
+                        badgeVariant: 'warning',
+                      },
+                      {
+                        id: 'maintenance-overdue',
+                        label: 'Overdue',
+                        href: '/asset-management/maintenance?filter=overdue',
+                        icon: <AlertTriangle size={13} />,
+                        badgeCount: overdueCount,
+                        badgeVariant: 'critical',
+                      },
+                      {
+                        id: 'maintenance-completed',
+                        label: 'Completed',
+                        href: '/asset-management/maintenance?filter=completed',
+                        icon: <CheckSquare size={13} />,
+                      },
                     ]),
                     overdueCount > 0 ? overdueCount : dueTodayCount > 0 ? dueTodayCount : undefined,
                     overdueCount > 0 ? 'critical' : 'warning'
                   )}
 
                 {/* 3. Compliance Dropdown */}
-                {isInOpCo('compliance') && isTabVisibleInCms('opco', 'compliance') &&
+                {isInOpCo('compliance') &&
+                  isTabVisibleInCms('opco', 'compliance') &&
                   renderOpCoSubDropdown(
                     'compliance',
                     getTabLabel('opco', 'compliance', 'Compliance'),
                     <ShieldCheck size={15} />,
                     getDropdownNavItems('opco', 'compliance', [
-                      { id: 'compliance-register', label: 'Compliance Register', href: '/compliance-register', icon: <ShieldCheck size={13} />, badgeCount: criticalCount, badgeVariant: 'critical' },
-                      { id: 'certifications', label: 'Certifications', href: '/compliance-register?tab=certifications', icon: <FileCheck size={13} /> },
-                      { id: 'statutory', label: 'Statutory Inspections', href: '/compliance-register?tab=statutory', icon: <Flame size={13} /> },
-                      { id: 'expiry-dashboard', label: 'Expiry Dashboard', href: '/compliance-tracker', icon: <AlertTriangle size={13} /> },
+                      {
+                        id: 'compliance-register',
+                        label: 'Compliance Register',
+                        href: '/compliance-register',
+                        icon: <ShieldCheck size={13} />,
+                        badgeCount: criticalCount,
+                        badgeVariant: 'critical',
+                      },
+                      {
+                        id: 'certifications',
+                        label: 'Certifications',
+                        href: '/compliance-register?tab=certifications',
+                        icon: <FileCheck size={13} />,
+                      },
+                      {
+                        id: 'statutory',
+                        label: 'Statutory Inspections',
+                        href: '/compliance-register?tab=statutory',
+                        icon: <Flame size={13} />,
+                      },
+                      {
+                        id: 'expiry-dashboard',
+                        label: 'Expiry Dashboard',
+                        href: '/compliance-tracker',
+                        icon: <AlertTriangle size={13} />,
+                      },
                     ]),
                     criticalCount > 0 ? criticalCount : undefined,
                     'critical'
@@ -1610,9 +1963,24 @@ export default function Sidebar({ currentPath }: SidebarProps) {
                     getTabLabel('propco', 'insurance', 'Insurance'),
                     <Shield size={15} />,
                     [
-                      { id: 'insurance-register', label: getTabLabel('propco', 'insurance-register', 'Insurance Register'), href: '/insurance-register', icon: <Shield size={13} /> },
-                      { id: 'claims', label: getTabLabel('propco', 'claims', 'Claims'), href: '/insurance-register?tab=claims', icon: <FileBarChart size={13} /> },
-                      { id: 'insurance-renewals', label: getTabLabel('propco', 'insurance-renewals', 'Renewals'), href: '/insurance-register?tab=renewals', icon: <RefreshCw size={13} /> },
+                      {
+                        id: 'insurance-register',
+                        label: getTabLabel('propco', 'insurance-register', 'Insurance Register'),
+                        href: '/insurance-register',
+                        icon: <Shield size={13} />,
+                      },
+                      {
+                        id: 'claims',
+                        label: getTabLabel('propco', 'claims', 'Claims'),
+                        href: '/insurance-register?tab=claims',
+                        icon: <FileBarChart size={13} />,
+                      },
+                      {
+                        id: 'insurance-renewals',
+                        label: getTabLabel('propco', 'insurance-renewals', 'Renewals'),
+                        href: '/insurance-register?tab=renewals',
+                        icon: <RefreshCw size={13} />,
+                      },
                     ]
                   )}
 
@@ -1623,15 +1991,36 @@ export default function Sidebar({ currentPath }: SidebarProps) {
                     getTabLabel('propco', 'contracts', 'Contracts'),
                     <ScrollText size={15} />,
                     [
-                      { id: 'contracts-register', label: getTabLabel('propco', 'contracts-register', 'Contracts Register'), href: '/contracts-register', icon: <ScrollText size={13} /> },
-                      { id: 'suppliers', label: getTabLabel('propco', 'suppliers', 'Suppliers'), href: '/contracts-register?tab=suppliers', icon: <Handshake size={13} /> },
-                      { id: 'contracts-renewals', label: getTabLabel('propco', 'contracts-renewals', 'Renewals'), href: '/contracts-register?tab=renewals', icon: <RefreshCw size={13} /> },
-                      { id: 'slas', label: getTabLabel('propco', 'slas', 'SLAs'), href: '/contracts-register?tab=slas', icon: <Star size={13} /> },
+                      {
+                        id: 'contracts-register',
+                        label: getTabLabel('propco', 'contracts-register', 'Contracts Register'),
+                        href: '/contracts-register',
+                        icon: <ScrollText size={13} />,
+                      },
+                      {
+                        id: 'suppliers',
+                        label: getTabLabel('propco', 'suppliers', 'Suppliers'),
+                        href: '/contracts-register?tab=suppliers',
+                        icon: <Handshake size={13} />,
+                      },
+                      {
+                        id: 'contracts-renewals',
+                        label: getTabLabel('propco', 'contracts-renewals', 'Renewals'),
+                        href: '/contracts-register?tab=renewals',
+                        icon: <RefreshCw size={13} />,
+                      },
+                      {
+                        id: 'slas',
+                        label: getTabLabel('propco', 'slas', 'SLAs'),
+                        href: '/contracts-register?tab=slas',
+                        icon: <Star size={13} />,
+                      },
                     ]
                   )}
 
                 {/* 4. Tasks and Alerts */}
-                {isInOpCo('tasks') && isTabVisibleInCms('opco', 'tasks') &&
+                {isInOpCo('tasks') &&
+                  isTabVisibleInCms('opco', 'tasks') &&
                   renderOpCoNavItem({
                     id: 'tasks',
                     label: getTabLabel('opco', 'tasks', 'Tasks and Alerts'),
@@ -1642,28 +2031,46 @@ export default function Sidebar({ currentPath }: SidebarProps) {
                   })}
 
                 {/* 5. Reports */}
-                {isInOpCo('reports') && isTabVisibleInCms('opco', 'reports') &&
+                {isInOpCo('reports') &&
+                  isTabVisibleInCms('opco', 'reports') &&
                   renderOpCoNavItem({
                     id: 'maintenance-reports',
                     label: getTabLabel('opco', 'reports', 'Reports'),
-                    href: getTabPath('opco', 'reports', '/asset-management/reports?type=maintenance'),
+                    href: getTabPath(
+                      'opco',
+                      'reports',
+                      '/asset-management/reports?type=maintenance'
+                    ),
                     icon: <BarChart2 size={15} />,
                   })}
 
                 {/* 7. Utility Dropdown */}
-                {isInOpCo('utilities') && isTabVisibleInCms('opco', 'utilities') &&
+                {isInOpCo('utilities') &&
+                  isTabVisibleInCms('opco', 'utilities') &&
                   renderOpCoSubDropdown(
                     'utilities',
                     getTabLabel('opco', 'utilities', 'Utility'),
                     <Zap size={15} />,
                     getDropdownNavItems('opco', 'utilities', [
-                      { id: 'utilities-register', label: 'Utilities Register', href: '/utilities-register', icon: <Zap size={13} /> },
-                      { id: 'utilities-energy', label: 'Energy & Water Accounts', href: '/utilities-register?type=electricity', icon: <Zap size={13} /> },
+                      {
+                        id: 'utilities-register',
+                        label: 'Utilities Register',
+                        href: '/utilities-register',
+                        icon: <Zap size={13} />,
+                      },
+                      {
+                        id: 'utilities-energy',
+                        label: 'Energy & Water Accounts',
+                        href: '/utilities-register?type=electricity',
+                        icon: <Zap size={13} />,
+                      },
                     ])
                   )}
 
                 {/* Approvals (when moved to OpCo - Restricted to Super Admin & Digital Bot) */}
-                {canAccessApprovals && isInOpCo('approvals') && isNavVisible('approvals') &&
+                {canAccessApprovals &&
+                  isInOpCo('approvals') &&
+                  isNavVisible('approvals') &&
                   renderOpCoNavItem({
                     id: 'approvals',
                     label: getNavLabel('approvals', 'Approvals'),
@@ -1674,7 +2081,9 @@ export default function Sidebar({ currentPath }: SidebarProps) {
                   })}
 
                 {/* Docs Upload (when moved to OpCo - Accessible to L1, L2, L3) */}
-                {canAccessDocsUpload && (isInOpCo('docs-upload') || isInOpCo('documents')) && isNavVisible('docs-upload') &&
+                {canAccessDocsUpload &&
+                  (isInOpCo('docs-upload') || isInOpCo('documents')) &&
+                  isNavVisible('docs-upload') &&
                   renderOpCoNavItem({
                     id: 'docs-upload',
                     label: getNavLabel('docs-upload', getNavLabel('documents', 'Docs Upload')),
@@ -1683,7 +2092,8 @@ export default function Sidebar({ currentPath }: SidebarProps) {
                   })}
 
                 {/* Recent Logs (when moved to OpCo) */}
-                {isInOpCo('recent-logs') && isNavVisible('recent-logs') &&
+                {isInOpCo('recent-logs') &&
+                  isNavVisible('recent-logs') &&
                   renderOpCoNavItem({
                     id: 'recent-logs',
                     label: getNavLabel('recent-logs', 'Audit Logs'),
@@ -1692,7 +2102,8 @@ export default function Sidebar({ currentPath }: SidebarProps) {
                   })}
 
                 {/* Import (when moved to OpCo) */}
-                {isInOpCo('import') && isNavVisible('import') &&
+                {isInOpCo('import') &&
+                  isNavVisible('import') &&
                   renderOpCoNavItem({
                     id: 'import',
                     label: getNavLabel('import', 'Import / Export'),
@@ -1701,7 +2112,9 @@ export default function Sidebar({ currentPath }: SidebarProps) {
                   })}
 
                 {/* Users (when moved to OpCo) */}
-                {canManageUsers && isInOpCo('users') && isNavVisible('users') &&
+                {canManageUsers &&
+                  isInOpCo('users') &&
+                  isNavVisible('users') &&
                   renderOpCoNavItem({
                     id: 'users',
                     label: getNavLabel('users', 'Users & Roles'),
@@ -1710,7 +2123,9 @@ export default function Sidebar({ currentPath }: SidebarProps) {
                   })}
 
                 {/* Settings (when moved to OpCo) */}
-                {canAccessSettings && isInOpCo('settings') && isNavVisible('settings') &&
+                {canAccessSettings &&
+                  isInOpCo('settings') &&
+                  isNavVisible('settings') &&
                   renderOpCoNavItem({
                     id: 'settings',
                     label: getNavLabel('settings', 'Settings'),
@@ -1763,9 +2178,21 @@ export default function Sidebar({ currentPath }: SidebarProps) {
       )}
 
       {/* User info */}
-      <div className="border-t border-border" style={{ padding: collapsed ? '12px 8px' : '12px 10px' }}>
+      <div
+        className="border-t border-border"
+        style={{ padding: collapsed ? '12px 8px' : '12px 10px' }}
+      >
         {!collapsed && (
-          <div className="flex items-center justify-between text-muted-foreground font-head" style={{ fontSize: 9, letterSpacing: '1.4px', textTransform: 'uppercase', padding: '0 4px', marginBottom: 8 }}>
+          <div
+            className="flex items-center justify-between text-muted-foreground font-head"
+            style={{
+              fontSize: 9,
+              letterSpacing: '1.4px',
+              textTransform: 'uppercase',
+              padding: '0 4px',
+              marginBottom: 8,
+            }}
+          >
             <span>Account</span>
             <span
               className="px-1.5 py-0.2 rounded font-extrabold"
@@ -1779,18 +2206,33 @@ export default function Sidebar({ currentPath }: SidebarProps) {
           <Link
             href={isViewer ? '/users?tab=audit' : '/users'}
             className="flex items-center gap-2 rounded-lg cursor-pointer transition-colors hover:bg-surface2"
-            style={{ padding: collapsed ? '6px' : '7px 8px', background: 'var(--surface2)', justifyContent: collapsed ? 'center' : 'flex-start' }}
+            style={{
+              padding: collapsed ? '6px' : '7px 8px',
+              background: 'var(--surface2)',
+              justifyContent: collapsed ? 'center' : 'flex-start',
+            }}
           >
             <div
               className="rounded-full flex items-center justify-center flex-shrink-0 font-bold"
-              style={{ width: 28, height: 28, background: roleBadgeColor, color: '#000', fontSize: 10 }}
+              style={{
+                width: 28,
+                height: 28,
+                background: roleBadgeColor,
+                color: '#000',
+                fontSize: 10,
+              }}
             >
               {user.initials || 'AV'}
             </div>
             {!collapsed && (
               <div className="flex-1 min-w-0">
-                <div className="text-foreground font-medium truncate" style={{ fontSize: 12 }}>{user.name}</div>
-                <div className="truncate font-semibold text-[10px]" style={{ color: roleBadgeColor }}>
+                <div className="text-foreground font-medium truncate" style={{ fontSize: 12 }}>
+                  {user.name}
+                </div>
+                <div
+                  className="truncate font-semibold text-[10px]"
+                  style={{ color: roleBadgeColor }}
+                >
                   {user.roleTitle} {isViewer && '(Read-Only)'}
                 </div>
               </div>
@@ -1799,18 +2241,33 @@ export default function Sidebar({ currentPath }: SidebarProps) {
         ) : (
           <div
             className="flex items-center gap-2 rounded-lg"
-            style={{ padding: collapsed ? '6px' : '7px 8px', background: 'var(--surface2)', justifyContent: collapsed ? 'center' : 'flex-start' }}
+            style={{
+              padding: collapsed ? '6px' : '7px 8px',
+              background: 'var(--surface2)',
+              justifyContent: collapsed ? 'center' : 'flex-start',
+            }}
           >
             <div
               className="rounded-full flex items-center justify-center flex-shrink-0 font-bold"
-              style={{ width: 28, height: 28, background: roleBadgeColor, color: '#000', fontSize: 10 }}
+              style={{
+                width: 28,
+                height: 28,
+                background: roleBadgeColor,
+                color: '#000',
+                fontSize: 10,
+              }}
             >
               {user.initials || 'AV'}
             </div>
             {!collapsed && (
               <div className="flex-1 min-w-0">
-                <div className="text-foreground font-medium truncate" style={{ fontSize: 12 }}>{user.name}</div>
-                <div className="truncate font-semibold text-[10px]" style={{ color: roleBadgeColor }}>
+                <div className="text-foreground font-medium truncate" style={{ fontSize: 12 }}>
+                  {user.name}
+                </div>
+                <div
+                  className="truncate font-semibold text-[10px]"
+                  style={{ color: roleBadgeColor }}
+                >
                   {user.roleTitle} {isViewer && '(Read-Only)'}
                 </div>
               </div>
@@ -1823,7 +2280,16 @@ export default function Sidebar({ currentPath }: SidebarProps) {
       <button
         onClick={() => setCollapsed(!collapsed)}
         className="absolute flex items-center justify-center rounded-full border border-border"
-        style={{ top: 20, right: -12, width: 24, height: 24, background: 'var(--card)', color: 'var(--text2)', cursor: 'pointer', zIndex: 10 }}
+        style={{
+          top: 20,
+          right: -12,
+          width: 24,
+          height: 24,
+          background: 'var(--card)',
+          color: 'var(--text2)',
+          cursor: 'pointer',
+          zIndex: 10,
+        }}
         title={collapsed ? 'Expand Sidebar' : 'Collapse Sidebar'}
       >
         {collapsed ? <ChevronRight size={12} /> : <ChevronLeft size={12} />}
@@ -1846,9 +2312,14 @@ export default function Sidebar({ currentPath }: SidebarProps) {
             >
               <Layers size={16} className="text-primary flex-shrink-0 mt-0.5" />
               <div>
-                <div className="font-bold text-foreground">Copy &amp; Move Tabs Across Sections</div>
+                <div className="font-bold text-foreground">
+                  Copy &amp; Move Tabs Across Sections
+                </div>
                 <div className="text-[11px] text-muted-foreground mt-0.5">
-                  Click <strong className="text-emerald-400">Both Sections</strong> to copy a tab so it displays in both PropCo and OpCo without removing it from either. Or click <strong className="text-amber-400">PropCo</strong> / <strong className="text-blue-400">OpCo</strong> to assign it exclusively.
+                  Click <strong className="text-emerald-400">Both Sections</strong> to copy a tab so
+                  it displays in both PropCo and OpCo without removing it from either. Or click{' '}
+                  <strong className="text-amber-400">PropCo</strong> /{' '}
+                  <strong className="text-blue-400">OpCo</strong> to assign it exclusively.
                 </div>
               </div>
             </div>
@@ -1869,7 +2340,8 @@ export default function Sidebar({ currentPath }: SidebarProps) {
                   <div>
                     <div className="font-bold text-foreground text-xs">Add New Tab or Dropdown</div>
                     <div className="text-[10.5px] text-muted-foreground">
-                      Select section and target tab location to add into that section or specific tab dropdown
+                      Select section and target tab location to add into that section or specific
+                      tab dropdown
                     </div>
                   </div>
                 </div>
@@ -1889,7 +2361,10 @@ export default function Sidebar({ currentPath }: SidebarProps) {
               </div>
 
               {showAddForm && (
-                <form onSubmit={handleAddNewTabOrDropdown} className="mt-3 pt-3 border-t border-border/60 space-y-3">
+                <form
+                  onSubmit={handleAddNewTabOrDropdown}
+                  className="mt-3 pt-3 border-t border-border/60 space-y-3"
+                >
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                     {/* 1. Section Selection Dropdown */}
                     <div>
@@ -1931,22 +2406,41 @@ export default function Sidebar({ currentPath }: SidebarProps) {
                         }}
                         options={[
                           { value: 'root', label: 'Section Root (New Top-Level Sidebar Tab)' },
-                          ...(newTabSection === 'opco' ? [
-                            { value: 'non-fixed', label: 'Inside Non-Fixed Assets' },
-                            { value: 'maintenance', label: 'Inside Maintenance (PPM / Work Orders)' },
-                            { value: 'compliance', label: 'Inside Compliance (Certs / Statutory)' },
-                            { value: 'tasks', label: 'Inside Tasks and Alerts' },
-                            { value: 'reports', label: 'Inside Reports' },
-                            { value: 'task-module', label: 'Inside Task Module' },
-                            { value: 'utilities', label: 'Inside Utility (Electricity / Gas / Water)' },
-                          ] : []),
-                          ...(newTabSection === 'propco' ? [
-                            { value: 'properties', label: 'Inside Properties' },
-                            { value: 'all-assets', label: 'Inside Fixed Assets' },
-                            { value: 'insurance', label: 'Inside Insurance (Claims / Renewals)' },
-                            { value: 'contracts', label: 'Inside Contracts (Suppliers / SLAs)' },
-                            { value: 'reports', label: 'Inside Reports' },
-                          ] : []),
+                          ...(newTabSection === 'opco'
+                            ? [
+                                { value: 'non-fixed', label: 'Inside Non-Fixed Assets' },
+                                {
+                                  value: 'maintenance',
+                                  label: 'Inside Maintenance (PPM / Work Orders)',
+                                },
+                                {
+                                  value: 'compliance',
+                                  label: 'Inside Compliance (Certs / Statutory)',
+                                },
+                                { value: 'tasks', label: 'Inside Tasks and Alerts' },
+                                { value: 'reports', label: 'Inside Reports' },
+                                { value: 'task-module', label: 'Inside Task Module' },
+                                {
+                                  value: 'utilities',
+                                  label: 'Inside Utility (Electricity / Gas / Water)',
+                                },
+                              ]
+                            : []),
+                          ...(newTabSection === 'propco'
+                            ? [
+                                { value: 'properties', label: 'Inside Properties' },
+                                { value: 'all-assets', label: 'Inside Fixed Assets' },
+                                {
+                                  value: 'insurance',
+                                  label: 'Inside Insurance (Claims / Renewals)',
+                                },
+                                {
+                                  value: 'contracts',
+                                  label: 'Inside Contracts (Suppliers / SLAs)',
+                                },
+                                { value: 'reports', label: 'Inside Reports' },
+                              ]
+                            : []),
                         ]}
                       />
                     </div>
@@ -2011,7 +2505,8 @@ export default function Sidebar({ currentPath }: SidebarProps) {
                 </span>
                 {['ALL', 'propco', 'opco', 'both', 'bottom'].map((f) => {
                   const isSelected = sectionFilter === f;
-                  const label = f === 'ALL' ? 'All Tabs' : f === 'both' ? 'Both Sections' : f.toUpperCase();
+                  const label =
+                    f === 'ALL' ? 'All Tabs' : f === 'both' ? 'Both Sections' : f.toUpperCase();
                   return (
                     <button
                       key={f}
@@ -2031,7 +2526,10 @@ export default function Sidebar({ currentPath }: SidebarProps) {
               </div>
 
               <div className="relative">
-                <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                <Search
+                  size={13}
+                  className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground"
+                />
                 <input
                   type="text"
                   placeholder="Search tabs..."
@@ -2046,7 +2544,8 @@ export default function Sidebar({ currentPath }: SidebarProps) {
             {/* Tab list */}
             <div className="max-h-[420px] overflow-y-auto space-y-2 pr-1">
               {modalTabs.map((tab) => {
-                const currentLoc = sectionMapping[tab.id] || DEFAULT_TAB_SECTIONS[tab.id] || 'propco';
+                const currentLoc =
+                  sectionMapping[tab.id] || DEFAULT_TAB_SECTIONS[tab.id] || 'propco';
                 const meta = SECTION_BADGE_STYLES[currentLoc] || SECTION_BADGE_STYLES.propco;
 
                 return (
@@ -2056,7 +2555,10 @@ export default function Sidebar({ currentPath }: SidebarProps) {
                     style={{ background: 'var(--surface)' }}
                   >
                     <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                      <div className="p-1.5 rounded-lg flex-shrink-0" style={{ background: 'var(--surface2)' }}>
+                      <div
+                        className="p-1.5 rounded-lg flex-shrink-0"
+                        style={{ background: 'var(--surface2)' }}
+                      >
                         <Building2 size={14} className="text-muted-foreground" />
                       </div>
                       <div className="min-w-0 flex-1">
@@ -2089,7 +2591,8 @@ export default function Sidebar({ currentPath }: SidebarProps) {
                         }}
                         className="px-2 py-1 rounded text-[10.5px] font-bold border transition-all cursor-pointer"
                         style={{
-                          background: currentLoc === 'propco' ? 'rgba(232,201,122,0.18)' : 'var(--surface2)',
+                          background:
+                            currentLoc === 'propco' ? 'rgba(232,201,122,0.18)' : 'var(--surface2)',
                           borderColor: currentLoc === 'propco' ? '#e8c97a' : 'var(--border)',
                           color: currentLoc === 'propco' ? '#e8c97a' : 'var(--muted-foreground)',
                         }}
@@ -2108,7 +2611,8 @@ export default function Sidebar({ currentPath }: SidebarProps) {
                         }}
                         className="px-2 py-1 rounded text-[10.5px] font-bold border transition-all cursor-pointer"
                         style={{
-                          background: currentLoc === 'opco' ? 'rgba(96,165,250,0.18)' : 'var(--surface2)',
+                          background:
+                            currentLoc === 'opco' ? 'rgba(96,165,250,0.18)' : 'var(--surface2)',
                           borderColor: currentLoc === 'opco' ? '#60a5fa' : 'var(--border)',
                           color: currentLoc === 'opco' ? '#60a5fa' : 'var(--muted-foreground)',
                         }}
@@ -2129,7 +2633,8 @@ export default function Sidebar({ currentPath }: SidebarProps) {
                         }}
                         className="flex items-center gap-1 px-2.5 py-1 rounded text-[10.5px] font-bold border transition-all cursor-pointer"
                         style={{
-                          background: currentLoc === 'both' ? 'rgba(61,214,140,0.2)' : 'var(--surface2)',
+                          background:
+                            currentLoc === 'both' ? 'rgba(61,214,140,0.2)' : 'var(--surface2)',
                           borderColor: currentLoc === 'both' ? '#3dd68c' : 'var(--border)',
                           color: currentLoc === 'both' ? '#3dd68c' : 'var(--muted-foreground)',
                         }}
@@ -2149,7 +2654,8 @@ export default function Sidebar({ currentPath }: SidebarProps) {
                         }}
                         className="px-2 py-1 rounded text-[10.5px] font-bold border transition-all cursor-pointer"
                         style={{
-                          background: currentLoc === 'bottom' ? 'rgba(148,163,184,0.18)' : 'var(--surface2)',
+                          background:
+                            currentLoc === 'bottom' ? 'rgba(148,163,184,0.18)' : 'var(--surface2)',
                           borderColor: currentLoc === 'bottom' ? '#94a3b8' : 'var(--border)',
                           color: currentLoc === 'bottom' ? '#94a3b8' : 'var(--muted-foreground)',
                         }}

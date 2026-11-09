@@ -20,7 +20,11 @@ export async function POST(req: NextRequest) {
 
     // 2. Alias lookup for usernames like "admin", "\.admin", "superadmin", etc.
     if (!found) {
-      if (['admin', '\\.admin', '.admin', 'superadmin', 'super admin', 'group admin'].includes(cleanInput)) {
+      if (
+        ['admin', '\\.admin', '.admin', 'superadmin', 'super admin', 'group admin'].includes(
+          cleanInput
+        )
+      ) {
         found = users.find(
           (u: any) =>
             (u.role === 'super-admin' || u.roleLevel === 'L1') &&
@@ -41,7 +45,9 @@ export async function POST(req: NextRequest) {
           password: 'SuperAdmin2026!',
         };
       } else if (['propco', 'admin.propco', 'propco admin'].includes(cleanInput)) {
-        found = users.find((u: any) => u.portal === 'propco' && (u.role === 'admin' || u.roleLevel === 'L2')) || {
+        found = users.find(
+          (u: any) => u.portal === 'propco' && (u.role === 'admin' || u.roleLevel === 'L2')
+        ) || {
           id: 'usr-l2-001',
           name: 'Rachel Green',
           email: 'admin.propco@samkocentral.com',
@@ -54,7 +60,9 @@ export async function POST(req: NextRequest) {
           password: 'PropcoAdmin2026!',
         };
       } else if (['opco', 'admin.opco', 'opco admin'].includes(cleanInput)) {
-        found = users.find((u: any) => u.portal === 'opco' && (u.role === 'admin' || u.roleLevel === 'L2')) || {
+        found = users.find(
+          (u: any) => u.portal === 'opco' && (u.role === 'admin' || u.roleLevel === 'L2')
+        ) || {
           id: 'usr-l2-002',
           name: 'Marcus Webb',
           email: 'admin.opco@samkocentral.com',
@@ -139,8 +147,24 @@ export async function POST(req: NextRequest) {
       id: found.id,
       name: found.name,
       email: found.email,
-      roleLevel: found.roleLevel || (found.role === 'super-admin' ? 'L1' : found.role === 'admin' ? 'L2' : found.role === 'read-only' ? 'L4' : 'L3'),
-      roleTitle: found.roleTitle || (found.roleLevel === 'L1' ? 'Super Admin' : found.roleLevel === 'L2' ? 'Admin' : found.roleLevel === 'L4' ? 'Viewer' : 'Uploader'),
+      roleLevel:
+        found.roleLevel ||
+        (found.role === 'super-admin'
+          ? 'L1'
+          : found.role === 'admin'
+            ? 'L2'
+            : found.role === 'read-only'
+              ? 'L4'
+              : 'L3'),
+      roleTitle:
+        found.roleTitle ||
+        (found.roleLevel === 'L1'
+          ? 'Super Admin'
+          : found.roleLevel === 'L2'
+            ? 'Admin'
+            : found.roleLevel === 'L4'
+              ? 'Viewer'
+              : 'Uploader'),
       role: found.role || 'hotel-manager',
       portal: found.portal || (found.roleLevel === 'L1' ? 'both' : 'opco'),
       hotel: found.hotel || 'Crowne Plaza Kingston-south',

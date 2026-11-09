@@ -14,7 +14,7 @@ import {
   ScrollText,
   RefreshCw,
   Zap,
-  CheckSquare
+  CheckSquare,
 } from 'lucide-react';
 import { useAuth } from '@/lib/authContext';
 import { api } from '@/lib/api';
@@ -26,7 +26,14 @@ import { useDeepPageCms } from '@/lib/deepPageCms';
 import { useSearchParams } from 'next/navigation';
 
 export default function DashboardKPIGrid() {
-  const { activePortal, setActivePortal, canSwitchPortal, isPropertyAccessible, userAssignedProperties, user } = useAuth();
+  const {
+    activePortal,
+    setActivePortal,
+    canSwitchPortal,
+    isPropertyAccessible,
+    userAssignedProperties,
+    user,
+  } = useAuth();
   const searchParams = useSearchParams();
   const { dashboard: cmsDashboard } = useAppCms();
   const cms = useDeepPageCms('overview');
@@ -77,28 +84,60 @@ export default function DashboardKPIGrid() {
         api.tasks.getAll(),
       ]);
 
-      if (assetsRes.status === 'fulfilled' && assetsRes.value.success && assetsRes.value.data?.length > 0) {
+      if (
+        assetsRes.status === 'fulfilled' &&
+        assetsRes.value.success &&
+        assetsRes.value.data?.length > 0
+      ) {
         setAssets(assetsRes.value.data);
       }
-      if (maintRes.status === 'fulfilled' && maintRes.value.success && maintRes.value.data?.length > 0) {
+      if (
+        maintRes.status === 'fulfilled' &&
+        maintRes.value.success &&
+        maintRes.value.data?.length > 0
+      ) {
         setMaintenance(maintRes.value.data);
       }
-      if (contractsRes.status === 'fulfilled' && contractsRes.value.success && contractsRes.value.data?.length > 0) {
+      if (
+        contractsRes.status === 'fulfilled' &&
+        contractsRes.value.success &&
+        contractsRes.value.data?.length > 0
+      ) {
         setContracts(contractsRes.value.data);
       }
-      if (insuranceRes.status === 'fulfilled' && insuranceRes.value.success && insuranceRes.value.data?.length > 0) {
+      if (
+        insuranceRes.status === 'fulfilled' &&
+        insuranceRes.value.success &&
+        insuranceRes.value.data?.length > 0
+      ) {
         setInsurance(insuranceRes.value.data);
       }
-      if (complianceRes.status === 'fulfilled' && complianceRes.value.success && complianceRes.value.data?.length > 0) {
+      if (
+        complianceRes.status === 'fulfilled' &&
+        complianceRes.value.success &&
+        complianceRes.value.data?.length > 0
+      ) {
         setCompliance(complianceRes.value.data);
       }
-      if (utilitiesRes.status === 'fulfilled' && utilitiesRes.value.success && utilitiesRes.value.data?.length > 0) {
+      if (
+        utilitiesRes.status === 'fulfilled' &&
+        utilitiesRes.value.success &&
+        utilitiesRes.value.data?.length > 0
+      ) {
         setUtilities(utilitiesRes.value.data);
       }
-      if (propsRes.status === 'fulfilled' && propsRes.value.success && propsRes.value.data?.length > 0) {
+      if (
+        propsRes.status === 'fulfilled' &&
+        propsRes.value.success &&
+        propsRes.value.data?.length > 0
+      ) {
         setProperties(propsRes.value.data);
       }
-      if (tasksRes.status === 'fulfilled' && tasksRes.value.success && tasksRes.value.data?.length > 0) {
+      if (
+        tasksRes.status === 'fulfilled' &&
+        tasksRes.value.success &&
+        tasksRes.value.data?.length > 0
+      ) {
         setTasks(tasksRes.value.data);
       }
     } catch (e) {
@@ -118,65 +157,120 @@ export default function DashboardKPIGrid() {
   }, [fetchRealData]);
 
   // Data Scoping by Assigned Properties
-  const accessibleAssets = assets.filter((a) => isPropertyAccessible(a.hotelName || a.hotelId || a.property || a.propertyName));
-  const accessibleMaintenance = maintenance.filter((m) => isPropertyAccessible(m.hotelName || m.property || m.propertyName || m.hotelId));
-  const accessibleContracts = contracts.filter((c) => isPropertyAccessible(c.hotel || c.property || c.site));
-  const accessibleInsurance = insurance.filter((i) => isPropertyAccessible(i.hotel || i.property || i.site));
-  const accessibleCompliance = compliance.filter((c) => isPropertyAccessible(c.site || c.hotel || c.property));
-  const accessibleUtilities = utilities.filter((u) => isPropertyAccessible(u.property || u.hotel || u.site));
-  const accessibleProperties = properties.filter((p) => isPropertyAccessible(p.name || p.propertyName || p.id));
-  const accessibleTasks = tasks.filter((t) => isPropertyAccessible(t.site || t.property || t.hotel));
+  const accessibleAssets = assets.filter((a) =>
+    isPropertyAccessible(a.hotelName || a.hotelId || a.property || a.propertyName)
+  );
+  const accessibleMaintenance = maintenance.filter((m) =>
+    isPropertyAccessible(m.hotelName || m.property || m.propertyName || m.hotelId)
+  );
+  const accessibleContracts = contracts.filter((c) =>
+    isPropertyAccessible(c.hotel || c.property || c.site)
+  );
+  const accessibleInsurance = insurance.filter((i) =>
+    isPropertyAccessible(i.hotel || i.property || i.site)
+  );
+  const accessibleCompliance = compliance.filter((c) =>
+    isPropertyAccessible(c.site || c.hotel || c.property)
+  );
+  const accessibleUtilities = utilities.filter((u) =>
+    isPropertyAccessible(u.property || u.hotel || u.site)
+  );
+  const accessibleProperties = properties.filter((p) =>
+    isPropertyAccessible(p.name || p.propertyName || p.id)
+  );
+  const accessibleTasks = tasks.filter((t) =>
+    isPropertyAccessible(t.site || t.property || t.hotel)
+  );
 
   // Derived Real Data Metrics (100% computed from live databases, never static)
   const totalAssetsCount = accessibleAssets.length;
   const fixedAssetsCount = accessibleAssets.filter((a) => a.isFixed).length;
   const nonFixedAssetsCount = accessibleAssets.filter((a) => !a.isFixed).length;
-  const criticalAssetsCount = accessibleAssets.filter((a) => a.riskLevel === 'critical' || a.risk === 'critical').length;
+  const criticalAssetsCount = accessibleAssets.filter(
+    (a) => a.riskLevel === 'critical' || a.risk === 'critical'
+  ).length;
 
   const overdueMaint = accessibleMaintenance.filter((m) => m.status === 'overdue').length;
   const dueTodayMaint = accessibleMaintenance.filter((m) => m.status === 'due-today').length;
 
   const totalContractsCount = accessibleContracts.length;
   const activeContractsCount = accessibleContracts.filter((c) => c.status === 'active').length;
-  const expiringContractsCount = accessibleContracts.filter((c) => c.status === 'expiring-soon').length;
+  const expiringContractsCount = accessibleContracts.filter(
+    (c) => c.status === 'expiring-soon'
+  ).length;
   const autoRenewCount = accessibleContracts.filter((c) => c.autoRenew).length;
 
   // Contracts Renewals within 90 days
   const now = new Date();
   const renewalsDueContracts = accessibleContracts.filter((c) => {
     if (!c.renewalDate) return false;
-    const diff = Math.ceil((new Date(c.renewalDate).getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+    const diff = Math.ceil(
+      (new Date(c.renewalDate).getTime() - now.getTime()) / (1000 * 60 * 60 * 24)
+    );
     return !isNaN(diff) && diff >= 0 && diff <= 90;
   }).length;
 
-  const totalContractVal = accessibleContracts.filter((c) => c.status === 'active').reduce((sum, c) => sum + (Number(c.contractValue ?? c.value) || 0), 0);
-  const annualContractValDisplay = totalContractVal > 0 ? `£${(totalContractVal / 1000).toFixed(0)}k` : '£0';
+  const totalContractVal = accessibleContracts
+    .filter((c) => c.status === 'active')
+    .reduce((sum, c) => sum + (Number(c.contractValue ?? c.value) || 0), 0);
+  const annualContractValDisplay =
+    totalContractVal > 0 ? `£${(totalContractVal / 1000).toFixed(0)}k` : '£0';
 
   // Insurance real data
   const insuranceCount = accessibleInsurance.length;
-  const totalInsuranceCoverage = accessibleInsurance.reduce((sum, p) => sum + (Number(p.coverageAmount ?? p.coverage) || 0), 0);
-  const coverageDisplay = totalInsuranceCoverage >= 1000000 ? `£${(totalInsuranceCoverage / 1000000).toFixed(1)}M` : `£${(totalInsuranceCoverage / 1000).toFixed(0)}k`;
+  const totalInsuranceCoverage = accessibleInsurance.reduce(
+    (sum, p) => sum + (Number(p.coverageAmount ?? p.coverage) || 0),
+    0
+  );
+  const coverageDisplay =
+    totalInsuranceCoverage >= 1000000
+      ? `£${(totalInsuranceCoverage / 1000000).toFixed(1)}M`
+      : `£${(totalInsuranceCoverage / 1000).toFixed(0)}k`;
 
   // Compliance
-  const criticalCompliance = accessibleCompliance.filter((c) => c.status === 'critical' || c.status === 'overdue' || c.riskRating === 'critical').length;
-  const warningCompliance = accessibleCompliance.filter((c) => c.status === 'warning' || c.status === 'expiring-soon').length;
-  const compliantCount = accessibleCompliance.filter((c) => c.status === 'ok' || c.status === 'compliant').length;
-  const avgComplianceScore = accessibleCompliance.length > 0 ? Math.round((compliantCount / accessibleCompliance.length) * 100) : 83;
+  const criticalCompliance = accessibleCompliance.filter(
+    (c) => c.status === 'critical' || c.status === 'overdue' || c.riskRating === 'critical'
+  ).length;
+  const warningCompliance = accessibleCompliance.filter(
+    (c) => c.status === 'warning' || c.status === 'expiring-soon'
+  ).length;
+  const compliantCount = accessibleCompliance.filter(
+    (c) => c.status === 'ok' || c.status === 'compliant'
+  ).length;
+  const avgComplianceScore =
+    accessibleCompliance.length > 0
+      ? Math.round((compliantCount / accessibleCompliance.length) * 100)
+      : 83;
 
   // Tasks & Live Dynamic Alerts (Scoped to Accessible Properties)
-  const openTasks = accessibleTasks.filter((t) => t.status === 'open' || t.status === 'pending' || !t.status || t.status === 'in-progress').length;
-  const urgentTasks = accessibleTasks.filter((t) => (t.priority === 'urgent' || t.priority === 'high') && t.status !== 'completed').length;
-  const liveNotifs = (notifications.length > 0 ? notifications : (typeof window !== 'undefined' ? getNotifications() : [])).filter((n: any) => !n.site || isPropertyAccessible(n.site));
+  const openTasks = accessibleTasks.filter(
+    (t) => t.status === 'open' || t.status === 'pending' || !t.status || t.status === 'in-progress'
+  ).length;
+  const urgentTasks = accessibleTasks.filter(
+    (t) => (t.priority === 'urgent' || t.priority === 'high') && t.status !== 'completed'
+  ).length;
+  const liveNotifs = (
+    notifications.length > 0
+      ? notifications
+      : typeof window !== 'undefined'
+        ? getNotifications()
+        : []
+  ).filter((n: any) => !n.site || isPropertyAccessible(n.site));
   const criticalAlertsCount = liveNotifs.filter((n: any) => n.type === 'critical').length;
   const warningAlertsCount = liveNotifs.filter((n: any) => n.type === 'warning').length;
 
   // Utilities (Scoped to Accessible Properties)
   const utilitiesCount = accessibleUtilities.length;
-  const totalUtilitySpend = accessibleUtilities.reduce((sum, u) => sum + (Number(u.annualCost) || 0), 0);
+  const totalUtilitySpend = accessibleUtilities.reduce(
+    (sum, u) => sum + (Number(u.annualCost) || 0),
+    0
+  );
 
   const isRestricted = !userAssignedProperties.includes('all') && userAssignedProperties.length > 0;
   const userHotelDisplay = isRestricted
-    ? (userAssignedProperties.length === 1 ? userAssignedProperties[0] : `${userAssignedProperties.length} assigned properties`)
+    ? userAssignedProperties.length === 1
+      ? userAssignedProperties[0]
+      : `${userAssignedProperties.length} assigned properties`
     : 'all UK properties';
   const isSpecificProperty = isRestricted;
 
@@ -186,7 +280,9 @@ export default function DashboardKPIGrid() {
       id: 'kpi-properties',
       label: 'Monitored Properties',
       value: accessibleProperties.length,
-      sub: isRestricted ? `Assigned: ${userHotelDisplay}` : `Across all ${properties.length || 5} hotel estates`,
+      sub: isRestricted
+        ? `Assigned: ${userHotelDisplay}`
+        : `Across all ${properties.length || 5} hotel estates`,
       icon: <Building2 size={18} />,
       variant: 'ok' as const,
       link: '/asset-management/properties',
@@ -195,7 +291,9 @@ export default function DashboardKPIGrid() {
       id: 'kpi-fixed-assets',
       label: 'Fixed Assets (Plant)',
       value: fixedAssetsCount,
-      sub: isRestricted ? `Structural, plant & MEP for ${userHotelDisplay}` : 'Structural, plant, boilers & lifts',
+      sub: isRestricted
+        ? `Structural, plant & MEP for ${userHotelDisplay}`
+        : 'Structural, plant, boilers & lifts',
       icon: <Package size={18} />,
       variant: 'info' as const,
       link: '/asset-management/assets',
@@ -204,7 +302,9 @@ export default function DashboardKPIGrid() {
       id: 'kpi-insurance-coverage',
       label: 'Total Insurance Coverage',
       value: coverageDisplay,
-      sub: isRestricted ? `${insuranceCount} policies for ${userHotelDisplay}` : `${insuranceCount} policies · active coverage`,
+      sub: isRestricted
+        ? `${insuranceCount} policies for ${userHotelDisplay}`
+        : `${insuranceCount} policies · active coverage`,
       icon: <Shield size={18} />,
       variant: 'info' as const,
       link: '/insurance-register',
@@ -213,7 +313,9 @@ export default function DashboardKPIGrid() {
       id: 'kpi-active-contracts',
       label: 'Active Contracts',
       value: activeContractsCount,
-      sub: isRestricted ? `Active contracts for ${userHotelDisplay}` : `Currently active supplier agreements`,
+      sub: isRestricted
+        ? `Active contracts for ${userHotelDisplay}`
+        : `Currently active supplier agreements`,
       icon: <ScrollText size={18} />,
       variant: 'ok' as const,
       link: '/contracts-register',
@@ -222,7 +324,9 @@ export default function DashboardKPIGrid() {
       id: 'kpi-contracts-val',
       label: 'Annual Contracts Value',
       value: annualContractValDisplay,
-      sub: isRestricted ? `Contract value for ${userHotelDisplay}` : 'Active contracts portfolio commitment',
+      sub: isRestricted
+        ? `Contract value for ${userHotelDisplay}`
+        : 'Active contracts portfolio commitment',
       icon: <TrendingUp size={18} />,
       variant: 'info' as const,
       link: '/contracts-register',
@@ -261,7 +365,9 @@ export default function DashboardKPIGrid() {
       id: 'kpi-assets',
       label: 'Non-Fixed Assets',
       value: nonFixedAssetsCount,
-      sub: isRestricted ? `FF&E inventory for ${userHotelDisplay}` : 'Operational FF&E, kitchen & IT assets',
+      sub: isRestricted
+        ? `FF&E inventory for ${userHotelDisplay}`
+        : 'Operational FF&E, kitchen & IT assets',
       icon: <Package size={18} />,
       variant: 'info' as const,
       link: '/asset-management/assets?type=non-fixed',
@@ -281,14 +387,22 @@ export default function DashboardKPIGrid() {
       value: `${avgComplianceScore}%`,
       sub: `${criticalCompliance} critical · ${warningCompliance} warnings`,
       icon: <ShieldCheck size={18} />,
-      variant: avgComplianceScore >= 90 ? ('ok' as const) : avgComplianceScore >= 75 ? ('warning' as const) : ('critical' as const),
+      variant:
+        avgComplianceScore >= 90
+          ? ('ok' as const)
+          : avgComplianceScore >= 75
+            ? ('warning' as const)
+            : ('critical' as const),
       link: '/compliance-register',
     },
     {
       id: 'kpi-critical',
       label: 'Critical Alerts',
       value: criticalAlertsCount,
-      sub: criticalAlertsCount > 0 ? `${criticalAlertsCount} alarms require immediate action` : 'All telemetry nominal',
+      sub:
+        criticalAlertsCount > 0
+          ? `${criticalAlertsCount} alarms require immediate action`
+          : 'All telemetry nominal',
       icon: <AlertTriangle size={18} />,
       variant: criticalAlertsCount > 0 ? ('critical' as const) : ('ok' as const),
       link: '/compliance-tracker',
@@ -299,7 +413,8 @@ export default function DashboardKPIGrid() {
       value: expiringContractsCount + warningCompliance,
       sub: 'Certificates & statutory licences',
       icon: <FileText size={18} />,
-      variant: (expiringContractsCount + warningCompliance) > 0 ? ('warning' as const) : ('ok' as const),
+      variant:
+        expiringContractsCount + warningCompliance > 0 ? ('warning' as const) : ('ok' as const),
       link: '/document-repository',
     },
     {
@@ -332,23 +447,41 @@ export default function DashboardKPIGrid() {
   ];
 
   const baseCards = activePortal === 'propco' ? propcoCards : opcoCards;
-  const activeCmsKpis = activePortal === 'propco' ? (cms.propcoTopKpis || []) : (cms.topKpis || []);
-  const cards = baseCards.map((card, idx) => {
-    const cmsKpi = activeCmsKpis.find((k) => k.id === card.id || k.id === `propco-kpi-${idx + 1}` || k.id === `top-kpi-${idx + 1}`);
-    if (!cmsKpi) return card;
-    if (cmsKpi.enabled === false) return null;
-    return {
-      ...card,
-      label: cmsKpi.label || card.label,
-      value: isRestricted ? card.value : (cmsKpi.value !== undefined && cmsKpi.value !== '' ? cmsKpi.value : card.value),
-      sub: isRestricted ? card.sub : (cmsKpi.subtitle || card.sub),
-      customColor: cmsKpi.color,
-    };
-  }).filter(Boolean) as (typeof baseCards[0] & { customColor?: string })[];
+  const activeCmsKpis = activePortal === 'propco' ? cms.propcoTopKpis || [] : cms.topKpis || [];
+  const cards = baseCards
+    .map((card, idx) => {
+      const cmsKpi = activeCmsKpis.find(
+        (k) => k.id === card.id || k.id === `propco-kpi-${idx + 1}` || k.id === `top-kpi-${idx + 1}`
+      );
+      if (!cmsKpi) return card;
+      if (cmsKpi.enabled === false) return null;
+      return {
+        ...card,
+        label: cmsKpi.label || card.label,
+        value: isRestricted
+          ? card.value
+          : cmsKpi.value !== undefined && cmsKpi.value !== ''
+            ? cmsKpi.value
+            : card.value,
+        sub: isRestricted ? card.sub : cmsKpi.subtitle || card.sub,
+        customColor: cmsKpi.color,
+      };
+    })
+    .filter(Boolean) as ((typeof baseCards)[0] & { customColor?: string })[];
 
   const variantColors = {
-    critical: { border: 'var(--critical)', value: 'var(--critical)', bg: 'var(--critical-bg)', top: 'var(--critical)' },
-    warning: { border: 'var(--warning)', value: 'var(--warning)', bg: 'var(--warning-bg)', top: 'var(--warning)' },
+    critical: {
+      border: 'var(--critical)',
+      value: 'var(--critical)',
+      bg: 'var(--critical-bg)',
+      top: 'var(--critical)',
+    },
+    warning: {
+      border: 'var(--warning)',
+      value: 'var(--warning)',
+      bg: 'var(--warning-bg)',
+      top: 'var(--warning)',
+    },
     ok: { border: 'var(--ok)', value: 'var(--ok)', bg: 'var(--ok-bg)', top: 'var(--ok)' },
     info: { border: 'var(--info)', value: 'var(--info)', bg: 'var(--info-bg)', top: 'var(--info)' },
   };
@@ -356,15 +489,13 @@ export default function DashboardKPIGrid() {
   const hour = new Date().getHours();
   const timeOfDay = hour < 12 ? 'morning' : hour < 18 ? 'afternoon' : 'evening';
   const userName = user?.name || 'Administrator';
-  const greetingPulse = isSpecificProperty
-    ? `for ${userHotelDisplay}`
-    : 'across all UK properties';
+  const greetingPulse = isSpecificProperty ? `for ${userHotelDisplay}` : 'across all UK properties';
 
   const dynamicGreeting = cmsDashboard?.welcomeGreeting
     ? cmsDashboard.welcomeGreeting
-      .replace(/\{name\}/g, userName)
-      .replace(/Marcus/g, userName)
-      .replace(/across all UK properties/gi, greetingPulse)
+        .replace(/\{name\}/g, userName)
+        .replace(/Marcus/g, userName)
+        .replace(/across all UK properties/gi, greetingPulse)
     : `Good ${timeOfDay}, ${userName}. Operational pulse ${greetingPulse}.`;
 
   return (
@@ -372,7 +503,10 @@ export default function DashboardKPIGrid() {
       {dynamicGreeting && (
         <div
           className="mb-3.5 px-4 py-2.5 rounded-xl border flex items-center justify-between"
-          style={{ background: 'rgba(232, 201, 122, 0.08)', borderColor: 'rgba(232, 201, 122, 0.25)' }}
+          style={{
+            background: 'rgba(232, 201, 122, 0.08)',
+            borderColor: 'rgba(232, 201, 122, 0.25)',
+          }}
         >
           <span className="text-xs font-semibold text-foreground flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
@@ -387,9 +521,13 @@ export default function DashboardKPIGrid() {
           <span
             className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded tracking-wider"
             style={{
-              background: activePortal === 'propco' ? 'rgba(232,201,122,0.18)' : 'rgba(96,165,250,0.18)',
+              background:
+                activePortal === 'propco' ? 'rgba(232,201,122,0.18)' : 'rgba(96,165,250,0.18)',
               color: activePortal === 'propco' ? 'var(--primary)' : '#60a5fa',
-              border: activePortal === 'propco' ? '1px solid rgba(232,201,122,0.3)' : '1px solid rgba(96,165,250,0.3)',
+              border:
+                activePortal === 'propco'
+                  ? '1px solid rgba(232,201,122,0.3)'
+                  : '1px solid rgba(96,165,250,0.3)',
             }}
           >
             {activePortal === 'propco' ? 'PropCo Portal View' : 'OpCo Portal View'}
@@ -435,10 +573,7 @@ export default function DashboardKPIGrid() {
       </div>
 
       {/* 8 Dynamic KPI Cards */}
-      <div
-        className="grid"
-        style={{ gridTemplateColumns: 'repeat(4, 1fr)', gap: 14 }}
-      >
+      <div className="grid" style={{ gridTemplateColumns: 'repeat(4, 1fr)', gap: 14 }}>
         {cards.map((card) => {
           const colors = variantColors[card.variant];
           const topColor = card.customColor || colors.top;

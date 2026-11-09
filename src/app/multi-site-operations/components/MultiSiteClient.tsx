@@ -35,9 +35,15 @@ export default function MultiSiteClient() {
         api.tasks.getAll(),
       ]);
 
-      if (propsRes.status === 'fulfilled' && propsRes.value.success && propsRes.value.data?.length > 0) {
+      if (
+        propsRes.status === 'fulfilled' &&
+        propsRes.value.success &&
+        propsRes.value.data?.length > 0
+      ) {
         const merged = propsRes.value.data.map((prop: any) => {
-          const match = SITES.find((s) => s.id === prop.id || s.name?.toLowerCase() === prop.name?.toLowerCase());
+          const match = SITES.find(
+            (s) => s.id === prop.id || s.name?.toLowerCase() === prop.name?.toLowerCase()
+          );
           return {
             ...match,
             ...prop,
@@ -51,10 +57,18 @@ export default function MultiSiteClient() {
         });
         setSites(merged);
       }
-      if (compRes.status === 'fulfilled' && compRes.value.success && compRes.value.data?.length > 0) {
+      if (
+        compRes.status === 'fulfilled' &&
+        compRes.value.success &&
+        compRes.value.data?.length > 0
+      ) {
         setCompliance(compRes.value.data);
       }
-      if (tasksRes.status === 'fulfilled' && tasksRes.value.success && tasksRes.value.data?.length > 0) {
+      if (
+        tasksRes.status === 'fulfilled' &&
+        tasksRes.value.success &&
+        tasksRes.value.data?.length > 0
+      ) {
         setTasks(tasksRes.value.data);
       }
     } catch (e) {
@@ -71,21 +85,29 @@ export default function MultiSiteClient() {
 
   const filtered = useMemo(() => {
     let list = sites.filter((s) => isPropertyAccessible(s.name || s.propertyName || s.id));
-    if (typeFilter !== 'All') list = list.filter((s) => s.type === typeFilter || (typeFilter === 'Hotel' && (s.type === 'Hotel' || !s.type)));
+    if (typeFilter !== 'All')
+      list = list.filter(
+        (s) => s.type === typeFilter || (typeFilter === 'Hotel' && (s.type === 'Hotel' || !s.type))
+      );
     if (riskFilter !== 'All') list = list.filter((s) => (s.risk || 'low') === riskFilter);
     return list;
   }, [sites, typeFilter, riskFilter, isPropertyAccessible]);
 
   const getSiteCompliance = (siteName: string) => {
     const sName = siteName.toLowerCase();
-    const items = compliance.filter((c: any) =>
-      c.site?.toLowerCase()?.includes(sName) ||
-      c.property?.toLowerCase()?.includes(sName) ||
-      c.hotel?.toLowerCase()?.includes(sName) ||
-      sName.includes(c.property?.toLowerCase() || '')
+    const items = compliance.filter(
+      (c: any) =>
+        c.site?.toLowerCase()?.includes(sName) ||
+        c.property?.toLowerCase()?.includes(sName) ||
+        c.hotel?.toLowerCase()?.includes(sName) ||
+        sName.includes(c.property?.toLowerCase() || '')
     );
-    const critical = items.filter((c: any) => c.status === 'critical' || c.status === 'overdue').length;
-    const warning = items.filter((c: any) => c.status === 'warning' || c.status === 'expiring-soon').length;
+    const critical = items.filter(
+      (c: any) => c.status === 'critical' || c.status === 'overdue'
+    ).length;
+    const warning = items.filter(
+      (c: any) => c.status === 'warning' || c.status === 'expiring-soon'
+    ).length;
     const ok = items.filter((c: any) => c.status === 'ok' || c.status === 'compliant').length;
     return {
       critical,
@@ -97,11 +119,12 @@ export default function MultiSiteClient() {
 
   const getSiteTasks = (siteName: string) => {
     const sName = siteName.toLowerCase();
-    return tasks.filter((t: any) =>
-      t.site?.toLowerCase()?.includes(sName) ||
-      t.property?.toLowerCase()?.includes(sName) ||
-      t.site === 'All Sites' ||
-      sName.includes(t.site?.toLowerCase() || '')
+    return tasks.filter(
+      (t: any) =>
+        t.site?.toLowerCase()?.includes(sName) ||
+        t.property?.toLowerCase()?.includes(sName) ||
+        t.site === 'All Sites' ||
+        sName.includes(t.site?.toLowerCase() || '')
     );
   };
 
@@ -109,7 +132,9 @@ export default function MultiSiteClient() {
     totalSites: sites.length,
     operational: sites.filter((s) => (s.status || 'operational') === 'operational').length,
     highRisk: sites.filter((s) => s.risk === 'high').length,
-    avgCompliance: Math.round(sites.reduce((a, s) => a + (s.compliance || 85), 0) / (sites.length || 1)),
+    avgCompliance: Math.round(
+      sites.reduce((a, s) => a + (s.compliance || 85), 0) / (sites.length || 1)
+    ),
   };
 
   return (
@@ -118,7 +143,12 @@ export default function MultiSiteClient() {
       <div className="grid gap-4 mb-5" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
         {(cms.kpis && cms.kpis.length >= 4
           ? cms.kpis.map((kpi, idx) => {
-              const defaultVals = [groupStats.totalSites, groupStats.operational, groupStats.highRisk, `${groupStats.avgCompliance}%`];
+              const defaultVals = [
+                groupStats.totalSites,
+                groupStats.operational,
+                groupStats.highRisk,
+                `${groupStats.avgCompliance}%`,
+              ];
               return {
                 label: kpi.label,
                 val: kpi.value || defaultVals[idx],
@@ -127,24 +157,60 @@ export default function MultiSiteClient() {
               };
             })
           : [
-              { label: 'Total Sites', val: groupStats.totalSites, color: 'var(--info)', sub: 'Hotels & restaurants' },
-              { label: 'Operational', val: groupStats.operational, color: 'var(--ok)', sub: 'Fully trading sites' },
-              { label: 'High Risk', val: groupStats.highRisk, color: 'var(--critical)', sub: 'Compliance below 70%' },
-              { label: 'Group Avg Compliance', val: `${groupStats.avgCompliance}%`, color: groupStats.avgCompliance >= 80 ? 'var(--warning)' : 'var(--critical)', sub: 'Across all sites' },
+              {
+                label: 'Total Sites',
+                val: groupStats.totalSites,
+                color: 'var(--info)',
+                sub: 'Hotels & restaurants',
+              },
+              {
+                label: 'Operational',
+                val: groupStats.operational,
+                color: 'var(--ok)',
+                sub: 'Fully trading sites',
+              },
+              {
+                label: 'High Risk',
+                val: groupStats.highRisk,
+                color: 'var(--critical)',
+                sub: 'Compliance below 70%',
+              },
+              {
+                label: 'Group Avg Compliance',
+                val: `${groupStats.avgCompliance}%`,
+                color: groupStats.avgCompliance >= 80 ? 'var(--warning)' : 'var(--critical)',
+                sub: 'Across all sites',
+              },
             ]
         ).map((s) => (
-          <div
-            key={`gs-${s.label}`}
-            className="samko-card"
-            style={{ padding: '16px 18px' }}
-          >
-            <div className="text-muted-foreground font-head" style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 8 }}>
+          <div key={`gs-${s.label}`} className="samko-card" style={{ padding: '16px 18px' }}>
+            <div
+              className="text-muted-foreground font-head"
+              style={{
+                fontSize: 10,
+                fontWeight: 700,
+                letterSpacing: '0.08em',
+                textTransform: 'uppercase',
+                marginBottom: 8,
+              }}
+            >
               {s.label}
             </div>
-            <div className="font-head tabular-nums" style={{ fontSize: 28, fontWeight: 800, color: s.color, lineHeight: 1, marginBottom: 4 }}>
+            <div
+              className="font-head tabular-nums"
+              style={{
+                fontSize: 28,
+                fontWeight: 800,
+                color: s.color,
+                lineHeight: 1,
+                marginBottom: 4,
+              }}
+            >
               {s.val}
             </div>
-            <div className="text-muted-foreground" style={{ fontSize: 11 }}>{s.sub}</div>
+            <div className="text-muted-foreground" style={{ fontSize: 11 }}>
+              {s.sub}
+            </div>
           </div>
         ))}
       </div>
@@ -152,7 +218,9 @@ export default function MultiSiteClient() {
       {/* Filters */}
       <div className="flex flex-wrap items-center gap-3 mb-5">
         <div className="flex gap-2">
-          <span className="text-muted-foreground" style={{ fontSize: 12, alignSelf: 'center' }}>Type:</span>
+          <span className="text-muted-foreground" style={{ fontSize: 12, alignSelf: 'center' }}>
+            Type:
+          </span>
           {(['All', 'Hotel', 'Restaurant'] as TypeFilter[]).map((f) => (
             <button
               key={`type-${f}`}
@@ -164,21 +232,26 @@ export default function MultiSiteClient() {
           ))}
         </div>
         <div className="flex gap-2">
-          <span className="text-muted-foreground" style={{ fontSize: 12, alignSelf: 'center' }}>Risk:</span>
+          <span className="text-muted-foreground" style={{ fontSize: 12, alignSelf: 'center' }}>
+            Risk:
+          </span>
           {(['All', 'high', 'medium', 'low'] as RiskFilter[]).map((r) => (
             <button
               key={`risk-${r}`}
               onClick={() => setRiskFilter(r)}
               className={`filter-chip-btn ${riskFilter === r ? 'active-chip' : ''}`}
             >
-              {r === 'high' ? '🔴' : r === 'medium' ? '🟡' : r === 'low' ? '🟢' : ''} {r.charAt(0).toUpperCase() + r.slice(1)}
+              {r === 'high' ? '🔴' : r === 'medium' ? '🟡' : r === 'low' ? '🟢' : ''}{' '}
+              {r.charAt(0).toUpperCase() + r.slice(1)}
             </button>
           ))}
         </div>
         <div className="flex items-center gap-3 ml-auto">
           <PageCMSEditButton pageId="multisite" pageName="Multi-Site Operations" />
           <p className="text-muted-foreground" style={{ fontSize: 12 }}>
-            Showing <span style={{ color: 'var(--foreground)', fontWeight: 600 }}>{filtered.length}</span> of {sites.length} sites
+            Showing{' '}
+            <span style={{ color: 'var(--foreground)', fontWeight: 600 }}>{filtered.length}</span>{' '}
+            of {sites.length} sites
           </p>
         </div>
       </div>
@@ -191,7 +264,10 @@ export default function MultiSiteClient() {
           description="Try changing the type or risk level filter to see sites in this group."
           action={
             <button
-              onClick={() => { setTypeFilter('All'); setRiskFilter('All'); }}
+              onClick={() => {
+                setTypeFilter('All');
+                setRiskFilter('All');
+              }}
               className="samko-btn-ghost"
             >
               Clear filters
@@ -199,10 +275,7 @@ export default function MultiSiteClient() {
           }
         />
       ) : (
-        <div
-          className="grid gap-4"
-          style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}
-        >
+        <div className="grid gap-4" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
           {filtered.map((site) => {
             const compData = getSiteCompliance(site.name);
             const siteTasks = getSiteTasks(site.name).filter((t) => t.status !== 'completed');
@@ -260,7 +333,10 @@ export default function MultiSiteClient() {
                     >
                       {site.name}
                     </h3>
-                    <div className="flex items-center gap-1 text-muted-foreground" style={{ fontSize: 11 }}>
+                    <div
+                      className="flex items-center gap-1 text-muted-foreground"
+                      style={{ fontSize: 11 }}
+                    >
                       <MapPin size={10} />
                       {site.city}
                     </div>
@@ -276,7 +352,13 @@ export default function MultiSiteClient() {
                   >
                     <div
                       className="font-head text-muted-foreground"
-                      style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 4 }}
+                      style={{
+                        fontSize: 9,
+                        fontWeight: 700,
+                        letterSpacing: '0.08em',
+                        textTransform: 'uppercase',
+                        marginBottom: 4,
+                      }}
                     >
                       Open Issues
                     </div>
@@ -289,8 +371,8 @@ export default function MultiSiteClient() {
                           site.openIssues > 5
                             ? 'var(--critical)'
                             : site.openIssues > 2
-                            ? 'var(--warning)'
-                            : 'var(--ok)',
+                              ? 'var(--warning)'
+                              : 'var(--ok)',
                         lineHeight: 1,
                       }}
                     >
@@ -303,13 +385,27 @@ export default function MultiSiteClient() {
                   >
                     <div
                       className="font-head text-muted-foreground"
-                      style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 6 }}
+                      style={{
+                        fontSize: 9,
+                        fontWeight: 700,
+                        letterSpacing: '0.08em',
+                        textTransform: 'uppercase',
+                        marginBottom: 6,
+                      }}
                     >
                       Risk Level
                     </div>
                     <StatusBadge
-                      variant={(site.risk || 'low') === 'high' ? 'critical' : (site.risk || 'low') === 'medium' ? 'warning' : 'ok'}
-                      label={site.risk ? site.risk.charAt(0).toUpperCase() + site.risk.slice(1) : 'Low'}
+                      variant={
+                        (site.risk || 'low') === 'high'
+                          ? 'critical'
+                          : (site.risk || 'low') === 'medium'
+                            ? 'warning'
+                            : 'ok'
+                      }
+                      label={
+                        site.risk ? site.risk.charAt(0).toUpperCase() + site.risk.slice(1) : 'Low'
+                      }
                       size="sm"
                     />
                   </div>
@@ -319,8 +415,12 @@ export default function MultiSiteClient() {
                 {compData.total > 0 && (
                   <div className="mb-4">
                     <div className="flex items-center justify-between mb-1.5">
-                      <span className="text-muted-foreground" style={{ fontSize: 10 }}>Compliance items</span>
-                      <span className="text-muted-foreground" style={{ fontSize: 10 }}>{compData.total} total</span>
+                      <span className="text-muted-foreground" style={{ fontSize: 10 }}>
+                        Compliance items
+                      </span>
+                      <span className="text-muted-foreground" style={{ fontSize: 10 }}>
+                        {compData.total} total
+                      </span>
                     </div>
                     <div className="flex rounded-full overflow-hidden" style={{ height: 5 }}>
                       {compData.critical > 0 && (
@@ -344,10 +444,14 @@ export default function MultiSiteClient() {
                     </div>
                     <div className="flex gap-3 mt-1.5">
                       {compData.critical > 0 && (
-                        <span style={{ fontSize: 10, color: 'var(--critical)' }}>🔴 {compData.critical}</span>
+                        <span style={{ fontSize: 10, color: 'var(--critical)' }}>
+                          🔴 {compData.critical}
+                        </span>
                       )}
                       {compData.warning > 0 && (
-                        <span style={{ fontSize: 10, color: 'var(--warning)' }}>🟡 {compData.warning}</span>
+                        <span style={{ fontSize: 10, color: 'var(--warning)' }}>
+                          🟡 {compData.warning}
+                        </span>
                       )}
                       {compData.ok > 0 && (
                         <span style={{ fontSize: 10, color: 'var(--ok)' }}>🟢 {compData.ok}</span>
@@ -372,7 +476,10 @@ export default function MultiSiteClient() {
                       fontWeight: 800,
                     }}
                   >
-                    {(site.manager || 'Marcus Webb').split(' ').map((n: string) => n[0]).join('')}
+                    {(site.manager || 'Marcus Webb')
+                      .split(' ')
+                      .map((n: string) => n[0])
+                      .join('')}
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="text-foreground font-medium truncate" style={{ fontSize: 12 }}>
@@ -427,12 +534,18 @@ export default function MultiSiteClient() {
                             width: 6,
                             height: 6,
                             background:
-                              task.priority === 'urgent' ?'var(--critical)'
-                                : task.priority === 'high' ?'var(--warning)' :'var(--info)',
+                              task.priority === 'urgent'
+                                ? 'var(--critical)'
+                                : task.priority === 'high'
+                                  ? 'var(--warning)'
+                                  : 'var(--info)',
                             display: 'block',
                           }}
                         />
-                        <span className="text-foreground truncate" style={{ fontSize: 11, flex: 1 }}>
+                        <span
+                          className="text-foreground truncate"
+                          style={{ fontSize: 11, flex: 1 }}
+                        >
                           {task.title}
                         </span>
                       </div>
@@ -443,7 +556,10 @@ export default function MultiSiteClient() {
                       </p>
                     )}
                     <button
-                      onClick={(e) => { e.stopPropagation(); router.push(`/multi-site-operations/${site.id}`); }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        router.push(`/multi-site-operations/${site.id}`);
+                      }}
                       className="mt-3 w-full rounded-lg text-center"
                       style={{
                         background: 'rgba(232,201,122,0.1)',
@@ -462,7 +578,10 @@ export default function MultiSiteClient() {
 
                 {isSelected && siteTasks.length === 0 && (
                   <button
-                    onClick={(e) => { e.stopPropagation(); router.push(`/multi-site-operations/${site.id}`); }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      router.push(`/multi-site-operations/${site.id}`);
+                    }}
                     className="mt-3 w-full rounded-lg text-center"
                     style={{
                       background: 'rgba(232,201,122,0.1)',

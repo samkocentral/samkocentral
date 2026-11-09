@@ -36,7 +36,9 @@ export default function DashboardUrgentTasks() {
   const { isPropertyAccessible } = useAuth();
 
   const accessibleTasks = React.useMemo(() => {
-    return tasks.filter((t: any) => isPropertyAccessible(t.property || t.site || t.hotel || t.propertyName));
+    return tasks.filter((t: any) =>
+      isPropertyAccessible(t.property || t.site || t.hotel || t.propertyName)
+    );
   }, [tasks, isPropertyAccessible]);
 
   const urgentHighTasks = accessibleTasks.filter(
@@ -53,26 +55,32 @@ export default function DashboardUrgentTasks() {
   };
 
   const title = cms.sections?.urgentTasks?.title || 'Urgent Tasks';
-  const displayTasks = urgentHighTasks.length > 0
-    ? urgentHighTasks
-    : (cms.tasks && cms.tasks.length > 0)
-    ? cms.tasks
-        .filter((t) => isPropertyAccessible(t.hotelName))
-        .map((t) => ({
-          id: t.id,
-          title: t.title,
-          site: t.hotelName,
-          due: t.dueDate,
-          priority: t.priority,
-        }))
-    : [];
+  const displayTasks =
+    urgentHighTasks.length > 0
+      ? urgentHighTasks
+      : cms.tasks && cms.tasks.length > 0
+        ? cms.tasks
+            .filter((t) => isPropertyAccessible(t.hotelName))
+            .map((t) => ({
+              id: t.id,
+              title: t.title,
+              site: t.hotelName,
+              due: t.dueDate,
+              priority: t.priority,
+            }))
+        : [];
 
   return (
     <div className="samko-card" style={{ padding: '18px 20px' }}>
       <div className="flex items-center justify-between mb-4">
         <h2
           className="font-head text-foreground"
-          style={{ fontSize: 13, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em' }}
+          style={{
+            fontSize: 13,
+            fontWeight: 700,
+            textTransform: 'uppercase',
+            letterSpacing: '0.08em',
+          }}
         >
           {title}
         </h2>

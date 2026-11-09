@@ -38,7 +38,8 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const policyNumber = body.policyNumber || body.name || body.title || `POL-${Date.now().toString().slice(-6)}`;
+    const policyNumber =
+      body.policyNumber || body.name || body.title || `POL-${Date.now().toString().slice(-6)}`;
     const insuranceType = body.insuranceType || body.type || body.category || 'General Cover';
     const propName = body.property || body.hotel || body.site || 'Crowne Plaza Kingston-south';
 
@@ -58,6 +59,9 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ success: true, data: newItem }, { status: 201 });
   } catch (error: any) {
-    return NextResponse.json({ success: false, error: error?.message || 'Failed to create insurance policy' }, { status: 500 });
+    return NextResponse.json(
+      { success: false, error: error?.message || 'Failed to create insurance policy' },
+      { status: 500 }
+    );
   }
 }

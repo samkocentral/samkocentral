@@ -20,7 +20,13 @@ function MaintenancePageInner() {
 
 export default function MaintenancePage() {
   return (
-    <Suspense fallback={<div className="flex items-center justify-center h-screen text-muted-foreground text-sm">Loading planned maintenance...</div>}>
+    <Suspense
+      fallback={
+        <div className="flex items-center justify-center h-screen text-muted-foreground text-sm">
+          Loading planned maintenance...
+        </div>
+      }
+    >
       <MaintenancePageInner />
     </Suspense>
   );

@@ -20,7 +20,13 @@ function UtilitiesRegisterInner() {
 
 export default function UtilitiesRegisterPage() {
   return (
-    <Suspense fallback={<div className="flex items-center justify-center h-screen text-muted-foreground text-sm">Loading utilities register…</div>}>
+    <Suspense
+      fallback={
+        <div className="flex items-center justify-center h-screen text-muted-foreground text-sm">
+          Loading utilities register…
+        </div>
+      }
+    >
       <UtilitiesRegisterInner />
     </Suspense>
   );

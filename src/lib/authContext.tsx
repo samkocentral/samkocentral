@@ -45,7 +45,8 @@ export const DEMO_CREDENTIALS: {
     badge: 'L1 · Full Access',
     color: '#f43f5e',
     password: 'SuperAdmin2026!',
-    summary: 'Full access across both Propco & Opco portals, system settings, and managing all users',
+    summary:
+      'Full access across both Propco & Opco portals, system settings, and managing all users',
     user: {
       id: 'usr-l1-001',
       name: 'Alexander Vance',
@@ -67,7 +68,8 @@ export const DEMO_CREDENTIALS: {
     badge: 'L1 · Full Access',
     color: '#06b6d4',
     password: 'SuperAdmin2026!',
-    summary: 'Automated Digital Bot with complete Super Admin access across all modules and portals',
+    summary:
+      'Automated Digital Bot with complete Super Admin access across all modules and portals',
     user: {
       id: 'usr-bot-001',
       name: 'Digital Bot',
@@ -79,7 +81,8 @@ export const DEMO_CREDENTIALS: {
       assignedProperties: ['all'],
       status: 'active',
       initials: 'DB',
-      description: 'Digital Bot automated agent with unrestricted governance, settings, and user administration',
+      description:
+        'Digital Bot automated agent with unrestricted governance, settings, and user administration',
       tabPermissions: getDefaultTabPermissionsForRole('L1'),
     },
   },
@@ -227,12 +230,12 @@ const HOTEL_ID_NAME_MAP: Record<string, string> = {
   'h-08': 'sharnbrook',
   'cp-kingston': 'crowne plaza kingston-south',
   'stanhill-court': 'stanhill court',
-  'hampton': 'hotel hampton 1 & hampton 2 property',
+  hampton: 'hotel hampton 1 & hampton 2 property',
   'ravens-ait': 'ravens ait island',
   'river-club': 'river club',
   'warren-house': 'warren house',
   'gatwick-manor': 'gatwick manor (stanhill court)',
-  'sharnbrook': 'sharnbrook',
+  sharnbrook: 'sharnbrook',
 };
 
 export function checkPropertyAccess(
@@ -252,10 +255,13 @@ export function checkPropertyAccess(
     user.assignedProperties && user.assignedProperties.length > 0
       ? user.assignedProperties
       : user.hotel
-      ? user.hotel.includes(',')
-        ? user.hotel.split(',').map((s) => s.trim()).filter(Boolean)
-        : [user.hotel]
-      : [];
+        ? user.hotel.includes(',')
+          ? user.hotel
+              .split(',')
+              .map((s) => s.trim())
+              .filter(Boolean)
+          : [user.hotel]
+        : [];
 
   if (
     assigned.includes('all') ||
@@ -315,7 +321,11 @@ export function checkPropertyAccess(
     if (normClean && normA && (normClean.includes(normA) || normA.includes(normClean))) return true;
 
     // Specific property keyword matching
-    if ((clean.includes('crowne') || clean.includes('kingston')) && (a.includes('crowne') || a.includes('kingston'))) return true;
+    if (
+      (clean.includes('crowne') || clean.includes('kingston')) &&
+      (a.includes('crowne') || a.includes('kingston'))
+    )
+      return true;
     if (clean.includes('hampton') && a.includes('hampton')) return true;
     if (clean.includes('sharnbrook') && a.includes('sharnbrook')) return true;
     if (clean.includes('ravens') && a.includes('ravens')) return true;
@@ -338,75 +348,90 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [originalAdmin, setOriginalAdmin] = useState<AppUser | null>(null);
   const [activePortal, setActivePortalState] = useState<'propco' | 'opco'>('opco');
 
-  const syncLiveUserSession = useCallback(async (targetUserId?: string, targetUserEmail?: string) => {
-    try {
-      let uid = targetUserId || user?.id;
-      let uemail = targetUserEmail || user?.email;
-      if (!uid && !uemail && typeof window !== 'undefined') {
-        try {
-          const stored = localStorage.getItem('samko_auth_user');
-          if (stored) {
-            const parsed = JSON.parse(stored);
-            uid = parsed.id;
-            uemail = parsed.email;
-          }
-        } catch {}
-      }
-      if (!uid && !uemail) return;
+  const syncLiveUserSession = useCallback(
+    async (targetUserId?: string, targetUserEmail?: string) => {
+      try {
+        let uid = targetUserId || user?.id;
+        let uemail = targetUserEmail || user?.email;
+        if (!uid && !uemail && typeof window !== 'undefined') {
+          try {
+            const stored = localStorage.getItem('samko_auth_user');
+            if (stored) {
+              const parsed = JSON.parse(stored);
+              uid = parsed.id;
+              uemail = parsed.email;
+            }
+          } catch {}
+        }
+        if (!uid && !uemail) return;
 
-      const res = await api.users.getAll();
-      if (res.success && Array.isArray(res.data) && res.data.length > 0) {
-        const found = res.data.find(
-          (u: any) =>
-            (uid && u.id === uid) ||
-            (uemail && u.email?.toLowerCase().trim() === uemail.toLowerCase().trim())
-        );
+        const res = await api.users.getAll();
+        if (res.success && Array.isArray(res.data) && res.data.length > 0) {
+          const found = res.data.find(
+            (u: any) =>
+              (uid && u.id === uid) ||
+              (uemail && u.email?.toLowerCase().trim() === uemail.toLowerCase().trim())
+          );
 
-        if (found) {
-          let freshAssigned: string[] = [];
-          if (Array.isArray(found.assignedProperties)) {
-            freshAssigned = found.assignedProperties.filter((p: string) => p && p !== 'No Property Assigned');
-          } else if (found.hotel && found.hotel !== 'No Property Assigned') {
-            freshAssigned = found.hotel.includes(',')
-              ? found.hotel.split(',').map((s: string) => s.trim()).filter(Boolean)
-              : [found.hotel.trim()];
-          }
-
-          const freshHotel =
-            freshAssigned.length === 0
-              ? 'No Property Assigned'
-              : freshAssigned.includes('all') || freshAssigned.includes('All Properties')
-                ? 'All Properties'
-                : freshAssigned.join(', ');
-
-          setUser((prev) => {
-            const currentAssigned = prev.assignedProperties || [];
-            const isAssignedEqual =
-              currentAssigned.length === freshAssigned.length &&
-              currentAssigned.every((v, i) => v === freshAssigned[i]);
-
-            if (isAssignedEqual && prev.hotel === freshHotel && prev.roleLevel === found.roleLevel) {
-              return prev;
+          if (found) {
+            let freshAssigned: string[] = [];
+            if (Array.isArray(found.assignedProperties)) {
+              freshAssigned = found.assignedProperties.filter(
+                (p: string) => p && p !== 'No Property Assigned'
+              );
+            } else if (found.hotel && found.hotel !== 'No Property Assigned') {
+              freshAssigned = found.hotel.includes(',')
+                ? found.hotel
+                    .split(',')
+                    .map((s: string) => s.trim())
+                    .filter(Boolean)
+                : [found.hotel.trim()];
             }
 
-            const updated: AppUser = {
-              ...prev,
-              ...found,
-              assignedProperties: freshAssigned,
-              hotel: freshHotel,
-              tabPermissions: found.tabPermissions || prev.tabPermissions || getDefaultTabPermissionsForRole(found.roleLevel || prev.roleLevel),
-            };
-            try {
-              localStorage.setItem('samko_auth_user', JSON.stringify(updated));
-            } catch {}
-            return updated;
-          });
+            const freshHotel =
+              freshAssigned.length === 0
+                ? 'No Property Assigned'
+                : freshAssigned.includes('all') || freshAssigned.includes('All Properties')
+                  ? 'All Properties'
+                  : freshAssigned.join(', ');
+
+            setUser((prev) => {
+              const currentAssigned = prev.assignedProperties || [];
+              const isAssignedEqual =
+                currentAssigned.length === freshAssigned.length &&
+                currentAssigned.every((v, i) => v === freshAssigned[i]);
+
+              if (
+                isAssignedEqual &&
+                prev.hotel === freshHotel &&
+                prev.roleLevel === found.roleLevel
+              ) {
+                return prev;
+              }
+
+              const updated: AppUser = {
+                ...prev,
+                ...found,
+                assignedProperties: freshAssigned,
+                hotel: freshHotel,
+                tabPermissions:
+                  found.tabPermissions ||
+                  prev.tabPermissions ||
+                  getDefaultTabPermissionsForRole(found.roleLevel || prev.roleLevel),
+              };
+              try {
+                localStorage.setItem('samko_auth_user', JSON.stringify(updated));
+              } catch {}
+              return updated;
+            });
+          }
         }
+      } catch (err) {
+        console.warn('Failed to sync live user session:', err);
       }
-    } catch (err) {
-      console.warn('Failed to sync live user session:', err);
-    }
-  }, [user?.id, user?.email]);
+    },
+    [user?.id, user?.email]
+  );
 
   useEffect(() => {
     let activeParsedUser: any = null;
@@ -435,7 +460,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const storedAdmin = localStorage.getItem('samko_original_admin');
       if (storedAdmin) {
         const parsedAdmin = JSON.parse(storedAdmin);
-        if (parsedAdmin && (parsedAdmin.roleLevel === 'L1' || parsedAdmin.id === 'usr-bot-001' || parsedAdmin.email?.toLowerCase() === 'digitalbot@samkocentral.com')) {
+        if (
+          parsedAdmin &&
+          (parsedAdmin.roleLevel === 'L1' ||
+            parsedAdmin.id === 'usr-bot-001' ||
+            parsedAdmin.email?.toLowerCase() === 'digitalbot@samkocentral.com')
+        ) {
           setOriginalAdmin(parsedAdmin);
         }
       }
@@ -509,69 +539,71 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (typeof window !== 'undefined') {
       window.dispatchEvent(new CustomEvent('samko:portal-changed', { detail: { portal: p } }));
     }
-
   }, []);
 
-  const switchUser = useCallback((newUser: AppUser) => {
-    const isCurrentBot = Boolean(
-      user?.id === 'usr-bot-001' ||
-      user?.email?.toLowerCase() === 'digitalbot@samkocentral.com' ||
-      user?.name?.toLowerCase().includes('digital bot')
-    );
-    const isTargetBot = Boolean(
-      newUser?.id === 'usr-bot-001' ||
-      newUser?.email?.toLowerCase() === 'digitalbot@samkocentral.com' ||
-      newUser?.name?.toLowerCase().includes('digital bot')
-    );
+  const switchUser = useCallback(
+    (newUser: AppUser) => {
+      const isCurrentBot = Boolean(
+        user?.id === 'usr-bot-001' ||
+        user?.email?.toLowerCase() === 'digitalbot@samkocentral.com' ||
+        user?.name?.toLowerCase().includes('digital bot')
+      );
+      const isTargetBot = Boolean(
+        newUser?.id === 'usr-bot-001' ||
+        newUser?.email?.toLowerCase() === 'digitalbot@samkocentral.com' ||
+        newUser?.name?.toLowerCase().includes('digital bot')
+      );
 
-    // Non-bot users (including regular Super Admin) cannot access or switch into the Digital Bot account
-    if (isTargetBot && !isCurrentBot) {
-      toast.error('Access Denied', {
-        description: 'Super Admin cannot access the Digital Bot account. Access is restricted.',
+      // Non-bot users (including regular Super Admin) cannot access or switch into the Digital Bot account
+      if (isTargetBot && !isCurrentBot) {
+        toast.error('Access Denied', {
+          description: 'Super Admin cannot access the Digital Bot account. Access is restricted.',
+        });
+        return;
+      }
+
+      // Digital Bot and Super Admin can switch/impersonate any user (including Digital Bot previewing Super Admin)
+      const isMasterOrAdmin = isCurrentBot || user.roleLevel === 'L1';
+      if (isMasterOrAdmin && newUser.id !== user.id && !originalAdmin) {
+        setOriginalAdmin(user);
+        localStorage.setItem('samko_original_admin', JSON.stringify(user));
+      } else if (originalAdmin && newUser.id === originalAdmin.id) {
+        // Switched back to original master/bot
+        setOriginalAdmin(null);
+        localStorage.removeItem('samko_original_admin');
+      }
+
+      setUser(newUser);
+      localStorage.setItem('samko_auth_user', JSON.stringify(newUser));
+      if (newUser.portal === 'propco') {
+        setActivePortal('propco');
+      } else if (newUser.portal === 'opco') {
+        setActivePortal('opco');
+      }
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('samko:user-changed', { detail: { user: newUser } }));
+      }
+      try {
+        recordAuditLog({
+          actorName: user.name,
+          actorEmail: user.email,
+          actorInitials: user.initials,
+          roleLevel: user.roleLevel,
+          action: 'ROLE_SWITCH',
+          actionLabel: `Role Switched to ${newUser.roleTitle} (${newUser.roleLevel})`,
+          category: 'AUTH',
+          categoryLabel: 'Authentication & Access',
+          resource: `User Session Context · ${newUser.name}`,
+          property: newUser.hotel || 'All Properties (Portfolio)',
+          details: `${user.name} switched operational role to ${newUser.name} (${newUser.roleTitle} · ${newUser.roleLevel}) on ${newUser.portal.toUpperCase()} portal.`,
+        });
+      } catch {}
+      toast.success(`Role switched: ${newUser.name}`, {
+        description: `Active as ${newUser.roleTitle} (${newUser.roleLevel}) · ${newUser.hotel}`,
       });
-      return;
-    }
-
-    // Digital Bot and Super Admin can switch/impersonate any user (including Digital Bot previewing Super Admin)
-    const isMasterOrAdmin = isCurrentBot || user.roleLevel === 'L1';
-    if (isMasterOrAdmin && newUser.id !== user.id && !originalAdmin) {
-      setOriginalAdmin(user);
-      localStorage.setItem('samko_original_admin', JSON.stringify(user));
-    } else if (originalAdmin && newUser.id === originalAdmin.id) {
-      // Switched back to original master/bot
-      setOriginalAdmin(null);
-      localStorage.removeItem('samko_original_admin');
-    }
-
-    setUser(newUser);
-    localStorage.setItem('samko_auth_user', JSON.stringify(newUser));
-    if (newUser.portal === 'propco') {
-      setActivePortal('propco');
-    } else if (newUser.portal === 'opco') {
-      setActivePortal('opco');
-    }
-    if (typeof window !== 'undefined') {
-      window.dispatchEvent(new CustomEvent('samko:user-changed', { detail: { user: newUser } }));
-    }
-    try {
-      recordAuditLog({
-        actorName: user.name,
-        actorEmail: user.email,
-        actorInitials: user.initials,
-        roleLevel: user.roleLevel,
-        action: 'ROLE_SWITCH',
-        actionLabel: `Role Switched to ${newUser.roleTitle} (${newUser.roleLevel})`,
-        category: 'AUTH',
-        categoryLabel: 'Authentication & Access',
-        resource: `User Session Context · ${newUser.name}`,
-        property: newUser.hotel || 'All Properties (Portfolio)',
-        details: `${user.name} switched operational role to ${newUser.name} (${newUser.roleTitle} · ${newUser.roleLevel}) on ${newUser.portal.toUpperCase()} portal.`,
-      });
-    } catch {}
-    toast.success(`Role switched: ${newUser.name}`, {
-      description: `Active as ${newUser.roleTitle} (${newUser.roleLevel}) · ${newUser.hotel}`,
-    });
-  }, [user, originalAdmin, setActivePortal]);
+    },
+    [user, originalAdmin, setActivePortal]
+  );
 
   const exitImpersonation = useCallback(() => {
     const admin = originalAdmin || DEMO_CREDENTIALS[0].user;
@@ -587,7 +619,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (typeof window !== 'undefined') {
       window.dispatchEvent(new CustomEvent('samko:user-changed', { detail: { user: admin } }));
     }
-    const isBot = admin.id === 'usr-bot-001' ||
+    const isBot =
+      admin.id === 'usr-bot-001' ||
       admin.email?.toLowerCase() === 'digitalbot@samkocentral.com' ||
       admin.name?.toLowerCase().includes('digital bot');
     toast.success(isBot ? 'Returned to Digital Bot Profile' : 'Returned to Super Admin Profile', {
@@ -597,96 +630,107 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     });
   }, [originalAdmin, setActivePortal]);
 
-  const login = useCallback(async (email: string, password: string): Promise<AppUser> => {
-    const clean = String(email || '').trim();
-    const cleanLower = clean.toLowerCase();
+  const login = useCallback(
+    async (email: string, password: string): Promise<AppUser> => {
+      const clean = String(email || '').trim();
+      const cleanLower = clean.toLowerCase();
 
-    // Check alias matching for quick convenience
-    let targetDemo = DEMO_CREDENTIALS.find(
-      (d) => d.user.email.toLowerCase() === cleanLower
-    );
+      // Check alias matching for quick convenience
+      let targetDemo = DEMO_CREDENTIALS.find((d) => d.user.email.toLowerCase() === cleanLower);
 
-    if (!targetDemo && ['admin', '\\.admin', '.admin', 'superadmin', 'super admin'].includes(cleanLower)) {
-      targetDemo = DEMO_CREDENTIALS[0]; // Super Admin
-    } else if (!targetDemo && ['propco', 'admin.propco'].includes(cleanLower)) {
-      targetDemo = DEMO_CREDENTIALS[2]; // Propco Admin
-    } else if (!targetDemo && ['opco', 'admin.opco'].includes(cleanLower)) {
-      targetDemo = DEMO_CREDENTIALS[3]; // Opco Admin
-    } else if (!targetDemo && ['uploader'].includes(cleanLower)) {
-      targetDemo = DEMO_CREDENTIALS[4]; // Uploader
-    } else if (!targetDemo && ['viewer', 'auditor'].includes(cleanLower)) {
-      targetDemo = DEMO_CREDENTIALS[5]; // Viewer
-    }
-
-    let authedUser: AppUser;
-
-    try {
-      const res = await api.auth.login({ email: clean, password });
-      if (res.success && res.user) {
-        authedUser = {
-          id: res.user.id,
-          name: res.user.name,
-          email: res.user.email,
-          roleLevel: res.user.roleLevel || 'L1',
-          roleTitle: res.user.roleTitle || 'Super Admin',
-          portal: res.user.portal || 'both',
-          hotel: res.user.hotel || 'All Properties',
-          assignedProperties: res.user.assignedProperties || ['all'],
-          status: res.user.status || 'active',
-          initials: res.user.initials || res.user.name?.slice(0, 2).toUpperCase() || 'AV',
-          lastLogin: res.user.lastLogin || new Date().toISOString().slice(0, 10),
-          tabPermissions: res.user.tabPermissions || getDefaultTabPermissionsForRole(res.user.roleLevel || 'L1'),
-        };
-      } else {
-        throw new Error((res as any).error || res.message || 'Invalid username or password');
+      if (
+        !targetDemo &&
+        ['admin', '\\.admin', '.admin', 'superadmin', 'super admin'].includes(cleanLower)
+      ) {
+        targetDemo = DEMO_CREDENTIALS[0]; // Super Admin
+      } else if (!targetDemo && ['propco', 'admin.propco'].includes(cleanLower)) {
+        targetDemo = DEMO_CREDENTIALS[2]; // Propco Admin
+      } else if (!targetDemo && ['opco', 'admin.opco'].includes(cleanLower)) {
+        targetDemo = DEMO_CREDENTIALS[3]; // Opco Admin
+      } else if (!targetDemo && ['uploader'].includes(cleanLower)) {
+        targetDemo = DEMO_CREDENTIALS[4]; // Uploader
+      } else if (!targetDemo && ['viewer', 'auditor'].includes(cleanLower)) {
+        targetDemo = DEMO_CREDENTIALS[5]; // Viewer
       }
-    } catch (err: any) {
-      // Re-throw immediately on invalid credentials or server errors
-      // Only in severe offline network failure allow matching demo user with EXACT matching password
-      const isNetworkFail = err?.message?.includes('Failed to fetch') || err?.message?.includes('NetworkError');
-      if (isNetworkFail && targetDemo && targetDemo.password === password) {
-        authedUser = targetDemo.user;
-      } else {
-        throw err;
+
+      let authedUser: AppUser;
+
+      try {
+        const res = await api.auth.login({ email: clean, password });
+        if (res.success && res.user) {
+          authedUser = {
+            id: res.user.id,
+            name: res.user.name,
+            email: res.user.email,
+            roleLevel: res.user.roleLevel || 'L1',
+            roleTitle: res.user.roleTitle || 'Super Admin',
+            portal: res.user.portal || 'both',
+            hotel: res.user.hotel || 'All Properties',
+            assignedProperties: res.user.assignedProperties || ['all'],
+            status: res.user.status || 'active',
+            initials: res.user.initials || res.user.name?.slice(0, 2).toUpperCase() || 'AV',
+            lastLogin: res.user.lastLogin || new Date().toISOString().slice(0, 10),
+            tabPermissions:
+              res.user.tabPermissions ||
+              getDefaultTabPermissionsForRole(res.user.roleLevel || 'L1'),
+          };
+        } else {
+          throw new Error((res as any).error || res.message || 'Invalid username or password');
+        }
+      } catch (err: any) {
+        // Re-throw immediately on invalid credentials or server errors
+        // Only in severe offline network failure allow matching demo user with EXACT matching password
+        const isNetworkFail =
+          err?.message?.includes('Failed to fetch') || err?.message?.includes('NetworkError');
+        if (isNetworkFail && targetDemo && targetDemo.password === password) {
+          authedUser = targetDemo.user;
+        } else {
+          throw err;
+        }
       }
-    }
 
-    setOriginalAdmin(null);
-    localStorage.removeItem('samko_original_admin');
-    setUser(authedUser);
-    setIsAuthenticated(true);
-    localStorage.setItem('samko_auth_user', JSON.stringify(authedUser));
-    localStorage.setItem('samko_is_authenticated', 'true');
+      setOriginalAdmin(null);
+      localStorage.removeItem('samko_original_admin');
+      setUser(authedUser);
+      setIsAuthenticated(true);
+      localStorage.setItem('samko_auth_user', JSON.stringify(authedUser));
+      localStorage.setItem('samko_is_authenticated', 'true');
 
-    if (authedUser.portal === 'propco') {
-      setActivePortal('propco');
-    } else if (authedUser.portal === 'opco') {
-      setActivePortal('opco');
-    }
+      if (authedUser.portal === 'propco') {
+        setActivePortal('propco');
+      } else if (authedUser.portal === 'opco') {
+        setActivePortal('opco');
+      }
 
-    if (typeof window !== 'undefined') {
-      window.dispatchEvent(new CustomEvent('samko:user-changed', { detail: { user: authedUser } }));
-      window.dispatchEvent(new CustomEvent('samko:auth-changed', { detail: { authenticated: true } }));
-    }
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(
+          new CustomEvent('samko:user-changed', { detail: { user: authedUser } })
+        );
+        window.dispatchEvent(
+          new CustomEvent('samko:auth-changed', { detail: { authenticated: true } })
+        );
+      }
 
-    try {
-      recordAuditLog({
-        actorName: authedUser.name,
-        actorEmail: authedUser.email,
-        actorInitials: authedUser.initials,
-        roleLevel: authedUser.roleLevel,
-        action: 'LOGIN',
-        actionLabel: 'User Signed In',
-        category: 'AUTH',
-        categoryLabel: 'Authentication',
-        resource: `${authedUser.roleTitle} Session`,
-        property: authedUser.hotel || 'All Properties (Portfolio)',
-        details: `${authedUser.name} authenticated successfully with role ${authedUser.roleTitle} (${authedUser.roleLevel}).`,
-      });
-    } catch {}
+      try {
+        recordAuditLog({
+          actorName: authedUser.name,
+          actorEmail: authedUser.email,
+          actorInitials: authedUser.initials,
+          roleLevel: authedUser.roleLevel,
+          action: 'LOGIN',
+          actionLabel: 'User Signed In',
+          category: 'AUTH',
+          categoryLabel: 'Authentication',
+          resource: `${authedUser.roleTitle} Session`,
+          property: authedUser.hotel || 'All Properties (Portfolio)',
+          details: `${authedUser.name} authenticated successfully with role ${authedUser.roleTitle} (${authedUser.roleLevel}).`,
+        });
+      } catch {}
 
-    return authedUser;
-  }, [setActivePortal]);
+      return authedUser;
+    },
+    [setActivePortal]
+  );
 
   const logout = useCallback(() => {
     localStorage.removeItem('samko_auth_user');
@@ -696,7 +740,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setIsAuthenticated(false);
     setUser(DEMO_CREDENTIALS[0].user);
     if (typeof window !== 'undefined') {
-      window.dispatchEvent(new CustomEvent('samko:auth-changed', { detail: { authenticated: false } }));
+      window.dispatchEvent(
+        new CustomEvent('samko:auth-changed', { detail: { authenticated: false } })
+      );
     }
     try {
       recordAuditLog({
@@ -751,20 +797,39 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (perms[tabId] !== undefined) return perms[tabId].enabled;
 
       // Match common aliases used in sidebar
-      if (tabId.endsWith('-dashboard') && perms['dashboard'] !== undefined) return perms['dashboard'].enabled;
-      if (tabId === 'all-assets' && perms['fixed-assets'] !== undefined) return perms['fixed-assets'].enabled;
-      if (tabId === 'non-fixed' && perms['non-fixed-assets'] !== undefined) return perms['non-fixed-assets'].enabled;
-      if (tabId.startsWith('maintenance') && perms['maintenance'] !== undefined) return perms['maintenance'].enabled;
-      if (['certifications', 'statutory'].includes(tabId) && perms['compliance'] !== undefined) return perms['compliance'].enabled;
-      if (tabId === 'expiry-dashboard' && perms['compliance-tracker'] !== undefined) return perms['compliance-tracker'].enabled;
-      if (['claims', 'insurance-renewals'].includes(tabId) && perms['insurance'] !== undefined) return perms['insurance'].enabled;
-      if (['suppliers', 'contracts-renewals', 'slas'].includes(tabId) && perms['contracts'] !== undefined) return perms['contracts'].enabled;
-      if (tabId.endsWith('-reports') && perms['reports'] !== undefined) return perms['reports'].enabled;
+      if (tabId.endsWith('-dashboard') && perms['dashboard'] !== undefined)
+        return perms['dashboard'].enabled;
+      if (tabId === 'all-assets' && perms['fixed-assets'] !== undefined)
+        return perms['fixed-assets'].enabled;
+      if (tabId === 'non-fixed' && perms['non-fixed-assets'] !== undefined)
+        return perms['non-fixed-assets'].enabled;
+      if (tabId.startsWith('maintenance') && perms['maintenance'] !== undefined)
+        return perms['maintenance'].enabled;
+      if (['certifications', 'statutory'].includes(tabId) && perms['compliance'] !== undefined)
+        return perms['compliance'].enabled;
+      if (tabId === 'expiry-dashboard' && perms['compliance-tracker'] !== undefined)
+        return perms['compliance-tracker'].enabled;
+      if (['claims', 'insurance-renewals'].includes(tabId) && perms['insurance'] !== undefined)
+        return perms['insurance'].enabled;
+      if (
+        ['suppliers', 'contracts-renewals', 'slas'].includes(tabId) &&
+        perms['contracts'] !== undefined
+      )
+        return perms['contracts'].enabled;
+      if (tabId.endsWith('-reports') && perms['reports'] !== undefined)
+        return perms['reports'].enabled;
       if (tabId === 'task-module' && perms['tasks'] !== undefined) return perms['tasks'].enabled;
-      if (['documents', 'document-repository'].includes(tabId) && perms['documents'] !== undefined) return perms['documents'].enabled;
-      if (['qr-codes', 'qr-scanner'].includes(tabId) && perms['qr-codes'] !== undefined) return perms['qr-codes'].enabled;
-      if (tabId === 'inspections' && perms['inspections'] !== undefined) return perms['inspections'].enabled;
-      if (['multi-site', 'multi-site-operations'].includes(tabId) && perms['multi-site'] !== undefined) return perms['multi-site'].enabled;
+      if (['documents', 'document-repository'].includes(tabId) && perms['documents'] !== undefined)
+        return perms['documents'].enabled;
+      if (['qr-codes', 'qr-scanner'].includes(tabId) && perms['qr-codes'] !== undefined)
+        return perms['qr-codes'].enabled;
+      if (tabId === 'inspections' && perms['inspections'] !== undefined)
+        return perms['inspections'].enabled;
+      if (
+        ['multi-site', 'multi-site-operations'].includes(tabId) &&
+        perms['multi-site'] !== undefined
+      )
+        return perms['multi-site'].enabled;
 
       return true;
     },
@@ -796,13 +861,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (!perm && ['certifications', 'statutory'].includes(tabId)) perm = perms['compliance'];
       if (!perm && tabId === 'expiry-dashboard') perm = perms['compliance-tracker'];
       if (!perm && ['claims', 'insurance-renewals'].includes(tabId)) perm = perms['insurance'];
-      if (!perm && ['suppliers', 'contracts-renewals', 'slas'].includes(tabId)) perm = perms['contracts'];
+      if (!perm && ['suppliers', 'contracts-renewals', 'slas'].includes(tabId))
+        perm = perms['contracts'];
       if (!perm && tabId.endsWith('-reports')) perm = perms['reports'];
       if (!perm && tabId === 'task-module') perm = perms['tasks'];
       if (!perm && ['documents', 'document-repository'].includes(tabId)) perm = perms['documents'];
       if (!perm && ['qr-codes', 'qr-scanner'].includes(tabId)) perm = perms['qr-codes'];
       if (!perm && tabId === 'inspections') perm = perms['inspections'];
-      if (!perm && ['multi-site', 'multi-site-operations'].includes(tabId)) perm = perms['multi-site'];
+      if (!perm && ['multi-site', 'multi-site-operations'].includes(tabId))
+        perm = perms['multi-site'];
 
       if (perm) return perm.accessLevel;
       return user.roleLevel === 'L4' ? 'read' : 'write';
@@ -817,19 +884,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     [getTabAccess]
   );
 
-  const updateUserTabPermissions = useCallback(
-    (newPermissions: UserTabPermissions) => {
-      setUser((prev) => {
-        const updated = { ...prev, tabPermissions: newPermissions };
-        localStorage.setItem('samko_auth_user', JSON.stringify(updated));
-        return updated;
-      });
-      if (typeof window !== 'undefined') {
-        window.dispatchEvent(new CustomEvent('samko:permissions-changed', { detail: { permissions: newPermissions } }));
-      }
-    },
-    []
-  );
+  const updateUserTabPermissions = useCallback((newPermissions: UserTabPermissions) => {
+    setUser((prev) => {
+      const updated = { ...prev, tabPermissions: newPermissions };
+      localStorage.setItem('samko_auth_user', JSON.stringify(updated));
+      return updated;
+    });
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(
+        new CustomEvent('samko:permissions-changed', { detail: { permissions: newPermissions } })
+      );
+    }
+  }, []);
 
   // Role permissions
   const isSuperAdmin = user.roleLevel === 'L1';
@@ -851,21 +917,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const roleBadgeText =
     user.roleLevel === 'L1'
-      ? (isDigitalBot ? 'L1 · Digital Bot' : 'L1 · Super Admin')
+      ? isDigitalBot
+        ? 'L1 · Digital Bot'
+        : 'L1 · Super Admin'
       : user.roleLevel === 'L2'
-      ? `L2 · Admin (${user.portal === 'propco' ? 'Propco' : 'Opco'})`
-      : user.roleLevel === 'L3'
-      ? 'L3 · Uploader'
-      : 'L4 · Viewer (Read Only)';
+        ? `L2 · Admin (${user.portal === 'propco' ? 'Propco' : 'Opco'})`
+        : user.roleLevel === 'L3'
+          ? 'L3 · Uploader'
+          : 'L4 · Viewer (Read Only)';
 
   const roleBadgeColor =
     user.roleLevel === 'L1'
-      ? (isDigitalBot ? '#06b6d4' : '#f43f5e')
+      ? isDigitalBot
+        ? '#06b6d4'
+        : '#f43f5e'
       : user.roleLevel === 'L2'
-      ? (user.portal === 'propco' ? '#a78bfa' : '#60a5fa')
-      : user.roleLevel === 'L3'
-      ? '#10b981'
-      : '#94a3b8';
+        ? user.portal === 'propco'
+          ? '#a78bfa'
+          : '#60a5fa'
+        : user.roleLevel === 'L3'
+          ? '#10b981'
+          : '#94a3b8';
 
   const isImpersonating = Boolean(originalAdmin && user.id !== originalAdmin.id);
 
@@ -880,14 +952,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (!user) return ['all'];
     if (user.roleLevel === 'L1' || isDigitalBot) return ['all'];
     if (Array.isArray(user.assignedProperties)) {
-      if (user.assignedProperties.includes('all') || user.assignedProperties.includes('All Properties')) return ['all'];
+      if (
+        user.assignedProperties.includes('all') ||
+        user.assignedProperties.includes('All Properties')
+      )
+        return ['all'];
       return user.assignedProperties.filter((p) => p && p !== 'No Property Assigned');
     }
     if (user.hotel) {
       if (user.hotel.includes('All Properties') || user.hotel.includes('All Sites')) return ['all'];
       if (user.hotel === 'No Property Assigned') return [];
       return user.hotel.includes(',')
-        ? user.hotel.split(',').map((s) => s.trim()).filter(Boolean)
+        ? user.hotel
+            .split(',')
+            .map((s) => s.trim())
+            .filter(Boolean)
         : [user.hotel];
     }
     return [];

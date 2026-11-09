@@ -5,7 +5,8 @@ import ApprovalsClient from './components/ApprovalsClient';
 
 export const metadata = {
   title: 'Approvals Register | SamkoCentral UK',
-  description: 'Review and approve newly submitted assets, documents, and compliance records across all properties.',
+  description:
+    'Review and approve newly submitted assets, documents, and compliance records across all properties.',
 };
 
 export default function ApprovalsPage() {
@@ -24,4 +25,3 @@ export default function ApprovalsPage() {
     </AppLayout>
   );
 }
-

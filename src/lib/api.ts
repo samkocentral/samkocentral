@@ -41,25 +41,36 @@ export const api = {
 
   // ── Status & Database Tools ───────────────────────────
   status: {
-    get: () => fetchJson<{
-      status: string;
-      firebaseClientConfigured: boolean;
-      firebaseAdminConfigured: boolean;
-      projectId: string | null;
-      counts: Record<string, number>;
-      timestamp: string;
-    }>('/api/status'),
+    get: () =>
+      fetchJson<{
+        status: string;
+        firebaseClientConfigured: boolean;
+        firebaseAdminConfigured: boolean;
+        projectId: string | null;
+        counts: Record<string, number>;
+        timestamp: string;
+      }>('/api/status'),
   },
 
   seed: {
-    run: () => fetchJson<{ success: boolean; counts: Record<string, number>; message: string }>('/api/seed', {
-      method: 'POST',
-    }),
+    run: () =>
+      fetchJson<{ success: boolean; counts: Record<string, number>; message: string }>(
+        '/api/seed',
+        {
+          method: 'POST',
+        }
+      ),
   },
 
   // ── Universal Bulk Import ─────────────────────────────
   bulkImport: async (collection: string, items: any[]) => {
-    const res = await fetchJson<{ success: boolean; collection: string; count: number; data: any[]; message: string }>('/api/bulk-import', {
+    const res = await fetchJson<{
+      success: boolean;
+      collection: string;
+      count: number;
+      data: any[];
+      message: string;
+    }>('/api/bulk-import', {
       method: 'POST',
       body: JSON.stringify({ collection, items }),
     });
@@ -81,7 +92,12 @@ export const api = {
 
   // ── Universal Bulk Delete ─────────────────────────────
   bulkDelete: async (collection: string, ids: string[]) => {
-    const res = await fetchJson<{ success: boolean; collection: string; count: number; message: string }>('/api/bulk-import', {
+    const res = await fetchJson<{
+      success: boolean;
+      collection: string;
+      count: number;
+      message: string;
+    }>('/api/bulk-import', {
       method: 'DELETE',
       body: JSON.stringify({ collection, ids }),
     });
@@ -103,8 +119,7 @@ export const api = {
 
   // ── Categories ─────────────────────────────────────────
   categories: {
-    getAll: () =>
-      fetchJson<{ success: boolean; count: number; data: any[] }>('/api/categories'),
+    getAll: () => fetchJson<{ success: boolean; count: number; data: any[] }>('/api/categories'),
     getById: (id: string) =>
       fetchJson<{ success: boolean; data: any }>(`/api/categories/${encodeURIComponent(id)}`),
     create: (data: any) =>
@@ -118,15 +133,20 @@ export const api = {
         body: JSON.stringify(data),
       }),
     delete: (id: string) =>
-      fetchJson<{ success: boolean; message: string }>(`/api/categories/${encodeURIComponent(id)}`, {
-        method: 'DELETE',
-      }),
+      fetchJson<{ success: boolean; message: string }>(
+        `/api/categories/${encodeURIComponent(id)}`,
+        {
+          method: 'DELETE',
+        }
+      ),
   },
 
   // ── Properties (formerly Hotels) ───────────────────────
   properties: {
     getAll: (params?: { search?: string; city?: string }) =>
-      fetchJson<{ success: boolean; count: number; data: any[] }>(`/api/properties${buildQuery(params)}`),
+      fetchJson<{ success: boolean; count: number; data: any[] }>(
+        `/api/properties${buildQuery(params)}`
+      ),
     getById: (id: string) =>
       fetchJson<{ success: boolean; data: any }>(`/api/properties/${encodeURIComponent(id)}`),
     create: (data: any) =>
@@ -140,15 +160,27 @@ export const api = {
         body: JSON.stringify(data),
       }),
     delete: (id: string) =>
-      fetchJson<{ success: boolean; message: string }>(`/api/properties/${encodeURIComponent(id)}`, {
-        method: 'DELETE',
-      }),
+      fetchJson<{ success: boolean; message: string }>(
+        `/api/properties/${encodeURIComponent(id)}`,
+        {
+          method: 'DELETE',
+        }
+      ),
   },
 
   // ── Assets ─────────────────────────────────────────────
   assets: {
-    getAll: (params?: { search?: string; property?: string; category?: string; department?: string; status?: string; type?: 'fixed' | 'non-fixed' }) =>
-      fetchJson<{ success: boolean; total: number; data: any[] }>(`/api/assets${buildQuery(params)}`),
+    getAll: (params?: {
+      search?: string;
+      property?: string;
+      category?: string;
+      department?: string;
+      status?: string;
+      type?: 'fixed' | 'non-fixed';
+    }) =>
+      fetchJson<{ success: boolean; total: number; data: any[] }>(
+        `/api/assets${buildQuery(params)}`
+      ),
     getById: (id: string) =>
       fetchJson<{ success: boolean; data: any }>(`/api/assets/${encodeURIComponent(id)}`),
     create: async (data: any) => {
@@ -172,10 +204,13 @@ export const api = {
       return res;
     },
     update: async (id: string, data: any) => {
-      const res = await fetchJson<{ success: boolean; data: any }>(`/api/assets/${encodeURIComponent(id)}`, {
-        method: 'PUT',
-        body: JSON.stringify(data),
-      });
+      const res = await fetchJson<{ success: boolean; data: any }>(
+        `/api/assets/${encodeURIComponent(id)}`,
+        {
+          method: 'PUT',
+          body: JSON.stringify(data),
+        }
+      );
       if (res.success) {
         try {
           recordAuditLog({
@@ -192,9 +227,12 @@ export const api = {
       return res;
     },
     delete: async (id: string) => {
-      const res = await fetchJson<{ success: boolean; message: string }>(`/api/assets/${encodeURIComponent(id)}`, {
-        method: 'DELETE',
-      });
+      const res = await fetchJson<{ success: boolean; message: string }>(
+        `/api/assets/${encodeURIComponent(id)}`,
+        {
+          method: 'DELETE',
+        }
+      );
       if (res.success) {
         try {
           recordAuditLog({
@@ -211,16 +249,21 @@ export const api = {
       return res;
     },
     bulkCreate: (items: any[]) =>
-      fetchJson<{ success: boolean; count: number; data: any[]; message: string }>('/api/assets/bulk', {
-        method: 'POST',
-        body: JSON.stringify({ items }),
-      }),
+      fetchJson<{ success: boolean; count: number; data: any[]; message: string }>(
+        '/api/assets/bulk',
+        {
+          method: 'POST',
+          body: JSON.stringify({ items }),
+        }
+      ),
   },
 
   // ── Maintenance Records ────────────────────────────────
   maintenance: {
     getAll: (params?: { search?: string; property?: string; status?: string }) =>
-      fetchJson<{ success: boolean; total: number; data: any[] }>(`/api/maintenance${buildQuery(params)}`),
+      fetchJson<{ success: boolean; total: number; data: any[] }>(
+        `/api/maintenance${buildQuery(params)}`
+      ),
     getById: (id: string) =>
       fetchJson<{ success: boolean; data: any }>(`/api/maintenance/${encodeURIComponent(id)}`),
     create: async (data: any) => {
@@ -244,10 +287,13 @@ export const api = {
       return res;
     },
     update: async (id: string, data: any) => {
-      const res = await fetchJson<{ success: boolean; data: any }>(`/api/maintenance/${encodeURIComponent(id)}`, {
-        method: 'PUT',
-        body: JSON.stringify(data),
-      });
+      const res = await fetchJson<{ success: boolean; data: any }>(
+        `/api/maintenance/${encodeURIComponent(id)}`,
+        {
+          method: 'PUT',
+          body: JSON.stringify(data),
+        }
+      );
       if (res.success) {
         try {
           recordAuditLog({
@@ -264,15 +310,20 @@ export const api = {
       return res;
     },
     delete: (id: string) =>
-      fetchJson<{ success: boolean; message: string }>(`/api/maintenance/${encodeURIComponent(id)}`, {
-        method: 'DELETE',
-      }),
+      fetchJson<{ success: boolean; message: string }>(
+        `/api/maintenance/${encodeURIComponent(id)}`,
+        {
+          method: 'DELETE',
+        }
+      ),
   },
 
   // ── Compliance ─────────────────────────────────────────
   compliance: {
     getAll: (params?: { search?: string; property?: string; category?: string; status?: string }) =>
-      fetchJson<{ success: boolean; total: number; data: any[] }>(`/api/compliance${buildQuery(params)}`),
+      fetchJson<{ success: boolean; total: number; data: any[] }>(
+        `/api/compliance${buildQuery(params)}`
+      ),
     getById: (id: string) =>
       fetchJson<{ success: boolean; data: any }>(`/api/compliance/${encodeURIComponent(id)}`),
     create: async (data: any) => {
@@ -301,15 +352,20 @@ export const api = {
         body: JSON.stringify(data),
       }),
     delete: (id: string) =>
-      fetchJson<{ success: boolean; message: string }>(`/api/compliance/${encodeURIComponent(id)}`, {
-        method: 'DELETE',
-      }),
+      fetchJson<{ success: boolean; message: string }>(
+        `/api/compliance/${encodeURIComponent(id)}`,
+        {
+          method: 'DELETE',
+        }
+      ),
   },
 
   // ── Insurance ──────────────────────────────────────────
   insurance: {
     getAll: (params?: { search?: string; property?: string; status?: string }) =>
-      fetchJson<{ success: boolean; total: number; data: any[] }>(`/api/insurance${buildQuery(params)}`),
+      fetchJson<{ success: boolean; total: number; data: any[] }>(
+        `/api/insurance${buildQuery(params)}`
+      ),
     getById: (id: string) =>
       fetchJson<{ success: boolean; data: any }>(`/api/insurance/${encodeURIComponent(id)}`),
     create: (data: any) =>
@@ -331,7 +387,9 @@ export const api = {
   // ── Claims ──────────────────────────────────────────────
   claims: {
     getAll: (params?: { search?: string; property?: string; status?: string }) =>
-      fetchJson<{ success: boolean; total: number; data: any[] }>(`/api/claims${buildQuery(params)}`),
+      fetchJson<{ success: boolean; total: number; data: any[] }>(
+        `/api/claims${buildQuery(params)}`
+      ),
     getById: (id: string) =>
       fetchJson<{ success: boolean; data: any }>(`/api/claims/${encodeURIComponent(id)}`),
     create: (data: any) =>
@@ -353,7 +411,9 @@ export const api = {
   // ── Contracts ──────────────────────────────────────────
   contracts: {
     getAll: (params?: { search?: string; property?: string; category?: string; status?: string }) =>
-      fetchJson<{ success: boolean; total: number; data: any[] }>(`/api/contracts${buildQuery(params)}`),
+      fetchJson<{ success: boolean; total: number; data: any[] }>(
+        `/api/contracts${buildQuery(params)}`
+      ),
     getById: (id: string) =>
       fetchJson<{ success: boolean; data: any }>(`/api/contracts/${encodeURIComponent(id)}`),
     create: (data: any) =>
@@ -375,7 +435,9 @@ export const api = {
   // ── Utilities ──────────────────────────────────────────
   utilities: {
     getAll: (params?: { search?: string; property?: string; type?: string; status?: string }) =>
-      fetchJson<{ success: boolean; total: number; data: any[] }>(`/api/utilities${buildQuery(params)}`),
+      fetchJson<{ success: boolean; total: number; data: any[] }>(
+        `/api/utilities${buildQuery(params)}`
+      ),
     getById: (id: string) =>
       fetchJson<{ success: boolean; data: any }>(`/api/utilities/${encodeURIComponent(id)}`),
     create: (data: any) =>
@@ -397,7 +459,9 @@ export const api = {
   // ── Tasks ──────────────────────────────────────────────
   tasks: {
     getAll: (params?: { search?: string; site?: string; priority?: string; status?: string }) =>
-      fetchJson<{ success: boolean; total: number; data: any[] }>(`/api/tasks${buildQuery(params)}`),
+      fetchJson<{ success: boolean; total: number; data: any[] }>(
+        `/api/tasks${buildQuery(params)}`
+      ),
     getById: (id: string) =>
       fetchJson<{ success: boolean; data: any }>(`/api/tasks/${encodeURIComponent(id)}`),
     create: (data: any) =>
@@ -419,7 +483,9 @@ export const api = {
   // ── Documents ──────────────────────────────────────────
   documents: {
     getAll: (params?: { search?: string; site?: string; category?: string; status?: string }) =>
-      fetchJson<{ success: boolean; total: number; data: any[] }>(`/api/documents${buildQuery(params)}`),
+      fetchJson<{ success: boolean; total: number; data: any[] }>(
+        `/api/documents${buildQuery(params)}`
+      ),
     getById: (id: string) =>
       fetchJson<{ success: boolean; data: any }>(`/api/documents/${encodeURIComponent(id)}`),
     create: (data: any) =>
@@ -441,7 +507,9 @@ export const api = {
   // ── Users ──────────────────────────────────────────────
   users: {
     getAll: (params?: { search?: string; role?: string; status?: string }) =>
-      fetchJson<{ success: boolean; total: number; data: any[] }>(`/api/users${buildQuery(params)}`),
+      fetchJson<{ success: boolean; total: number; data: any[] }>(
+        `/api/users${buildQuery(params)}`
+      ),
     getById: (id: string) =>
       fetchJson<{ success: boolean; data: any }>(`/api/users/${encodeURIComponent(id)}`),
     create: (data: any) =>

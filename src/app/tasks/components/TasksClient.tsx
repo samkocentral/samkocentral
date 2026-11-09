@@ -1,12 +1,7 @@
 'use client';
 
 import React, { useState, useMemo, useEffect } from 'react';
-import {
-  TaskItem,
-  getInitialTasks,
-  TASK_PROPERTIES,
-  TASK_ASSIGNEES,
-} from '@/data/tasksData';
+import { TaskItem, getInitialTasks, TASK_PROPERTIES, TASK_ASSIGNEES } from '@/data/tasksData';
 import { useLiveProperties } from '@/hooks/useLiveProperties';
 import AddItemModal from './AddItemModal';
 import UploadDocumentModal from './UploadDocumentModal';
@@ -156,7 +151,9 @@ export default function TasksClient() {
     );
 
     if (typeof window !== 'undefined') {
-      window.dispatchEvent(new CustomEvent('samko:data-changed', { detail: { type: 'tasks', id: taskId } }));
+      window.dispatchEvent(
+        new CustomEvent('samko:data-changed', { detail: { type: 'tasks', id: taskId } })
+      );
     }
 
     try {
@@ -177,7 +174,9 @@ export default function TasksClient() {
     });
 
     if (typeof window !== 'undefined') {
-      window.dispatchEvent(new CustomEvent('samko:data-changed', { detail: { type: 'tasks', id } }));
+      window.dispatchEvent(
+        new CustomEvent('samko:data-changed', { detail: { type: 'tasks', id } })
+      );
     }
 
     try {
@@ -203,12 +202,16 @@ export default function TasksClient() {
   };
 
   const accessibleTasks = useMemo(() => {
-    return tasks.filter((t) => isPropertyAccessible(t.property || (t as any).hotel || (t as any).site));
+    return tasks.filter((t) =>
+      isPropertyAccessible(t.property || (t as any).hotel || (t as any).site)
+    );
   }, [tasks, isPropertyAccessible]);
 
   const accessibleTaskProperties = useMemo(() => {
     const liveNames = liveProperties.map((p) => p.name).filter(Boolean);
-    const taskNames = tasks.map((t) => t.property || (t as any).hotel || (t as any).site).filter(Boolean);
+    const taskNames = tasks
+      .map((t) => t.property || (t as any).hotel || (t as any).site)
+      .filter(Boolean);
     const combined = Array.from(new Set([...liveNames, ...taskNames])).sort();
     return combined.filter((p) => isPropertyAccessible(p));
   }, [liveProperties, tasks, isPropertyAccessible]);
@@ -235,7 +238,8 @@ export default function TasksClient() {
       // Status Tab filter
       if (activeTab === 'open' && t.status === 'completed') return false;
       if (activeTab === 'completed' && t.status !== 'completed') return false;
-      if (activeTab === 'urgent' && (t.priority !== 'urgent' || t.status === 'completed')) return false;
+      if (activeTab === 'urgent' && (t.priority !== 'urgent' || t.status === 'completed'))
+        return false;
 
       // Search query
       if (searchQuery.trim()) {
@@ -287,7 +291,8 @@ export default function TasksClient() {
   const tasksByProperty = useMemo(() => {
     const groups: Record<string, TaskItem[]> = {};
     filteredTasks.forEach((task) => {
-      const propKey = task.property || (task as any).hotel || (task as any).site || 'Other Property';
+      const propKey =
+        task.property || (task as any).hotel || (task as any).site || 'Other Property';
       if (!groups[propKey]) {
         groups[propKey] = [];
       }
@@ -329,7 +334,11 @@ export default function TasksClient() {
               value={selectedAssignee}
               options={[
                 { value: 'ALL', label: 'All Roles & Users' },
-                ...TASK_ASSIGNEES.map((a) => ({ value: a.name, label: `${a.name} (${a.role})`, color: a.color })),
+                ...TASK_ASSIGNEES.map((a) => ({
+                  value: a.name,
+                  label: `${a.name} (${a.role})`,
+                  color: a.color,
+                })),
               ]}
               onChange={setSelectedAssignee}
             />
@@ -416,7 +425,15 @@ export default function TasksClient() {
                   }}
                 >
                   <Plus size={14} />
-                  <span>{(cms.primaryActionLabel && cms.primaryActionLabel.trim().toLowerCase() !== 'add item' ? cms.primaryActionLabel : 'Add Task').replace(/^[\+\s]+/, '').trim()}</span>
+                  <span>
+                    {(cms.primaryActionLabel &&
+                    cms.primaryActionLabel.trim().toLowerCase() !== 'add item'
+                      ? cms.primaryActionLabel
+                      : 'Add Task'
+                    )
+                      .replace(/^[\+\s]+/, '')
+                      .trim()}
+                  </span>
                 </button>
               </>
             ) : (
@@ -486,9 +503,7 @@ export default function TasksClient() {
               )}
               <span>Overdue Tasks</span>
             </div>
-            <div className="text-2xl font-extrabold mt-1 text-rose-400">
-              {overdueCount}
-            </div>
+            <div className="text-2xl font-extrabold mt-1 text-rose-400">{overdueCount}</div>
             <div className="text-[11px] text-rose-300/80 mt-0.5">
               {overdueCount > 0 ? 'Immediate action required' : 'All deadlines on track'}
             </div>
@@ -510,9 +525,7 @@ export default function TasksClient() {
             <div className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
               Urgent / High Priority
             </div>
-            <div className="text-2xl font-extrabold mt-1 text-amber-400">
-              {urgentCount}
-            </div>
+            <div className="text-2xl font-extrabold mt-1 text-amber-400">{urgentCount}</div>
             <div className="text-[11px] text-muted-foreground mt-0.5">
               Due within 24 to 72 hours
             </div>
@@ -538,9 +551,7 @@ export default function TasksClient() {
               {completedCount}
               <span className="text-xs font-semibold text-emerald-500/80">({completionRate}%)</span>
             </div>
-            <div className="text-[11px] text-muted-foreground mt-0.5">
-              Closed out and verified
-            </div>
+            <div className="text-[11px] text-muted-foreground mt-0.5">Closed out and verified</div>
           </div>
           <div
             className="w-11 h-11 rounded-xl flex items-center justify-center"
@@ -635,8 +646,8 @@ export default function TasksClient() {
                 {accessibleTaskProperties.slice(0, 3).map((prop) => {
                   const propTasks = accessibleTasks.filter(
                     (t) =>
-                      (t.property || (t as any).site || (t as any).hotel || '').toLowerCase() === prop.toLowerCase() &&
-                      t.status !== 'completed'
+                      (t.property || (t as any).site || (t as any).hotel || '').toLowerCase() ===
+                        prop.toLowerCase() && t.status !== 'completed'
                   );
                   return (
                     <div key={prop} className="text-xs">
@@ -669,13 +680,21 @@ export default function TasksClient() {
                 <div className="flex items-center justify-between p-2 rounded-lg bg-surface3 border border-amber-500/20">
                   <span className="text-amber-400 font-semibold">Due in Next 48 Hours</span>
                   <span className="font-bold text-amber-400 font-mono">
-                    {scopedTasks.filter((t) => t.dueInDays >= 0 && t.dueInDays <= 2 && t.status !== 'completed').length}
+                    {
+                      scopedTasks.filter(
+                        (t) => t.dueInDays >= 0 && t.dueInDays <= 2 && t.status !== 'completed'
+                      ).length
+                    }
                   </span>
                 </div>
                 <div className="flex items-center justify-between p-2 rounded-lg bg-surface3 border border-border">
                   <span className="text-muted-foreground font-medium">Due in Next 7 Days</span>
                   <span className="font-bold text-foreground font-mono">
-                    {scopedTasks.filter((t) => t.dueInDays > 2 && t.dueInDays <= 7 && t.status !== 'completed').length}
+                    {
+                      scopedTasks.filter(
+                        (t) => t.dueInDays > 2 && t.dueInDays <= 7 && t.status !== 'completed'
+                      ).length
+                    }
                   </span>
                 </div>
               </div>
@@ -923,11 +942,10 @@ export default function TasksClient() {
               </div>
 
               <div>
-                <h3 className="text-base font-bold text-foreground">
-                  Confirm Deletion
-                </h3>
+                <h3 className="text-base font-bold text-foreground">Confirm Deletion</h3>
                 <p className="text-xs text-muted-foreground mt-1.5 leading-relaxed">
-                  Are you sure you want to delete this task? This action cannot be undone and will be recorded in the system audit logs.
+                  Are you sure you want to delete this task? This action cannot be undone and will
+                  be recorded in the system audit logs.
                 </p>
               </div>
 
@@ -1000,7 +1018,13 @@ interface TaskCardRowProps {
   canDelete?: boolean;
 }
 
-function TaskCardRow({ task, onToggleComplete, onDelete, canWrite = true, canDelete = false }: TaskCardRowProps) {
+function TaskCardRow({
+  task,
+  onToggleComplete,
+  onDelete,
+  canWrite = true,
+  canDelete = false,
+}: TaskCardRowProps) {
   const isCompleted = task.status === 'completed';
   const isOverdue = task.dueInDays < 0 && !isCompleted;
 
@@ -1020,7 +1044,9 @@ function TaskCardRow({ task, onToggleComplete, onDelete, canWrite = true, canDel
       return (
         <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-rose-500/15 text-rose-400 border border-rose-500/30">
           <AlertTriangle size={12} className="animate-pulse" />
-          <span>Overdue by {daysOver} {daysOver === 1 ? 'day' : 'days'}</span>
+          <span>
+            Overdue by {daysOver} {daysOver === 1 ? 'day' : 'days'}
+          </span>
         </span>
       );
     }
@@ -1062,7 +1088,9 @@ function TaskCardRow({ task, onToggleComplete, onDelete, canWrite = true, canDel
     return (
       <span className="inline-flex items-center gap-1 text-[11px] text-muted-foreground">
         <Calendar size={12} />
-        <span>due in {task.dueInDays} days ({task.dueDate})</span>
+        <span>
+          due in {task.dueInDays} days ({task.dueDate})
+        </span>
       </span>
     );
   };
@@ -1145,7 +1173,13 @@ function TaskCardRow({ task, onToggleComplete, onDelete, canWrite = true, canDel
             ? 'text-muted-foreground hover:text-emerald-400 cursor-pointer'
             : 'text-muted-foreground/40 cursor-default'
         }`}
-        title={!canWrite ? 'Read-only access (status changes restricted)' : (isCompleted ? 'Mark as Open' : 'Mark as Completed')}
+        title={
+          !canWrite
+            ? 'Read-only access (status changes restricted)'
+            : isCompleted
+              ? 'Mark as Open'
+              : 'Mark as Completed'
+        }
       >
         {isCompleted ? (
           <CheckSquare size={19} className="text-emerald-400" />

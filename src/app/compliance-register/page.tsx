@@ -20,7 +20,13 @@ function ComplianceRegisterInner() {
 
 export default function ComplianceRegisterPage() {
   return (
-    <Suspense fallback={<div className="flex items-center justify-center h-screen text-muted-foreground text-sm">Loading compliance register…</div>}>
+    <Suspense
+      fallback={
+        <div className="flex items-center justify-center h-screen text-muted-foreground text-sm">
+          Loading compliance register…
+        </div>
+      }
+    >
       <ComplianceRegisterInner />
     </Suspense>
   );

@@ -93,41 +93,203 @@ import { getLiveProperties } from '@/hooks/useLiveProperties';
 import { toast } from 'sonner';
 import CustomDropdown from '@/components/ui/CustomDropdown';
 
-const TAB_PAGES: Array<{ id: keyof DeepAppCMSStore; label: string; icon: React.ElementType; group: string; livePath: string }> = [
-  { id: 'overview', label: 'OpCo & PropCo Dashboard', icon: LayoutDashboard, group: 'PropCo & OpCo', livePath: '/' },
-  { id: 'properties', label: 'Properties', icon: Building2, group: 'PropCo (Asset Co)', livePath: '/asset-management/properties' },
-  { id: 'assets', label: 'Fixed Assets', icon: Package, group: 'PropCo (Asset Co)', livePath: '/asset-management/assets' },
+const TAB_PAGES: Array<{
+  id: keyof DeepAppCMSStore;
+  label: string;
+  icon: React.ElementType;
+  group: string;
+  livePath: string;
+}> = [
+  {
+    id: 'overview',
+    label: 'OpCo & PropCo Dashboard',
+    icon: LayoutDashboard,
+    group: 'PropCo & OpCo',
+    livePath: '/',
+  },
+  {
+    id: 'properties',
+    label: 'Properties',
+    icon: Building2,
+    group: 'PropCo (Asset Co)',
+    livePath: '/asset-management/properties',
+  },
+  {
+    id: 'assets',
+    label: 'Fixed Assets',
+    icon: Package,
+    group: 'PropCo (Asset Co)',
+    livePath: '/asset-management/assets',
+  },
   // PropCo Insurance & Sub-Tabs
-  { id: 'insurance', label: 'Insurance: Register', icon: FileCheck, group: 'PropCo (Asset Co)', livePath: '/insurance-register' },
-  { id: 'claims', label: 'Insurance: Claims', icon: FileCheck, group: 'PropCo (Asset Co)', livePath: '/insurance-register?tab=claims' },
-  { id: 'insurancerenewals', label: 'Insurance: Renewals', icon: FileCheck, group: 'PropCo (Asset Co)', livePath: '/insurance-register?tab=renewals' },
+  {
+    id: 'insurance',
+    label: 'Insurance: Register',
+    icon: FileCheck,
+    group: 'PropCo (Asset Co)',
+    livePath: '/insurance-register',
+  },
+  {
+    id: 'claims',
+    label: 'Insurance: Claims',
+    icon: FileCheck,
+    group: 'PropCo (Asset Co)',
+    livePath: '/insurance-register?tab=claims',
+  },
+  {
+    id: 'insurancerenewals',
+    label: 'Insurance: Renewals',
+    icon: FileCheck,
+    group: 'PropCo (Asset Co)',
+    livePath: '/insurance-register?tab=renewals',
+  },
   // PropCo Contracts & Sub-Tabs
-  { id: 'contracts', label: 'Contracts: Register', icon: ScrollText, group: 'PropCo (Asset Co)', livePath: '/contracts-register' },
-  { id: 'suppliers', label: 'Contracts: Suppliers & Vendors', icon: ScrollText, group: 'PropCo (Asset Co)', livePath: '/contracts-register?tab=suppliers' },
-  { id: 'contractrenewals', label: 'Contracts: Renewals', icon: ScrollText, group: 'PropCo (Asset Co)', livePath: '/contracts-register?tab=renewals' },
-  { id: 'slas', label: 'Contracts: SLAs', icon: ScrollText, group: 'PropCo (Asset Co)', livePath: '/contracts-register?tab=slas' },
-  { id: 'reports', label: 'Reports', icon: BarChart3, group: 'PropCo & OpCo', livePath: '/asset-management/reports' },
+  {
+    id: 'contracts',
+    label: 'Contracts: Register',
+    icon: ScrollText,
+    group: 'PropCo (Asset Co)',
+    livePath: '/contracts-register',
+  },
+  {
+    id: 'suppliers',
+    label: 'Contracts: Suppliers & Vendors',
+    icon: ScrollText,
+    group: 'PropCo (Asset Co)',
+    livePath: '/contracts-register?tab=suppliers',
+  },
+  {
+    id: 'contractrenewals',
+    label: 'Contracts: Renewals',
+    icon: ScrollText,
+    group: 'PropCo (Asset Co)',
+    livePath: '/contracts-register?tab=renewals',
+  },
+  {
+    id: 'slas',
+    label: 'Contracts: SLAs',
+    icon: ScrollText,
+    group: 'PropCo (Asset Co)',
+    livePath: '/contracts-register?tab=slas',
+  },
+  {
+    id: 'reports',
+    label: 'Reports',
+    icon: BarChart3,
+    group: 'PropCo & OpCo',
+    livePath: '/asset-management/reports',
+  },
   // OpCo
-  { id: 'nonfixed', label: 'Non-Fixed Assets', icon: Package, group: 'OpCo (Operations)', livePath: '/asset-management/assets?type=non-fixed' },
+  {
+    id: 'nonfixed',
+    label: 'Non-Fixed Assets',
+    icon: Package,
+    group: 'OpCo (Operations)',
+    livePath: '/asset-management/assets?type=non-fixed',
+  },
   // OpCo Maintenance & Sub-Tabs
-  { id: 'maintenance', label: 'Maintenance: All Records', icon: Wrench, group: 'OpCo (Operations)', livePath: '/asset-management/maintenance' },
-  { id: 'maintenancescheduled', label: 'Maintenance: Scheduled PPM', icon: Wrench, group: 'OpCo (Operations)', livePath: '/asset-management/maintenance?filter=scheduled' },
-  { id: 'maintenanceduetoday', label: 'Maintenance: Due Today', icon: Wrench, group: 'OpCo (Operations)', livePath: '/asset-management/maintenance?filter=due-today' },
-  { id: 'maintenanceoverdue', label: 'Maintenance: Overdue', icon: Wrench, group: 'OpCo (Operations)', livePath: '/asset-management/maintenance?filter=overdue' },
-  { id: 'maintenancecompleted', label: 'Maintenance: Completed', icon: Wrench, group: 'OpCo (Operations)', livePath: '/asset-management/maintenance?filter=completed' },
+  {
+    id: 'maintenance',
+    label: 'Maintenance: All Records',
+    icon: Wrench,
+    group: 'OpCo (Operations)',
+    livePath: '/asset-management/maintenance',
+  },
+  {
+    id: 'maintenancescheduled',
+    label: 'Maintenance: Scheduled PPM',
+    icon: Wrench,
+    group: 'OpCo (Operations)',
+    livePath: '/asset-management/maintenance?filter=scheduled',
+  },
+  {
+    id: 'maintenanceduetoday',
+    label: 'Maintenance: Due Today',
+    icon: Wrench,
+    group: 'OpCo (Operations)',
+    livePath: '/asset-management/maintenance?filter=due-today',
+  },
+  {
+    id: 'maintenanceoverdue',
+    label: 'Maintenance: Overdue',
+    icon: Wrench,
+    group: 'OpCo (Operations)',
+    livePath: '/asset-management/maintenance?filter=overdue',
+  },
+  {
+    id: 'maintenancecompleted',
+    label: 'Maintenance: Completed',
+    icon: Wrench,
+    group: 'OpCo (Operations)',
+    livePath: '/asset-management/maintenance?filter=completed',
+  },
   // OpCo Compliance & Sub-Tabs
-  { id: 'compliance', label: 'Compliance: Register', icon: ShieldCheck, group: 'OpCo (Operations)', livePath: '/compliance-register' },
-  { id: 'certifications', label: 'Compliance: Certifications', icon: ShieldCheck, group: 'OpCo (Operations)', livePath: '/compliance-register?tab=certifications' },
-  { id: 'statutory', label: 'Compliance: Statutory Inspections', icon: ShieldCheck, group: 'OpCo (Operations)', livePath: '/compliance-register?tab=statutory' },
-  { id: 'compliancetracker', label: 'Compliance: Expiry Dashboard', icon: Calendar, group: 'OpCo (Operations)', livePath: '/compliance-tracker' },
-  { id: 'tasks', label: 'Tasks and Alerts', icon: CheckSquare, group: 'OpCo (Operations)', livePath: '/tasks' },
+  {
+    id: 'compliance',
+    label: 'Compliance: Register',
+    icon: ShieldCheck,
+    group: 'OpCo (Operations)',
+    livePath: '/compliance-register',
+  },
+  {
+    id: 'certifications',
+    label: 'Compliance: Certifications',
+    icon: ShieldCheck,
+    group: 'OpCo (Operations)',
+    livePath: '/compliance-register?tab=certifications',
+  },
+  {
+    id: 'statutory',
+    label: 'Compliance: Statutory Inspections',
+    icon: ShieldCheck,
+    group: 'OpCo (Operations)',
+    livePath: '/compliance-register?tab=statutory',
+  },
+  {
+    id: 'compliancetracker',
+    label: 'Compliance: Expiry Dashboard',
+    icon: Calendar,
+    group: 'OpCo (Operations)',
+    livePath: '/compliance-tracker',
+  },
+  {
+    id: 'tasks',
+    label: 'Tasks and Alerts',
+    icon: CheckSquare,
+    group: 'OpCo (Operations)',
+    livePath: '/tasks',
+  },
   // OpCo Utilities & Sub-Tabs
-  { id: 'utilities', label: 'Utility: Register', icon: Zap, group: 'OpCo (Operations)', livePath: '/utilities-register' },
-  { id: 'energyaccounts', label: 'Utility: Energy & Water Accounts', icon: Zap, group: 'OpCo (Operations)', livePath: '/utilities-register?type=electricity' },
+  {
+    id: 'utilities',
+    label: 'Utility: Register',
+    icon: Zap,
+    group: 'OpCo (Operations)',
+    livePath: '/utilities-register',
+  },
+  {
+    id: 'energyaccounts',
+    label: 'Utility: Energy & Water Accounts',
+    icon: Zap,
+    group: 'OpCo (Operations)',
+    livePath: '/utilities-register?type=electricity',
+  },
   // System
-  { id: 'recentlogs', label: 'Audit Logs', icon: History, group: 'System', livePath: '/recent-logs' },
+  {
+    id: 'recentlogs',
+    label: 'Audit Logs',
+    icon: History,
+    group: 'System',
+    livePath: '/recent-logs',
+  },
   { id: 'users', label: 'Users & Roles', icon: Users, group: 'System', livePath: '/users' },
-  { id: 'import', label: 'Import / Export', icon: UploadCloud, group: 'System', livePath: '/asset-management/import' },
+  {
+    id: 'import',
+    label: 'Import / Export',
+    icon: UploadCloud,
+    group: 'System',
+    livePath: '/asset-management/import',
+  },
 ];
 
 interface DeepPageCMSEditorProps {
@@ -143,7 +305,9 @@ export default function DeepPageCMSEditor({
   hidePageGrid = false,
   initialPortal,
 }: DeepPageCMSEditorProps) {
-  const [selectedPage, setSelectedPage] = useState<keyof DeepAppCMSStore>(activePage || initialPage);
+  const [selectedPage, setSelectedPage] = useState<keyof DeepAppCMSStore>(
+    activePage || initialPage
+  );
 
   useEffect(() => {
     if (activePage && activePage !== selectedPage) {
@@ -225,7 +389,12 @@ export default function DeepPageCMSEditor({
   const [newDropdownOptionInput, setNewDropdownOptionInput] = useState('');
   const [newDropdownOptionsList, setNewDropdownOptionsList] = useState<string[]>([]);
   const [dropdownToDelete, setDropdownToDelete] = useState<DeepPageDropdown | null>(null);
-  const [optionToDelete, setOptionToDelete] = useState<{ dropdownId: string; optIdx: number; optionName: string; dropdownLabel: string } | null>(null);
+  const [optionToDelete, setOptionToDelete] = useState<{
+    dropdownId: string;
+    optIdx: number;
+    optionName: string;
+    dropdownLabel: string;
+  } | null>(null);
 
   // Column CMS states (Add, Move, Delete with Confirmation)
   const [showAddColModal, setShowAddColModal] = useState(false);
@@ -246,17 +415,51 @@ export default function DeepPageCMSEditor({
   }, [sortedColumns]);
 
   const cmsCustomColumns = useMemo(() => {
-    const standardKeys = new Set(['assetid', 'name', 'category', 'property', 'department', 'location', 'qty', 'condition', 'risk', 'nextinspection', 'status', 'actions']);
+    const standardKeys = new Set([
+      'assetid',
+      'name',
+      'category',
+      'property',
+      'department',
+      'location',
+      'qty',
+      'condition',
+      'risk',
+      'nextinspection',
+      'status',
+      'actions',
+    ]);
     return (currentPage?.columns || []).filter((c) => !standardKeys.has(c.id.toLowerCase()));
   }, [currentPage?.columns]);
 
-  const hasKpis = Boolean(currentPage?.topKpis || (currentPage?.kpis && currentPage.kpis.length > 0 && selectedPage !== 'properties' && selectedPage !== 'assets' && selectedPage !== 'nonfixed' && selectedPage !== 'categories' && selectedPage !== 'import' && selectedPage !== 'qr'));
+  const hasKpis = Boolean(
+    currentPage?.topKpis ||
+    (currentPage?.kpis &&
+      currentPage.kpis.length > 0 &&
+      selectedPage !== 'properties' &&
+      selectedPage !== 'assets' &&
+      selectedPage !== 'nonfixed' &&
+      selectedPage !== 'categories' &&
+      selectedPage !== 'import' &&
+      selectedPage !== 'qr')
+  );
   const hasDropdowns = selectedPage !== 'overview';
-  const hasColumns = Boolean(currentPage?.columns && currentPage.columns.length > 0 && selectedPage !== 'properties' && selectedPage !== 'overview' && selectedPage !== 'categories' && selectedPage !== 'multisite' && selectedPage !== 'import' && selectedPage !== 'qr' && selectedPage !== 'assetdashboard');
+  const hasColumns = Boolean(
+    currentPage?.columns &&
+    currentPage.columns.length > 0 &&
+    selectedPage !== 'properties' &&
+    selectedPage !== 'overview' &&
+    selectedPage !== 'categories' &&
+    selectedPage !== 'multisite' &&
+    selectedPage !== 'import' &&
+    selectedPage !== 'qr' &&
+    selectedPage !== 'assetdashboard'
+  );
 
   const dropdownSectionNum = 1 + (hasKpis ? 1 : 0) + 1;
   const columnSectionNum = 1 + (hasKpis ? 1 : 0) + (hasDropdowns ? 1 : 0) + 1;
-  const recordsSectionNum = 1 + (hasKpis ? 1 : 0) + (hasDropdowns ? 1 : 0) + (hasColumns ? 1 : 0) + 1;
+  const recordsSectionNum =
+    1 + (hasKpis ? 1 : 0) + (hasDropdowns ? 1 : 0) + (hasColumns ? 1 : 0) + 1;
 
   const refresh = () => {
     setStore(getDeepCMSStore());
@@ -293,7 +496,10 @@ export default function DeepPageCMSEditor({
       toast.error('Column header label is required');
       return;
     }
-    const safeKey = (newColKey || newColLabel).trim().toLowerCase().replace(/[^a-z0-9_]/g, '_');
+    const safeKey = (newColKey || newColLabel)
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9_]/g, '_');
     if (!safeKey) {
       toast.error('Invalid column identifier');
       return;
@@ -406,7 +612,12 @@ export default function DeepPageCMSEditor({
       toast.error('Please enter a dropdown label');
       return;
     }
-    const slug = newDropdownKey.trim() || newDropdownLabel.trim().toLowerCase().replace(/[^a-z0-9_-]/g, '-');
+    const slug =
+      newDropdownKey.trim() ||
+      newDropdownLabel
+        .trim()
+        .toLowerCase()
+        .replace(/[^a-z0-9_-]/g, '-');
     const opts = newDropdownOptionsList.filter((o) => o.trim().length > 0);
     if (opts.length === 0) {
       opts.push(`All ${newDropdownLabel.trim()}`);
@@ -586,12 +797,13 @@ export default function DeepPageCMSEditor({
         (item.location || '').toLowerCase().includes(assetSearch.toLowerCase()) ||
         (item.hotelName || item.property || '').toLowerCase().includes(assetSearch.toLowerCase());
 
-      const matchCat =
-        assetCategoryFilter === 'All' || item.category === assetCategoryFilter;
+      const matchCat = assetCategoryFilter === 'All' || item.category === assetCategoryFilter;
 
       const matchHotel =
         assetHotelFilter === 'All' ||
-        (item.hotelName || item.property || '').toLowerCase().includes(assetHotelFilter.toLowerCase());
+        (item.hotelName || item.property || '')
+          .toLowerCase()
+          .includes(assetHotelFilter.toLowerCase());
 
       return matchSearch && matchCat && matchHotel;
     });
@@ -611,7 +823,8 @@ export default function DeepPageCMSEditor({
           <div
             className="rounded-2xl border p-6 relative overflow-hidden shadow-sm"
             style={{
-              background: 'linear-gradient(135deg, rgba(232, 201, 122, 0.08) 0%, rgba(18, 19, 22, 0.95) 100%)',
+              background:
+                'linear-gradient(135deg, rgba(232, 201, 122, 0.08) 0%, rgba(18, 19, 22, 0.95) 100%)',
               borderColor: 'rgba(232, 201, 122, 0.25)',
             }}
           >
@@ -643,7 +856,8 @@ export default function DeepPageCMSEditor({
                     </span>
                   </div>
                   <p className="text-xs text-muted-foreground mt-1 leading-relaxed max-w-2xl">
-                    Customize live page hero text, button labels, KPI metric cards, and table content across the application.
+                    Customize live page hero text, button labels, KPI metric cards, and table
+                    content across the application.
                   </p>
                 </div>
               </div>
@@ -669,7 +883,10 @@ export default function DeepPageCMSEditor({
           </div>
 
           {/* ─── SYSTEMATIC PAGE DIRECTORY SELECTOR ─── */}
-          <div className="flex flex-col gap-3 rounded-2xl border p-4 shadow-sm" style={{ background: 'var(--surface)', borderColor: 'var(--border)' }}>
+          <div
+            className="flex flex-col gap-3 rounded-2xl border p-4 shadow-sm"
+            style={{ background: 'var(--surface)', borderColor: 'var(--border)' }}
+          >
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-border/70">
               <div className="flex items-center gap-2">
                 <Layers size={15} className="text-primary" />
@@ -678,7 +895,8 @@ export default function DeepPageCMSEditor({
                     Application Pages & Tabs Directory
                   </span>
                   <p className="text-[11px] text-muted-foreground mt-0.5">
-                    Select any page to customize its live hero text, KPI metric cards, filters, table columns, and all records
+                    Select any page to customize its live hero text, KPI metric cards, filters,
+                    table columns, and all records
                   </p>
                 </div>
               </div>
@@ -694,7 +912,10 @@ export default function DeepPageCMSEditor({
                   className="bg-transparent border-none outline-none text-xs text-foreground flex-1"
                 />
                 {pageSearchQuery && (
-                  <button onClick={() => setPageSearchQuery('')} className="text-muted-foreground hover:text-foreground">
+                  <button
+                    onClick={() => setPageSearchQuery('')}
+                    className="text-muted-foreground hover:text-foreground"
+                  >
                     <X size={11} />
                   </button>
                 )}
@@ -763,7 +984,9 @@ export default function DeepPageCMSEditor({
                 if (portalFilter === 'system' && !page.group.includes('System')) return false;
                 if (pageSearchQuery.trim()) {
                   const q = pageSearchQuery.toLowerCase();
-                  return page.label.toLowerCase().includes(q) || page.group.toLowerCase().includes(q);
+                  return (
+                    page.label.toLowerCase().includes(q) || page.group.toLowerCase().includes(q)
+                  );
                 }
                 return true;
               }).map((page) => {
@@ -839,7 +1062,8 @@ export default function DeepPageCMSEditor({
             <div
               className="w-8 h-8 rounded-lg flex items-center justify-center font-bold text-xs shrink-0"
               style={{
-                background: 'linear-gradient(135deg, rgba(232, 201, 122, 0.25) 0%, rgba(232, 201, 122, 0.1) 100%)',
+                background:
+                  'linear-gradient(135deg, rgba(232, 201, 122, 0.25) 0%, rgba(232, 201, 122, 0.1) 100%)',
                 color: 'var(--primary)',
                 border: '1px solid rgba(232, 201, 122, 0.3)',
               }}
@@ -891,7 +1115,8 @@ export default function DeepPageCMSEditor({
               1. Page Header, Subtitle & Action Labels
             </span>
             <p className="text-[11px] text-muted-foreground mt-0.5">
-              Customize the prominent top heading, count summary, search bar placeholder and button texts
+              Customize the prominent top heading, count summary, search bar placeholder and button
+              texts
             </p>
           </div>
         </div>
@@ -909,7 +1134,9 @@ export default function DeepPageCMSEditor({
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-semibold text-foreground">Search Input Placeholder</label>
+            <label className="text-xs font-semibold text-foreground">
+              Search Input Placeholder
+            </label>
             <input
               type="text"
               value={currentPage.searchPlaceholder}
@@ -931,7 +1158,9 @@ export default function DeepPageCMSEditor({
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-semibold text-foreground">Primary Action Button Text</label>
+            <label className="text-xs font-semibold text-foreground">
+              Primary Action Button Text
+            </label>
             <input
               type="text"
               value={currentPage.primaryActionLabel}
@@ -943,7 +1172,9 @@ export default function DeepPageCMSEditor({
 
           {currentPage.secondaryActionLabel !== undefined && (
             <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-semibold text-foreground">Secondary Action Button Text</label>
+              <label className="text-xs font-semibold text-foreground">
+                Secondary Action Button Text
+              </label>
               <input
                 type="text"
                 value={currentPage.secondaryActionLabel}
@@ -966,7 +1197,8 @@ export default function DeepPageCMSEditor({
             <div>
               <span className="font-head font-bold text-sm text-foreground flex items-center gap-2">
                 <BarChart3 size={15} className="text-primary" />
-                2A. Top Executive Key Metric Cards ({executivePortalKpiTab === 'propco' ? 'PropCo View' : 'OpCo View'} - 8 Cards)
+                2A. Top Executive Key Metric Cards (
+                {executivePortalKpiTab === 'propco' ? 'PropCo View' : 'OpCo View'} - 8 Cards)
               </span>
               <p className="text-[11px] text-muted-foreground mt-0.5">
                 {executivePortalKpiTab === 'propco'
@@ -1002,13 +1234,17 @@ export default function DeepPageCMSEditor({
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-            {(executivePortalKpiTab === 'opco' ? currentPage.topKpis : (currentPage.propcoTopKpis || [])).map((kpi, kIdx) => (
+            {(executivePortalKpiTab === 'opco'
+              ? currentPage.topKpis
+              : currentPage.propcoTopKpis || []
+            ).map((kpi, kIdx) => (
               <div
                 key={kpi.id || kIdx}
                 className="p-3.5 rounded-xl border flex flex-col gap-2.5 transition-all"
                 style={{
                   background: 'var(--surface2)',
-                  borderColor: kpi.enabled !== false ? (kpi.color || 'var(--border)') : 'var(--border)',
+                  borderColor:
+                    kpi.enabled !== false ? kpi.color || 'var(--border)' : 'var(--border)',
                   opacity: kpi.enabled !== false ? 1 : 0.6,
                 }}
               >
@@ -1020,20 +1256,30 @@ export default function DeepPageCMSEditor({
                     type="button"
                     onClick={() => {
                       if (executivePortalKpiTab === 'opco') {
-                        handleUpdateTopKpi(kpi.id, { enabled: kpi.enabled === false ? true : false });
+                        handleUpdateTopKpi(kpi.id, {
+                          enabled: kpi.enabled === false ? true : false,
+                        });
                       } else {
-                        handleUpdatePropcoTopKpi(kpi.id, { enabled: kpi.enabled === false ? true : false });
+                        handleUpdatePropcoTopKpi(kpi.id, {
+                          enabled: kpi.enabled === false ? true : false,
+                        });
                       }
                     }}
                     className="p-1 rounded text-muted-foreground hover:text-foreground cursor-pointer"
                     title={kpi.enabled !== false ? 'Card Visible' : 'Card Hidden'}
                   >
-                    {kpi.enabled !== false ? <Eye size={13} className="text-primary" /> : <EyeOff size={13} />}
+                    {kpi.enabled !== false ? (
+                      <Eye size={13} className="text-primary" />
+                    ) : (
+                      <EyeOff size={13} />
+                    )}
                   </button>
                 </div>
 
                 <div className="flex flex-col gap-1">
-                  <label className="text-[10px] font-semibold text-muted-foreground">Card Label</label>
+                  <label className="text-[10px] font-semibold text-muted-foreground">
+                    Card Label
+                  </label>
                   <input
                     type="text"
                     value={kpi.label}
@@ -1050,7 +1296,9 @@ export default function DeepPageCMSEditor({
                 </div>
 
                 <div className="flex flex-col gap-1">
-                  <label className="text-[10px] font-semibold text-muted-foreground">Stat Value</label>
+                  <label className="text-[10px] font-semibold text-muted-foreground">
+                    Stat Value
+                  </label>
                   <input
                     type="text"
                     value={kpi.value}
@@ -1067,7 +1315,9 @@ export default function DeepPageCMSEditor({
                 </div>
 
                 <div className="flex flex-col gap-1">
-                  <label className="text-[10px] font-semibold text-muted-foreground">Subtitle / Status Note</label>
+                  <label className="text-[10px] font-semibold text-muted-foreground">
+                    Subtitle / Status Note
+                  </label>
                   <input
                     type="text"
                     value={kpi.subtitle}
@@ -1089,7 +1339,14 @@ export default function DeepPageCMSEditor({
       )}
 
       {/* ─── 2B. KPI STAT CARDS & RADAR METRICS ─── */}
-      {(currentPage.topKpis ? true : (currentPage.kpis && currentPage.kpis.length > 0 && selectedPage !== 'properties' && selectedPage !== 'assets' && selectedPage !== 'nonfixed' && selectedPage !== 'categories')) && (
+      {(currentPage.topKpis
+        ? true
+        : currentPage.kpis &&
+          currentPage.kpis.length > 0 &&
+          selectedPage !== 'properties' &&
+          selectedPage !== 'assets' &&
+          selectedPage !== 'nonfixed' &&
+          selectedPage !== 'categories') && (
         <div
           className="rounded-xl border p-5 flex flex-col gap-4 shadow-sm"
           style={{ background: 'var(--surface)', borderColor: 'var(--border)' }}
@@ -1099,16 +1356,16 @@ export default function DeepPageCMSEditor({
               <span className="font-head font-bold text-sm text-foreground flex items-center gap-2">
                 <BarChart3 size={15} className="text-primary" />
                 {currentPage.topKpis
-                  ? (executivePortalKpiTab === 'propco'
-                      ? '2B. PropCo Module Overview (5 Cards)'
-                      : '2B. Executive Operations Radar (5 Cards)')
+                  ? executivePortalKpiTab === 'propco'
+                    ? '2B. PropCo Module Overview (5 Cards)'
+                    : '2B. Executive Operations Radar (5 Cards)'
                   : `2. KPI Stat Cards & Metrics (${(currentPage.kpis && currentPage.kpis.length > 0 ? currentPage.kpis : []).length} Cards)`}
               </span>
               <p className="text-[11px] text-muted-foreground mt-0.5">
                 {currentPage.topKpis
-                  ? (executivePortalKpiTab === 'propco'
-                      ? 'Customize the 5 PropCo modules: Properties Portfolio, Fixed Assets, Insurance, Contracts, and PropCo Reports'
-                      : 'Customize the 5 OpCo operational radar cards: Non-Fixed, Maintenance, Compliance, Tasks, and Utilities')
+                  ? executivePortalKpiTab === 'propco'
+                    ? 'Customize the 5 PropCo modules: Properties Portfolio, Fixed Assets, Insurance, Contracts, and PropCo Reports'
+                    : 'Customize the 5 OpCo operational radar cards: Non-Fixed, Maintenance, Compliance, Tasks, and Utilities'
                   : 'Customize card headings, numeric values, subtitles and theme colors displayed on this page'}
               </p>
             </div>
@@ -1116,95 +1373,115 @@ export default function DeepPageCMSEditor({
 
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-3">
             {(currentPage.topKpis && executivePortalKpiTab === 'propco'
-              ? (currentPage.propcoKpis && currentPage.propcoKpis.length > 0 ? currentPage.propcoKpis : [])
-              : (currentPage.kpis || [])
+              ? currentPage.propcoKpis && currentPage.propcoKpis.length > 0
+                ? currentPage.propcoKpis
+                : []
+              : currentPage.kpis || []
             ).map((kpi, kIdx) => (
-            <div
-              key={kpi.id || kIdx}
-              className="p-3.5 rounded-xl border flex flex-col gap-2.5 transition-all"
-              style={{
-                background: 'var(--surface2)',
-                borderColor: kpi.enabled !== false ? (kpi.color || 'var(--border)') : 'var(--border)',
-                opacity: kpi.enabled !== false ? 1 : 0.6,
-              }}
-            >
-              <div className="flex items-center justify-between">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                  {currentPage.topKpis ? (executivePortalKpiTab === 'propco' ? 'PropCo' : 'OpCo') : 'Card'} #{kIdx + 1}: {kpi.label}
-                </span>
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (currentPage.topKpis && executivePortalKpiTab === 'propco') {
-                      handleUpdatePropcoKpi(kpi.id, { enabled: kpi.enabled === false ? true : false });
-                    } else {
-                      handleUpdateKpi(kpi.id, { enabled: kpi.enabled === false ? true : false });
-                    }
-                  }}
-                  className="p-1 rounded text-muted-foreground hover:text-foreground cursor-pointer"
-                  title={kpi.enabled !== false ? 'Card Visible' : 'Card Hidden'}
-                >
-                  {kpi.enabled !== false ? <Eye size={13} className="text-primary" /> : <EyeOff size={13} />}
-                </button>
-              </div>
+              <div
+                key={kpi.id || kIdx}
+                className="p-3.5 rounded-xl border flex flex-col gap-2.5 transition-all"
+                style={{
+                  background: 'var(--surface2)',
+                  borderColor:
+                    kpi.enabled !== false ? kpi.color || 'var(--border)' : 'var(--border)',
+                  opacity: kpi.enabled !== false ? 1 : 0.6,
+                }}
+              >
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                    {currentPage.topKpis
+                      ? executivePortalKpiTab === 'propco'
+                        ? 'PropCo'
+                        : 'OpCo'
+                      : 'Card'}{' '}
+                    #{kIdx + 1}: {kpi.label}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (currentPage.topKpis && executivePortalKpiTab === 'propco') {
+                        handleUpdatePropcoKpi(kpi.id, {
+                          enabled: kpi.enabled === false ? true : false,
+                        });
+                      } else {
+                        handleUpdateKpi(kpi.id, { enabled: kpi.enabled === false ? true : false });
+                      }
+                    }}
+                    className="p-1 rounded text-muted-foreground hover:text-foreground cursor-pointer"
+                    title={kpi.enabled !== false ? 'Card Visible' : 'Card Hidden'}
+                  >
+                    {kpi.enabled !== false ? (
+                      <Eye size={13} className="text-primary" />
+                    ) : (
+                      <EyeOff size={13} />
+                    )}
+                  </button>
+                </div>
 
-              <div className="flex flex-col gap-1">
-                <label className="text-[10px] font-semibold text-muted-foreground">Card Heading</label>
-                <input
-                  type="text"
-                  value={kpi.label}
-                  onChange={(e) => {
-                    if (currentPage.topKpis && executivePortalKpiTab === 'propco') {
-                      handleUpdatePropcoKpi(kpi.id, { label: e.target.value });
-                    } else {
-                      handleUpdateKpi(kpi.id, { label: e.target.value });
-                    }
-                  }}
-                  placeholder="Card Title"
-                  className="rounded border border-border px-2 py-1 text-xs outline-none font-bold"
-                  style={{ background: 'var(--surface)', color: 'var(--foreground)' }}
-                />
-              </div>
+                <div className="flex flex-col gap-1">
+                  <label className="text-[10px] font-semibold text-muted-foreground">
+                    Card Heading
+                  </label>
+                  <input
+                    type="text"
+                    value={kpi.label}
+                    onChange={(e) => {
+                      if (currentPage.topKpis && executivePortalKpiTab === 'propco') {
+                        handleUpdatePropcoKpi(kpi.id, { label: e.target.value });
+                      } else {
+                        handleUpdateKpi(kpi.id, { label: e.target.value });
+                      }
+                    }}
+                    placeholder="Card Title"
+                    className="rounded border border-border px-2 py-1 text-xs outline-none font-bold"
+                    style={{ background: 'var(--surface)', color: 'var(--foreground)' }}
+                  />
+                </div>
 
-              <div className="flex flex-col gap-1">
-                <label className="text-[10px] font-semibold text-muted-foreground">Stat Value</label>
-                <input
-                  type="text"
-                  value={kpi.value}
-                  onChange={(e) => {
-                    if (currentPage.topKpis && executivePortalKpiTab === 'propco') {
-                      handleUpdatePropcoKpi(kpi.id, { value: e.target.value });
-                    } else {
-                      handleUpdateKpi(kpi.id, { value: e.target.value });
-                    }
-                  }}
-                  placeholder="e.g. 98 or £65M"
-                  className="rounded border border-border px-2 py-1 text-xs outline-none font-bold"
-                  style={{ background: 'var(--surface)', color: kpi.color || 'var(--primary)' }}
-                />
-              </div>
+                <div className="flex flex-col gap-1">
+                  <label className="text-[10px] font-semibold text-muted-foreground">
+                    Stat Value
+                  </label>
+                  <input
+                    type="text"
+                    value={kpi.value}
+                    onChange={(e) => {
+                      if (currentPage.topKpis && executivePortalKpiTab === 'propco') {
+                        handleUpdatePropcoKpi(kpi.id, { value: e.target.value });
+                      } else {
+                        handleUpdateKpi(kpi.id, { value: e.target.value });
+                      }
+                    }}
+                    placeholder="e.g. 98 or £65M"
+                    className="rounded border border-border px-2 py-1 text-xs outline-none font-bold"
+                    style={{ background: 'var(--surface)', color: kpi.color || 'var(--primary)' }}
+                  />
+                </div>
 
-              <div className="flex flex-col gap-1">
-                <label className="text-[10px] font-semibold text-muted-foreground">Subtitle / Tagline</label>
-                <input
-                  type="text"
-                  value={kpi.subtitle}
-                  onChange={(e) => {
-                    if (currentPage.topKpis && executivePortalKpiTab === 'propco') {
-                      handleUpdatePropcoKpi(kpi.id, { subtitle: e.target.value });
-                    } else {
-                      handleUpdateKpi(kpi.id, { subtitle: e.target.value });
-                    }
-                  }}
-                  placeholder="Supporting text"
-                  className="rounded border border-border px-2 py-1 text-[11px] outline-none text-muted-foreground"
-                  style={{ background: 'var(--surface)' }}
-                />
+                <div className="flex flex-col gap-1">
+                  <label className="text-[10px] font-semibold text-muted-foreground">
+                    Subtitle / Tagline
+                  </label>
+                  <input
+                    type="text"
+                    value={kpi.subtitle}
+                    onChange={(e) => {
+                      if (currentPage.topKpis && executivePortalKpiTab === 'propco') {
+                        handleUpdatePropcoKpi(kpi.id, { subtitle: e.target.value });
+                      } else {
+                        handleUpdateKpi(kpi.id, { subtitle: e.target.value });
+                      }
+                    }}
+                    placeholder="Supporting text"
+                    className="rounded border border-border px-2 py-1 text-[11px] outline-none text-muted-foreground"
+                    style={{ background: 'var(--surface)' }}
+                  />
+                </div>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
-      </div>
       )}
 
       {/* ─── 2C. GROUP COMPLIANCE SCORE – 12 WEEK TREND CHART DATA ─── */}
@@ -1217,10 +1494,12 @@ export default function DeepPageCMSEditor({
             <div>
               <span className="font-head font-bold text-sm text-foreground flex items-center gap-2">
                 <BarChart3 size={15} className="text-primary" />
-                2C. Group Compliance Score – 12 Week Trend Chart Data ({currentPage.chartData.length} Weeks)
+                2C. Group Compliance Score – 12 Week Trend Chart Data (
+                {currentPage.chartData.length} Weeks)
               </span>
               <p className="text-[11px] text-muted-foreground mt-0.5">
-                Customize weekly compliance percentages and critical items counts rendered in the interactive trend line
+                Customize weekly compliance percentages and critical items counts rendered in the
+                interactive trend line
               </p>
             </div>
           </div>
@@ -1234,29 +1513,39 @@ export default function DeepPageCMSEditor({
               >
                 <div className="flex items-center justify-between">
                   <span className="text-[11px] font-bold text-primary font-mono">{pt.week}</span>
-                  <span className="text-[9px] text-muted-foreground uppercase font-bold">Week {idx + 1}</span>
+                  <span className="text-[9px] text-muted-foreground uppercase font-bold">
+                    Week {idx + 1}
+                  </span>
                 </div>
 
                 <div className="flex flex-col gap-1">
-                  <label className="text-[9px] font-semibold text-muted-foreground">Compliance %</label>
+                  <label className="text-[9px] font-semibold text-muted-foreground">
+                    Compliance %
+                  </label>
                   <input
                     type="number"
                     min="0"
                     max="100"
                     value={pt.compliance}
-                    onChange={(e) => handleUpdateChartPoint(idx, { compliance: Number(e.target.value) || 0 })}
+                    onChange={(e) =>
+                      handleUpdateChartPoint(idx, { compliance: Number(e.target.value) || 0 })
+                    }
                     className="rounded border border-border px-2 py-1 text-xs outline-none font-bold"
                     style={{ background: 'var(--surface)', color: 'var(--primary)' }}
                   />
                 </div>
 
                 <div className="flex flex-col gap-1">
-                  <label className="text-[9px] font-semibold text-muted-foreground">Critical Items</label>
+                  <label className="text-[9px] font-semibold text-muted-foreground">
+                    Critical Items
+                  </label>
                   <input
                     type="number"
                     min="0"
                     value={pt.critical}
-                    onChange={(e) => handleUpdateChartPoint(idx, { critical: Number(e.target.value) || 0 })}
+                    onChange={(e) =>
+                      handleUpdateChartPoint(idx, { critical: Number(e.target.value) || 0 })
+                    }
                     className="rounded border border-border px-2 py-1 text-xs outline-none font-bold"
                     style={{ background: 'var(--surface)', color: 'var(--critical)' }}
                   />
@@ -1280,7 +1569,8 @@ export default function DeepPageCMSEditor({
                 2D. Live Alerts Feed ({currentPage.alerts.length} Active Alerts)
               </span>
               <p className="text-[11px] text-muted-foreground mt-0.5">
-                Customize operational and statutory alerts displayed in the Live Alerts card on the executive dashboard
+                Customize operational and statutory alerts displayed in the Live Alerts card on the
+                executive dashboard
               </p>
             </div>
             <button
@@ -1311,8 +1601,8 @@ export default function DeepPageCMSEditor({
                         alert.type === 'critical'
                           ? 'bg-rose-500/15 text-rose-400 border border-rose-500/30'
                           : alert.type === 'warning'
-                          ? 'bg-amber-500/15 text-amber-400 border border-amber-500/30'
-                          : 'bg-blue-500/15 text-blue-400 border border-blue-500/30'
+                            ? 'bg-amber-500/15 text-amber-400 border border-amber-500/30'
+                            : 'bg-blue-500/15 text-blue-400 border border-blue-500/30'
                       }`}
                     >
                       {alert.type}
@@ -1332,7 +1622,9 @@ export default function DeepPageCMSEditor({
 
                 {/* Message Field (Full Width - no horizontal cramming) */}
                 <div className="flex flex-col gap-1">
-                  <label className="text-[10px] font-semibold text-muted-foreground">Alert Message / Description</label>
+                  <label className="text-[10px] font-semibold text-muted-foreground">
+                    Alert Message / Description
+                  </label>
                   <input
                     type="text"
                     value={alert.message}
@@ -1345,14 +1637,16 @@ export default function DeepPageCMSEditor({
                 {/* Secondary Controls: Severity Level & Action / Time */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div className="flex flex-col gap-1">
-                    <label className="text-[10px] font-semibold text-muted-foreground">Severity Level</label>
+                    <label className="text-[10px] font-semibold text-muted-foreground">
+                      Severity Level
+                    </label>
                     <CustomDropdown
                       value={alert.type}
                       onChange={(val) => handleUpdateAlert(alert.id, { type: val as any })}
                       options={[
                         { value: 'critical', label: 'Critical (Red)', color: '#f43f5e' },
                         { value: 'warning', label: 'Warning (Amber)', color: '#f59e0b' },
-                        { value: 'info', label: 'Info (Blue)', color: '#60a5fa' }
+                        { value: 'info', label: 'Info (Blue)', color: '#60a5fa' },
                       ]}
                       variant="form"
                       size="sm"
@@ -1361,7 +1655,9 @@ export default function DeepPageCMSEditor({
                   </div>
 
                   <div className="flex flex-col gap-1">
-                    <label className="text-[10px] font-semibold text-muted-foreground">Action / Time Text</label>
+                    <label className="text-[10px] font-semibold text-muted-foreground">
+                      Action / Time Text
+                    </label>
                     <input
                       type="text"
                       value={alert.time}
@@ -1391,7 +1687,8 @@ export default function DeepPageCMSEditor({
                 2E. Urgent Tasks Feed ({currentPage.tasks.length} High-Priority Tasks)
               </span>
               <p className="text-[11px] text-muted-foreground mt-0.5">
-                Customize prioritized inspections, statutory certificate renewals, and action dates across properties
+                Customize prioritized inspections, statutory certificate renewals, and action dates
+                across properties
               </p>
             </div>
             <button
@@ -1422,8 +1719,8 @@ export default function DeepPageCMSEditor({
                         task.priority === 'urgent'
                           ? 'bg-rose-500/15 text-rose-400 border border-rose-500/30'
                           : task.priority === 'high'
-                          ? 'bg-amber-500/15 text-amber-400 border border-amber-500/30'
-                          : 'bg-blue-500/15 text-blue-400 border border-blue-500/30'
+                            ? 'bg-amber-500/15 text-amber-400 border border-amber-500/30'
+                            : 'bg-blue-500/15 text-blue-400 border border-blue-500/30'
                       }`}
                     >
                       {task.priority}
@@ -1443,7 +1740,9 @@ export default function DeepPageCMSEditor({
 
                 {/* Row 1: Task Title (Full Width) */}
                 <div className="flex flex-col gap-1">
-                  <label className="text-[10px] font-semibold text-muted-foreground">Task Title</label>
+                  <label className="text-[10px] font-semibold text-muted-foreground">
+                    Task Title
+                  </label>
                   <input
                     type="text"
                     value={task.title}
@@ -1456,7 +1755,9 @@ export default function DeepPageCMSEditor({
                 {/* Row 2: Hotel/Property, Due Date, and Priority */}
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <div className="flex flex-col gap-1">
-                    <label className="text-[10px] font-semibold text-muted-foreground">Hotel / Property</label>
+                    <label className="text-[10px] font-semibold text-muted-foreground">
+                      Hotel / Property
+                    </label>
                     <input
                       type="text"
                       value={task.hotelName}
@@ -1467,7 +1768,9 @@ export default function DeepPageCMSEditor({
                   </div>
 
                   <div className="flex flex-col gap-1">
-                    <label className="text-[10px] font-semibold text-muted-foreground">Due Date</label>
+                    <label className="text-[10px] font-semibold text-muted-foreground">
+                      Due Date
+                    </label>
                     <input
                       type="text"
                       value={task.dueDate}
@@ -1479,7 +1782,9 @@ export default function DeepPageCMSEditor({
                   </div>
 
                   <div className="flex flex-col gap-1">
-                    <label className="text-[10px] font-semibold text-muted-foreground">Priority Level</label>
+                    <label className="text-[10px] font-semibold text-muted-foreground">
+                      Priority Level
+                    </label>
                     <CustomDropdown
                       value={task.priority}
                       onChange={(val) => handleUpdateTask(task.id, { priority: val as any })}
@@ -1487,7 +1792,7 @@ export default function DeepPageCMSEditor({
                         { value: 'urgent', label: 'Urgent', color: '#f43f5e' },
                         { value: 'high', label: 'High', color: '#f97316' },
                         { value: 'medium', label: 'Medium', color: '#60a5fa' },
-                        { value: 'low', label: 'Low', color: '#94a3b8' }
+                        { value: 'low', label: 'Low', color: '#94a3b8' },
                       ]}
                       variant="form"
                       size="sm"
@@ -1517,7 +1822,8 @@ export default function DeepPageCMSEditor({
                 </span>
               </span>
               <p className="text-[11px] text-muted-foreground mt-0.5">
-                Customize filter dropdown labels and edit, add, or remove selectable dropdown options
+                Customize filter dropdown labels and edit, add, or remove selectable dropdown
+                options
               </p>
             </div>
 
@@ -1546,7 +1852,8 @@ export default function DeepPageCMSEditor({
               <div>
                 <p className="text-sm font-bold text-foreground">No Filter Dropdowns Configured</p>
                 <p className="text-xs text-muted-foreground mt-0.5 max-w-sm">
-                  Add custom filter dropdowns with selectable options to filter records on this page.
+                  Add custom filter dropdowns with selectable options to filter records on this
+                  page.
                 </p>
               </div>
               <button
@@ -1580,7 +1887,8 @@ export default function DeepPageCMSEditor({
                         {dropdown.id}
                       </span>
                       <span className="text-[10px] font-semibold text-primary px-1.5 py-0.5 rounded bg-primary/10 whitespace-nowrap">
-                        {dropdown.options.length} {dropdown.options.length === 1 ? 'Option' : 'Options'}
+                        {dropdown.options.length}{' '}
+                        {dropdown.options.length === 1 ? 'Option' : 'Options'}
                       </span>
                     </div>
 
@@ -1619,7 +1927,9 @@ export default function DeepPageCMSEditor({
                     </div>
                     <div className="flex flex-wrap gap-1.5 max-h-36 overflow-y-auto custom-scrollbar p-2 rounded-lg border border-border/60 bg-black/25 flex-1 content-start">
                       {dropdown.options.length === 0 ? (
-                        <span className="text-[11px] text-muted-foreground italic p-1">No options configured</span>
+                        <span className="text-[11px] text-muted-foreground italic p-1">
+                          No options configured
+                        </span>
                       ) : (
                         dropdown.options.map((opt, optIdx) => (
                           <span
@@ -1629,7 +1939,14 @@ export default function DeepPageCMSEditor({
                             <span className="truncate">{opt}</span>
                             <button
                               type="button"
-                              onClick={() => setOptionToDelete({ dropdownId: dropdown.id, optIdx, optionName: opt, dropdownLabel: dropdown.label })}
+                              onClick={() =>
+                                setOptionToDelete({
+                                  dropdownId: dropdown.id,
+                                  optIdx,
+                                  optionName: opt,
+                                  dropdownLabel: dropdown.label,
+                                })
+                              }
                               className="text-muted-foreground hover:text-rose-400 p-0.5 cursor-pointer rounded transition-colors"
                               title={`Remove "${opt}"`}
                             >
@@ -1662,7 +1979,9 @@ export default function DeepPageCMSEditor({
                       <button
                         type="button"
                         onClick={() => {
-                          const input = document.getElementById(`new_opt_${dropdown.id}`) as HTMLInputElement;
+                          const input = document.getElementById(
+                            `new_opt_${dropdown.id}`
+                          ) as HTMLInputElement;
                           if (input && input.value.trim()) {
                             handleAddDropdownOption(dropdown.id, input.value.trim());
                             input.value = '';
@@ -1692,20 +2011,25 @@ export default function DeepPageCMSEditor({
             <div>
               <div className="flex items-center gap-2">
                 <span className="font-head font-bold text-sm text-foreground">
-                  {columnSectionNum}. Table Columns Configuration & Visibility ({sortedColumns.length} Columns)
+                  {columnSectionNum}. Table Columns Configuration & Visibility (
+                  {sortedColumns.length} Columns)
                 </span>
                 <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-primary/10 text-primary border border-primary/20">
                   Dynamic & Reorderable
                 </span>
               </div>
               <p className="text-[11px] text-muted-foreground mt-0.5">
-                Rearrange column sequence, rename headers, toggle visibility on live pages, or create new custom columns.
+                Rearrange column sequence, rename headers, toggle visibility on live pages, or
+                create new custom columns.
               </p>
             </div>
 
             <div className="flex items-center gap-2.5 self-start sm:self-auto">
               {/* View Switcher: List vs Cards */}
-              <div className="flex items-center rounded-lg border border-border p-0.5" style={{ background: 'var(--surface2)' }}>
+              <div
+                className="flex items-center rounded-lg border border-border p-0.5"
+                style={{ background: 'var(--surface2)' }}
+              >
                 <button
                   type="button"
                   onClick={() => setColViewMode('list')}
@@ -1754,7 +2078,10 @@ export default function DeepPageCMSEditor({
 
           {/* ─── LIST VIEW (CLEAN, TABLE SEQUENCER) ─── */}
           {colViewMode === 'list' ? (
-            <div className="border border-border rounded-xl overflow-x-auto shadow-xs" style={{ background: 'var(--surface2)' }}>
+            <div
+              className="border border-border rounded-xl overflow-x-auto shadow-xs"
+              style={{ background: 'var(--surface2)' }}
+            >
               <table className="w-full text-left border-collapse text-xs">
                 <thead>
                   <tr className="border-b border-border bg-black/30 text-muted-foreground text-[11px] font-bold uppercase tracking-wider">
@@ -1769,10 +2096,7 @@ export default function DeepPageCMSEditor({
                 </thead>
                 <tbody className="divide-y divide-border/60">
                   {sortedColumns.map((col, idx) => (
-                    <tr
-                      key={col.id}
-                      className="hover:bg-white/[0.02] transition-colors"
-                    >
+                    <tr key={col.id} className="hover:bg-white/[0.02] transition-colors">
                       {/* # Position Badge */}
                       <td className="py-3 px-3 text-center">
                         <span className="inline-block px-2 py-0.5 rounded-md text-xs font-mono font-bold bg-primary/15 text-primary border border-primary/30">
@@ -1848,7 +2172,11 @@ export default function DeepPageCMSEditor({
                               ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-400'
                               : 'border-border bg-black/20 text-muted-foreground opacity-50 hover:opacity-90'
                           }`}
-                          title={col.visible ? 'Visible on Live Page (Click to Hide)' : 'Hidden on Live Page (Click to Show)'}
+                          title={
+                            col.visible
+                              ? 'Visible on Live Page (Click to Hide)'
+                              : 'Hidden on Live Page (Click to Show)'
+                          }
                         >
                           {col.visible ? <Eye size={13} /> : <EyeOff size={13} />}
                           <span>{col.visible ? 'Visible' : 'Hidden'}</span>
@@ -1886,7 +2214,10 @@ export default function DeepPageCMSEditor({
                       <span className="px-2 py-0.5 rounded text-xs font-mono font-bold bg-primary/15 text-primary border border-primary/30 shrink-0">
                         #{idx + 1}
                       </span>
-                      <code className="text-[11px] font-mono text-muted-foreground uppercase font-bold truncate max-w-[120px]" title={`Key: ${col.id}`}>
+                      <code
+                        className="text-[11px] font-mono text-muted-foreground uppercase font-bold truncate max-w-[120px]"
+                        title={`Key: ${col.id}`}
+                      >
                         {col.id}
                       </code>
                       {col.isCustom && (
@@ -1905,7 +2236,11 @@ export default function DeepPageCMSEditor({
                             ? 'border-primary/40 text-primary bg-primary/10'
                             : 'border-border text-muted-foreground opacity-40 hover:opacity-100'
                         }`}
-                        title={col.visible ? 'Column Visible (Click to Hide)' : 'Column Hidden (Click to Show)'}
+                        title={
+                          col.visible
+                            ? 'Column Visible (Click to Hide)'
+                            : 'Column Hidden (Click to Show)'
+                        }
                       >
                         {col.visible ? <Eye size={13} /> : <EyeOff size={13} />}
                       </button>
@@ -1939,7 +2274,8 @@ export default function DeepPageCMSEditor({
                   {/* Bottom Bar: Order Position & Compact Arrow Buttons */}
                   <div className="flex items-center justify-between pt-2.5 border-t border-border/40">
                     <span className="text-xs text-muted-foreground font-mono whitespace-nowrap">
-                      Position <strong className="text-primary font-bold">#{idx + 1}</strong> of {sortedColumns.length}
+                      Position <strong className="text-primary font-bold">#{idx + 1}</strong> of{' '}
+                      {sortedColumns.length}
                     </span>
                     <div className="flex items-center gap-1.5">
                       <button
@@ -1969,7 +2305,10 @@ export default function DeepPageCMSEditor({
 
           <div className="p-3 rounded-lg border border-border/70 bg-surface2/40 text-[11px] text-muted-foreground flex items-center justify-between gap-3">
             <span>
-              💡 Use the <strong className="text-foreground">◀ Left and Right ▶</strong> buttons to rearrange any column (including newly added columns). The order (#1 to #{sortedColumns.length}) and visibility reflect directly across tables throughout the entire application.
+              💡 Use the <strong className="text-foreground">◀ Left and Right ▶</strong> buttons to
+              rearrange any column (including newly added columns). The order (#1 to #
+              {sortedColumns.length}) and visibility reflect directly across tables throughout the
+              entire application.
             </span>
           </div>
         </div>
@@ -1984,10 +2323,12 @@ export default function DeepPageCMSEditor({
           <div className="flex flex-col md:flex-row md:items-center justify-between pb-3 border-b border-border gap-3">
             <div>
               <span className="font-head font-bold text-sm text-foreground">
-                4. Asset Register Records Editor ({filteredAssets.length} of {currentPage.items?.length || 0} Assets Loaded)
+                4. Asset Register Records Editor ({filteredAssets.length} of{' '}
+                {currentPage.items?.length || 0} Assets Loaded)
               </span>
               <p className="text-[11px] text-muted-foreground mt-0.5">
-                Every asset row is 100% editable here. Changes update live across the entire application.
+                Every asset row is 100% editable here. Changes update live across the entire
+                application.
               </p>
             </div>
 
@@ -2019,7 +2360,10 @@ export default function DeepPageCMSEditor({
                 className="bg-transparent border-none outline-none text-xs text-foreground flex-1"
               />
               {assetSearch && (
-                <button onClick={() => setAssetSearch('')} className="text-muted-foreground hover:text-foreground">
+                <button
+                  onClick={() => setAssetSearch('')}
+                  className="text-muted-foreground hover:text-foreground"
+                >
                   <X size={12} />
                 </button>
               )}
@@ -2046,7 +2390,10 @@ export default function DeepPageCMSEditor({
                 setAssetHotelFilter(val);
                 setAssetPage(1);
               }}
-              options={getLiveProperties().map((hotel) => ({ value: hotel.name, label: hotel.name }))}
+              options={getLiveProperties().map((hotel) => ({
+                value: hotel.name,
+                label: hotel.name,
+              }))}
               placeholder="All Properties"
               allLabel="All Properties"
               size="sm"
@@ -2093,7 +2440,10 @@ export default function DeepPageCMSEditor({
               <tbody className="divide-y divide-border">
                 {paginatedAssets.length === 0 ? (
                   <tr>
-                    <td colSpan={(visibleColumns?.length || 10) + 1} className="py-8 text-center text-muted-foreground">
+                    <td
+                      colSpan={(visibleColumns?.length || 10) + 1}
+                      className="py-8 text-center text-muted-foreground"
+                    >
                       No assets found matching filters.
                     </td>
                   </tr>
@@ -2106,7 +2456,10 @@ export default function DeepPageCMSEditor({
                             const colKey = col.id.toLowerCase();
                             if (colKey === 'assetid') {
                               return (
-                                <td key={col.id} className="py-2.5 px-3 font-mono font-bold text-amber-300">
+                                <td
+                                  key={col.id}
+                                  className="py-2.5 px-3 font-mono font-bold text-amber-300"
+                                >
                                   {asset.assetId || asset.id}
                                 </td>
                               );
@@ -2129,7 +2482,10 @@ export default function DeepPageCMSEditor({
                             }
                             if (colKey === 'property') {
                               return (
-                                <td key={col.id} className="py-2.5 px-3 text-muted-foreground truncate max-w-[150px]">
+                                <td
+                                  key={col.id}
+                                  className="py-2.5 px-3 text-muted-foreground truncate max-w-[150px]"
+                                >
                                   {asset.hotelName || asset.property || 'Crowne Plaza'}
                                 </td>
                               );
@@ -2137,7 +2493,8 @@ export default function DeepPageCMSEditor({
                             if (colKey === 'department') {
                               return (
                                 <td key={col.id} className="py-2.5 px-3 text-muted-foreground">
-                                  {asset.department || (selectedPage === 'nonfixed' ? 'Housekeeping' : 'General')}
+                                  {asset.department ||
+                                    (selectedPage === 'nonfixed' ? 'Housekeeping' : 'General')}
                                 </td>
                               );
                             }
@@ -2215,8 +2572,13 @@ export default function DeepPageCMSEditor({
                             // Dynamic custom column!
                             const val = asset[col.id] ?? asset[colKey];
                             return (
-                              <td key={col.id} className="py-2.5 px-3 text-foreground whitespace-nowrap">
-                                {val !== undefined && val !== null && String(val).trim() !== '' ? String(val) : '—'}
+                              <td
+                                key={col.id}
+                                className="py-2.5 px-3 text-foreground whitespace-nowrap"
+                              >
+                                {val !== undefined && val !== null && String(val).trim() !== ''
+                                  ? String(val)
+                                  : '—'}
                               </td>
                             );
                           })}
@@ -2246,9 +2608,7 @@ export default function DeepPageCMSEditor({
                           <td className="py-2.5 px-3 font-mono font-bold text-amber-300">
                             {asset.assetId || asset.id}
                           </td>
-                          <td className="py-2.5 px-3 font-bold text-foreground">
-                            {asset.name}
-                          </td>
+                          <td className="py-2.5 px-3 font-bold text-foreground">{asset.name}</td>
                           <td className="py-2.5 px-3">
                             <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-white/5 border border-white/10 text-muted-foreground">
                               {asset.category}
@@ -2258,7 +2618,8 @@ export default function DeepPageCMSEditor({
                             {asset.hotelName || asset.property || 'Crowne Plaza'}
                           </td>
                           <td className="py-2.5 px-3 text-muted-foreground">
-                            {asset.department || (selectedPage === 'nonfixed' ? 'Housekeeping' : 'General')}
+                            {asset.department ||
+                              (selectedPage === 'nonfixed' ? 'Housekeeping' : 'General')}
                           </td>
                           <td className="py-2.5 px-3 text-muted-foreground">
                             {asset.location || '—'}
@@ -2350,7 +2711,8 @@ export default function DeepPageCMSEditor({
                 2. Real Estate Hotel & Site Cards ({currentPage.items.length} Properties Active)
               </span>
               <p className="text-[11px] text-muted-foreground mt-0.5">
-                Directly edit hotel titles, locations, addresses, general managers, phone numbers, and statuses
+                Directly edit hotel titles, locations, addresses, general managers, phone numbers,
+                and statuses
               </p>
             </div>
 
@@ -2411,7 +2773,9 @@ export default function DeepPageCMSEditor({
                   {isEditing ? (
                     <div className="grid grid-cols-2 gap-2 pt-2 border-t border-border">
                       <div className="flex flex-col gap-1 col-span-2">
-                        <label className="text-[10px] text-muted-foreground font-semibold">Hotel Name</label>
+                        <label className="text-[10px] text-muted-foreground font-semibold">
+                          Hotel Name
+                        </label>
                         <input
                           type="text"
                           defaultValue={hotel.name}
@@ -2421,7 +2785,9 @@ export default function DeepPageCMSEditor({
                         />
                       </div>
                       <div className="flex flex-col gap-1">
-                        <label className="text-[10px] text-muted-foreground font-semibold">City</label>
+                        <label className="text-[10px] text-muted-foreground font-semibold">
+                          City
+                        </label>
                         <input
                           type="text"
                           defaultValue={hotel.city}
@@ -2431,7 +2797,9 @@ export default function DeepPageCMSEditor({
                         />
                       </div>
                       <div className="flex flex-col gap-1">
-                        <label className="text-[10px] text-muted-foreground font-semibold">General Manager</label>
+                        <label className="text-[10px] text-muted-foreground font-semibold">
+                          General Manager
+                        </label>
                         <input
                           type="text"
                           defaultValue={hotel.manager}
@@ -2441,7 +2809,9 @@ export default function DeepPageCMSEditor({
                         />
                       </div>
                       <div className="flex flex-col gap-1 col-span-2">
-                        <label className="text-[10px] text-muted-foreground font-semibold">Full Address</label>
+                        <label className="text-[10px] text-muted-foreground font-semibold">
+                          Full Address
+                        </label>
                         <input
                           type="text"
                           defaultValue={hotel.address}
@@ -2451,7 +2821,9 @@ export default function DeepPageCMSEditor({
                         />
                       </div>
                       <div className="flex flex-col gap-1">
-                        <label className="text-[10px] text-muted-foreground font-semibold">Telephone</label>
+                        <label className="text-[10px] text-muted-foreground font-semibold">
+                          Telephone
+                        </label>
                         <input
                           type="text"
                           defaultValue={hotel.phone}
@@ -2461,17 +2833,25 @@ export default function DeepPageCMSEditor({
                         />
                       </div>
                       <div className="flex flex-col gap-1">
-                        <label className="text-[10px] text-muted-foreground font-semibold">Status</label>
-                        <input type="hidden" id={`status_${hotel.id}`} defaultValue={hotel.status || 'active'} />
+                        <label className="text-[10px] text-muted-foreground font-semibold">
+                          Status
+                        </label>
+                        <input
+                          type="hidden"
+                          id={`status_${hotel.id}`}
+                          defaultValue={hotel.status || 'active'}
+                        />
                         <CustomDropdown
                           value={hotel.status || 'active'}
                           onChange={(val) => {
-                            const hiddenInput = document.getElementById(`status_${hotel.id}`) as HTMLInputElement;
+                            const hiddenInput = document.getElementById(
+                              `status_${hotel.id}`
+                            ) as HTMLInputElement;
                             if (hiddenInput) hiddenInput.value = val;
                           }}
                           options={[
                             { value: 'active', label: 'Active', color: '#3dd68c' },
-                            { value: 'inactive', label: 'Inactive', color: '#f59e0b' }
+                            { value: 'inactive', label: 'Inactive', color: '#f59e0b' },
                           ]}
                           variant="form"
                           size="sm"
@@ -2488,12 +2868,24 @@ export default function DeepPageCMSEditor({
                         </button>
                         <button
                           onClick={() => {
-                            const name = (document.getElementById(`name_${hotel.id}`) as HTMLInputElement)?.value;
-                            const city = (document.getElementById(`city_${hotel.id}`) as HTMLInputElement)?.value;
-                            const manager = (document.getElementById(`mgr_${hotel.id}`) as HTMLInputElement)?.value;
-                            const address = (document.getElementById(`addr_${hotel.id}`) as HTMLInputElement)?.value;
-                            const phone = (document.getElementById(`phone_${hotel.id}`) as HTMLInputElement)?.value;
-                            const status = (document.getElementById(`status_${hotel.id}`) as HTMLSelectElement)?.value;
+                            const name = (
+                              document.getElementById(`name_${hotel.id}`) as HTMLInputElement
+                            )?.value;
+                            const city = (
+                              document.getElementById(`city_${hotel.id}`) as HTMLInputElement
+                            )?.value;
+                            const manager = (
+                              document.getElementById(`mgr_${hotel.id}`) as HTMLInputElement
+                            )?.value;
+                            const address = (
+                              document.getElementById(`addr_${hotel.id}`) as HTMLInputElement
+                            )?.value;
+                            const phone = (
+                              document.getElementById(`phone_${hotel.id}`) as HTMLInputElement
+                            )?.value;
+                            const status = (
+                              document.getElementById(`status_${hotel.id}`) as HTMLSelectElement
+                            )?.value;
 
                             handleSaveItemEdit(hotel.id, {
                               name,
@@ -2542,113 +2934,128 @@ export default function DeepPageCMSEditor({
       )}
 
       {/* ─── 5. GENERIC DATA RECORDS (FOR COMPLIANCE, CONTRACTS, INSURANCE, UTILITIES, ETC.) ─── */}
-      {selectedPage !== 'properties' && selectedPage !== 'assets' && selectedPage !== 'nonfixed' && selectedPage !== 'overview' && currentPage.items && currentPage.items.length > 0 && (
-        <div
-          className="rounded-xl border p-5 flex flex-col gap-4 shadow-sm"
-          style={{ background: 'var(--surface)', borderColor: 'var(--border)' }}
-        >
-          <div className="flex items-center justify-between pb-3 border-b border-border">
-            <div>
-              <span className="font-head font-bold text-sm text-foreground">
-                {recordsSectionNum}. {currentPage.title} Live Data Records ({currentPage.items.length} Records)
-              </span>
-              <p className="text-[11px] text-muted-foreground mt-0.5">
-                Edit individual records, dates, providers, values, and compliance statuses directly
-              </p>
+      {selectedPage !== 'properties' &&
+        selectedPage !== 'assets' &&
+        selectedPage !== 'nonfixed' &&
+        selectedPage !== 'overview' &&
+        currentPage.items &&
+        currentPage.items.length > 0 && (
+          <div
+            className="rounded-xl border p-5 flex flex-col gap-4 shadow-sm"
+            style={{ background: 'var(--surface)', borderColor: 'var(--border)' }}
+          >
+            <div className="flex items-center justify-between pb-3 border-b border-border">
+              <div>
+                <span className="font-head font-bold text-sm text-foreground">
+                  {recordsSectionNum}. {currentPage.title} Live Data Records (
+                  {currentPage.items.length} Records)
+                </span>
+                <p className="text-[11px] text-muted-foreground mt-0.5">
+                  Edit individual records, dates, providers, values, and compliance statuses
+                  directly
+                </p>
+              </div>
+
+              <button
+                onClick={() => {
+                  const emptyForm: Record<string, any> = {};
+                  if (visibleColumns && visibleColumns.length > 0) {
+                    visibleColumns
+                      .filter((c) => c.id !== 'actions' && c.id !== 'id')
+                      .forEach((col) => {
+                        emptyForm[col.id] = col.defaultValue || '';
+                      });
+                  } else {
+                    const sample = currentPage.items?.[0] || {};
+                    Object.keys(sample).forEach((k) => {
+                      if (k !== 'id') emptyForm[k] = '';
+                    });
+                  }
+                  setNewGenericForm(emptyForm);
+                  setShowAddGenericModal(true);
+                }}
+                className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-transform active:scale-95 shadow-sm cursor-pointer"
+                style={{ background: 'var(--primary)', color: '#121316' }}
+              >
+                <Plus size={14} strokeWidth={2.5} />
+                Add New Record
+              </button>
             </div>
 
-            <button
-              onClick={() => {
-                const emptyForm: Record<string, any> = {};
-                if (visibleColumns && visibleColumns.length > 0) {
-                  visibleColumns
-                    .filter((c) => c.id !== 'actions' && c.id !== 'id')
-                    .forEach((col) => {
-                      emptyForm[col.id] = col.defaultValue || '';
-                    });
-                } else {
-                  const sample = currentPage.items?.[0] || {};
-                  Object.keys(sample).forEach((k) => {
-                    if (k !== 'id') emptyForm[k] = '';
-                  });
-                }
-                setNewGenericForm(emptyForm);
-                setShowAddGenericModal(true);
-              }}
-              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-transform active:scale-95 shadow-sm cursor-pointer"
-              style={{ background: 'var(--primary)', color: '#121316' }}
-            >
-              <Plus size={14} strokeWidth={2.5} />
-              Add New Record
-            </button>
-          </div>
-
-          <div className="border border-border rounded-xl overflow-x-auto">
-            <table className="w-full text-left border-collapse text-xs">
-              <thead>
-                <tr className="border-b border-border bg-black/20 text-muted-foreground text-[11px] font-bold uppercase tracking-wider">
-                  {visibleColumns
-                    .filter((c) => c.id !== 'actions')
-                    .map((col) => (
-                      <th key={col.id} className="py-2.5 px-3 whitespace-nowrap">
-                        {col.label}
-                      </th>
-                    ))}
-                  <th className="py-2.5 px-3 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {currentPage.items.map((row: any, idx: number) => (
-                  <tr key={row.id || idx} className="hover:bg-white/[0.02] transition-colors">
+            <div className="border border-border rounded-xl overflow-x-auto">
+              <table className="w-full text-left border-collapse text-xs">
+                <thead>
+                  <tr className="border-b border-border bg-black/20 text-muted-foreground text-[11px] font-bold uppercase tracking-wider">
                     {visibleColumns
                       .filter((c) => c.id !== 'actions')
-                      .map((col) => {
-                        const val = row[col.id] ?? row[col.id.toLowerCase()] ?? '';
-                        return (
-                          <td key={col.id} className="py-2.5 px-3 text-foreground whitespace-nowrap">
-                            {col.id.toLowerCase().includes('status') ? (
-                              <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
-                                {String(val || 'Active')}
-                              </span>
-                            ) : (
-                              String(val !== undefined && val !== null && val !== '' ? val : '—')
-                            )}
-                          </td>
-                        );
-                      })}
-                    <td className="py-2.5 px-3 text-right">
-                      <div className="flex items-center justify-end gap-1.5">
-                        <button
-                          onClick={() => {
-                            const fullItem = { ...row };
-                            (currentPage.columns || []).forEach((c) => {
-                              if (c.id !== 'actions' && fullItem[c.id] === undefined) {
-                                fullItem[c.id] = fullItem[c.id.toLowerCase()] || '';
-                              }
-                            });
-                            setEditingGenericItem(fullItem);
-                          }}
-                          className="p-1.5 rounded-lg border border-border text-muted-foreground hover:text-primary transition-colors cursor-pointer"
-                          title="Edit Record"
-                        >
-                          <Edit2 size={13} />
-                        </button>
-                        <button
-                          onClick={() => handleDeleteItem(row.id, row.name || row.item || row.title || 'Record')}
-                          className="p-1.5 rounded-lg border border-border text-muted-foreground hover:text-rose-400 hover:bg-rose-500/10 transition-colors cursor-pointer"
-                          title="Delete Record"
-                        >
-                          <Trash2 size={13} />
-                        </button>
-                      </div>
-                    </td>
+                      .map((col) => (
+                        <th key={col.id} className="py-2.5 px-3 whitespace-nowrap">
+                          {col.label}
+                        </th>
+                      ))}
+                    <th className="py-2.5 px-3 text-right">Actions</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y divide-border">
+                  {currentPage.items.map((row: any, idx: number) => (
+                    <tr key={row.id || idx} className="hover:bg-white/[0.02] transition-colors">
+                      {visibleColumns
+                        .filter((c) => c.id !== 'actions')
+                        .map((col) => {
+                          const val = row[col.id] ?? row[col.id.toLowerCase()] ?? '';
+                          return (
+                            <td
+                              key={col.id}
+                              className="py-2.5 px-3 text-foreground whitespace-nowrap"
+                            >
+                              {col.id.toLowerCase().includes('status') ? (
+                                <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+                                  {String(val || 'Active')}
+                                </span>
+                              ) : (
+                                String(val !== undefined && val !== null && val !== '' ? val : '—')
+                              )}
+                            </td>
+                          );
+                        })}
+                      <td className="py-2.5 px-3 text-right">
+                        <div className="flex items-center justify-end gap-1.5">
+                          <button
+                            onClick={() => {
+                              const fullItem = { ...row };
+                              (currentPage.columns || []).forEach((c) => {
+                                if (c.id !== 'actions' && fullItem[c.id] === undefined) {
+                                  fullItem[c.id] = fullItem[c.id.toLowerCase()] || '';
+                                }
+                              });
+                              setEditingGenericItem(fullItem);
+                            }}
+                            className="p-1.5 rounded-lg border border-border text-muted-foreground hover:text-primary transition-colors cursor-pointer"
+                            title="Edit Record"
+                          >
+                            <Edit2 size={13} />
+                          </button>
+                          <button
+                            onClick={() =>
+                              handleDeleteItem(
+                                row.id,
+                                row.name || row.item || row.title || 'Record'
+                              )
+                            }
+                            className="p-1.5 rounded-lg border border-border text-muted-foreground hover:text-rose-400 hover:bg-rose-500/10 transition-colors cursor-pointer"
+                            title="Delete Record"
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
       {/* ─── MODAL: EDIT ASSET RECORD ─── */}
       {editingAsset && (
@@ -2675,7 +3082,10 @@ export default function DeepPageCMSEditor({
               </button>
             </div>
 
-            <form onSubmit={handleSaveAssetEdit} className="p-6 flex flex-col gap-4 overflow-y-auto">
+            <form
+              onSubmit={handleSaveAssetEdit}
+              className="p-6 flex flex-col gap-4 overflow-y-auto"
+            >
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="flex flex-col gap-1.5">
                   <label className="text-xs font-semibold text-foreground">Asset ID</label>
@@ -2731,7 +3141,9 @@ export default function DeepPageCMSEditor({
                   <input
                     type="text"
                     value={editingAsset.department || ''}
-                    onChange={(e) => setEditingAsset({ ...editingAsset, department: e.target.value })}
+                    onChange={(e) =>
+                      setEditingAsset({ ...editingAsset, department: e.target.value })
+                    }
                     className="rounded-lg border border-border px-3 py-2 text-xs outline-none"
                     style={{ background: 'var(--surface2)' }}
                   />
@@ -2768,7 +3180,7 @@ export default function DeepPageCMSEditor({
                       { value: 'excellent', label: 'Excellent', color: '#3dd68c' },
                       { value: 'good', label: 'Good', color: '#60a5fa' },
                       { value: 'fair', label: 'Fair', color: '#f59e0b' },
-                      { value: 'poor', label: 'Poor', color: '#f97316' }
+                      { value: 'poor', label: 'Poor', color: '#f97316' },
                     ]}
                     variant="form"
                     width="100%"
@@ -2784,7 +3196,7 @@ export default function DeepPageCMSEditor({
                       { value: 'low', label: 'Low', color: '#3dd68c' },
                       { value: 'medium', label: 'Medium', color: '#f59e0b' },
                       { value: 'high', label: 'High', color: '#f97316' },
-                      { value: 'critical', label: 'Critical', color: '#f43f5e' }
+                      { value: 'critical', label: 'Critical', color: '#f43f5e' },
                     ]}
                     variant="form"
                     width="100%"
@@ -2799,7 +3211,7 @@ export default function DeepPageCMSEditor({
                     options={[
                       { value: 'active', label: 'Active', color: '#3dd68c' },
                       { value: 'under-maintenance', label: 'Under Maintenance', color: '#f59e0b' },
-                      { value: 'inactive', label: 'Inactive', color: '#94a3b8' }
+                      { value: 'inactive', label: 'Inactive', color: '#94a3b8' },
                     ]}
                     variant="form"
                     width="100%"
@@ -2814,7 +3226,9 @@ export default function DeepPageCMSEditor({
                     <span className="text-xs font-bold uppercase tracking-wider text-primary">
                       Custom Columns ({cmsCustomColumns.length})
                     </span>
-                    <span className="text-[11px] text-muted-foreground">Dynamically configured attributes</span>
+                    <span className="text-[11px] text-muted-foreground">
+                      Dynamically configured attributes
+                    </span>
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     {cmsCustomColumns.map((col) => (
@@ -2889,7 +3303,9 @@ export default function DeepPageCMSEditor({
             <form onSubmit={handleCreateAsset} className="p-6 flex flex-col gap-4 overflow-y-auto">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-semibold text-foreground">Asset ID (e.g. FA-099)</label>
+                  <label className="text-xs font-semibold text-foreground">
+                    Asset ID (e.g. FA-099)
+                  </label>
                   <input
                     type="text"
                     placeholder="Auto-generated if blank"
@@ -2945,7 +3361,9 @@ export default function DeepPageCMSEditor({
                     type="text"
                     placeholder="e.g. Housekeeping, Maintenance"
                     value={newAssetForm.department}
-                    onChange={(e) => setNewAssetForm({ ...newAssetForm, department: e.target.value })}
+                    onChange={(e) =>
+                      setNewAssetForm({ ...newAssetForm, department: e.target.value })
+                    }
                     className="rounded-lg border border-border px-3 py-2 text-xs outline-none"
                     style={{ background: 'var(--surface2)' }}
                   />
@@ -2968,7 +3386,9 @@ export default function DeepPageCMSEditor({
                   <input
                     type="number"
                     value={newAssetForm.quantity}
-                    onChange={(e) => setNewAssetForm({ ...newAssetForm, quantity: Number(e.target.value) || 1 })}
+                    onChange={(e) =>
+                      setNewAssetForm({ ...newAssetForm, quantity: Number(e.target.value) || 1 })
+                    }
                     className="rounded-lg border border-border px-3 py-2 text-xs outline-none"
                     style={{ background: 'var(--surface2)' }}
                   />
@@ -2983,7 +3403,7 @@ export default function DeepPageCMSEditor({
                       { value: 'excellent', label: 'Excellent', color: '#3dd68c' },
                       { value: 'good', label: 'Good', color: '#60a5fa' },
                       { value: 'fair', label: 'Fair', color: '#f59e0b' },
-                      { value: 'poor', label: 'Poor', color: '#f97316' }
+                      { value: 'poor', label: 'Poor', color: '#f97316' },
                     ]}
                     variant="form"
                     width="100%"
@@ -2998,7 +3418,9 @@ export default function DeepPageCMSEditor({
                     <span className="text-xs font-bold uppercase tracking-wider text-primary">
                       Custom Columns ({cmsCustomColumns.length})
                     </span>
-                    <span className="text-[11px] text-muted-foreground">Dynamically configured attributes</span>
+                    <span className="text-[11px] text-muted-foreground">
+                      Dynamically configured attributes
+                    </span>
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     {cmsCustomColumns.map((col) => (
@@ -3006,7 +3428,11 @@ export default function DeepPageCMSEditor({
                         <label className="text-xs font-semibold text-foreground">{col.label}</label>
                         <input
                           type="text"
-                          value={(newAssetForm as any)[col.id] ?? (newAssetForm as any)[col.id.toLowerCase()] ?? ''}
+                          value={
+                            (newAssetForm as any)[col.id] ??
+                            (newAssetForm as any)[col.id.toLowerCase()] ??
+                            ''
+                          }
                           onChange={(e) =>
                             setNewAssetForm({
                               ...newAssetForm,
@@ -3070,7 +3496,10 @@ export default function DeepPageCMSEditor({
               </button>
             </div>
 
-            <form onSubmit={handleSaveGenericItem} className="p-6 flex flex-col gap-3.5 overflow-y-auto">
+            <form
+              onSubmit={handleSaveGenericItem}
+              className="p-6 flex flex-col gap-3.5 overflow-y-auto"
+            >
               {Object.keys(editingGenericItem)
                 .filter((k) => k !== 'id')
                 .map((field) => (
@@ -3136,7 +3565,10 @@ export default function DeepPageCMSEditor({
               </button>
             </div>
 
-            <form onSubmit={handleCreateGenericItem} className="p-6 flex flex-col gap-3.5 overflow-y-auto">
+            <form
+              onSubmit={handleCreateGenericItem}
+              className="p-6 flex flex-col gap-3.5 overflow-y-auto"
+            >
               {Object.keys(newGenericForm).map((field) => (
                 <div key={field} className="flex flex-col gap-1.5">
                   <label className="text-xs font-semibold text-foreground capitalize">
@@ -3208,9 +3640,7 @@ export default function DeepPageCMSEditor({
                   required
                   placeholder="e.g. Grand Central Hotel London"
                   value={newPropertyForm.name}
-                  onChange={(e) =>
-                    setNewPropertyForm({ ...newPropertyForm, name: e.target.value })
-                  }
+                  onChange={(e) => setNewPropertyForm({ ...newPropertyForm, name: e.target.value })}
                   className="rounded-lg border border-border px-3 py-2 text-xs outline-none"
                   style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
                 />
@@ -3273,12 +3703,10 @@ export default function DeepPageCMSEditor({
                   <label className="text-xs font-semibold text-foreground">Initial Status</label>
                   <CustomDropdown
                     value={newPropertyForm.status}
-                    onChange={(val) =>
-                      setNewPropertyForm({ ...newPropertyForm, status: val })
-                    }
+                    onChange={(val) => setNewPropertyForm({ ...newPropertyForm, status: val })}
                     options={[
                       { value: 'active', label: 'Active', color: '#3dd68c' },
-                      { value: 'inactive', label: 'Inactive', color: '#f59e0b' }
+                      { value: 'inactive', label: 'Inactive', color: '#f59e0b' },
                     ]}
                     variant="form"
                     width="100%"
@@ -3323,17 +3751,24 @@ export default function DeepPageCMSEditor({
                 <AlertTriangle size={20} />
               </div>
               <div>
-                <h3 className="font-head font-bold text-base text-foreground">Delete Filter Dropdown?</h3>
-                <p className="text-xs text-muted-foreground mt-0.5">Please confirm dropdown removal</p>
+                <h3 className="font-head font-bold text-base text-foreground">
+                  Delete Filter Dropdown?
+                </h3>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Please confirm dropdown removal
+                </p>
               </div>
             </div>
 
             <div className="p-3.5 rounded-xl border border-border/80 bg-surface2/60 text-xs text-muted-foreground flex flex-col gap-1.5">
               <div>
-                Are you sure you want to delete the filter dropdown <strong className="text-foreground">"{dropdownToDelete.label}"</strong>?
+                Are you sure you want to delete the filter dropdown{' '}
+                <strong className="text-foreground">"{dropdownToDelete.label}"</strong>?
               </div>
               <div className="text-[11px] text-muted-foreground/90 mt-0.5">
-                ID: <span className="font-mono text-foreground">{dropdownToDelete.id}</span> · Selectable options: <span className="font-bold text-foreground">{dropdownToDelete.options.length}</span>
+                ID: <span className="font-mono text-foreground">{dropdownToDelete.id}</span> ·
+                Selectable options:{' '}
+                <span className="font-bold text-foreground">{dropdownToDelete.options.length}</span>
               </div>
               <div className="text-[11px] text-rose-400 mt-1 font-medium">
                 This will remove this filter dropdown from the page filter bar.
@@ -3378,7 +3813,9 @@ export default function DeepPageCMSEditor({
               </div>
               <div className="flex-1 min-w-0">
                 <h3 className="font-head font-bold text-base text-foreground">Remove Option</h3>
-                <p className="text-xs text-muted-foreground truncate">{optionToDelete.dropdownLabel}</p>
+                <p className="text-xs text-muted-foreground truncate">
+                  {optionToDelete.dropdownLabel}
+                </p>
               </div>
               <button
                 type="button"
@@ -3390,9 +3827,15 @@ export default function DeepPageCMSEditor({
             </div>
 
             <div className="text-xs leading-relaxed text-muted-foreground">
-              Are you sure you want to remove <strong className="text-foreground font-semibold">"{optionToDelete.optionName}"</strong> from the <strong className="text-foreground">{optionToDelete.dropdownLabel}</strong> dropdown?
+              Are you sure you want to remove{' '}
+              <strong className="text-foreground font-semibold">
+                "{optionToDelete.optionName}"
+              </strong>{' '}
+              from the <strong className="text-foreground">{optionToDelete.dropdownLabel}</strong>{' '}
+              dropdown?
               <span className="block mt-2 text-emerald-400 font-medium">
-                Note: All existing records assigned to this category will safely stay in the database. Only this option will be removed from the dropdown list.
+                Note: All existing records assigned to this category will safely stay in the
+                database. Only this option will be removed from the dropdown list.
               </span>
             </div>
 
@@ -3437,9 +3880,14 @@ export default function DeepPageCMSEditor({
                   <Plus size={18} />
                 </div>
                 <div>
-                  <h3 className="font-head font-bold text-base text-foreground">Add New Filter Dropdown</h3>
+                  <h3 className="font-head font-bold text-base text-foreground">
+                    Add New Filter Dropdown
+                  </h3>
                   <p className="text-xs text-muted-foreground mt-0.5">
-                    Create a custom filter for {TAB_PAGES.find((t) => t.id === selectedPage)?.label || currentPage?.title || selectedPage}
+                    Create a custom filter for{' '}
+                    {TAB_PAGES.find((t) => t.id === selectedPage)?.label ||
+                      currentPage?.title ||
+                      selectedPage}
                   </p>
                 </div>
               </div>
@@ -3464,7 +3912,10 @@ export default function DeepPageCMSEditor({
                   onChange={(e) => {
                     const val = e.target.value;
                     setNewDropdownLabel(val);
-                    if (!newDropdownKey || newDropdownKey === newDropdownLabel.toLowerCase().replace(/[^a-z0-9_-]/g, '-')) {
+                    if (
+                      !newDropdownKey ||
+                      newDropdownKey === newDropdownLabel.toLowerCase().replace(/[^a-z0-9_-]/g, '-')
+                    ) {
                       setNewDropdownKey(val.toLowerCase().replace(/[^a-z0-9_-]/g, '-'));
                     }
                   }}
@@ -3486,7 +3937,9 @@ export default function DeepPageCMSEditor({
                 <input
                   type="text"
                   value={newDropdownKey}
-                  onChange={(e) => setNewDropdownKey(e.target.value.toLowerCase().replace(/[^a-z0-9_-]/g, '-'))}
+                  onChange={(e) =>
+                    setNewDropdownKey(e.target.value.toLowerCase().replace(/[^a-z0-9_-]/g, '-'))
+                  }
                   placeholder="e.g. priority_level, vendor, room_type..."
                   className="rounded-lg border border-border px-3 py-2 text-xs outline-none focus:border-primary font-mono transition-all"
                   style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
@@ -3499,17 +3952,20 @@ export default function DeepPageCMSEditor({
                   <label className="text-xs font-semibold text-foreground">
                     Selectable Options ({newDropdownOptionsList.length})
                   </label>
-                  {newDropdownLabel && !newDropdownOptionsList.some(o => o.toLowerCase() === `all ${newDropdownLabel.toLowerCase()}`) && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setNewDropdownOptionsList(prev => [`All ${newDropdownLabel}`, ...prev]);
-                      }}
-                      className="text-[11px] font-semibold text-primary hover:underline cursor-pointer"
-                    >
-                      + Add "All {newDropdownLabel}"
-                    </button>
-                  )}
+                  {newDropdownLabel &&
+                    !newDropdownOptionsList.some(
+                      (o) => o.toLowerCase() === `all ${newDropdownLabel.toLowerCase()}`
+                    ) && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setNewDropdownOptionsList((prev) => [`All ${newDropdownLabel}`, ...prev]);
+                        }}
+                        className="text-[11px] font-semibold text-primary hover:underline cursor-pointer"
+                      >
+                        + Add "All {newDropdownLabel}"
+                      </button>
+                    )}
                 </div>
 
                 <div className="flex flex-wrap gap-1.5 min-h-[50px] max-h-36 overflow-y-auto p-2 rounded-lg border border-border/70 bg-black/25 content-start">
@@ -3526,7 +3982,9 @@ export default function DeepPageCMSEditor({
                         <span>{opt}</span>
                         <button
                           type="button"
-                          onClick={() => setNewDropdownOptionsList(prev => prev.filter((_, i) => i !== idx))}
+                          onClick={() =>
+                            setNewDropdownOptionsList((prev) => prev.filter((_, i) => i !== idx))
+                          }
                           className="text-muted-foreground hover:text-rose-400 p-0.5 cursor-pointer"
                         >
                           <X size={11} />
@@ -3550,7 +4008,7 @@ export default function DeepPageCMSEditor({
                         e.preventDefault();
                         const val = newDropdownOptionInput.trim();
                         if (val && !newDropdownOptionsList.includes(val)) {
-                          setNewDropdownOptionsList(prev => [...prev, val]);
+                          setNewDropdownOptionsList((prev) => [...prev, val]);
                           setNewDropdownOptionInput('');
                         }
                       }
@@ -3561,7 +4019,7 @@ export default function DeepPageCMSEditor({
                     onClick={() => {
                       const val = newDropdownOptionInput.trim();
                       if (val && !newDropdownOptionsList.includes(val)) {
-                        setNewDropdownOptionsList(prev => [...prev, val]);
+                        setNewDropdownOptionsList((prev) => [...prev, val]);
                         setNewDropdownOptionInput('');
                       }
                     }}
@@ -3613,9 +4071,14 @@ export default function DeepPageCMSEditor({
                   <Plus size={18} />
                 </div>
                 <div>
-                  <h3 className="font-head font-bold text-base text-foreground">Add New Dynamic Column</h3>
+                  <h3 className="font-head font-bold text-base text-foreground">
+                    Add New Dynamic Column
+                  </h3>
                   <p className="text-xs text-muted-foreground mt-0.5">
-                    Add a new column to {TAB_PAGES.find((t) => t.id === selectedPage)?.label || currentPage?.title || selectedPage}
+                    Add a new column to{' '}
+                    {TAB_PAGES.find((t) => t.id === selectedPage)?.label ||
+                      currentPage?.title ||
+                      selectedPage}
                   </p>
                 </div>
               </div>
@@ -3640,7 +4103,10 @@ export default function DeepPageCMSEditor({
                   onChange={(e) => {
                     const val = e.target.value;
                     setNewColLabel(val);
-                    if (!newColKey || newColKey === newColLabel.toLowerCase().replace(/[^a-z0-9_]/g, '_')) {
+                    if (
+                      !newColKey ||
+                      newColKey === newColLabel.toLowerCase().replace(/[^a-z0-9_]/g, '_')
+                    ) {
                       setNewColKey(val.toLowerCase().replace(/[^a-z0-9_]/g, '_'));
                     }
                   }}
@@ -3662,7 +4128,9 @@ export default function DeepPageCMSEditor({
                 <input
                   type="text"
                   value={newColKey}
-                  onChange={(e) => setNewColKey(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, '_'))}
+                  onChange={(e) =>
+                    setNewColKey(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, '_'))
+                  }
                   placeholder="e.g. estimated_cost, warranty_expiry..."
                   className="rounded-lg border border-border px-3 py-2 text-xs outline-none focus:border-primary font-mono transition-all"
                   style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}

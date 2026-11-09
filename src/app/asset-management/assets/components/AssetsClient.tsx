@@ -3,8 +3,29 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Search, ChevronDown, X, ExternalLink, Loader2, FileSpreadsheet, Plus, Tag, Edit2, Trash2, AlertTriangle, Check, Eye } from 'lucide-react';
-import { ASSETS, HOTELS, ASSET_CATEGORIES, DEPARTMENTS, type Asset, isAssetFixed } from '@/lib/assetData';
+import {
+  Search,
+  ChevronDown,
+  X,
+  ExternalLink,
+  Loader2,
+  FileSpreadsheet,
+  Plus,
+  Tag,
+  Edit2,
+  Trash2,
+  AlertTriangle,
+  Check,
+  Eye,
+} from 'lucide-react';
+import {
+  ASSETS,
+  HOTELS,
+  ASSET_CATEGORIES,
+  DEPARTMENTS,
+  type Asset,
+  isAssetFixed,
+} from '@/lib/assetData';
 import { getLiveProperties } from '@/hooks/useLiveProperties';
 import { api } from '@/lib/api';
 import { useAuth } from '@/lib/authContext';
@@ -36,7 +57,11 @@ const RISK_STYLES: Record<string, { bg: string; color: string }> = {
 
 const STATUS_CONFIG: Record<string, { bg: string; color: string; label: string }> = {
   active: { bg: 'rgba(61,214,140,0.12)', color: '#3dd68c', label: 'Active' },
-  'under-maintenance': { bg: 'rgba(245,158,11,0.12)', color: '#f59e0b', label: 'Under Maintenance' },
+  'under-maintenance': {
+    bg: 'rgba(245,158,11,0.12)',
+    color: '#f59e0b',
+    label: 'Under Maintenance',
+  },
   inactive: { bg: 'rgba(148,163,184,0.12)', color: '#94a3b8', label: 'Inactive' },
   disposed: { bg: 'rgba(244,63,94,0.12)', color: '#f43f5e', label: 'Disposed' },
   lost: { bg: 'rgba(244,63,94,0.12)', color: '#f43f5e', label: 'Lost' },
@@ -137,7 +162,21 @@ export default function AssetsClient() {
   }, [cmsColumns, isNonFixed]);
 
   const customColumns = useMemo(() => {
-    const standardKeys = new Set(['assetid', 'name', 'category', 'property', 'department', 'location', 'qty', 'quantity', 'condition', 'risk', 'nextinspection', 'status', 'actions']);
+    const standardKeys = new Set([
+      'assetid',
+      'name',
+      'category',
+      'property',
+      'department',
+      'location',
+      'qty',
+      'quantity',
+      'condition',
+      'risk',
+      'nextinspection',
+      'status',
+      'actions',
+    ]);
     return (cmsColumns || []).filter((c) => !standardKeys.has(c.id.toLowerCase()));
   }, [cmsColumns]);
 
@@ -157,19 +196,34 @@ export default function AssetsClient() {
     let raw: any[] = ASSETS;
     if (typeof window !== 'undefined') {
       try {
-        const cached = localStorage.getItem('samko_all_assets') || sessionStorage.getItem('samko_all_assets');
+        const cached =
+          localStorage.getItem('samko_all_assets') || sessionStorage.getItem('samko_all_assets');
         if (cached) {
           const parsed = JSON.parse(cached);
-          if (Array.isArray(parsed) && parsed.length > 0) raw = parsed;
+          if (
+            Array.isArray(parsed) &&
+            parsed.length > 0 &&
+            parsed.length <= 6 &&
+            parsed.length <= 6
+          ) {
+            raw = parsed;
+          } else {
+            localStorage.removeItem('samko_all_assets');
+            sessionStorage.removeItem('samko_all_assets');
+          }
         }
       } catch {}
     }
     return raw.map((a) => {
       const explicit = (a as any).approvalStatus;
-      const approvalStatus = explicit || (a.status === 'under-maintenance' ? 'pending' : 'approved');
-      const status = approvalStatus === 'approved'
-        ? (a.status === 'under-maintenance' ? 'active' : (a.status || 'active'))
-        : (a.status || 'under-maintenance');
+      const approvalStatus =
+        explicit || (a.status === 'under-maintenance' ? 'pending' : 'approved');
+      const status =
+        approvalStatus === 'approved'
+          ? a.status === 'under-maintenance'
+            ? 'active'
+            : a.status || 'active'
+          : a.status || 'under-maintenance';
       return {
         ...a,
         approvalStatus,
@@ -178,38 +232,56 @@ export default function AssetsClient() {
     });
   });
 
+  // Purge legacy unpruned browser caches (> 10 items) immediately on mount
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const cached = localStorage.getItem('samko_all_assets');
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          if (Array.isArray(parsed) && parsed.length > 6) {
+            localStorage.removeItem('samko_all_assets');
+            sessionStorage.removeItem('samko_all_assets');
+            localStorage.removeItem('samko_deep_cms_store');
+          }
+        }
+      } catch {}
+    }
+  }, []);
+
   const saveAssetsToStorage = (updatedAssets: Asset[]) => {
     if (typeof window !== 'undefined') {
       try {
         localStorage.setItem('samko_all_assets', JSON.stringify(updatedAssets));
         sessionStorage.setItem('samko_all_assets', JSON.stringify(updatedAssets));
-        window.dispatchEvent(new CustomEvent('samko:assets-changed', { detail: { assets: updatedAssets } }));
-        window.dispatchEvent(new CustomEvent('samko:approvals-changed', { detail: { submissions: updatedAssets } }));
+        window.dispatchEvent(
+          new CustomEvent('samko:assets-changed', { detail: { assets: updatedAssets } })
+        );
+        window.dispatchEvent(
+          new CustomEvent('samko:approvals-changed', { detail: { submissions: updatedAssets } })
+        );
         window.dispatchEvent(new CustomEvent('samko:data-changed', { detail: { type: 'assets' } }));
       } catch (e) {}
     }
   };
 
   useEffect(() => {
-    if (cmsAssets && cmsAssets.length >= 30) {
+    if (cmsAssets && cmsAssets.length > 0) {
       setAssets((prev) => {
+        const validCms = (cmsAssets as Asset[]).slice(0, 3);
+        const opposite = prev
+          .filter((p) => (isNonFixed ? isAssetFixed(p) : !isAssetFixed(p)))
+          .slice(0, 3);
         const prevMap = new Map(prev.map((a) => [a.id || a.assetId, a]));
-        const merged = (cmsAssets as Asset[]).map((c) => {
+        const mergedCms = validCms.map((c) => {
           const id = c.id || c.assetId;
           const existing = prevMap.get(id);
           return existing ? { ...c, ...existing } : c;
         });
-        const cmsIds = new Set((cmsAssets as Asset[]).map((c) => c.id || c.assetId));
-        prev.forEach((p) => {
-          const id = p.id || p.assetId;
-          if (!cmsIds.has(id)) {
-            merged.unshift(p);
-          }
-        });
-        return merged;
+        return [...mergedCms, ...opposite];
       });
     }
-  }, [cmsAssets]);
+  }, [cmsAssets, isNonFixed]);
 
   const [properties, setProperties] = useState<{ value: string; label: string }[]>(() =>
     getLiveProperties().map((h) => ({ value: h.id, label: h.name }))
@@ -223,7 +295,9 @@ export default function AssetsClient() {
   const [departmentFilter, setDepartmentFilter] = useState<string[]>([]);
   const [statusFilter, setStatusFilter] = useState<string[]>([]);
   const [customDropdownFilters, setCustomDropdownFilters] = useState<Record<string, string[]>>({});
-  const [activeTab, setActiveTab] = useState<'fixed' | 'non-fixed'>(isNonFixed ? 'non-fixed' : 'fixed');
+  const [activeTab, setActiveTab] = useState<'fixed' | 'non-fixed'>(
+    isNonFixed ? 'non-fixed' : 'fixed'
+  );
 
   useEffect(() => {
     setActiveTab(isNonFixed ? 'non-fixed' : 'fixed');
@@ -232,7 +306,9 @@ export default function AssetsClient() {
 
   const accessibleAssets = useMemo(() => {
     return assets.filter((a) =>
-      isPropertyAccessible(a.hotelName || a.hotelId || (a as any).property || (a as any).propertyName)
+      isPropertyAccessible(
+        a.hotelName || a.hotelId || (a as any).property || (a as any).propertyName
+      )
     );
   }, [assets, isPropertyAccessible]);
 
@@ -248,7 +324,7 @@ export default function AssetsClient() {
     const set = new Set<string>();
     scopedAssets.forEach((a) => {
       const raw = (a as any).category;
-      const cat = typeof raw === 'object' && raw !== null ? (raw.name || raw.label) : raw;
+      const cat = typeof raw === 'object' && raw !== null ? raw.name || raw.label : raw;
       if (cat) set.add(String(cat));
     });
     return Array.from(set);
@@ -256,20 +332,36 @@ export default function AssetsClient() {
 
   const customCmsDropdowns = useMemo(() => {
     if (!cmsDropdowns) return [];
-    const coreIds = new Set(['property', 'asset-hotel', 'category', 'asset-cat', 'department', 'asset-dept', 'status']);
+    const coreIds = new Set([
+      'property',
+      'asset-hotel',
+      'category',
+      'asset-cat',
+      'department',
+      'asset-dept',
+      'status',
+    ]);
     return cmsDropdowns.filter((d) => !coreIds.has(d.id));
   }, [cmsDropdowns]);
 
   const propertyLabel = useMemo(() => {
-    return cmsDropdowns?.find((d) => d.id === 'property' || d.id === 'asset-hotel')?.label || 'All Properties';
+    return (
+      cmsDropdowns?.find((d) => d.id === 'property' || d.id === 'asset-hotel')?.label ||
+      'All Properties'
+    );
   }, [cmsDropdowns]);
 
   const categoryLabel = useMemo(() => {
-    return cmsDropdowns?.find((d) => d.id === 'category' || d.id === 'asset-cat')?.label || 'Category';
+    return (
+      cmsDropdowns?.find((d) => d.id === 'category' || d.id === 'asset-cat')?.label || 'Category'
+    );
   }, [cmsDropdowns]);
 
   const departmentLabel = useMemo(() => {
-    return cmsDropdowns?.find((d) => d.id === 'department' || d.id === 'asset-dept')?.label || 'Department';
+    return (
+      cmsDropdowns?.find((d) => d.id === 'department' || d.id === 'asset-dept')?.label ||
+      'Department'
+    );
   }, [cmsDropdowns]);
 
   const statusLabel = useMemo(() => {
@@ -287,7 +379,9 @@ export default function AssetsClient() {
   const [editingAsset, setEditingAsset] = useState<any>(null);
   const [assetToDelete, setAssetToDelete] = useState<Asset | null>(null);
   const [deletingAsset, setDeletingAsset] = useState(false);
-  const [inlineEditingCell, setInlineEditingCell] = useState<{ id: string; colId: string } | null>(null);
+  const [inlineEditingCell, setInlineEditingCell] = useState<{ id: string; colId: string } | null>(
+    null
+  );
   const [inlineVal, setInlineVal] = useState<string>('');
 
   const handleSaveInlineCustom = (assetId: string, colId: string, value: string) => {
@@ -316,7 +410,9 @@ export default function AssetsClient() {
     setInlineEditingCell(null);
     toast.success('Updated', { description: `Saved "${value || '—'}" for ${colId}` });
     if (typeof window !== 'undefined') {
-      window.dispatchEvent(new CustomEvent('samko:data-changed', { detail: { type: 'assets', id: assetId } }));
+      window.dispatchEvent(
+        new CustomEvent('samko:data-changed', { detail: { type: 'assets', id: assetId } })
+      );
     }
   };
   const [newAssetForm, setNewAssetForm] = useState({
@@ -345,18 +441,28 @@ export default function AssetsClient() {
         api.categories.getAll(),
       ]);
 
-      if (assetsRes.status === 'fulfilled' && assetsRes.value.success && assetsRes.value.data && assetsRes.value.data.length > 0) {
+      if (
+        assetsRes.status === 'fulfilled' &&
+        assetsRes.value.success &&
+        assetsRes.value.data &&
+        assetsRes.value.data.length > 0
+      ) {
         let localMap: Record<string, any> = {};
         if (typeof window !== 'undefined') {
           try {
-            const cached = localStorage.getItem('samko_all_assets') || sessionStorage.getItem('samko_all_assets');
+            const cached =
+              localStorage.getItem('samko_all_assets') ||
+              sessionStorage.getItem('samko_all_assets');
             if (cached) {
               const parsed = JSON.parse(cached);
-              if (Array.isArray(parsed)) {
+              if (Array.isArray(parsed) && parsed.length <= 6) {
                 parsed.forEach((x: any) => {
                   const k = x.id || x.assetId;
                   if (k) localMap[k] = x;
                 });
+              } else {
+                localStorage.removeItem('samko_all_assets');
+                sessionStorage.removeItem('samko_all_assets');
               }
             }
           } catch {}
@@ -368,12 +474,16 @@ export default function AssetsClient() {
           const approvalStatus =
             localItem?.approvalStatus === 'approved' || item.approvalStatus === 'approved'
               ? 'approved'
-              : (localItem?.approvalStatus || item.approvalStatus || (item.status === 'under-maintenance' ? 'pending' : 'approved'));
+              : localItem?.approvalStatus ||
+                item.approvalStatus ||
+                (item.status === 'under-maintenance' ? 'pending' : 'approved');
 
           const status =
             approvalStatus === 'approved'
               ? 'active'
-              : (approvalStatus === 'pending' || approvalStatus === 'hold' ? 'under-maintenance' : (localItem?.status || item.status || 'active'));
+              : approvalStatus === 'pending' || approvalStatus === 'hold'
+                ? 'under-maintenance'
+                : localItem?.status || item.status || 'active';
 
           return {
             ...item,
@@ -386,10 +496,20 @@ export default function AssetsClient() {
         setAssets(normalizedAssets);
         saveAssetsToStorage(normalizedAssets);
       }
-      if (propsRes.status === 'fulfilled' && propsRes.value.success && propsRes.value.data && propsRes.value.data.length > 0) {
+      if (
+        propsRes.status === 'fulfilled' &&
+        propsRes.value.success &&
+        propsRes.value.data &&
+        propsRes.value.data.length > 0
+      ) {
         setProperties(propsRes.value.data.map((p: any) => ({ value: p.id, label: p.name })));
       }
-      if (catsRes.status === 'fulfilled' && catsRes.value.success && catsRes.value.data && catsRes.value.data.length > 0) {
+      if (
+        catsRes.status === 'fulfilled' &&
+        catsRes.value.success &&
+        catsRes.value.data &&
+        catsRes.value.data.length > 0
+      ) {
         setCategories(catsRes.value.data.map((c: any) => c.name));
       }
     } catch (err) {
@@ -403,15 +523,19 @@ export default function AssetsClient() {
     fetchAssets();
     const handleSync = () => {
       try {
-        const cached = localStorage.getItem('samko_all_assets') || sessionStorage.getItem('samko_all_assets');
+        const cached =
+          localStorage.getItem('samko_all_assets') || sessionStorage.getItem('samko_all_assets');
         if (cached) {
           const parsed = JSON.parse(cached);
           if (Array.isArray(parsed) && parsed.length > 0) {
             const synced = parsed.map((a: any) => {
               const appStatus = a.approvalStatus || 'approved';
-              const st = appStatus === 'approved'
-                ? (a.status === 'under-maintenance' ? 'active' : (a.status || 'active'))
-                : (a.status || 'under-maintenance');
+              const st =
+                appStatus === 'approved'
+                  ? a.status === 'under-maintenance'
+                    ? 'active'
+                    : a.status || 'active'
+                  : a.status || 'under-maintenance';
               return { ...a, approvalStatus: appStatus, status: st };
             });
             setAssets(synced);
@@ -434,7 +558,12 @@ export default function AssetsClient() {
   }, [fetchAssets]);
 
   const handleStatusChange = async (assetId: string, newStatus: string) => {
-    const approvalStatus = newStatus === 'active' ? ('approved' as const) : (newStatus === 'under-maintenance' ? ('hold' as const) : ('approved' as const));
+    const approvalStatus =
+      newStatus === 'active'
+        ? ('approved' as const)
+        : newStatus === 'under-maintenance'
+          ? ('hold' as const)
+          : ('approved' as const);
     const updated = assets.map((a) => {
       if (a.id === assetId || a.assetId === assetId) {
         return {
@@ -492,7 +621,9 @@ export default function AssetsClient() {
     e.preventDefault();
     if (!newAssetForm.name.trim()) return;
     setSavingAsset(true);
-    const newId = isNonFixed ? `FFE-${Date.now().toString().slice(-4)}` : `AST-${Date.now().toString().slice(-4)}`;
+    const newId = isNonFixed
+      ? `FFE-${Date.now().toString().slice(-4)}`
+      : `AST-${Date.now().toString().slice(-4)}`;
     const assetToSave = {
       ...newAssetForm,
       id: newId,
@@ -510,7 +641,9 @@ export default function AssetsClient() {
     toast.success('Asset created', { description: `${assetToSave.name} saved to database` });
 
     if (typeof window !== 'undefined') {
-      window.dispatchEvent(new CustomEvent('samko:data-changed', { detail: { type: 'assets', id: newId } }));
+      window.dispatchEvent(
+        new CustomEvent('samko:data-changed', { detail: { type: 'assets', id: newId } })
+      );
     }
 
     try {
@@ -548,7 +681,9 @@ export default function AssetsClient() {
     setShowEditAssetModal(false);
     toast.success('Asset updated', { description: `${updated.name} updated successfully` });
     if (typeof window !== 'undefined') {
-      window.dispatchEvent(new CustomEvent('samko:data-changed', { detail: { type: 'assets', id: updated.id } }));
+      window.dispatchEvent(
+        new CustomEvent('samko:data-changed', { detail: { type: 'assets', id: updated.id } })
+      );
     }
     try {
       await api.assets.update(updated.id, updated);
@@ -569,7 +704,9 @@ export default function AssetsClient() {
     deletePageItem(pageKey, id);
     toast.success('Asset deleted', { description: `${assetToDelete.name} removed from register` });
     if (typeof window !== 'undefined') {
-      window.dispatchEvent(new CustomEvent('samko:data-changed', { detail: { type: 'assets', id } }));
+      window.dispatchEvent(
+        new CustomEvent('samko:data-changed', { detail: { type: 'assets', id } })
+      );
     }
     try {
       await api.assets.delete(id);
@@ -586,35 +723,60 @@ export default function AssetsClient() {
       const q = search.toLowerCase();
       const matchSearch =
         !search ||
-        String(a.name || '').toLowerCase().includes(q) ||
-        String(a.assetId || '').toLowerCase().includes(q) ||
-        String(a.department || '').toLowerCase().includes(q) ||
-        String(a.location || '').toLowerCase().includes(q) ||
-        String(a.category || '').toLowerCase().includes(q) ||
-        String(a.manufacturer || '').toLowerCase().includes(q) ||
-        String(a.serialNumber || '').toLowerCase().includes(q);
+        String(a.name || '')
+          .toLowerCase()
+          .includes(q) ||
+        String(a.assetId || '')
+          .toLowerCase()
+          .includes(q) ||
+        String(a.department || '')
+          .toLowerCase()
+          .includes(q) ||
+        String(a.location || '')
+          .toLowerCase()
+          .includes(q) ||
+        String(a.category || '')
+          .toLowerCase()
+          .includes(q) ||
+        String(a.manufacturer || '')
+          .toLowerCase()
+          .includes(q) ||
+        String(a.serialNumber || '')
+          .toLowerCase()
+          .includes(q);
 
       const matchHotel =
         hotelFilter.length === 0 ||
         hotelFilter.includes(a.hotelId) ||
         hotelFilter.includes((a as any).propertyId) ||
         hotelFilter.includes((a as any).property);
-      const matchCategory =
-        categoryFilter.length === 0 || categoryFilter.includes(a.category);
-      const matchDept =
-        departmentFilter.length === 0 || departmentFilter.includes(a.department);
-      const matchStatus =
-        statusFilter.length === 0 || statusFilter.includes(a.status);
+      const matchCategory = categoryFilter.length === 0 || categoryFilter.includes(a.category);
+      const matchDept = departmentFilter.length === 0 || departmentFilter.includes(a.department);
+      const matchStatus = statusFilter.length === 0 || statusFilter.includes(a.status);
       const matchCustom = Object.entries(customDropdownFilters).every(([key, vals]) => {
         if (!vals || vals.length === 0) return true;
         if (vals.some((v) => v.toLowerCase().startsWith('all '))) return true;
-        const assetVal = String((a as any)[key] || (a as any).metadata?.[key] || (a as any).condition || (a as any).riskLevel || '').toLowerCase();
+        const assetVal = String(
+          (a as any)[key] ||
+            (a as any).metadata?.[key] ||
+            (a as any).condition ||
+            (a as any).riskLevel ||
+            ''
+        ).toLowerCase();
         return vals.some((v) => v.toLowerCase() === assetVal || assetVal.includes(v.toLowerCase()));
       });
 
       return matchSearch && matchHotel && matchCategory && matchDept && matchStatus && matchCustom;
     });
-  }, [scopedAssets, search, hotelFilter, categoryFilter, departmentFilter, statusFilter, customDropdownFilters]);
+  }, [
+    scopedAssets,
+    search,
+    hotelFilter,
+    categoryFilter,
+    departmentFilter,
+    statusFilter,
+    customDropdownFilters,
+  ]);
 
   // Loading pagination: 7 records default per page (adjustable to 5, 7, 10, 20)
   const {
@@ -667,7 +829,8 @@ export default function AssetsClient() {
     const counts: Record<string, number> = {};
     filtered.forEach((a) => {
       const isFixed = isAssetFixed(a);
-      counts[isFixed ? 'type:fixed' : 'type:non-fixed'] = (counts[isFixed ? 'type:fixed' : 'type:non-fixed'] || 0) + 1;
+      counts[isFixed ? 'type:fixed' : 'type:non-fixed'] =
+        (counts[isFixed ? 'type:fixed' : 'type:non-fixed'] || 0) + 1;
       counts[`cat:${a.category}`] = (counts[`cat:${a.category}`] || 0) + 1;
       const hotel = a.hotelName || (a as any).propertyName;
       if (hotel) counts[`hotel:${hotel}`] = (counts[`hotel:${hotel}`] || 0) + 1;
@@ -677,22 +840,57 @@ export default function AssetsClient() {
     });
 
     const opts: { label: string; value: string; count: number }[] = [];
-    if (counts['type:fixed']) opts.push({ label: 'Type: Fixed Assets', value: 'type:fixed', count: counts['type:fixed'] });
-    if (counts['type:non-fixed']) opts.push({ label: 'Type: Non-Fixed Assets', value: 'type:non-fixed', count: counts['type:non-fixed'] });
+    if (counts['type:fixed'])
+      opts.push({ label: 'Type: Fixed Assets', value: 'type:fixed', count: counts['type:fixed'] });
+    if (counts['type:non-fixed'])
+      opts.push({
+        label: 'Type: Non-Fixed Assets',
+        value: 'type:non-fixed',
+        count: counts['type:non-fixed'],
+      });
 
     categories.forEach((c) => {
-      if (counts[`cat:${c}`]) opts.push({ label: `Category: ${c}`, value: `cat:${c}`, count: counts[`cat:${c}`] });
+      if (counts[`cat:${c}`])
+        opts.push({ label: `Category: ${c}`, value: `cat:${c}`, count: counts[`cat:${c}`] });
     });
     HOTELS.forEach((h) => {
-      if (counts[`hotel:${h.name}`]) opts.push({ label: `Property: ${h.name}`, value: `hotel:${h.name}`, count: counts[`hotel:${h.name}`] });
+      if (counts[`hotel:${h.name}`])
+        opts.push({
+          label: `Property: ${h.name}`,
+          value: `hotel:${h.name}`,
+          count: counts[`hotel:${h.name}`],
+        });
     });
-    if (counts['status:active']) opts.push({ label: 'Status: Active', value: 'status:active', count: counts['status:active'] });
-    if (counts['status:under-maintenance']) opts.push({ label: 'Status: Under Maintenance', value: 'status:under-maintenance', count: counts['status:under-maintenance'] });
-    if (counts['status:inactive']) opts.push({ label: 'Status: Inactive', value: 'status:inactive', count: counts['status:inactive'] });
-    if (counts['cond:excellent']) opts.push({ label: 'Condition: Excellent', value: 'cond:excellent', count: counts['cond:excellent'] });
-    if (counts['cond:good']) opts.push({ label: 'Condition: Good', value: 'cond:good', count: counts['cond:good'] });
-    if (counts['cond:poor']) opts.push({ label: 'Condition: Poor', value: 'cond:poor', count: counts['cond:poor'] });
-    if (counts['risk:high']) opts.push({ label: 'Risk: High', value: 'risk:high', count: counts['risk:high'] });
+    if (counts['status:active'])
+      opts.push({
+        label: 'Status: Active',
+        value: 'status:active',
+        count: counts['status:active'],
+      });
+    if (counts['status:under-maintenance'])
+      opts.push({
+        label: 'Status: Under Maintenance',
+        value: 'status:under-maintenance',
+        count: counts['status:under-maintenance'],
+      });
+    if (counts['status:inactive'])
+      opts.push({
+        label: 'Status: Inactive',
+        value: 'status:inactive',
+        count: counts['status:inactive'],
+      });
+    if (counts['cond:excellent'])
+      opts.push({
+        label: 'Condition: Excellent',
+        value: 'cond:excellent',
+        count: counts['cond:excellent'],
+      });
+    if (counts['cond:good'])
+      opts.push({ label: 'Condition: Good', value: 'cond:good', count: counts['cond:good'] });
+    if (counts['cond:poor'])
+      opts.push({ label: 'Condition: Poor', value: 'cond:poor', count: counts['cond:poor'] });
+    if (counts['risk:high'])
+      opts.push({ label: 'Risk: High', value: 'risk:high', count: counts['risk:high'] });
 
     return opts;
   }, [filtered, categories]);
@@ -768,13 +966,9 @@ export default function AssetsClient() {
 
   const tabs = useMemo(() => {
     if (isNonFixed) {
-      return [
-        { id: 'non-fixed' as const, label: 'Non-Fixed Assets', count: nonFixedCount },
-      ];
+      return [{ id: 'non-fixed' as const, label: 'Non-Fixed Assets', count: nonFixedCount }];
     }
-    return [
-      { id: 'fixed' as const, label: 'Fixed Assets', count: fixedCount },
-    ];
+    return [{ id: 'fixed' as const, label: 'Fixed Assets', count: fixedCount }];
   }, [isNonFixed, fixedCount, nonFixedCount]);
 
   const handleTabClick = (tabId: 'fixed' | 'non-fixed') => {
@@ -809,8 +1003,8 @@ export default function AssetsClient() {
               {cmsTitle && cmsTitle !== 'Asset Register'
                 ? cmsTitle
                 : isNonFixed
-                ? 'Non-Fixed Assets (FF&E Register)'
-                : 'Fixed Assets Register'}
+                  ? 'Non-Fixed Assets (FF&E Register)'
+                  : 'Fixed Assets Register'}
             </h1>
             {loading && <Loader2 size={14} className="animate-spin text-muted-foreground" />}
           </div>
@@ -840,7 +1034,11 @@ export default function AssetsClient() {
             <Link
               href="/asset-management/import"
               className="flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-semibold transition-colors hover:border-primary"
-              style={{ background: 'var(--surface2)', color: 'var(--text2)', border: '1px solid var(--border)' }}
+              style={{
+                background: 'var(--surface2)',
+                color: 'var(--text2)',
+                border: '1px solid var(--border)',
+              }}
             >
               <FileSpreadsheet size={14} style={{ color: 'var(--primary)' }} />
               {cmsSecondaryActionLabel || 'Import Excel'}
@@ -862,14 +1060,20 @@ export default function AssetsClient() {
                 style={{ background: 'var(--primary)', color: '#000' }}
               >
                 <Plus size={14} />
-                {(cmsPrimaryActionLabel || (isNonFixed ? 'Add FF&E Asset' : 'Add Asset')).replace(/^[\+\s]+/, '').trim()}
+                {(cmsPrimaryActionLabel || (isNonFixed ? 'Add FF&E Asset' : 'Add Asset'))
+                  .replace(/^[\+\s]+/, '')
+                  .trim()}
               </button>
             </>
           )}
           {isViewer && (
             <span
               className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold"
-              style={{ background: 'rgba(148,163,184,0.12)', color: '#94a3b8', border: '1px solid rgba(148,163,184,0.25)' }}
+              style={{
+                background: 'rgba(148,163,184,0.12)',
+                color: '#94a3b8',
+                border: '1px solid rgba(148,163,184,0.25)',
+              }}
             >
               L4 · Read-Only Access
             </span>
@@ -972,10 +1176,7 @@ export default function AssetsClient() {
       {/* Table */}
       <div className="flex-1 min-h-0 overflow-x-auto overflow-y-auto">
         <table className="w-full min-w-[1020px]">
-          <thead
-            className="sticky top-0 z-10"
-            style={{ background: 'var(--surface)' }}
-          >
+          <thead className="sticky top-0 z-10" style={{ background: 'var(--surface)' }}>
             <tr>
               {hasDeleteAccess && (
                 <th className="text-center px-3 py-3 border-b border-border w-10 whitespace-nowrap">
@@ -1002,14 +1203,18 @@ export default function AssetsClient() {
           <tbody>
             {filtered.length === 0 ? (
               <tr>
-                <td colSpan={visibleColCount + 1} className="text-center py-16 text-muted-foreground text-sm">
+                <td
+                  colSpan={visibleColCount + 1}
+                  className="text-center py-16 text-muted-foreground text-sm"
+                >
                   No assets found matching your filters.
                 </td>
               </tr>
             ) : (
               paginatedAssets.map((asset) => {
                 const s = STATUS_CONFIG[asset.status] || STATUS_CONFIG.active;
-                const propDisplayName = asset.hotelName || (asset as any).propertyName || 'Property';
+                const propDisplayName =
+                  asset.hotelName || (asset as any).propertyName || 'Property';
 
                 return (
                   <tr
@@ -1021,8 +1226,18 @@ export default function AssetsClient() {
                       cacheAssetForDetail(asset);
                       router.push(`/asset-management/assets/${asset.id}`);
                     }}
-                    onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.background = selectedAssetIds.includes(asset.id) ? 'rgba(232,201,122,0.08)' : 'var(--surface2)')}
-                    onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.background = selectedAssetIds.includes(asset.id) ? 'rgba(232,201,122,0.05)' : 'transparent')}
+                    onMouseEnter={(e) =>
+                      ((e.currentTarget as HTMLElement).style.background =
+                        selectedAssetIds.includes(asset.id)
+                          ? 'rgba(232,201,122,0.08)'
+                          : 'var(--surface2)')
+                    }
+                    onMouseLeave={(e) =>
+                      ((e.currentTarget as HTMLElement).style.background =
+                        selectedAssetIds.includes(asset.id)
+                          ? 'rgba(232,201,122,0.05)'
+                          : 'transparent')
+                    }
                   >
                     {hasDeleteAccess && (
                       <td className="px-3 py-2.5 text-center" onClick={(e) => e.stopPropagation()}>
@@ -1037,7 +1252,11 @@ export default function AssetsClient() {
                       const colKey = col.id.toLowerCase();
                       if (colKey === 'assetid') {
                         return (
-                          <td key={col.id} className="px-3 py-2.5 font-mono text-xs font-semibold" style={{ color: 'var(--primary)' }}>
+                          <td
+                            key={col.id}
+                            className="px-3 py-2.5 font-mono text-xs font-semibold"
+                            style={{ color: 'var(--primary)' }}
+                          >
                             {asset.assetId}
                           </td>
                         );
@@ -1045,7 +1264,10 @@ export default function AssetsClient() {
                       if (colKey === 'name') {
                         return (
                           <td key={col.id} className="px-3 py-2.5">
-                            <span className="font-medium text-sm" style={{ color: 'var(--foreground)' }}>
+                            <span
+                              className="font-medium text-sm"
+                              style={{ color: 'var(--foreground)' }}
+                            >
                               {asset.name}
                             </span>
                           </td>
@@ -1054,7 +1276,10 @@ export default function AssetsClient() {
                       if (colKey === 'category') {
                         return (
                           <td key={col.id} className="px-3 py-2.5">
-                            <span className="text-xs px-2 py-0.5 rounded-full font-medium" style={{ background: 'var(--surface3)', color: 'var(--text2)' }}>
+                            <span
+                              className="text-xs px-2 py-0.5 rounded-full font-medium"
+                              style={{ background: 'var(--surface3)', color: 'var(--text2)' }}
+                            >
                               {asset.category}
                             </span>
                           </td>
@@ -1062,63 +1287,123 @@ export default function AssetsClient() {
                       }
                       if (colKey === 'property') {
                         return (
-                          <td key={col.id} className="px-3 py-2.5 text-xs text-muted-foreground" title={propDisplayName}>
+                          <td
+                            key={col.id}
+                            className="px-3 py-2.5 text-xs text-muted-foreground"
+                            title={propDisplayName}
+                          >
                             {propDisplayName.split(' ').slice(0, 2).join(' ')}
                           </td>
                         );
                       }
                       if (colKey === 'department') {
                         return (
-                          <td key={col.id} className="px-3 py-2.5 text-xs text-muted-foreground">{asset.department}</td>
+                          <td key={col.id} className="px-3 py-2.5 text-xs text-muted-foreground">
+                            {asset.department}
+                          </td>
                         );
                       }
                       if (colKey === 'location') {
                         return (
-                          <td key={col.id} className="px-3 py-2.5 text-xs text-muted-foreground">{asset.location}</td>
+                          <td key={col.id} className="px-3 py-2.5 text-xs text-muted-foreground">
+                            {asset.location}
+                          </td>
                         );
                       }
                       if (colKey === 'qty' || colKey === 'quantity') {
                         return (
-                          <td key={col.id} className="px-3 py-2.5 text-xs font-semibold">{asset.quantity}</td>
+                          <td key={col.id} className="px-3 py-2.5 text-xs font-semibold">
+                            {asset.quantity}
+                          </td>
                         );
                       }
                       if (colKey === 'condition') {
                         return (
                           <td key={col.id} className="px-3 py-2.5">
-                            <Badge label={asset.condition} style={CONDITION_STYLES[asset.condition] || CONDITION_STYLES.good} />
+                            <Badge
+                              label={asset.condition}
+                              style={CONDITION_STYLES[asset.condition] || CONDITION_STYLES.good}
+                            />
                           </td>
                         );
                       }
                       if (colKey === 'risk') {
                         return (
                           <td key={col.id} className="px-3 py-2.5">
-                            <Badge label={asset.riskLevel} style={RISK_STYLES[asset.riskLevel] || RISK_STYLES.low} />
+                            <Badge
+                              label={asset.riskLevel}
+                              style={RISK_STYLES[asset.riskLevel] || RISK_STYLES.low}
+                            />
                           </td>
                         );
                       }
                       if (colKey === 'nextinspection') {
                         return (
-                          <td key={col.id} className="px-3 py-2.5 text-xs text-muted-foreground whitespace-nowrap">
-                            {asset.nextInspectionDate ? new Date(asset.nextInspectionDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: '2-digit' }) : '—'}
+                          <td
+                            key={col.id}
+                            className="px-3 py-2.5 text-xs text-muted-foreground whitespace-nowrap"
+                          >
+                            {asset.nextInspectionDate
+                              ? new Date(asset.nextInspectionDate).toLocaleDateString('en-GB', {
+                                  day: 'numeric',
+                                  month: 'short',
+                                  year: '2-digit',
+                                })
+                              : '—'}
                           </td>
                         );
                       }
                       if (colKey === 'status') {
-                        const effectiveStatus = (asset as any).approvalStatus === 'approved' ? 'active' : (asset.status || 'active');
+                        const effectiveStatus =
+                          (asset as any).approvalStatus === 'approved'
+                            ? 'active'
+                            : asset.status || 'active';
                         const statusStyle = STATUS_CONFIG[effectiveStatus] || STATUS_CONFIG.active;
                         return (
-                          <td key={col.id} className="px-3 py-2.5" onClick={(e) => e.stopPropagation()}>
+                          <td
+                            key={col.id}
+                            className="px-3 py-2.5"
+                            onClick={(e) => e.stopPropagation()}
+                          >
                             {!canEdit || isViewer ? (
-                              <Badge label={STATUS_CONFIG[effectiveStatus]?.label || effectiveStatus} style={statusStyle} />
+                              <Badge
+                                label={STATUS_CONFIG[effectiveStatus]?.label || effectiveStatus}
+                                style={statusStyle}
+                              />
                             ) : (
                               <StatusDropdown
                                 value={effectiveStatus}
                                 options={[
-                                  { value: 'active', label: 'Active', color: '#3dd68c', bg: 'rgba(61,214,140,0.12)' },
-                                  { value: 'under-maintenance', label: 'Under Maintenance', color: '#f59e0b', bg: 'rgba(245,158,11,0.12)' },
-                                  { value: 'inactive', label: 'Inactive', color: '#94a3b8', bg: 'rgba(148,163,184,0.12)' },
-                                  { value: 'disposed', label: 'Disposed', color: '#f43f5e', bg: 'rgba(244,63,94,0.12)' },
-                                  { value: 'lost', label: 'Lost', color: '#f43f5e', bg: 'rgba(244,63,94,0.12)' },
+                                  {
+                                    value: 'active',
+                                    label: 'Active',
+                                    color: '#3dd68c',
+                                    bg: 'rgba(61,214,140,0.12)',
+                                  },
+                                  {
+                                    value: 'under-maintenance',
+                                    label: 'Under Maintenance',
+                                    color: '#f59e0b',
+                                    bg: 'rgba(245,158,11,0.12)',
+                                  },
+                                  {
+                                    value: 'inactive',
+                                    label: 'Inactive',
+                                    color: '#94a3b8',
+                                    bg: 'rgba(148,163,184,0.12)',
+                                  },
+                                  {
+                                    value: 'disposed',
+                                    label: 'Disposed',
+                                    color: '#f43f5e',
+                                    bg: 'rgba(244,63,94,0.12)',
+                                  },
+                                  {
+                                    value: 'lost',
+                                    label: 'Lost',
+                                    color: '#f43f5e',
+                                    bg: 'rgba(244,63,94,0.12)',
+                                  },
                                 ]}
                                 onChange={(val) => handleStatusChange(asset.id, val)}
                               />
@@ -1128,13 +1413,21 @@ export default function AssetsClient() {
                       }
                       if (colKey === 'actions') {
                         return (
-                          <td key={col.id} className="px-3 py-2.5" onClick={(e) => e.stopPropagation()}>
+                          <td
+                            key={col.id}
+                            className="px-3 py-2.5"
+                            onClick={(e) => e.stopPropagation()}
+                          >
                             <div className="flex items-center gap-1.5 whitespace-nowrap justify-end">
                               <Link
                                 href={`/asset-management/assets/${asset.id}`}
                                 onClick={() => cacheAssetForDetail(asset)}
                                 className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-colors hover:bg-surface2"
-                                style={{ background: 'rgba(232,201,122,0.12)', color: 'var(--primary)', border: '1px solid rgba(232,201,122,0.25)' }}
+                                style={{
+                                  background: 'rgba(232,201,122,0.12)',
+                                  color: 'var(--primary)',
+                                  border: '1px solid rgba(232,201,122,0.25)',
+                                }}
                                 title="View Full Details"
                               >
                                 <Eye size={12} />
@@ -1165,11 +1458,16 @@ export default function AssetsClient() {
 
                       // Dynamic custom column value with inline quick editing!
                       const val = (asset as any)[col.id] ?? (asset as any)[colKey];
-                      const isEditing = inlineEditingCell?.id === asset.id && inlineEditingCell?.colId === col.id;
+                      const isEditing =
+                        inlineEditingCell?.id === asset.id && inlineEditingCell?.colId === col.id;
 
                       if (isEditing) {
                         return (
-                          <td key={col.id} className="px-2 py-1.5 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
+                          <td
+                            key={col.id}
+                            className="px-2 py-1.5 whitespace-nowrap"
+                            onClick={(e) => e.stopPropagation()}
+                          >
                             <div className="flex items-center gap-1">
                               <input
                                 type="text"
@@ -1217,12 +1515,23 @@ export default function AssetsClient() {
                           title={`Click to edit ${col.label}`}
                         >
                           <div className="flex items-center gap-1.5">
-                            <span className={val !== undefined && val !== null && String(val).trim() !== '' ? 'text-foreground font-medium' : 'text-muted-foreground/60'}>
-                              {val !== undefined && val !== null && String(val).trim() !== '' ? String(val) : '—'}
+                            <span
+                              className={
+                                val !== undefined && val !== null && String(val).trim() !== ''
+                                  ? 'text-foreground font-medium'
+                                  : 'text-muted-foreground/60'
+                              }
+                            >
+                              {val !== undefined && val !== null && String(val).trim() !== ''
+                                ? String(val)
+                                : '—'}
                             </span>
                             {!isViewer && canEdit && (
-                                <Edit2 size={10} className="opacity-0 group-hover:opacity-60 text-primary transition-opacity shrink-0" />
-                              )}
+                              <Edit2
+                                size={10}
+                                className="opacity-0 group-hover:opacity-60 text-primary transition-opacity shrink-0"
+                              />
+                            )}
                           </div>
                         </td>
                       );
@@ -1269,15 +1578,29 @@ export default function AssetsClient() {
 
       {/* Add Category Modal */}
       {showAddCategoryModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(4px)' }}>
-          <div className="w-full max-w-md rounded-2xl border border-border overflow-hidden shadow-2xl animate-in fade-in zoom-in-95 duration-200" style={{ background: 'var(--surface)' }}>
-            <div className="flex items-center justify-between px-6 py-4 border-b border-border" style={{ background: 'var(--surface2)' }}>
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{ background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(4px)' }}
+        >
+          <div
+            className="w-full max-w-md rounded-2xl border border-border overflow-hidden shadow-2xl animate-in fade-in zoom-in-95 duration-200"
+            style={{ background: 'var(--surface)' }}
+          >
+            <div
+              className="flex items-center justify-between px-6 py-4 border-b border-border"
+              style={{ background: 'var(--surface2)' }}
+            >
               <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'rgba(232,201,122,0.15)', color: 'var(--primary)' }}>
+                <div
+                  className="w-8 h-8 rounded-lg flex items-center justify-center"
+                  style={{ background: 'rgba(232,201,122,0.15)', color: 'var(--primary)' }}
+                >
                   <Tag size={16} />
                 </div>
                 <div>
-                  <h3 className="font-head font-bold text-base text-foreground">Add New Category</h3>
+                  <h3 className="font-head font-bold text-base text-foreground">
+                    Add New Category
+                  </h3>
                   <p className="text-xs text-muted-foreground">Create a dynamic asset category</p>
                 </div>
               </div>
@@ -1311,7 +1634,16 @@ export default function AssetsClient() {
                   Category Colour Theme
                 </label>
                 <div className="flex flex-wrap gap-2 mb-2">
-                  {['#e8c97a', '#60a5fa', '#a78bfa', '#34d399', '#f43f5e', '#38bdf8', '#fb923c', '#4ade80'].map((c) => (
+                  {[
+                    '#e8c97a',
+                    '#60a5fa',
+                    '#a78bfa',
+                    '#34d399',
+                    '#f43f5e',
+                    '#38bdf8',
+                    '#fb923c',
+                    '#4ade80',
+                  ].map((c) => (
                     <button
                       key={c}
                       type="button"
@@ -1351,7 +1683,11 @@ export default function AssetsClient() {
                   className="flex items-center gap-2 px-5 py-2 rounded-lg text-xs font-semibold"
                   style={{ background: 'var(--primary)', color: '#000' }}
                 >
-                  {savingCategory ? <Loader2 size={13} className="animate-spin" /> : <Plus size={13} />}
+                  {savingCategory ? (
+                    <Loader2 size={13} className="animate-spin" />
+                  ) : (
+                    <Plus size={13} />
+                  )}
                   Add Category
                 </button>
               </div>
@@ -1362,16 +1698,30 @@ export default function AssetsClient() {
 
       {/* Add Asset Modal */}
       {showAddAssetModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(4px)' }}>
-          <div className="w-full max-w-xl rounded-2xl border border-border overflow-hidden shadow-2xl animate-in fade-in zoom-in-95 duration-200" style={{ background: 'var(--surface)' }}>
-            <div className="flex items-center justify-between px-6 py-4 border-b border-border" style={{ background: 'var(--surface2)' }}>
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{ background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(4px)' }}
+        >
+          <div
+            className="w-full max-w-xl rounded-2xl border border-border overflow-hidden shadow-2xl animate-in fade-in zoom-in-95 duration-200"
+            style={{ background: 'var(--surface)' }}
+          >
+            <div
+              className="flex items-center justify-between px-6 py-4 border-b border-border"
+              style={{ background: 'var(--surface2)' }}
+            >
               <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'rgba(232,201,122,0.15)', color: 'var(--primary)' }}>
+                <div
+                  className="w-8 h-8 rounded-lg flex items-center justify-center"
+                  style={{ background: 'rgba(232,201,122,0.15)', color: 'var(--primary)' }}
+                >
                   <Plus size={16} />
                 </div>
                 <div>
                   <h3 className="font-head font-bold text-base text-foreground">Add New Asset</h3>
-                  <p className="text-xs text-muted-foreground">Store asset record directly into Google Cloud Firestore</p>
+                  <p className="text-xs text-muted-foreground">
+                    Store asset record directly into Google Cloud Firestore
+                  </p>
                 </div>
               </div>
               <button
@@ -1470,7 +1820,9 @@ export default function AssetsClient() {
                     type="number"
                     min="1"
                     value={newAssetForm.quantity}
-                    onChange={(e) => setNewAssetForm({ ...newAssetForm, quantity: Number(e.target.value) || 1 })}
+                    onChange={(e) =>
+                      setNewAssetForm({ ...newAssetForm, quantity: Number(e.target.value) || 1 })
+                    }
                     className="w-full px-3 py-2 rounded-lg border border-border text-xs outline-none"
                     style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
                   />
@@ -1520,7 +1872,9 @@ export default function AssetsClient() {
                   <input
                     type="text"
                     value={newAssetForm.serialNumber}
-                    onChange={(e) => setNewAssetForm({ ...newAssetForm, serialNumber: e.target.value })}
+                    onChange={(e) =>
+                      setNewAssetForm({ ...newAssetForm, serialNumber: e.target.value })
+                    }
                     placeholder="e.g. SN-892184-X"
                     className="w-full px-3 py-2 rounded-lg border border-border text-xs outline-none"
                     style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
@@ -1533,7 +1887,12 @@ export default function AssetsClient() {
                   <input
                     type="number"
                     value={newAssetForm.purchaseCost}
-                    onChange={(e) => setNewAssetForm({ ...newAssetForm, purchaseCost: Number(e.target.value) || 0 })}
+                    onChange={(e) =>
+                      setNewAssetForm({
+                        ...newAssetForm,
+                        purchaseCost: Number(e.target.value) || 0,
+                      })
+                    }
                     className="w-full px-3 py-2 rounded-lg border border-border text-xs outline-none"
                     style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
                   />
@@ -1560,7 +1919,9 @@ export default function AssetsClient() {
                     <label className="text-xs font-bold uppercase tracking-wider text-primary">
                       Custom Columns ({customColumns.length})
                     </label>
-                    <span className="text-[11px] text-muted-foreground">Dynamically configured attributes</span>
+                    <span className="text-[11px] text-muted-foreground">
+                      Dynamically configured attributes
+                    </span>
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     {customColumns.map((col) => (
@@ -1570,7 +1931,11 @@ export default function AssetsClient() {
                         </label>
                         <input
                           type="text"
-                          value={(newAssetForm as any)[col.id] ?? (newAssetForm as any)[col.id.toLowerCase()] ?? ''}
+                          value={
+                            (newAssetForm as any)[col.id] ??
+                            (newAssetForm as any)[col.id.toLowerCase()] ??
+                            ''
+                          }
                           onChange={(e) =>
                             setNewAssetForm({
                               ...newAssetForm,
@@ -1621,16 +1986,32 @@ export default function AssetsClient() {
 
       {/* Edit Asset Modal */}
       {showEditAssetModal && editingAsset && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(4px)' }}>
-          <div className="w-full max-w-2xl rounded-2xl border border-border overflow-hidden shadow-2xl animate-in fade-in zoom-in-95 duration-200" style={{ background: 'var(--surface)' }}>
-            <div className="flex items-center justify-between px-6 py-4 border-b border-border" style={{ background: 'var(--surface2)' }}>
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{ background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(4px)' }}
+        >
+          <div
+            className="w-full max-w-2xl rounded-2xl border border-border overflow-hidden shadow-2xl animate-in fade-in zoom-in-95 duration-200"
+            style={{ background: 'var(--surface)' }}
+          >
+            <div
+              className="flex items-center justify-between px-6 py-4 border-b border-border"
+              style={{ background: 'var(--surface2)' }}
+            >
               <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'rgba(232,201,122,0.15)', color: 'var(--primary)' }}>
+                <div
+                  className="w-8 h-8 rounded-lg flex items-center justify-center"
+                  style={{ background: 'rgba(232,201,122,0.15)', color: 'var(--primary)' }}
+                >
                   <Edit2 size={16} />
                 </div>
                 <div>
-                  <h3 className="font-head font-bold text-base text-foreground">Edit Asset: {editingAsset.name}</h3>
-                  <p className="text-xs text-muted-foreground">{editingAsset.assetId} · Update asset details dynamically</p>
+                  <h3 className="font-head font-bold text-base text-foreground">
+                    Edit Asset: {editingAsset.name}
+                  </h3>
+                  <p className="text-xs text-muted-foreground">
+                    {editingAsset.assetId} · Update asset details dynamically
+                  </p>
                 </div>
               </div>
               <button
@@ -1641,7 +2022,10 @@ export default function AssetsClient() {
               </button>
             </div>
 
-            <form onSubmit={handleSaveEditAsset} className="p-6 space-y-4 max-h-[80vh] overflow-y-auto">
+            <form
+              onSubmit={handleSaveEditAsset}
+              className="p-6 space-y-4 max-h-[80vh] overflow-y-auto"
+            >
               <div className="grid grid-cols-2 gap-3">
                 <div className="col-span-2">
                   <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wide">
@@ -1677,7 +2061,12 @@ export default function AssetsClient() {
                   <CustomDropdown
                     variant="form"
                     width="100%"
-                    value={editingAsset.hotelName || (editingAsset as any).propertyName || (editingAsset as any).property || ''}
+                    value={
+                      editingAsset.hotelName ||
+                      (editingAsset as any).propertyName ||
+                      (editingAsset as any).property ||
+                      ''
+                    }
                     onChange={(val) => {
                       const prop = properties.find((p) => p.label === val || p.value === val);
                       setEditingAsset({
@@ -1687,7 +2076,10 @@ export default function AssetsClient() {
                         property: prop ? prop.label : val,
                       } as any);
                     }}
-                    options={accessiblePropertyOptions.map((p) => ({ value: p.label, label: p.label }))}
+                    options={accessiblePropertyOptions.map((p) => ({
+                      value: p.label,
+                      label: p.label,
+                    }))}
                   />
                 </div>
 
@@ -1698,7 +2090,9 @@ export default function AssetsClient() {
                   <input
                     type="text"
                     value={editingAsset.department || ''}
-                    onChange={(e) => setEditingAsset({ ...editingAsset, department: e.target.value })}
+                    onChange={(e) =>
+                      setEditingAsset({ ...editingAsset, department: e.target.value })
+                    }
                     className="w-full px-3 py-2 rounded-lg border border-border text-xs outline-none"
                     style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
                   />
@@ -1725,7 +2119,9 @@ export default function AssetsClient() {
                     type="number"
                     min="1"
                     value={editingAsset.quantity || 1}
-                    onChange={(e) => setEditingAsset({ ...editingAsset, quantity: Number(e.target.value) || 1 })}
+                    onChange={(e) =>
+                      setEditingAsset({ ...editingAsset, quantity: Number(e.target.value) || 1 })
+                    }
                     className="w-full px-3 py-2 rounded-lg border border-border text-xs outline-none"
                     style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
                   />
@@ -1792,7 +2188,9 @@ export default function AssetsClient() {
                   <input
                     type="text"
                     value={editingAsset.serialNumber || ''}
-                    onChange={(e) => setEditingAsset({ ...editingAsset, serialNumber: e.target.value })}
+                    onChange={(e) =>
+                      setEditingAsset({ ...editingAsset, serialNumber: e.target.value })
+                    }
                     className="w-full px-3 py-2 rounded-lg border border-border text-xs outline-none"
                     style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
                   />
@@ -1805,7 +2203,12 @@ export default function AssetsClient() {
                   <input
                     type="number"
                     value={(editingAsset as any).purchaseCost || 0}
-                    onChange={(e) => setEditingAsset({ ...editingAsset, purchaseCost: Number(e.target.value) || 0 } as any)}
+                    onChange={(e) =>
+                      setEditingAsset({
+                        ...editingAsset,
+                        purchaseCost: Number(e.target.value) || 0,
+                      } as any)
+                    }
                     className="w-full px-3 py-2 rounded-lg border border-border text-xs outline-none"
                     style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
                   />
@@ -1820,7 +2223,10 @@ export default function AssetsClient() {
                   onChange={(e) => setEditingAsset({ ...editingAsset, isFixed: e.target.checked })}
                   className="rounded cursor-pointer"
                 />
-                <label htmlFor="edit-asset-is-fixed" className="text-xs text-foreground cursor-pointer">
+                <label
+                  htmlFor="edit-asset-is-fixed"
+                  className="text-xs text-foreground cursor-pointer"
+                >
                   Fixed Asset (affects balance sheet & fixed asset register)
                 </label>
               </div>
@@ -1832,7 +2238,9 @@ export default function AssetsClient() {
                     <label className="text-xs font-bold uppercase tracking-wider text-primary">
                       Custom Columns ({customColumns.length})
                     </label>
-                    <span className="text-[11px] text-muted-foreground">Dynamically configured attributes</span>
+                    <span className="text-[11px] text-muted-foreground">
+                      Dynamically configured attributes
+                    </span>
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     {customColumns.map((col) => (
@@ -1893,8 +2301,14 @@ export default function AssetsClient() {
 
       {/* Delete Confirmation Dialog */}
       {assetToDelete && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(4px)' }}>
-          <div className="w-full max-w-md rounded-2xl border border-rose-500/30 p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-200" style={{ background: 'var(--surface)' }}>
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{ background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(4px)' }}
+        >
+          <div
+            className="w-full max-w-md rounded-2xl border border-rose-500/30 p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-200"
+            style={{ background: 'var(--surface)' }}
+          >
             <div className="flex items-center gap-3 mb-4">
               <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-rose-500/20 text-rose-400">
                 <AlertTriangle size={20} />
@@ -1905,7 +2319,9 @@ export default function AssetsClient() {
               </div>
             </div>
             <p className="text-xs leading-relaxed text-muted-foreground mb-5">
-              Are you sure you want to permanently delete <strong className="text-foreground">{assetToDelete.name}</strong> from the asset register? This action cannot be undone.
+              Are you sure you want to permanently delete{' '}
+              <strong className="text-foreground">{assetToDelete.name}</strong> from the asset
+              register? This action cannot be undone.
             </p>
             <div className="flex items-center justify-end gap-3">
               <button

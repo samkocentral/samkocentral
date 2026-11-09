@@ -6,7 +6,15 @@ export interface AppNotification {
   title: string;
   message: string;
   site?: string;
-  source?: 'fire-alarm' | 'hvac' | 'compliance' | 'maintenance' | 'system' | 'security' | 'water' | 'electrical';
+  source?:
+    | 'fire-alarm'
+    | 'hvac'
+    | 'compliance'
+    | 'maintenance'
+    | 'system'
+    | 'security'
+    | 'water'
+    | 'electrical';
   timestamp: string; // ISO string
   read: boolean;
   actionUrl?: string;
@@ -97,4 +105,3 @@ export const INITIAL_NOTIFICATIONS: AppNotification[] = [
     read: true,
   },
 ];
-

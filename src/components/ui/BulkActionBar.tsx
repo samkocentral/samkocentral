@@ -84,7 +84,9 @@ export default function BulkActionBar({
       <div className="flex items-center gap-2.5 flex-wrap ml-auto">
         {typeOptions && typeOptions.length > 0 && onSelectByType && (
           <div className="flex items-center gap-1.5">
-            <span className="text-[11px] text-muted-foreground hidden sm:inline">Select by Type:</span>
+            <span className="text-[11px] text-muted-foreground hidden sm:inline">
+              Select by Type:
+            </span>
             <div className="min-w-[170px]">
               <CustomDropdown
                 value={selectedTypeValue}

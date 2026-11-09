@@ -1,7 +1,18 @@
 'use client';
 
 import React, { useState } from 'react';
-import { QrCode, Search, Package, MapPin, Calendar, Wrench, ChevronRight, AlertTriangle, CheckCircle2, Clock } from 'lucide-react';
+import {
+  QrCode,
+  Search,
+  Package,
+  MapPin,
+  Calendar,
+  Wrench,
+  ChevronRight,
+  AlertTriangle,
+  CheckCircle2,
+  Clock,
+} from 'lucide-react';
 import { ASSETS, MAINTENANCE_RECORDS } from '@/lib/assetData';
 import Link from 'next/link';
 import { useDeepPageCms } from '@/lib/deepPageCms';
@@ -53,24 +64,42 @@ function AssetResultCard({ assetId }: { assetId: string }) {
         <AlertTriangle size={32} className="mx-auto mb-3" style={{ color: '#f59e0b' }} />
         <div className="font-semibold text-sm mb-1">Access Restricted</div>
         <div className="text-xs text-muted-foreground">
-          Asset <span className="font-mono font-bold">{asset.assetId}</span> belongs to <span className="font-semibold text-foreground">{asset.hotelName}</span>, which is not assigned to your account.
+          Asset <span className="font-mono font-bold">{asset.assetId}</span> belongs to{' '}
+          <span className="font-semibold text-foreground">{asset.hotelName}</span>, which is not
+          assigned to your account.
         </div>
       </div>
     );
   }
 
   const maintenanceRecords = MAINTENANCE_RECORDS.filter((m) => m.assetId === asset.id);
-  const lastMaintenance = maintenanceRecords.filter((m) => m.status === 'completed').sort((a, b) => new Date(b.completedDate || '').getTime() - new Date(a.completedDate || '').getTime())[0];
-  const nextMaintenance = maintenanceRecords.filter((m) => m.status !== 'completed').sort((a, b) => new Date(a.scheduledDate).getTime() - new Date(b.scheduledDate).getTime())[0];
+  const lastMaintenance = maintenanceRecords
+    .filter((m) => m.status === 'completed')
+    .sort(
+      (a, b) =>
+        new Date(b.completedDate || '').getTime() - new Date(a.completedDate || '').getTime()
+    )[0];
+  const nextMaintenance = maintenanceRecords
+    .filter((m) => m.status !== 'completed')
+    .sort((a, b) => new Date(a.scheduledDate).getTime() - new Date(b.scheduledDate).getTime())[0];
   const isOverdue = nextMaintenance?.status === 'overdue';
   const isDueToday = nextMaintenance?.status === 'due-today';
 
   return (
-    <div className="rounded-xl border border-border overflow-hidden" style={{ background: 'var(--surface)' }}>
+    <div
+      className="rounded-xl border border-border overflow-hidden"
+      style={{ background: 'var(--surface)' }}
+    >
       {/* Asset Header */}
       <div
         className="px-5 py-4 border-b border-border"
-        style={{ background: isOverdue ? 'rgba(244,63,94,0.06)' : isDueToday ? 'rgba(245,158,11,0.06)' : 'var(--surface2)' }}
+        style={{
+          background: isOverdue
+            ? 'rgba(244,63,94,0.06)'
+            : isDueToday
+              ? 'rgba(245,158,11,0.06)'
+              : 'var(--surface2)',
+        }}
       >
         <div className="flex items-start justify-between">
           <div>
@@ -123,7 +152,11 @@ function AssetResultCard({ assetId }: { assetId: string }) {
           <div
             className="flex items-center gap-3 p-3 rounded-lg"
             style={{
-              background: isOverdue ? 'rgba(244,63,94,0.08)' : isDueToday ? 'rgba(245,158,11,0.08)' : 'var(--surface2)',
+              background: isOverdue
+                ? 'rgba(244,63,94,0.08)'
+                : isDueToday
+                  ? 'rgba(245,158,11,0.08)'
+                  : 'var(--surface2)',
             }}
           >
             {isOverdue ? (
@@ -134,26 +167,40 @@ function AssetResultCard({ assetId }: { assetId: string }) {
               <Calendar size={16} style={{ color: '#60a5fa', flexShrink: 0 }} />
             )}
             <div className="flex-1 min-w-0">
-              <div className="text-xs font-semibold" style={{ color: isOverdue ? '#f43f5e' : isDueToday ? '#f59e0b' : '#60a5fa' }}>
+              <div
+                className="text-xs font-semibold"
+                style={{ color: isOverdue ? '#f43f5e' : isDueToday ? '#f59e0b' : '#60a5fa' }}
+              >
                 {isOverdue ? 'Maintenance Overdue' : isDueToday ? 'Due Today' : 'Next Maintenance'}
               </div>
               <div className="text-xs text-muted-foreground truncate">{nextMaintenance.type}</div>
             </div>
             <div className="text-xs text-muted-foreground whitespace-nowrap">
-              {new Date(nextMaintenance.scheduledDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
+              {new Date(nextMaintenance.scheduledDate).toLocaleDateString('en-GB', {
+                day: 'numeric',
+                month: 'short',
+              })}
             </div>
           </div>
         )}
 
         {lastMaintenance && (
-          <div className="flex items-center gap-3 p-3 rounded-lg" style={{ background: 'var(--surface2)' }}>
+          <div
+            className="flex items-center gap-3 p-3 rounded-lg"
+            style={{ background: 'var(--surface2)' }}
+          >
             <CheckCircle2 size={16} style={{ color: '#3dd68c', flexShrink: 0 }} />
             <div className="flex-1 min-w-0">
-              <div className="text-xs font-semibold" style={{ color: '#3dd68c' }}>Last Completed</div>
+              <div className="text-xs font-semibold" style={{ color: '#3dd68c' }}>
+                Last Completed
+              </div>
               <div className="text-xs text-muted-foreground truncate">{lastMaintenance.type}</div>
             </div>
             <div className="text-xs text-muted-foreground whitespace-nowrap">
-              {new Date(lastMaintenance.completedDate || '').toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
+              {new Date(lastMaintenance.completedDate || '').toLocaleDateString('en-GB', {
+                day: 'numeric',
+                month: 'short',
+              })}
             </div>
           </div>
         )}
@@ -167,7 +214,8 @@ function AssetResultCard({ assetId }: { assetId: string }) {
             try {
               sessionStorage.setItem('samko_last_clicked_asset', JSON.stringify(asset));
               sessionStorage.setItem(`samko_asset_${asset.id}`, JSON.stringify(asset));
-              if (asset.assetId) sessionStorage.setItem(`samko_asset_${asset.assetId}`, JSON.stringify(asset));
+              if (asset.assetId)
+                sessionStorage.setItem(`samko_asset_${asset.assetId}`, JSON.stringify(asset));
             } catch {}
           }}
           className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-semibold"
@@ -192,10 +240,19 @@ export default function QRScannerClient() {
   const [manualId, setManualId] = useState('');
   const [searchedId, setSearchedId] = useState('');
   const [recentScans] = useState([
-    { id: 'FA-001', name: 'Bed Bases', hotel: 'Crowne Plaza Kingston-south', time: '2 min ago' },
-    { id: 'PE-003', name: 'Emergency Generator', hotel: 'Crowne Plaza Kingston-south', time: '1 hr ago' },
-    { id: 'SC-014', name: 'Fire Alarm Panel', hotel: 'Stanhill Court', time: '3 hrs ago' },
-    { id: 'RA-013', name: 'Fire Alarm Panel', hotel: 'Ravents Ait Island', time: 'Yesterday' },
+    { id: 'AST-001', name: 'Otis 8-Person Passenger Lift', hotel: 'Gow', time: '10 min ago' },
+    {
+      id: 'AST-002',
+      name: 'Carrier Rooftop Air Handler 20kW',
+      hotel: 'Crowne Plaza Kingston-south',
+      time: '1 hr ago',
+    },
+    {
+      id: 'AST-003',
+      name: 'Cummins 250kVA Standby Generator',
+      hotel: 'Stanhill Court',
+      time: '3 hrs ago',
+    },
   ]);
 
   const accessibleRecentScans = recentScans.filter((s) => isPropertyAccessible(s.hotel));
@@ -214,7 +271,9 @@ export default function QRScannerClient() {
       >
         <div>
           <h1 className="font-head text-xl font-bold">{cms.title || 'QR Scanner'}</h1>
-          <p className="text-xs text-muted-foreground mt-0.5">{cms.subtitle || 'Scan or search asset QR codes'}</p>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            {cms.subtitle || 'Scan or search asset QR codes'}
+          </p>
         </div>
         <div className="flex items-center gap-2">
           <PageCMSEditButton pageId="qr" pageName="QR Asset Scanner" />
@@ -236,7 +295,10 @@ export default function QRScannerClient() {
               <div className="relative">
                 <div
                   className="w-48 h-48 rounded-2xl flex items-center justify-center"
-                  style={{ border: '2px solid var(--primary)', background: 'rgba(232,201,122,0.04)' }}
+                  style={{
+                    border: '2px solid var(--primary)',
+                    background: 'rgba(232,201,122,0.04)',
+                  }}
                 >
                   <QrCode size={64} style={{ color: 'var(--primary)', opacity: 0.4 }} />
                 </div>
@@ -296,7 +358,10 @@ export default function QRScannerClient() {
 
           {/* Recent Scans */}
           {!searchedId && (
-            <div className="rounded-xl border border-border" style={{ background: 'var(--surface)' }}>
+            <div
+              className="rounded-xl border border-border"
+              style={{ background: 'var(--surface)' }}
+            >
               <div className="px-5 py-4 border-b border-border">
                 <div className="font-head font-bold text-sm">Recent Scans</div>
               </div>
@@ -304,7 +369,10 @@ export default function QRScannerClient() {
                 {accessibleRecentScans.map((scan) => (
                   <button
                     key={scan.id}
-                    onClick={() => { setManualId(scan.id); setSearchedId(scan.id); }}
+                    onClick={() => {
+                      setManualId(scan.id);
+                      setSearchedId(scan.id);
+                    }}
                     className="w-full flex items-center gap-3 px-5 py-3.5 text-left transition-colors"
                     onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--surface2)')}
                     onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
@@ -332,7 +400,10 @@ export default function QRScannerClient() {
 
           {/* Quick Tips */}
           {!searchedId && (
-            <div className="rounded-xl border border-border p-5" style={{ background: 'var(--surface)' }}>
+            <div
+              className="rounded-xl border border-border p-5"
+              style={{ background: 'var(--surface)' }}
+            >
               <div className="font-head font-bold text-sm mb-3">How to use QR Scanner</div>
               <div className="grid grid-cols-2 gap-3">
                 {[
@@ -341,7 +412,11 @@ export default function QRScannerClient() {
                   { icon: '📋', title: 'View Details', desc: 'See full asset info and history' },
                   { icon: '🔧', title: 'Log Work', desc: 'Record maintenance or inspection' },
                 ].map((tip) => (
-                  <div key={tip.title} className="flex items-start gap-2.5 p-3 rounded-lg" style={{ background: 'var(--surface2)' }}>
+                  <div
+                    key={tip.title}
+                    className="flex items-start gap-2.5 p-3 rounded-lg"
+                    style={{ background: 'var(--surface2)' }}
+                  >
                     <span className="text-lg">{tip.icon}</span>
                     <div>
                       <div className="text-xs font-semibold">{tip.title}</div>

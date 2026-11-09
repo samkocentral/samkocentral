@@ -64,6 +64,9 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ success: true, data: newItem }, { status: 201 });
   } catch (error: any) {
-    return NextResponse.json({ success: false, error: error?.message || 'Failed to create compliance item' }, { status: 500 });
+    return NextResponse.json(
+      { success: false, error: error?.message || 'Failed to create compliance item' },
+      { status: 500 }
+    );
   }
 }

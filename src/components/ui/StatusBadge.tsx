@@ -1,6 +1,7 @@
 import React from 'react';
 
-type BadgeVariant = 'ok' | 'warning' | 'critical' | 'info' | 'maintenance' | 'low' | 'medium' | 'high';
+type BadgeVariant =
+  'ok' | 'warning' | 'critical' | 'info' | 'maintenance' | 'low' | 'medium' | 'high';
 
 interface StatusBadgeProps {
   variant: BadgeVariant;
@@ -14,7 +15,11 @@ const VARIANT_CONFIG: Record<BadgeVariant, { bg: string; color: string; defaultL
   warning: { bg: 'var(--warning-bg)', color: 'var(--warning)', defaultLabel: 'Due Soon' },
   critical: { bg: 'var(--critical-bg)', color: 'var(--critical)', defaultLabel: 'Overdue' },
   info: { bg: 'var(--info-bg)', color: 'var(--info)', defaultLabel: 'Info' },
-  maintenance: { bg: 'rgba(167,139,250,0.12)', color: 'var(--purple)', defaultLabel: 'Maintenance' },
+  maintenance: {
+    bg: 'rgba(167,139,250,0.12)',
+    color: 'var(--purple)',
+    defaultLabel: 'Maintenance',
+  },
   low: { bg: 'var(--ok-bg)', color: 'var(--ok)', defaultLabel: 'Low' },
   medium: { bg: 'var(--warning-bg)', color: 'var(--warning)', defaultLabel: 'Medium' },
   high: { bg: 'var(--critical-bg)', color: 'var(--critical)', defaultLabel: 'High' },

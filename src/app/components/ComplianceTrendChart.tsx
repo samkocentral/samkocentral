@@ -1,7 +1,16 @@
 'use client';
 
 import React from 'react';
-import { Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ComposedChart, Bar,  } from 'recharts';
+import {
+  Area,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  ComposedChart,
+  Bar,
+} from 'recharts';
 
 interface TrendDataPoint {
   week: string;
@@ -14,7 +23,15 @@ interface Props {
   data: TrendDataPoint[];
 }
 
-function CustomTooltip({ active, payload, label }: { active?: boolean; payload?: { value: number; name: string; color: string }[]; label?: string }) {
+function CustomTooltip({
+  active,
+  payload,
+  label,
+}: {
+  active?: boolean;
+  payload?: { value: number; name: string; color: string }[];
+  label?: string;
+}) {
   if (!active || !payload || payload.length === 0) return null;
   return (
     <div
@@ -34,7 +51,11 @@ function CustomTooltip({ active, payload, label }: { active?: boolean; payload?:
         {label}
       </div>
       {payload.map((p, i) => (
-        <div key={`tip-${i}`} className="flex items-center justify-between gap-4" style={{ marginBottom: 4 }}>
+        <div
+          key={`tip-${i}`}
+          className="flex items-center justify-between gap-4"
+          style={{ marginBottom: 4 }}
+        >
           <div className="flex items-center gap-1.5">
             <span
               className="rounded-full"

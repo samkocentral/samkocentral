@@ -43,7 +43,8 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const assetName = body.assetName || body.title || body.name || 'General Equipment';
     const assetId = body.assetId || `AST-${Date.now().toString().slice(-4)}`;
-    const propName = body.property || body.hotel || body.site || body.hotelName || 'Crowne Plaza Kingston-south';
+    const propName =
+      body.property || body.hotel || body.site || body.hotelName || 'Crowne Plaza Kingston-south';
 
     const newRecord = await createDocument('maintenance', {
       ...body,
@@ -62,6 +63,9 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ success: true, data: newRecord }, { status: 201 });
   } catch (error: any) {
-    return NextResponse.json({ success: false, error: error?.message || 'Failed to create record' }, { status: 500 });
+    return NextResponse.json(
+      { success: false, error: error?.message || 'Failed to create record' },
+      { status: 500 }
+    );
   }
 }

@@ -14,9 +14,11 @@ export interface AuditLogEntry {
   actorEmail: string;
   actorInitials: string;
   roleLevel: string;
-  action: 'LOGIN' | 'CREATE' | 'UPDATE' | 'DELETE' | 'ROLE_SWITCH' | 'EXPORT' | 'SECURITY' | 'SIGN_OFF';
+  action:
+    'LOGIN' | 'CREATE' | 'UPDATE' | 'DELETE' | 'ROLE_SWITCH' | 'EXPORT' | 'SECURITY' | 'SIGN_OFF';
   actionLabel: string;
-  category: 'AUTH' | 'USER_MANAGEMENT' | 'ASSET_REGISTER' | 'COMPLIANCE' | 'MAINTENANCE' | 'SECURITY';
+  category:
+    'AUTH' | 'USER_MANAGEMENT' | 'ASSET_REGISTER' | 'COMPLIANCE' | 'MAINTENANCE' | 'SECURITY';
   categoryLabel: string;
   resource: string;
   property?: string;
@@ -178,8 +180,8 @@ export function getRealAuditLogs(currentUser?: any): AuditLogEntry[] {
   const isStrictDigitalBot = Boolean(
     !isPreviewMode &&
     (activeUser?.id === 'usr-bot-001' ||
-     activeUser?.email?.toLowerCase() === 'digitalbot@samkocentral.com' ||
-     activeUser?.name?.toLowerCase().includes('digital bot'))
+      activeUser?.email?.toLowerCase() === 'digitalbot@samkocentral.com' ||
+      activeUser?.name?.toLowerCase().includes('digital bot'))
   );
 
   // Filter logs strictly through multi-tier role clearance and privacy boundaries
@@ -203,11 +205,10 @@ export function canUserViewAuditLog(user: any, log: AuditLogEntry): boolean {
 
   // 1. Digital Bot strict isolation: bot logs are visible ONLY to the actual bot session
   if (isBotLog(log)) {
-    const isStrictBot = (
+    const isStrictBot =
       user.id === 'usr-bot-001' ||
       userEmail === 'digitalbot@samkocentral.com' ||
-      (user.name || '').toLowerCase().includes('digital bot')
-    );
+      (user.name || '').toLowerCase().includes('digital bot');
     if (!isStrictBot) return false;
   }
 
@@ -254,7 +255,11 @@ export function canUserViewAuditLog(user: any, log: AuditLogEntry): boolean {
 }
 
 export function isPropertyAllowed(user: any, logProperty?: string): boolean {
-  if (!logProperty || logProperty === 'All Properties (Portfolio)' || logProperty === 'Portfolio Asset') {
+  if (
+    !logProperty ||
+    logProperty === 'All Properties (Portfolio)' ||
+    logProperty === 'Portfolio Asset'
+  ) {
     return true;
   }
   const assigned = user?.assignedProperties;
@@ -297,7 +302,12 @@ export function recordAuditLog(entry: Partial<AuditLogEntry>): AuditLogEntry {
   const actorInitials =
     entry.actorInitials ||
     activeUser?.initials ||
-    actorName.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase() ||
+    actorName
+      .split(' ')
+      .map((n: string) => n[0])
+      .join('')
+      .slice(0, 2)
+      .toUpperCase() ||
     'AV';
 
   const now = new Date();
@@ -337,7 +347,9 @@ export function recordAuditLog(entry: Partial<AuditLogEntry>): AuditLogEntry {
 
       // Broadcast custom event so Audit Logs page and Dashboard widget update instantly
       window.dispatchEvent(new CustomEvent('samko:audit-log-created', { detail: newLog }));
-      window.dispatchEvent(new CustomEvent('samko:data-changed', { detail: { type: 'audit-log', entry: newLog } }));
+      window.dispatchEvent(
+        new CustomEvent('samko:data-changed', { detail: { type: 'audit-log', entry: newLog } })
+      );
     } catch (e) {
       console.warn('[auditLogger] Failed to write log to localStorage:', e);
     }
@@ -391,7 +403,10 @@ export function exportAuditLogsToCSV(logs: AuditLogEntry[]) {
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
   link.setAttribute('href', url);
-  link.setAttribute('download', `SamkoCentral_Audit_Logs_${new Date().toISOString().slice(0, 10)}.csv`);
+  link.setAttribute(
+    'download',
+    `SamkoCentral_Audit_Logs_${new Date().toISOString().slice(0, 10)}.csv`
+  );
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
@@ -408,7 +423,9 @@ export function resetAuditLogs(): void {
       localStorage.removeItem('samko_recent_logs');
       localStorage.setItem(STORAGE_KEY, JSON.stringify([]));
       window.dispatchEvent(new CustomEvent('samko:audit-logs-updated'));
-      window.dispatchEvent(new CustomEvent('samko:data-changed', { detail: { type: 'audit-log' } }));
+      window.dispatchEvent(
+        new CustomEvent('samko:data-changed', { detail: { type: 'audit-log' } })
+      );
     } catch {}
     fetch('/api/audit-logs', { method: 'DELETE' }).catch(() => {});
   }

@@ -9,11 +9,12 @@ import { INITIAL_NOTIFICATIONS } from './notificationsData';
 
 const STORAGE_KEY = 'samko:live_notifications_v4';
 
-
 export function playAlertChime(type: NotificationType = 'warning') {
   if (typeof window === 'undefined') return;
   try {
-    const AudioContextClass = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+    const AudioContextClass =
+      window.AudioContext ||
+      (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
     if (!AudioContextClass) return;
     const ctx = new AudioContextClass();
     const osc = ctx.createOscillator();
@@ -85,7 +86,9 @@ export function saveNotifications(notifs: AppNotification[]): void {
   if (typeof window === 'undefined') return;
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(notifs));
-    window.dispatchEvent(new CustomEvent('samko:notifications-updated', { detail: { notifications: notifs } }));
+    window.dispatchEvent(
+      new CustomEvent('samko:notifications-updated', { detail: { notifications: notifs } })
+    );
   } catch (e) {
     console.error('Failed to save notifications:', e);
   }
@@ -99,7 +102,9 @@ if (typeof window !== 'undefined') {
       .then((res) => {
         if (res.success && Array.isArray(res.data) && res.data.length > 0) {
           localStorage.setItem(STORAGE_KEY, JSON.stringify(res.data));
-          window.dispatchEvent(new CustomEvent('samko:notifications-updated', { detail: { notifications: res.data } }));
+          window.dispatchEvent(
+            new CustomEvent('samko:notifications-updated', { detail: { notifications: res.data } })
+          );
         }
       })
       .catch((err) => console.warn('[notifications] Remote sync fallback:', err));

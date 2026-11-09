@@ -219,7 +219,8 @@ export const DEFAULT_APP_CMS: AppCmsConfig = {
         name: 'OpCo Dashboard',
         path: '/?portal=opco',
         iconName: 'LayoutDashboard',
-        description: 'Operations pulse, loose FF&E, maintenance PPM, statutory compliance & energy utilities',
+        description:
+          'Operations pulse, loose FF&E, maintenance PPM, statutory compliance & energy utilities',
         group: 'Overview',
         section: 'opco',
         enabled: true,
@@ -247,10 +248,22 @@ export const DEFAULT_APP_CMS: AppCmsConfig = {
         enabled: true,
         order: 2,
         subtabs: [
-          { id: 'scheduled', label: 'Scheduled', path: '/asset-management/maintenance?filter=scheduled' },
-          { id: 'due-today', label: 'Due Today', path: '/asset-management/maintenance?filter=due-today' },
+          {
+            id: 'scheduled',
+            label: 'Scheduled',
+            path: '/asset-management/maintenance?filter=scheduled',
+          },
+          {
+            id: 'due-today',
+            label: 'Due Today',
+            path: '/asset-management/maintenance?filter=due-today',
+          },
           { id: 'overdue', label: 'Overdue', path: '/asset-management/maintenance?filter=overdue' },
-          { id: 'completed', label: 'Completed', path: '/asset-management/maintenance?filter=completed' },
+          {
+            id: 'completed',
+            label: 'Completed',
+            path: '/asset-management/maintenance?filter=completed',
+          },
         ],
       },
       {
@@ -258,15 +271,24 @@ export const DEFAULT_APP_CMS: AppCmsConfig = {
         name: 'Compliance',
         path: '/compliance-register',
         iconName: 'ShieldCheck',
-        description: 'Fire safety, Legionella, EICR electrical, LOLER lifts & gas CP12 certificates',
+        description:
+          'Fire safety, Legionella, EICR electrical, LOLER lifts & gas CP12 certificates',
         group: 'Compliance',
         section: 'opco',
         enabled: true,
         order: 3,
         subtabs: [
           { id: 'register', label: 'Compliance Register', path: '/compliance-register' },
-          { id: 'certifications', label: 'Certifications', path: '/compliance-register?tab=certifications' },
-          { id: 'statutory', label: 'Statutory Inspections', path: '/compliance-register?tab=statutory' },
+          {
+            id: 'certifications',
+            label: 'Certifications',
+            path: '/compliance-register?tab=certifications',
+          },
+          {
+            id: 'statutory',
+            label: 'Statutory Inspections',
+            path: '/compliance-register?tab=statutory',
+          },
           { id: 'expiry', label: 'Expiry Dashboard', path: '/compliance-tracker' },
         ],
       },
@@ -304,7 +326,11 @@ export const DEFAULT_APP_CMS: AppCmsConfig = {
         order: 7,
         subtabs: [
           { id: 'register', label: 'Utilities Register', path: '/utilities-register' },
-          { id: 'energy', label: 'Energy & Water Accounts', path: '/utilities-register?type=electricity' },
+          {
+            id: 'energy',
+            label: 'Energy & Water Accounts',
+            path: '/utilities-register?type=electricity',
+          },
         ],
       },
     ],
@@ -422,15 +448,80 @@ export const DEFAULT_APP_CMS: AppCmsConfig = {
     },
   ],
   navigationItems: [
-    { id: 'dashboard', label: 'Dashboard', href: '/', iconName: 'LayoutDashboard', enabled: true, order: 1 },
-    { id: 'propco', label: 'PROPCO', href: '#propco', iconName: 'Building2', enabled: true, order: 2, badgeText: 'ASSET CO' },
-    { id: 'opco', label: 'OPCO', href: '#opco', iconName: 'Shield', enabled: true, order: 3, badgeText: 'OPERATIONS' },
-    { id: 'approvals', label: 'Approvals', href: '/approvals', iconName: 'ClipboardCheck', enabled: true, order: 4 },
-    { id: 'docs-upload', label: 'Docs Upload', href: '/document-repository', iconName: 'CloudUpload', enabled: true, order: 5 },
-    { id: 'recent-logs', label: 'Audit Logs', href: '/recent-logs', iconName: 'History', enabled: true, order: 6 },
-    { id: 'import', label: 'Import / Export', href: '/asset-management/import', iconName: 'Upload', enabled: true, order: 7 },
-    { id: 'users', label: 'Users & Roles', href: '/users', iconName: 'Users', enabled: true, order: 8 },
-    { id: 'settings', label: 'Settings', href: '/settings', iconName: 'Settings', enabled: true, order: 9 },
+    {
+      id: 'dashboard',
+      label: 'Dashboard',
+      href: '/',
+      iconName: 'LayoutDashboard',
+      enabled: true,
+      order: 1,
+    },
+    {
+      id: 'propco',
+      label: 'PROPCO',
+      href: '#propco',
+      iconName: 'Building2',
+      enabled: true,
+      order: 2,
+      badgeText: 'ASSET CO',
+    },
+    {
+      id: 'opco',
+      label: 'OPCO',
+      href: '#opco',
+      iconName: 'Shield',
+      enabled: true,
+      order: 3,
+      badgeText: 'OPERATIONS',
+    },
+    {
+      id: 'approvals',
+      label: 'Approvals',
+      href: '/approvals',
+      iconName: 'ClipboardCheck',
+      enabled: true,
+      order: 4,
+    },
+    {
+      id: 'docs-upload',
+      label: 'Docs Upload',
+      href: '/document-repository',
+      iconName: 'CloudUpload',
+      enabled: true,
+      order: 5,
+    },
+    {
+      id: 'recent-logs',
+      label: 'Audit Logs',
+      href: '/recent-logs',
+      iconName: 'History',
+      enabled: true,
+      order: 6,
+    },
+    {
+      id: 'import',
+      label: 'Import / Export',
+      href: '/asset-management/import',
+      iconName: 'Upload',
+      enabled: true,
+      order: 7,
+    },
+    {
+      id: 'users',
+      label: 'Users & Roles',
+      href: '/users',
+      iconName: 'Users',
+      enabled: true,
+      order: 8,
+    },
+    {
+      id: 'settings',
+      label: 'Settings',
+      href: '/settings',
+      iconName: 'Settings',
+      enabled: true,
+      order: 9,
+    },
   ],
 };
 
@@ -513,7 +604,7 @@ export function getAppCmsConfig(): AppCmsConfig {
       }
     }
 
-        const ensureSubtabs = (portalKey: 'propco' | 'opco') => {
+    const ensureSubtabs = (portalKey: 'propco' | 'opco') => {
       const defaultPortal = DEFAULT_APP_CMS[portalKey];
       const portal = config[portalKey];
       if (!portal || !portal.tabs) return;
@@ -741,7 +832,12 @@ export function reorderDropdownSubtabs(
   if (!portal) return false;
   const parentTab = findParentTab(portal, parentTabId);
   if (!parentTab || !parentTab.subtabs) return false;
-  if (fromIndex < 0 || fromIndex >= parentTab.subtabs.length || toIndex < 0 || toIndex >= parentTab.subtabs.length) {
+  if (
+    fromIndex < 0 ||
+    fromIndex >= parentTab.subtabs.length ||
+    toIndex < 0 ||
+    toIndex >= parentTab.subtabs.length
+  ) {
     return false;
   }
   const [moved] = parentTab.subtabs.splice(fromIndex, 1);
@@ -906,7 +1002,10 @@ export function updateRoleConfig(roleLevel: string, updates: Partial<AppCmsRoleC
   return true;
 }
 
-export function updateNavigationItem(itemId: string, updates: Partial<AppCmsNavigationItem>): boolean {
+export function updateNavigationItem(
+  itemId: string,
+  updates: Partial<AppCmsNavigationItem>
+): boolean {
   const current = getAppCmsConfig();
   if (!current.navigationItems) {
     current.navigationItems = [...DEFAULT_APP_CMS.navigationItems];

@@ -3,13 +3,24 @@ import fs from 'fs';
 import path from 'path';
 import { getAdminDb } from '@/lib/firebaseAdmin';
 import { getDb } from '@/lib/firebase';
-import { collection, doc, getDocs, setDoc, deleteDoc, writeBatch, query, orderBy, limit } from 'firebase/firestore';
+import {
+  collection,
+  doc,
+  getDocs,
+  setDoc,
+  deleteDoc,
+  writeBatch,
+  query,
+  orderBy,
+  limit,
+} from 'firebase/firestore';
 import { INITIAL_NOTIFICATIONS, AppNotification } from '@/lib/notificationsData';
 
 const SEED_NOTIFS_PATH = path.join(process.cwd(), 'src', 'data', 'samko_notifications.json');
-const RUNTIME_NOTIFS_DIR = process.env.NODE_ENV === 'production' && fs.existsSync('/tmp')
-  ? '/tmp'
-  : path.join(process.cwd(), '.runtime_data');
+const RUNTIME_NOTIFS_DIR =
+  process.env.NODE_ENV === 'production' && fs.existsSync('/tmp')
+    ? '/tmp'
+    : path.join(process.cwd(), '.runtime_data');
 const NOTIFS_FILE_PATH = path.join(RUNTIME_NOTIFS_DIR, 'samko_notifications.json');
 
 function ensureDir(filePath: string) {
@@ -57,59 +68,53 @@ function withTimeout<T>(promise: Promise<T>, ms = 1800): Promise<T> {
   ]);
 }
 
-export async function GET() {
+export async function GET(req: Request) {
+  const { searchParams } = new URL(req.url);
+  const forceRemote = searchParams.get('forceRemote') === 'true';
+
+  const local = loadLocalNotifs();
+
+  // If local notifications exist and remote is not forced, return immediately for instant response (<2ms)
+  if (!forceRemote && local && local.length > 0) {
+    return NextResponse.json({ success: true, data: local, source: 'file-database' });
+  }
+
   const adminDb = getAdminDb();
   if (adminDb) {
     try {
-      const snap = await withTimeout(adminDb.collection('notifications').orderBy('timestamp', 'desc').limit(50).get(), 1800);
+      const snap = await withTimeout(
+        adminDb.collection('notifications').orderBy('timestamp', 'desc').limit(50).get(),
+        1200
+      );
       if (!snap.empty && snap.docs.length >= 6) {
         const notifs = snap.docs.map((d: any) => ({ id: d.id, ...d.data() }));
         saveLocalNotifs(notifs);
         return NextResponse.json({ success: true, data: notifs, source: 'firestore-admin' });
-      } else {
-        const batch = adminDb.batch();
-        INITIAL_NOTIFICATIONS.forEach((n) => {
-          const ref = adminDb.collection('notifications').doc(n.id);
-          batch.set(ref, n, { merge: true });
-        });
-        await withTimeout(batch.commit(), 1800);
-        const refreshed = await withTimeout(adminDb.collection('notifications').orderBy('timestamp', 'desc').limit(50).get(), 1800);
-        const data = refreshed.docs.map((d: any) => ({ id: d.id, ...d.data() }));
-        saveLocalNotifs(data);
-        return NextResponse.json({ success: true, data, source: 'firestore-admin' });
       }
-    } catch (e) {
-      console.warn('[api/notifications] Admin GET failed or timed out:', e);
+    } catch {
+      // Remote unavailable or timed out; seamlessly fallback to local cache
     }
   }
 
   const clientDb = getDb();
   if (clientDb) {
     try {
-      const q = query(collection(clientDb, 'notifications'), orderBy('timestamp', 'desc'), limit(50));
-      const snap = await withTimeout(getDocs(q), 1800);
+      const q = query(
+        collection(clientDb, 'notifications'),
+        orderBy('timestamp', 'desc'),
+        limit(50)
+      );
+      const snap = await withTimeout(getDocs(q), 1200);
       if (!snap.empty && snap.docs.length >= 6) {
         const notifs = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
         saveLocalNotifs(notifs);
         return NextResponse.json({ success: true, data: notifs, source: 'firestore-client' });
-      } else {
-        const batch = writeBatch(clientDb);
-        INITIAL_NOTIFICATIONS.forEach((n) => {
-          const ref = doc(clientDb, 'notifications', n.id);
-          batch.set(ref, n, { merge: true });
-        });
-        await withTimeout(batch.commit(), 1800);
-        const refreshedSnap = await withTimeout(getDocs(q), 1800);
-        const notifs = refreshedSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
-        saveLocalNotifs(notifs);
-        return NextResponse.json({ success: true, data: notifs, source: 'firestore-client' });
       }
-    } catch (e) {
-      console.warn('[api/notifications] Client GET failed or timed out:', e);
+    } catch {
+      // Remote unavailable or timed out; seamlessly fallback to local cache
     }
   }
 
-  const local = loadLocalNotifs();
   return NextResponse.json({ success: true, data: local, source: 'file-database' });
 }
 
@@ -143,7 +148,10 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ success: true, data: payload, source: 'file-database' });
   } catch (err: any) {
-    return NextResponse.json({ success: false, error: err?.message || String(err) }, { status: 500 });
+    return NextResponse.json(
+      { success: false, error: err?.message || String(err) },
+      { status: 500 }
+    );
   }
 }
 
@@ -179,7 +187,10 @@ export async function PUT(req: Request) {
       const adminDb = getAdminDb();
       const clientDb = getDb();
       if (adminDb) {
-        await adminDb.collection('notifications').doc(id).update({ read: Boolean(read) });
+        await adminDb
+          .collection('notifications')
+          .doc(id)
+          .update({ read: Boolean(read) });
       } else if (clientDb) {
         await setDoc(doc(clientDb, 'notifications', id), { read: Boolean(read) }, { merge: true });
       }
@@ -188,7 +199,10 @@ export async function PUT(req: Request) {
 
     return NextResponse.json({ success: false, message: 'Missing id or markAll' }, { status: 400 });
   } catch (err: any) {
-    return NextResponse.json({ success: false, error: err?.message || String(err) }, { status: 500 });
+    return NextResponse.json(
+      { success: false, error: err?.message || String(err) },
+      { status: 500 }
+    );
   }
 }
 
@@ -227,11 +241,17 @@ export async function DELETE(req: Request) {
       } else if (clientDb) {
         await deleteDoc(doc(clientDb, 'notifications', id));
       }
-      return NextResponse.json({ success: true, message: `Notification ${id} deleted in database` });
+      return NextResponse.json({
+        success: true,
+        message: `Notification ${id} deleted in database`,
+      });
     }
 
     return NextResponse.json({ success: false, message: 'Missing id parameter' }, { status: 400 });
   } catch (err: any) {
-    return NextResponse.json({ success: false, error: err?.message || String(err) }, { status: 500 });
+    return NextResponse.json(
+      { success: false, error: err?.message || String(err) },
+      { status: 500 }
+    );
   }
 }

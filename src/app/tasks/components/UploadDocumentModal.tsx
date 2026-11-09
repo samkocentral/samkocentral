@@ -145,7 +145,7 @@ export default function UploadDocumentModal({
                   { value: 'Fire Safety', label: 'Fire Safety & Risk Assessment' },
                   { value: 'Water Hygiene', label: 'Water Hygiene / Legionella' },
                   { value: 'LOLER Lifts', label: 'Lifts & Lifting (LOLER)' },
-                  { value: 'Maintenance Sign-off', label: 'Maintenance Sign-off Sheet' }
+                  { value: 'Maintenance Sign-off', label: 'Maintenance Sign-off Sheet' },
                 ]}
                 variant="form"
                 width="100%"

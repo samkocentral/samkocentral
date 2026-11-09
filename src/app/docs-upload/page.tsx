@@ -5,7 +5,8 @@ import DocumentRepositoryClient from '@/app/document-repository/components/Docum
 
 export const metadata = {
   title: 'Document Repository | SamkoCentral UK',
-  description: 'All compliance documents across all sites — searchable, filterable, with expiry tracking.',
+  description:
+    'All compliance documents across all sites — searchable, filterable, with expiry tracking.',
 };
 
 export default function DocsUploadPage() {

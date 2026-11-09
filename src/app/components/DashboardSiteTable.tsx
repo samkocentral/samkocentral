@@ -26,13 +26,25 @@ export default function DashboardSiteTable() {
         api.maintenance.getAll(),
       ]);
 
-      if (propsRes.status === 'fulfilled' && propsRes.value.success && propsRes.value.data?.length > 0) {
+      if (
+        propsRes.status === 'fulfilled' &&
+        propsRes.value.success &&
+        propsRes.value.data?.length > 0
+      ) {
         setProperties(propsRes.value.data);
       }
-      if (assetsRes.status === 'fulfilled' && assetsRes.value.success && assetsRes.value.data?.length > 0) {
+      if (
+        assetsRes.status === 'fulfilled' &&
+        assetsRes.value.success &&
+        assetsRes.value.data?.length > 0
+      ) {
         setAssets(assetsRes.value.data);
       }
-      if (maintRes.status === 'fulfilled' && maintRes.value.success && maintRes.value.data?.length > 0) {
+      if (
+        maintRes.status === 'fulfilled' &&
+        maintRes.value.success &&
+        maintRes.value.data?.length > 0
+      ) {
         setMaintenance(maintRes.value.data);
       }
     } catch (e) {
@@ -51,43 +63,45 @@ export default function DashboardSiteTable() {
   const fallbackRows = properties
     .filter((site) => isPropertyAccessible(site.name || site.propertyName || site.id))
     .map((site) => {
-    const siteName = site.name || site.propertyName || '';
-    const siteFirstWord = siteName.toLowerCase().split(' ')[0];
+      const siteName = site.name || site.propertyName || '';
+      const siteFirstWord = siteName.toLowerCase().split(' ')[0];
 
-    const siteAssets = assets.filter(
-      (a: any) =>
-        a.hotelId === site.id ||
-        a.propertyId === site.id ||
-        a.hotelName?.toLowerCase()?.includes(siteFirstWord) ||
-        a.property?.toLowerCase()?.includes(siteFirstWord) ||
-        siteName.toLowerCase().includes(a.hotelName?.toLowerCase()?.split(' ')[0] || '')
-    );
+      const siteAssets = assets.filter(
+        (a: any) =>
+          a.hotelId === site.id ||
+          a.propertyId === site.id ||
+          a.hotelName?.toLowerCase()?.includes(siteFirstWord) ||
+          a.property?.toLowerCase()?.includes(siteFirstWord) ||
+          siteName.toLowerCase().includes(a.hotelName?.toLowerCase()?.split(' ')[0] || '')
+      );
 
-    const siteMaint = maintenance.filter(
-      (m: any) =>
-        m.hotelId === site.id ||
-        m.propertyId === site.id ||
-        m.hotelName?.toLowerCase()?.includes(siteFirstWord) ||
-        m.property?.toLowerCase()?.includes(siteFirstWord)
-    );
+      const siteMaint = maintenance.filter(
+        (m: any) =>
+          m.hotelId === site.id ||
+          m.propertyId === site.id ||
+          m.hotelName?.toLowerCase()?.includes(siteFirstWord) ||
+          m.property?.toLowerCase()?.includes(siteFirstWord)
+      );
 
-    const overdueCount = siteMaint.filter((m: any) => m.status === 'overdue').length;
-    const assetCount = siteAssets.length;
-    const openIssues = site.openIssues ?? (overdueCount + (site.compliance < 80 ? 3 : 1));
+      const overdueCount = siteMaint.filter((m: any) => m.status === 'overdue').length;
+      const assetCount = siteAssets.length;
+      const openIssues = site.openIssues ?? overdueCount + (site.compliance < 80 ? 3 : 1);
 
-    return {
-      id: site.id,
-      name: siteName,
-      city: site.city || site.location || 'London',
-      manager: site.manager || site.generalManager || 'Marcus Webb',
-      status: (site.status || 'operational').toLowerCase(),
-      risk: (site.risk || (overdueCount > 2 ? 'high' : overdueCount > 0 ? 'medium' : 'low')).toLowerCase(),
-      compliance: site.compliance || (overdueCount > 2 ? 78 : overdueCount > 0 ? 86 : 94),
-      assetCount,
-      overdueCount,
-      openIssues,
-    };
-  });
+      return {
+        id: site.id,
+        name: siteName,
+        city: site.city || site.location || 'London',
+        manager: site.manager || site.generalManager || 'Marcus Webb',
+        status: (site.status || 'operational').toLowerCase(),
+        risk: (
+          site.risk || (overdueCount > 2 ? 'high' : overdueCount > 0 ? 'medium' : 'low')
+        ).toLowerCase(),
+        compliance: site.compliance || (overdueCount > 2 ? 78 : overdueCount > 0 ? 86 : 94),
+        assetCount,
+        overdueCount,
+        openIssues,
+      };
+    });
 
   // Merge live database metrics with CMS overrides so live data and CMS edits sync seamlessly
   const siteRows = fallbackRows.map((site) => {
@@ -114,19 +128,20 @@ export default function DashboardSiteTable() {
   } = useLoadingPagination(siteRows, 10);
 
   // Active columns configured via CMS
-  const activeColumns = cms.columns && cms.columns.length > 0
-    ? cms.columns.filter((c) => c.visible)
-    : [
-        { id: 'name', label: 'Property' },
-        { id: 'city', label: 'City' },
-        { id: 'manager', label: 'Manager' },
-        { id: 'status', label: 'Status' },
-        { id: 'risk', label: 'Risk Level' },
-        { id: 'assetCount', label: 'Assets' },
-        { id: 'overdueCount', label: 'Overdue Maint.' },
-        { id: 'openIssues', label: 'Open Issues' },
-        { id: 'compliance', label: 'Compliance Score' },
-      ];
+  const activeColumns =
+    cms.columns && cms.columns.length > 0
+      ? cms.columns.filter((c) => c.visible)
+      : [
+          { id: 'name', label: 'Property' },
+          { id: 'city', label: 'City' },
+          { id: 'manager', label: 'Manager' },
+          { id: 'status', label: 'Status' },
+          { id: 'risk', label: 'Risk Level' },
+          { id: 'assetCount', label: 'Assets' },
+          { id: 'overdueCount', label: 'Overdue Maint.' },
+          { id: 'openIssues', label: 'Open Issues' },
+          { id: 'compliance', label: 'Compliance Score' },
+        ];
 
   const renderCell = (site: any, colId: string) => {
     switch (colId) {
@@ -137,9 +152,17 @@ export default function DashboardSiteTable() {
           </span>
         );
       case 'city':
-        return <span className="text-muted2" style={{ fontSize: 12 }}>{site.city}</span>;
+        return (
+          <span className="text-muted2" style={{ fontSize: 12 }}>
+            {site.city}
+          </span>
+        );
       case 'manager':
-        return <span className="text-muted2" style={{ fontSize: 12 }}>{site.manager}</span>;
+        return (
+          <span className="text-muted2" style={{ fontSize: 12 }}>
+            {site.manager}
+          </span>
+        );
       case 'status':
         return (
           <StatusBadge
@@ -156,7 +179,10 @@ export default function DashboardSiteTable() {
         );
       case 'assetCount':
         return (
-          <span className="font-head tabular-nums" style={{ fontSize: 13, fontWeight: 700, color: 'var(--info)' }}>
+          <span
+            className="font-head tabular-nums"
+            style={{ fontSize: 13, fontWeight: 700, color: 'var(--info)' }}
+          >
             {site.assetCount}
           </span>
         );
@@ -184,8 +210,8 @@ export default function DashboardSiteTable() {
                 site.openIssues > 5
                   ? 'var(--critical)'
                   : site.openIssues > 2
-                  ? 'var(--warning)'
-                  : 'var(--ok)',
+                    ? 'var(--warning)'
+                    : 'var(--ok)',
             }}
           >
             {site.openIssues}
@@ -203,8 +229,8 @@ export default function DashboardSiteTable() {
                     site.compliance >= 90
                       ? 'var(--ok)'
                       : site.compliance >= 70
-                      ? 'var(--warning)'
-                      : 'var(--critical)',
+                        ? 'var(--warning)'
+                        : 'var(--critical)',
                 }}
               />
             </div>
@@ -217,8 +243,8 @@ export default function DashboardSiteTable() {
                   site.compliance >= 90
                     ? 'var(--ok)'
                     : site.compliance >= 70
-                    ? 'var(--warning)'
-                    : 'var(--critical)',
+                      ? 'var(--warning)'
+                      : 'var(--critical)',
               }}
             >
               {site.compliance}%
@@ -238,7 +264,12 @@ export default function DashboardSiteTable() {
       >
         <h2
           className="font-head text-foreground"
-          style={{ fontSize: 13, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em' }}
+          style={{
+            fontSize: 13,
+            fontWeight: 700,
+            textTransform: 'uppercase',
+            letterSpacing: '0.08em',
+          }}
         >
           {cms.sections?.propertyTable?.title || 'Property Portfolio Overview'}
         </h2>

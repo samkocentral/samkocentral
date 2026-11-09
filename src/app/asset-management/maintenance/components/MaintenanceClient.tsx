@@ -1,8 +1,30 @@
 'use client';
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { Wrench, AlertTriangle, Clock, CheckCircle2, Calendar, Search, ChevronDown, Loader2, Plus, X, Building2, Edit2, Trash2, Eye, Tag } from 'lucide-react';
-import { MAINTENANCE_RECORDS, HOTELS, ASSETS, type MaintenanceRecord, type Hotel } from '@/lib/assetData';
+import {
+  Wrench,
+  AlertTriangle,
+  Clock,
+  CheckCircle2,
+  Calendar,
+  Search,
+  ChevronDown,
+  Loader2,
+  Plus,
+  X,
+  Building2,
+  Edit2,
+  Trash2,
+  Eye,
+  Tag,
+} from 'lucide-react';
+import {
+  MAINTENANCE_RECORDS,
+  HOTELS,
+  ASSETS,
+  type MaintenanceRecord,
+  type Hotel,
+} from '@/lib/assetData';
 import { getLiveProperties } from '@/hooks/useLiveProperties';
 import { api } from '@/lib/api';
 import { useAuth } from '@/lib/authContext';
@@ -69,16 +91,24 @@ function StatCard({
     >
       <div className="absolute top-0 left-0 right-0 h-0.5" style={{ background: color }} />
       <div className="flex items-center justify-between mb-2">
-        <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: `${color}18` }}>
+        <div
+          className="w-8 h-8 rounded-lg flex items-center justify-center"
+          style={{ background: `${color}18` }}
+        >
           <IconComponent size={15} style={{ color }} />
         </div>
         {isActive && (
-          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider" style={{ background: `${color}25`, color }}>
+          <span
+            className="text-[10px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider"
+            style={{ background: `${color}25`, color }}
+          >
             Active
           </span>
         )}
       </div>
-      <div className="font-head text-2xl font-extrabold" style={{ color }}>{value}</div>
+      <div className="font-head text-2xl font-extrabold" style={{ color }}>
+        {value}
+      </div>
       <div className="text-xs text-muted-foreground mt-0.5 font-medium">{label}</div>
     </div>
   );
@@ -113,15 +143,28 @@ export default function MaintenanceClient() {
     ];
   }, [cmsColumns]);
   const customColumns = useMemo(() => {
-    const standardKeys = new Set(['asset', 'property', 'type', 'frequency', 'scheduleddate', 'assignedto', 'status', 'nextduedate', 'actions']);
+    const standardKeys = new Set([
+      'asset',
+      'property',
+      'type',
+      'frequency',
+      'scheduleddate',
+      'assignedto',
+      'status',
+      'nextduedate',
+      'actions',
+    ]);
     return (cmsColumns || []).filter((c) => !standardKeys.has(c.id.toLowerCase()));
   }, [cmsColumns]);
   const searchParams = useSearchParams();
   const router = useRouter();
   const filterParam = searchParams?.get('filter') as TabId | null;
-  const initialTab: TabId = filterParam && ['all', 'scheduled', 'due-today', 'overdue', 'completed'].includes(filterParam)
-    ? filterParam
-    : (searchParams?.has('filter') ? 'all' : 'all');
+  const initialTab: TabId =
+    filterParam && ['all', 'scheduled', 'due-today', 'overdue', 'completed'].includes(filterParam)
+      ? filterParam
+      : searchParams?.has('filter')
+        ? 'all'
+        : 'all';
   const [records, setRecords] = useState<MaintenanceRecord[]>(() => {
     if (typeof window !== 'undefined') {
       try {
@@ -130,7 +173,7 @@ export default function MaintenanceClient() {
           const parsed = JSON.parse(cached);
           if (Array.isArray(parsed) && parsed.length > 0) return parsed;
         }
-      } catch { }
+      } catch {}
     }
     if (cmsItems && cmsItems.length > 0) return cmsItems as any;
     return MAINTENANCE_RECORDS;
@@ -153,9 +196,10 @@ export default function MaintenanceClient() {
   }, [searchParams]);
   const handleTabChange = (tabId: TabId) => {
     setActiveTab(tabId);
-    const url = tabId === 'all'
-      ? '/asset-management/maintenance'
-      : `/asset-management/maintenance?filter=${tabId}`;
+    const url =
+      tabId === 'all'
+        ? '/asset-management/maintenance'
+        : `/asset-management/maintenance?filter=${tabId}`;
     router.push(url, { scroll: false });
   };
   const [search, setSearch] = useState('');
@@ -171,7 +215,7 @@ export default function MaintenanceClient() {
           const parsed = JSON.parse(saved);
           if (Array.isArray(parsed)) return parsed;
         }
-      } catch { }
+      } catch {}
     }
     return [];
   });
@@ -182,7 +226,12 @@ export default function MaintenanceClient() {
     const merged = new Set<string>();
     cmsOptions.forEach((c) => {
       const clean = c.trim();
-      if (clean && !clean.toLowerCase().startsWith('all ') && clean.toLowerCase() !== 'all' && !deleted.has(clean.toLowerCase())) {
+      if (
+        clean &&
+        !clean.toLowerCase().startsWith('all ') &&
+        clean.toLowerCase() !== 'all' &&
+        !deleted.has(clean.toLowerCase())
+      ) {
         merged.add(clean);
       }
     });
@@ -215,10 +264,16 @@ export default function MaintenanceClient() {
       setCustomCategories(updated);
       if (typeof window !== 'undefined') {
         localStorage.setItem('samko_maintenance_categories', JSON.stringify(updated));
-        window.dispatchEvent(new CustomEvent('samko:data-changed', { detail: { type: 'maintenance_category', name: c } }));
+        window.dispatchEvent(
+          new CustomEvent('samko:data-changed', {
+            detail: { type: 'maintenance_category', name: c },
+          })
+        );
       }
     }
-    toast.success('Maintenance Category Created', { description: `Added "${c}" to maintenance categories` });
+    toast.success('Maintenance Category Created', {
+      description: `Added "${c}" to maintenance categories`,
+    });
     setNewCatName('');
   };
   const handleDeleteCategory = (catName: string) => {
@@ -227,7 +282,11 @@ export default function MaintenanceClient() {
     setCustomCategories(updated);
     if (typeof window !== 'undefined') {
       localStorage.setItem('samko_maintenance_categories', JSON.stringify(updated));
-      window.dispatchEvent(new CustomEvent('samko:data-changed', { detail: { type: 'maintenance_category_deleted', name: catName } }));
+      window.dispatchEvent(
+        new CustomEvent('samko:data-changed', {
+          detail: { type: 'maintenance_category_deleted', name: catName },
+        })
+      );
     }
     setCategoryFilter((prev) => prev.filter((c) => c !== catName));
     toast.success(`Removed category "${catName}"`);
@@ -238,7 +297,10 @@ export default function MaintenanceClient() {
     const count = accessibleRecords.filter((m) => {
       const asset = ASSETS.find((a) => a.id === m.assetId || a.assetId === m.assetId);
       const cat = (m as any).category || asset?.category || '';
-      return cat.toLowerCase() === catName.toLowerCase() || m.type.toLowerCase().includes(catName.toLowerCase());
+      return (
+        cat.toLowerCase() === catName.toLowerCase() ||
+        m.type.toLowerCase().includes(catName.toLowerCase())
+      );
     }).length;
     toast.info(`Filtered to ${catName}`, {
       description: `Showing ${count} maintenance record(s) matching category "${catName}"`,
@@ -252,7 +314,9 @@ export default function MaintenanceClient() {
       setEditingCat(null);
       return;
     }
-    const updatedCustom = customCategories.map((c) => (c.toLowerCase() === oldName.toLowerCase() ? newName : c));
+    const updatedCustom = customCategories.map((c) =>
+      c.toLowerCase() === oldName.toLowerCase() ? newName : c
+    );
     if (!updatedCustom.includes(newName)) {
       updatedCustom.push(newName);
     }
@@ -260,7 +324,7 @@ export default function MaintenanceClient() {
     if (typeof window !== 'undefined') {
       try {
         localStorage.setItem('samko_maintenance_categories', JSON.stringify(updatedCustom));
-      } catch { }
+      } catch {}
     }
     removeDropdownOptionByName('maintenance', 'category', oldName);
     addDropdownOption('maintenance', 'category', newName);
@@ -308,16 +372,31 @@ export default function MaintenanceClient() {
         api.properties.getAll(),
         api.assets.getAll(),
       ]);
-      if (mRes.status === 'fulfilled' && mRes.value.success && mRes.value.data && mRes.value.data.length > 0) {
+      if (
+        mRes.status === 'fulfilled' &&
+        mRes.value.success &&
+        mRes.value.data &&
+        mRes.value.data.length > 0
+      ) {
         setRecords(mRes.value.data);
         try {
           sessionStorage.setItem('samko_cache_maintenance', JSON.stringify(mRes.value.data));
-        } catch { }
+        } catch {}
       }
-      if (pRes.status === 'fulfilled' && pRes.value.success && pRes.value.data && pRes.value.data.length > 0) {
+      if (
+        pRes.status === 'fulfilled' &&
+        pRes.value.success &&
+        pRes.value.data &&
+        pRes.value.data.length > 0
+      ) {
         setProperties(pRes.value.data);
       }
-      if (aRes.status === 'fulfilled' && aRes.value.success && aRes.value.data && aRes.value.data.length > 0) {
+      if (
+        aRes.status === 'fulfilled' &&
+        aRes.value.success &&
+        aRes.value.data &&
+        aRes.value.data.length > 0
+      ) {
         setLiveAssets(aRes.value.data);
       }
     } catch (err) {
@@ -336,7 +415,9 @@ export default function MaintenanceClient() {
   }, [fetchRecords]);
   const accessibleRecords = useMemo(() => {
     return records.filter((m) =>
-      isPropertyAccessible(m.hotelName || (m as any).propertyName || (m as any).property || m.hotelId)
+      isPropertyAccessible(
+        m.hotelName || (m as any).propertyName || (m as any).property || m.hotelId
+      )
     );
   }, [records, isPropertyAccessible]);
 
@@ -344,13 +425,16 @@ export default function MaintenanceClient() {
     return properties.filter((h) => isPropertyAccessible(h.name || h.id));
   }, [properties, isPropertyAccessible]);
 
-  const counts = useMemo(() => ({
-    all: accessibleRecords.length,
-    scheduled: accessibleRecords.filter((m) => m.status === 'scheduled').length,
-    'due-today': accessibleRecords.filter((m) => m.status === 'due-today').length,
-    overdue: accessibleRecords.filter((m) => m.status === 'overdue').length,
-    completed: accessibleRecords.filter((m) => m.status === 'completed').length,
-  }), [accessibleRecords]);
+  const counts = useMemo(
+    () => ({
+      all: accessibleRecords.length,
+      scheduled: accessibleRecords.filter((m) => m.status === 'scheduled').length,
+      'due-today': accessibleRecords.filter((m) => m.status === 'due-today').length,
+      overdue: accessibleRecords.filter((m) => m.status === 'overdue').length,
+      completed: accessibleRecords.filter((m) => m.status === 'completed').length,
+    }),
+    [accessibleRecords]
+  );
 
   const filtered = useMemo(() => {
     return accessibleRecords.filter((m) => {
@@ -366,15 +450,20 @@ export default function MaintenanceClient() {
         propertyFilter.includes(m.hotelId) ||
         propertyFilter.includes(m.hotelName) ||
         propertyFilter.includes((m as any).propertyId) ||
-        propertyFilter.some((p) => p.toLowerCase() === (m.hotelName || '').toLowerCase() || p.toLowerCase() === (m.hotelId || '').toLowerCase());
+        propertyFilter.some(
+          (p) =>
+            p.toLowerCase() === (m.hotelName || '').toLowerCase() ||
+            p.toLowerCase() === (m.hotelId || '').toLowerCase()
+        );
       const asset = ASSETS.find((a) => a.id === m.assetId || a.assetId === m.assetId);
       const recordCategory = (m as any).category || asset?.category || '';
       const matchCategory =
         categoryFilter.length === 0 ||
-        categoryFilter.some((c) =>
-          c.toLowerCase() === recordCategory.toLowerCase() ||
-          m.type.toLowerCase().includes(c.toLowerCase()) ||
-          (asset && asset.category.toLowerCase().includes(c.toLowerCase()))
+        categoryFilter.some(
+          (c) =>
+            c.toLowerCase() === recordCategory.toLowerCase() ||
+            m.type.toLowerCase().includes(c.toLowerCase()) ||
+            (asset && asset.category.toLowerCase().includes(c.toLowerCase()))
         );
       return matchTab && matchSearch && matchHotel && matchCategory;
     });
@@ -435,18 +524,49 @@ export default function MaintenanceClient() {
     });
 
     const opts: { label: string; value: string; count: number }[] = [];
-    if (counts['status:overdue']) opts.push({ label: 'Status: Overdue', value: 'status:overdue', count: counts['status:overdue'] });
-    if (counts['status:due-today']) opts.push({ label: 'Status: Due Today', value: 'status:due-today', count: counts['status:due-today'] });
-    if (counts['status:scheduled']) opts.push({ label: 'Status: Scheduled', value: 'status:scheduled', count: counts['status:scheduled'] });
-    if (counts['status:completed']) opts.push({ label: 'Status: Completed', value: 'status:completed', count: counts['status:completed'] });
-    if (counts['status:in-progress']) opts.push({ label: 'Status: In Progress', value: 'status:in-progress', count: counts['status:in-progress'] });
+    if (counts['status:overdue'])
+      opts.push({
+        label: 'Status: Overdue',
+        value: 'status:overdue',
+        count: counts['status:overdue'],
+      });
+    if (counts['status:due-today'])
+      opts.push({
+        label: 'Status: Due Today',
+        value: 'status:due-today',
+        count: counts['status:due-today'],
+      });
+    if (counts['status:scheduled'])
+      opts.push({
+        label: 'Status: Scheduled',
+        value: 'status:scheduled',
+        count: counts['status:scheduled'],
+      });
+    if (counts['status:completed'])
+      opts.push({
+        label: 'Status: Completed',
+        value: 'status:completed',
+        count: counts['status:completed'],
+      });
+    if (counts['status:in-progress'])
+      opts.push({
+        label: 'Status: In Progress',
+        value: 'status:in-progress',
+        count: counts['status:in-progress'],
+      });
 
     ['monthly', 'quarterly', '6-monthly', 'yearly'].forEach((f) => {
-      if (counts[`freq:${f}`]) opts.push({ label: `Frequency: ${f}`, value: `freq:${f}`, count: counts[`freq:${f}`] });
+      if (counts[`freq:${f}`])
+        opts.push({ label: `Frequency: ${f}`, value: `freq:${f}`, count: counts[`freq:${f}`] });
     });
 
     HOTELS.forEach((h) => {
-      if (counts[`hotel:${h.name}`]) opts.push({ label: `Property: ${h.name}`, value: `hotel:${h.name}`, count: counts[`hotel:${h.name}`] });
+      if (counts[`hotel:${h.name}`])
+        opts.push({
+          label: `Property: ${h.name}`,
+          value: `hotel:${h.name}`,
+          count: counts[`hotel:${h.name}`],
+        });
     });
 
     return opts;
@@ -462,11 +582,14 @@ export default function MaintenanceClient() {
     const matched = filtered.filter((m) => {
       if (kind === 'status') return m.status === val;
       if (kind === 'freq') return m.frequency === val;
-      if (kind === 'hotel') return (m.hotelName || (m as any).property || (m as any).propertyName) === val;
+      if (kind === 'hotel')
+        return (m.hotelName || (m as any).property || (m as any).propertyName) === val;
       return false;
     });
     setSelectedRecordIds(matched.map((m) => m.id));
-    toast.info(`Selected ${matched.length} maintenance records matching ${typeKey.replace(':', ': ')}`);
+    toast.info(
+      `Selected ${matched.length} maintenance records matching ${typeKey.replace(':', ': ')}`
+    );
   };
 
   const handleConfirmBulkDeleteRecords = async () => {
@@ -481,7 +604,9 @@ export default function MaintenanceClient() {
       setShowBulkDeleteRecordsModal(false);
 
       if (typeof window !== 'undefined') {
-        window.dispatchEvent(new CustomEvent('samko:data-changed', { detail: { type: 'maintenance' } }));
+        window.dispatchEvent(
+          new CustomEvent('samko:data-changed', { detail: { type: 'maintenance' } })
+        );
       }
       await Promise.allSettled(ids.map((id) => api.maintenance.delete(id)));
       toast.success(`Deleted ${count} maintenance records successfully!`);
@@ -493,7 +618,8 @@ export default function MaintenanceClient() {
   };
   const handleStatusChange = async (id: string, newStatus: string) => {
     setUpdatingId(id);
-    const completedDate = newStatus === 'completed' ? new Date().toISOString().split('T')[0] : undefined;
+    const completedDate =
+      newStatus === 'completed' ? new Date().toISOString().split('T')[0] : undefined;
     // Optimistically update
     setRecords((prev) =>
       prev.map((r) => {
@@ -526,7 +652,9 @@ export default function MaintenanceClient() {
       });
     } catch (err: any) {
       console.error('Failed to sync status to server:', err);
-      toast.error('Failed to update maintenance status', { description: err?.message || 'Server error' });
+      toast.error('Failed to update maintenance status', {
+        description: err?.message || 'Server error',
+      });
     } finally {
       setUpdatingId(null);
     }
@@ -583,9 +711,13 @@ export default function MaintenanceClient() {
       const updated = { ...editingRecord };
       setRecords((prev) => prev.map((r) => (r.id === updated.id ? updated : r)));
       setShowEditModal(false);
-      toast.success('Maintenance record updated', { description: `${updated.type} for ${updated.assetName}` });
+      toast.success('Maintenance record updated', {
+        description: `${updated.type} for ${updated.assetName}`,
+      });
       if (typeof window !== 'undefined') {
-        window.dispatchEvent(new CustomEvent('samko:data-changed', { detail: { type: 'maintenance', id: updated.id } }));
+        window.dispatchEvent(
+          new CustomEvent('samko:data-changed', { detail: { type: 'maintenance', id: updated.id } })
+        );
       }
       await api.maintenance.update(updated.id, updated);
     } catch (err: any) {
@@ -600,9 +732,13 @@ export default function MaintenanceClient() {
     setDeletingRecord(true);
     try {
       setRecords((prev) => prev.filter((r) => r.id !== id));
-      toast.success('Maintenance record deleted', { description: `${recordToDelete.type} removed` });
+      toast.success('Maintenance record deleted', {
+        description: `${recordToDelete.type} removed`,
+      });
       if (typeof window !== 'undefined') {
-        window.dispatchEvent(new CustomEvent('samko:data-changed', { detail: { type: 'maintenance', id } }));
+        window.dispatchEvent(
+          new CustomEvent('samko:data-changed', { detail: { type: 'maintenance', id } })
+        );
       }
       await api.maintenance.delete(id);
     } catch (err: any) {
@@ -622,17 +758,25 @@ export default function MaintenanceClient() {
   return (
     <div className="flex-1 min-h-0 flex flex-col h-full overflow-hidden">
       {/* Topbar */}
-      <div className="flex items-center justify-between px-6 py-4 border-b border-border flex-shrink-0" style={{ background: 'var(--surface)' }}>
+      <div
+        className="flex items-center justify-between px-6 py-4 border-b border-border flex-shrink-0"
+        style={{ background: 'var(--surface)' }}
+      >
         <div>
           <div className="flex items-center gap-2">
             <h1 className="font-head text-xl font-bold">{cmsTitle || 'Maintenance'}</h1>
             {loading && <Loader2 size={14} className="animate-spin text-muted-foreground" />}
           </div>
-          <p className="text-xs text-muted-foreground mt-0.5">{cmsSubtitle || 'Preventive Maintenance Management'}</p>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            {cmsSubtitle || 'Preventive Maintenance Management'}
+          </p>
         </div>
         <div className="flex items-center gap-3">
           {counts.overdue > 0 && (
-            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold" style={{ background: 'rgba(244,63,94,0.12)', color: '#f43f5e' }}>
+            <span
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold"
+              style={{ background: 'rgba(244,63,94,0.12)', color: '#f43f5e' }}
+            >
               <AlertTriangle size={13} />
               {counts.overdue} Overdue
             </span>
@@ -653,14 +797,19 @@ export default function MaintenanceClient() {
                 className="flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-semibold transition-transform active:scale-95"
                 style={{ background: 'var(--primary)', color: '#000' }}
               >
-                <Plus size={14} /> {(cmsPrimaryActionLabel || 'Schedule Maintenance').replace(/^[\+\s]+/, '').trim()}
+                <Plus size={14} />{' '}
+                {(cmsPrimaryActionLabel || 'Schedule Maintenance').replace(/^[\+\s]+/, '').trim()}
               </button>
             </>
           )}
           {isViewer && (
             <span
               className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold"
-              style={{ background: 'rgba(148,163,184,0.12)', color: '#94a3b8', border: '1px solid rgba(148,163,184,0.25)' }}
+              style={{
+                background: 'rgba(148,163,184,0.12)',
+                color: '#94a3b8',
+                border: '1px solid rgba(148,163,184,0.25)',
+              }}
             >
               L4 · Read-Only Access
             </span>
@@ -668,7 +817,10 @@ export default function MaintenanceClient() {
         </div>
       </div>
       {/* KPI Row */}
-      <div className="grid grid-cols-4 gap-4 px-6 py-4 border-b border-border flex-shrink-0" style={{ background: 'var(--background)' }}>
+      <div
+        className="grid grid-cols-4 gap-4 px-6 py-4 border-b border-border flex-shrink-0"
+        style={{ background: 'var(--background)' }}
+      >
         <StatCard
           label="Scheduled"
           value={counts.scheduled}
@@ -703,7 +855,10 @@ export default function MaintenanceClient() {
         />
       </div>
       {/* Tabs */}
-      <div className="flex items-center gap-1 px-6 pt-3 border-b border-border flex-shrink-0" style={{ background: 'var(--surface)' }}>
+      <div
+        className="flex items-center gap-1 px-6 pt-3 border-b border-border flex-shrink-0"
+        style={{ background: 'var(--surface)' }}
+      >
         {tabs.map((tab) => (
           <button
             key={tab.id}
@@ -717,15 +872,24 @@ export default function MaintenanceClient() {
           >
             <tab.icon size={14} />
             {tab.label}
-            <span className="px-1.5 py-0.5 rounded text-xs font-bold" style={{ background: 'var(--surface2)', color: 'var(--text2)' }}>
+            <span
+              className="px-1.5 py-0.5 rounded text-xs font-bold"
+              style={{ background: 'var(--surface2)', color: 'var(--text2)' }}
+            >
               {counts[tab.id]}
             </span>
           </button>
         ))}
       </div>
       {/* Filters */}
-      <div className="flex items-center gap-3 px-6 py-2.5 border-b border-border flex-shrink-0" style={{ background: 'var(--surface)' }}>
-        <div className="flex items-center gap-2 px-3 py-2 rounded-lg border border-border flex-1 max-w-sm" style={{ background: 'var(--surface2)' }}>
+      <div
+        className="flex items-center gap-3 px-6 py-2.5 border-b border-border flex-shrink-0"
+        style={{ background: 'var(--surface)' }}
+      >
+        <div
+          className="flex items-center gap-2 px-3 py-2 rounded-lg border border-border flex-1 max-w-sm"
+          style={{ background: 'var(--surface2)' }}
+        >
           <Search size={14} className="text-muted-foreground" />
           <input
             className="bg-transparent text-sm outline-none flex-1"
@@ -768,8 +932,9 @@ export default function MaintenanceClient() {
               {activeColumns.map((col) => (
                 <th
                   key={col.id}
-                  className={`text-left text-xs font-bold uppercase tracking-wide text-muted-foreground px-3.5 py-3 border-b border-border whitespace-nowrap ${col.id.toLowerCase() === 'actions' ? 'text-right' : ''
-                    }`}
+                  className={`text-left text-xs font-bold uppercase tracking-wide text-muted-foreground px-3.5 py-3 border-b border-border whitespace-nowrap ${
+                    col.id.toLowerCase() === 'actions' ? 'text-right' : ''
+                  }`}
                 >
                   {col.label}
                 </th>
@@ -779,21 +944,33 @@ export default function MaintenanceClient() {
           <tbody>
             {filtered.length === 0 ? (
               <tr>
-                <td colSpan={(activeColumns.length || 9) + 1} className="text-center py-16 text-muted-foreground text-sm">
+                <td
+                  colSpan={(activeColumns.length || 9) + 1}
+                  className="text-center py-16 text-muted-foreground text-sm"
+                >
                   No maintenance records found.
                 </td>
               </tr>
             ) : (
               paginatedRecords.map((m) => {
                 const s = STATUS_STYLES[m.status] || STATUS_STYLES.scheduled;
-                const propDisplayName = m.hotelName || (m as any).property || (m as any).propertyName || 'Property';
+                const propDisplayName =
+                  m.hotelName || (m as any).property || (m as any).propertyName || 'Property';
                 const isItemUpdating = updatingId === m.id;
                 return (
                   <tr
                     key={m.id}
                     className={`border-b border-border transition-colors ${selectedRecordIds.includes(m.id) ? 'bg-[#e8c97a]/5' : ''}`}
-                    onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = selectedRecordIds.includes(m.id) ? 'rgba(232,201,122,0.08)' : 'var(--surface2)'; }}
-                    onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = selectedRecordIds.includes(m.id) ? 'rgba(232,201,122,0.05)' : 'transparent'; }}
+                    onMouseEnter={(e) => {
+                      (e.currentTarget as HTMLElement).style.background =
+                        selectedRecordIds.includes(m.id)
+                          ? 'rgba(232,201,122,0.08)'
+                          : 'var(--surface2)';
+                    }}
+                    onMouseLeave={(e) => {
+                      (e.currentTarget as HTMLElement).style.background =
+                        selectedRecordIds.includes(m.id) ? 'rgba(232,201,122,0.05)' : 'transparent';
+                    }}
                   >
                     {hasDeleteAccess && (
                       <td className="px-3 py-2.5 text-center" onClick={(e) => e.stopPropagation()}>
@@ -809,15 +986,24 @@ export default function MaintenanceClient() {
                       if (colKey === 'asset') {
                         return (
                           <td key={col.id} className="px-3.5 py-2.5">
-                            <div className="text-sm font-medium">{m.assetName || (m as any).asset || '—'}</div>
-                            <div className="text-xs text-muted-foreground font-mono">{m.assetId || m.id}</div>
+                            <div className="text-sm font-medium">
+                              {m.assetName || (m as any).asset || '—'}
+                            </div>
+                            <div className="text-xs text-muted-foreground font-mono">
+                              {m.assetId || m.id}
+                            </div>
                           </td>
                         );
                       }
                       if (colKey === 'property') {
                         return (
-                          <td key={col.id} className="px-3.5 py-2.5 text-xs text-muted-foreground max-w-36">
-                            <div className="truncate" title={propDisplayName}>{propDisplayName}</div>
+                          <td
+                            key={col.id}
+                            className="px-3.5 py-2.5 text-xs text-muted-foreground max-w-36"
+                          >
+                            <div className="truncate" title={propDisplayName}>
+                              {propDisplayName}
+                            </div>
                           </td>
                         );
                       }
@@ -833,7 +1019,10 @@ export default function MaintenanceClient() {
                           <td key={col.id} className="px-3.5 py-2.5">
                             <span
                               className="inline-block px-2 py-0.5 rounded text-xs font-semibold capitalize"
-                              style={{ background: `${FREQ_STYLES[m.frequency] || '#6b7280'}18`, color: FREQ_STYLES[m.frequency] || '#6b7280' }}
+                              style={{
+                                background: `${FREQ_STYLES[m.frequency] || '#6b7280'}18`,
+                                color: FREQ_STYLES[m.frequency] || '#6b7280',
+                              }}
                             >
                               {m.frequency}
                             </span>
@@ -842,28 +1031,68 @@ export default function MaintenanceClient() {
                       }
                       if (colKey === 'scheduleddate') {
                         return (
-                          <td key={col.id} className="px-3.5 py-2.5 text-xs text-muted-foreground whitespace-nowrap">
-                            {m.scheduledDate ? new Date(m.scheduledDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'}
+                          <td
+                            key={col.id}
+                            className="px-3.5 py-2.5 text-xs text-muted-foreground whitespace-nowrap"
+                          >
+                            {m.scheduledDate
+                              ? new Date(m.scheduledDate).toLocaleDateString('en-GB', {
+                                  day: 'numeric',
+                                  month: 'short',
+                                  year: 'numeric',
+                                })
+                              : '—'}
                           </td>
                         );
                       }
                       if (colKey === 'assignedto') {
                         return (
-                          <td key={col.id} className="px-3.5 py-2.5 text-sm">{m.assignedTo || 'Unassigned'}</td>
+                          <td key={col.id} className="px-3.5 py-2.5 text-sm">
+                            {m.assignedTo || 'Unassigned'}
+                          </td>
                         );
                       }
                       if (colKey === 'status') {
                         return (
-                          <td key={col.id} className="px-3.5 py-2.5" onClick={(e) => e.stopPropagation()}>
+                          <td
+                            key={col.id}
+                            className="px-3.5 py-2.5"
+                            onClick={(e) => e.stopPropagation()}
+                          >
                             <StatusDropdown
                               value={m.status}
                               disabled={isItemUpdating || isViewer || !canEdit}
                               options={[
-                                { value: 'scheduled', label: 'Scheduled', color: '#60a5fa', bg: 'rgba(96,165,250,0.12)' },
-                                { value: 'due-today', label: 'Due Today', color: '#f59e0b', bg: 'rgba(245,158,11,0.12)' },
-                                { value: 'overdue', label: 'Overdue', color: '#f43f5e', bg: 'rgba(244,63,94,0.12)' },
-                                { value: 'in-progress', label: 'In Progress', color: '#a78bfa', bg: 'rgba(167,139,250,0.12)' },
-                                { value: 'completed', label: 'Completed', color: '#3dd68c', bg: 'rgba(61,214,140,0.12)' },
+                                {
+                                  value: 'scheduled',
+                                  label: 'Scheduled',
+                                  color: '#60a5fa',
+                                  bg: 'rgba(96,165,250,0.12)',
+                                },
+                                {
+                                  value: 'due-today',
+                                  label: 'Due Today',
+                                  color: '#f59e0b',
+                                  bg: 'rgba(245,158,11,0.12)',
+                                },
+                                {
+                                  value: 'overdue',
+                                  label: 'Overdue',
+                                  color: '#f43f5e',
+                                  bg: 'rgba(244,63,94,0.12)',
+                                },
+                                {
+                                  value: 'in-progress',
+                                  label: 'In Progress',
+                                  color: '#a78bfa',
+                                  bg: 'rgba(167,139,250,0.12)',
+                                },
+                                {
+                                  value: 'completed',
+                                  label: 'Completed',
+                                  color: '#3dd68c',
+                                  bg: 'rgba(61,214,140,0.12)',
+                                },
                               ]}
                               onChange={(val) => handleStatusChange(m.id, val)}
                             />
@@ -872,14 +1101,27 @@ export default function MaintenanceClient() {
                       }
                       if (colKey === 'nextduedate') {
                         return (
-                          <td key={col.id} className="px-3.5 py-2.5 text-xs text-muted-foreground whitespace-nowrap">
-                            {m.nextDueDate ? new Date(m.nextDueDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'}
+                          <td
+                            key={col.id}
+                            className="px-3.5 py-2.5 text-xs text-muted-foreground whitespace-nowrap"
+                          >
+                            {m.nextDueDate
+                              ? new Date(m.nextDueDate).toLocaleDateString('en-GB', {
+                                  day: 'numeric',
+                                  month: 'short',
+                                  year: 'numeric',
+                                })
+                              : '—'}
                           </td>
                         );
                       }
                       if (colKey === 'actions') {
                         return (
-                          <td key={col.id} className="px-3.5 py-2.5 text-right" onClick={(e) => e.stopPropagation()}>
+                          <td
+                            key={col.id}
+                            className="px-3.5 py-2.5 text-right"
+                            onClick={(e) => e.stopPropagation()}
+                          >
                             <div className="flex items-center justify-end gap-1.5 whitespace-nowrap">
                               <button
                                 onClick={() => setViewingRecord(m)}
@@ -914,8 +1156,13 @@ export default function MaintenanceClient() {
                       // Dynamic custom columns
                       const val = (m as any)[col.id] ?? (m as any)[colKey];
                       return (
-                        <td key={col.id} className="px-3.5 py-2.5 text-xs text-foreground whitespace-nowrap">
-                          {val !== undefined && val !== null && String(val).trim() !== '' ? String(val) : '—'}
+                        <td
+                          key={col.id}
+                          className="px-3.5 py-2.5 text-xs text-foreground whitespace-nowrap"
+                        >
+                          {val !== undefined && val !== null && String(val).trim() !== ''
+                            ? String(val)
+                            : '—'}
                         </td>
                       );
                     })}
@@ -959,16 +1206,32 @@ export default function MaintenanceClient() {
       )}
       {/* Schedule Maintenance Modal */}
       {showAddModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(4px)' }}>
-          <div className="w-full max-w-xl rounded-2xl border border-border overflow-hidden shadow-2xl animate-in fade-in zoom-in-95 duration-200" style={{ background: 'var(--surface)' }}>
-            <div className="flex items-center justify-between px-6 py-4 border-b border-border" style={{ background: 'var(--surface2)' }}>
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{ background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(4px)' }}
+        >
+          <div
+            className="w-full max-w-xl rounded-2xl border border-border overflow-hidden shadow-2xl animate-in fade-in zoom-in-95 duration-200"
+            style={{ background: 'var(--surface)' }}
+          >
+            <div
+              className="flex items-center justify-between px-6 py-4 border-b border-border"
+              style={{ background: 'var(--surface2)' }}
+            >
               <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'rgba(232,201,122,0.15)', color: 'var(--primary)' }}>
+                <div
+                  className="w-8 h-8 rounded-lg flex items-center justify-center"
+                  style={{ background: 'rgba(232,201,122,0.15)', color: 'var(--primary)' }}
+                >
                   <Wrench size={16} />
                 </div>
                 <div>
-                  <h3 className="font-head font-bold text-base text-foreground">Schedule Maintenance Record</h3>
-                  <p className="text-xs text-muted-foreground">Create a PPM or reactive service task for any asset</p>
+                  <h3 className="font-head font-bold text-base text-foreground">
+                    Schedule Maintenance Record
+                  </h3>
+                  <p className="text-xs text-muted-foreground">
+                    Create a PPM or reactive service task for any asset
+                  </p>
                 </div>
               </div>
               <button
@@ -1171,19 +1434,37 @@ export default function MaintenanceClient() {
       )}
       {/* View Maintenance Details Modal (Available to all roles including Viewers) */}
       {viewingRecord && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.7)' }} onClick={() => setViewingRecord(null)}>
-          <div className="rounded-2xl border border-border w-full max-w-xl max-h-[85vh] overflow-auto" style={{ background: 'var(--surface)' }} onClick={(e) => e.stopPropagation()}>
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{ background: 'rgba(0,0,0,0.7)' }}
+          onClick={() => setViewingRecord(null)}
+        >
+          <div
+            className="rounded-2xl border border-border w-full max-w-xl max-h-[85vh] overflow-auto"
+            style={{ background: 'var(--surface)' }}
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="flex items-center justify-between p-6 border-b border-border">
               <div className="flex items-center gap-2.5">
                 <div className="p-2 rounded-xl bg-amber-400/10 text-amber-400">
                   <Wrench size={18} />
                 </div>
                 <div>
-                  <h2 className="font-head font-bold text-lg">{viewingRecord.title || viewingRecord.task}</h2>
-                  <p className="text-xs text-muted-foreground">{viewingRecord.hotel || viewingRecord.site || 'Site'} · {viewingRecord.asset || 'General'}</p>
+                  <h2 className="font-head font-bold text-lg">
+                    {viewingRecord.title || viewingRecord.task}
+                  </h2>
+                  <p className="text-xs text-muted-foreground">
+                    {viewingRecord.hotel || viewingRecord.site || 'Site'} ·{' '}
+                    {viewingRecord.asset || 'General'}
+                  </p>
                 </div>
               </div>
-              <button onClick={() => setViewingRecord(null)} className="text-muted-foreground hover:text-foreground text-xl font-bold px-2">×</button>
+              <button
+                onClick={() => setViewingRecord(null)}
+                className="text-muted-foreground hover:text-foreground text-xl font-bold px-2"
+              >
+                ×
+              </button>
             </div>
             <div className="p-6 space-y-4">
               <div className="grid grid-cols-2 gap-4 text-xs">
@@ -1197,7 +1478,9 @@ export default function MaintenanceClient() {
                 </div>
                 <div>
                   <span className="text-muted-foreground block mb-1">Last Completed</span>
-                  <span className="font-semibold">{viewingRecord.lastDate || viewingRecord.lastCompleted || '—'}</span>
+                  <span className="font-semibold">
+                    {viewingRecord.lastDate || viewingRecord.lastCompleted || '—'}
+                  </span>
                 </div>
                 <div>
                   <span className="text-muted-foreground block mb-1">Next Due Date</span>
@@ -1205,17 +1488,23 @@ export default function MaintenanceClient() {
                 </div>
                 <div>
                   <span className="text-muted-foreground block mb-1">Vendor / Contractor</span>
-                  <span className="font-semibold">{viewingRecord.vendor || 'Internal Engineering'}</span>
+                  <span className="font-semibold">
+                    {viewingRecord.vendor || 'Internal Engineering'}
+                  </span>
                 </div>
                 <div>
                   <span className="text-muted-foreground block mb-1">Estimated Cost</span>
-                  <span className="font-semibold">£{viewingRecord.cost?.toLocaleString?.() || '0'}</span>
+                  <span className="font-semibold">
+                    £{viewingRecord.cost?.toLocaleString?.() || '0'}
+                  </span>
                 </div>
               </div>
               {viewingRecord.notes && (
                 <div className="pt-2 border-t border-border">
                   <span className="text-xs text-muted-foreground block mb-1">Notes & Details</span>
-                  <p className="text-xs p-3 rounded-lg" style={{ background: 'var(--surface2)' }}>{viewingRecord.notes}</p>
+                  <p className="text-xs p-3 rounded-lg" style={{ background: 'var(--surface2)' }}>
+                    {viewingRecord.notes}
+                  </p>
                 </div>
               )}
             </div>
@@ -1249,7 +1538,11 @@ export default function MaintenanceClient() {
                   </button>
                 )}
               </div>
-              <button onClick={() => setViewingRecord(null)} className="px-5 py-2 rounded-lg text-xs font-semibold" style={{ background: 'var(--primary)', color: '#000' }}>
+              <button
+                onClick={() => setViewingRecord(null)}
+                className="px-5 py-2 rounded-lg text-xs font-semibold"
+                style={{ background: 'var(--primary)', color: '#000' }}
+              >
                 Close
               </button>
             </div>
@@ -1258,16 +1551,32 @@ export default function MaintenanceClient() {
       )}
       {/* Edit Maintenance Modal */}
       {showEditModal && editingRecord && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(4px)' }}>
-          <div className="w-full max-w-xl rounded-2xl border border-border overflow-hidden shadow-2xl animate-in fade-in zoom-in-95 duration-200" style={{ background: 'var(--surface)' }}>
-            <div className="flex items-center justify-between px-6 py-4 border-b border-border" style={{ background: 'var(--surface2)' }}>
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{ background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(4px)' }}
+        >
+          <div
+            className="w-full max-w-xl rounded-2xl border border-border overflow-hidden shadow-2xl animate-in fade-in zoom-in-95 duration-200"
+            style={{ background: 'var(--surface)' }}
+          >
+            <div
+              className="flex items-center justify-between px-6 py-4 border-b border-border"
+              style={{ background: 'var(--surface2)' }}
+            >
               <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'rgba(232,201,122,0.15)', color: 'var(--primary)' }}>
+                <div
+                  className="w-8 h-8 rounded-lg flex items-center justify-center"
+                  style={{ background: 'rgba(232,201,122,0.15)', color: 'var(--primary)' }}
+                >
                   <Edit2 size={16} />
                 </div>
                 <div>
-                  <h3 className="font-head font-bold text-base text-foreground">Edit Maintenance Record</h3>
-                  <p className="text-xs text-muted-foreground">{editingRecord.assetName} · Update record dynamically</p>
+                  <h3 className="font-head font-bold text-base text-foreground">
+                    Edit Maintenance Record
+                  </h3>
+                  <p className="text-xs text-muted-foreground">
+                    {editingRecord.assetName} · Update record dynamically
+                  </p>
                 </div>
               </div>
               <button
@@ -1300,7 +1609,9 @@ export default function MaintenanceClient() {
                     variant="form"
                     width="100%"
                     value={editingRecord.frequency}
-                    onChange={(val) => setEditingRecord({ ...editingRecord, frequency: val as any })}
+                    onChange={(val) =>
+                      setEditingRecord({ ...editingRecord, frequency: val as any })
+                    }
                     options={[
                       { value: 'monthly', label: 'Monthly' },
                       { value: 'quarterly', label: 'Quarterly' },
@@ -1336,7 +1647,9 @@ export default function MaintenanceClient() {
                     type="date"
                     required
                     value={editingRecord.scheduledDate}
-                    onChange={(e) => setEditingRecord({ ...editingRecord, scheduledDate: e.target.value })}
+                    onChange={(e) =>
+                      setEditingRecord({ ...editingRecord, scheduledDate: e.target.value })
+                    }
                     className="w-full px-3 py-2 rounded-lg border border-border text-xs outline-none"
                     style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
                   />
@@ -1349,7 +1662,9 @@ export default function MaintenanceClient() {
                     type="date"
                     required
                     value={editingRecord.nextDueDate}
-                    onChange={(e) => setEditingRecord({ ...editingRecord, nextDueDate: e.target.value })}
+                    onChange={(e) =>
+                      setEditingRecord({ ...editingRecord, nextDueDate: e.target.value })
+                    }
                     className="w-full px-3 py-2 rounded-lg border border-border text-xs outline-none"
                     style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
                   />
@@ -1362,7 +1677,9 @@ export default function MaintenanceClient() {
                     type="text"
                     required
                     value={editingRecord.assignedTo}
-                    onChange={(e) => setEditingRecord({ ...editingRecord, assignedTo: e.target.value })}
+                    onChange={(e) =>
+                      setEditingRecord({ ...editingRecord, assignedTo: e.target.value })
+                    }
                     className="w-full px-3 py-2 rounded-lg border border-border text-xs outline-none"
                     style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
                   />
@@ -1428,8 +1745,14 @@ export default function MaintenanceClient() {
       )}
       {/* Delete Confirmation Dialog */}
       {recordToDelete && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(4px)' }}>
-          <div className="w-full max-w-md rounded-2xl border border-rose-500/30 p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-150" style={{ background: 'var(--surface)' }}>
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{ background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(4px)' }}
+        >
+          <div
+            className="w-full max-w-md rounded-2xl border border-rose-500/30 p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-150"
+            style={{ background: 'var(--surface)' }}
+          >
             <div className="flex items-center gap-3 mb-4">
               <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-rose-500/20 text-rose-400">
                 <AlertTriangle size={20} />
@@ -1440,7 +1763,10 @@ export default function MaintenanceClient() {
               </div>
             </div>
             <p className="text-xs leading-relaxed text-muted-foreground mb-5">
-              Are you sure you want to permanently delete the <strong className="text-foreground">{recordToDelete.type}</strong> maintenance task for <strong className="text-foreground">{recordToDelete.assetName}</strong>? This action cannot be undone.
+              Are you sure you want to permanently delete the{' '}
+              <strong className="text-foreground">{recordToDelete.type}</strong> maintenance task
+              for <strong className="text-foreground">{recordToDelete.assetName}</strong>? This
+              action cannot be undone.
             </p>
             <div className="flex items-center justify-end gap-3">
               <button
@@ -1473,25 +1799,46 @@ export default function MaintenanceClient() {
       )}
       {/* Add Maintenance Category Modal */}
       {showAddCategoryModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(4px)' }}>
-          <div className="w-full max-w-lg rounded-2xl border border-border overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200" style={{ background: 'var(--surface)' }}>
-            <div className="flex items-center justify-between px-6 py-4 border-b border-border" style={{ background: 'var(--surface2)' }}>
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{ background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(4px)' }}
+        >
+          <div
+            className="w-full max-w-lg rounded-2xl border border-border overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200"
+            style={{ background: 'var(--surface)' }}
+          >
+            <div
+              className="flex items-center justify-between px-6 py-4 border-b border-border"
+              style={{ background: 'var(--surface2)' }}
+            >
               <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'rgba(232,201,122,0.15)', color: 'var(--primary)' }}>
+                <div
+                  className="w-8 h-8 rounded-lg flex items-center justify-center"
+                  style={{ background: 'rgba(232,201,122,0.15)', color: 'var(--primary)' }}
+                >
                   <Tag size={16} />
                 </div>
                 <div>
-                  <h3 className="font-head font-bold text-base text-foreground">Manage Maintenance Categories</h3>
-                  <p className="text-xs text-muted-foreground">Add new categories, view assigned records, rename or delete</p>
+                  <h3 className="font-head font-bold text-base text-foreground">
+                    Manage Maintenance Categories
+                  </h3>
+                  <p className="text-xs text-muted-foreground">
+                    Add new categories, view assigned records, rename or delete
+                  </p>
                 </div>
               </div>
-              <button onClick={() => setShowAddCategoryModal(false)} className="w-7 h-7 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground cursor-pointer">
+              <button
+                onClick={() => setShowAddCategoryModal(false)}
+                className="w-7 h-7 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground cursor-pointer"
+              >
                 <X size={16} />
               </button>
             </div>
             <div className="p-6 space-y-4">
               <form onSubmit={handleSaveCategory} className="space-y-3">
-                <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wide">Add New Category</label>
+                <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                  Add New Category
+                </label>
                 <div className="flex gap-2">
                   <input
                     type="text"
@@ -1516,14 +1863,21 @@ export default function MaintenanceClient() {
                   <label className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
                     Active Categories ({allCategories.length})
                   </label>
-                  <span className="text-[10px] text-muted-foreground">Eye to view · Pencil to edit · Trash to delete</span>
+                  <span className="text-[10px] text-muted-foreground">
+                    Eye to view · Pencil to edit · Trash to delete
+                  </span>
                 </div>
                 <div className="space-y-1.5 max-h-60 overflow-y-auto custom-scrollbar pr-1">
                   {allCategories.map((c) => {
                     const count = accessibleRecords.filter((m) => {
-                      const asset = ASSETS.find((a) => a.id === m.assetId || a.assetId === m.assetId);
+                      const asset = ASSETS.find(
+                        (a) => a.id === m.assetId || a.assetId === m.assetId
+                      );
                       const cat = (m as any).category || asset?.category || '';
-                      return cat.toLowerCase() === c.toLowerCase() || m.type.toLowerCase().includes(c.toLowerCase());
+                      return (
+                        cat.toLowerCase() === c.toLowerCase() ||
+                        m.type.toLowerCase().includes(c.toLowerCase())
+                      );
                     }).length;
                     const isEditing = editingCat?.oldName === c;
                     return (
@@ -1537,7 +1891,9 @@ export default function MaintenanceClient() {
                             <input
                               type="text"
                               value={editingCat.newName}
-                              onChange={(e) => setEditingCat({ ...editingCat, newName: e.target.value })}
+                              onChange={(e) =>
+                                setEditingCat({ ...editingCat, newName: e.target.value })
+                              }
                               className="flex-1 px-2.5 py-1 rounded-lg border border-primary text-xs outline-none bg-surface text-foreground"
                               autoFocus
                             />
@@ -1561,12 +1917,17 @@ export default function MaintenanceClient() {
                             <div className="flex items-center gap-2.5 min-w-0 flex-1">
                               <div
                                 className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
-                                style={{ background: 'rgba(232,201,122,0.15)', color: 'var(--primary)' }}
+                                style={{
+                                  background: 'rgba(232,201,122,0.15)',
+                                  color: 'var(--primary)',
+                                }}
                               >
                                 <Tag size={14} />
                               </div>
                               <div className="min-w-0">
-                                <p className="text-xs font-semibold text-foreground truncate">{c}</p>
+                                <p className="text-xs font-semibold text-foreground truncate">
+                                  {c}
+                                </p>
                                 <p className="text-[11px] text-muted-foreground">
                                   {count} {count === 1 ? 'record' : 'records'}
                                 </p>
@@ -1577,7 +1938,11 @@ export default function MaintenanceClient() {
                                 type="button"
                                 onClick={() => handleViewCategoryRecords(c)}
                                 className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium border border-border hover:bg-surface transition-colors cursor-pointer"
-                                style={{ color: 'var(--primary)', borderColor: 'rgba(232,201,122,0.25)', background: 'rgba(232,201,122,0.08)' }}
+                                style={{
+                                  color: 'var(--primary)',
+                                  borderColor: 'rgba(232,201,122,0.25)',
+                                  background: 'rgba(232,201,122,0.08)',
+                                }}
                                 title={`See records for ${c}`}
                               >
                                 <Eye size={12} />
@@ -1623,21 +1988,31 @@ export default function MaintenanceClient() {
       )}
       {/* Category Delete Confirmation Dialog */}
       {catToDelete && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(4px)' }}>
-          <div className="w-full max-w-md rounded-2xl border border-rose-500/30 p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-150" style={{ background: 'var(--surface)' }}>
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center p-4"
+          style={{ background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(4px)' }}
+        >
+          <div
+            className="w-full max-w-md rounded-2xl border border-rose-500/30 p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-150"
+            style={{ background: 'var(--surface)' }}
+          >
             <div className="flex items-center gap-3 mb-4">
               <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-rose-500/20 text-rose-400">
                 <AlertTriangle size={20} />
               </div>
               <div>
-                <h3 className="font-head font-bold text-base text-foreground">Delete Maintenance Category</h3>
+                <h3 className="font-head font-bold text-base text-foreground">
+                  Delete Maintenance Category
+                </h3>
                 <p className="text-xs text-muted-foreground">{catToDelete}</p>
               </div>
             </div>
             <p className="text-xs leading-relaxed text-muted-foreground mb-5">
-              Are you sure you want to delete the category <strong className="text-foreground">{catToDelete}</strong>?
+              Are you sure you want to delete the category{' '}
+              <strong className="text-foreground">{catToDelete}</strong>?
               <span className="block mt-2 text-emerald-400 font-medium">
-                Note: All existing maintenance records will safely stay in the database. Only this category option will be removed from future dropdown selections.
+                Note: All existing maintenance records will safely stay in the database. Only this
+                category option will be removed from future dropdown selections.
               </span>
             </p>
             <div className="flex items-center justify-end gap-3">

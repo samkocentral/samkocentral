@@ -4,7 +4,8 @@ import { getCollectionData, createDocument } from '@/lib/serverData';
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const search = searchParams.get('search')?.toLowerCase() || '';
-  const site = searchParams.get('site')?.toLowerCase() || searchParams.get('property')?.toLowerCase() || '';
+  const site =
+    searchParams.get('site')?.toLowerCase() || searchParams.get('property')?.toLowerCase() || '';
   const priority = searchParams.get('priority')?.toLowerCase() || '';
   const status = searchParams.get('status')?.toLowerCase() || '';
 
@@ -79,6 +80,9 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ success: true, data: newTask }, { status: 201 });
   } catch (error: any) {
-    return NextResponse.json({ success: false, error: error?.message || 'Failed to create task' }, { status: 500 });
+    return NextResponse.json(
+      { success: false, error: error?.message || 'Failed to create task' },
+      { status: 500 }
+    );
   }
 }

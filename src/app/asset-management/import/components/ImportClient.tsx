@@ -3,10 +3,30 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import {
-  Upload, FileSpreadsheet, CheckCircle2, AlertTriangle, ArrowRight,
-  Download, Eye, Loader2, ArrowLeft, RefreshCw, FileText, Check,
-  Search, Database, Building2, Layers, ShieldCheck, FileSignature,
-  Zap, FolderArchive, ListTodo, Wrench, Shield, ChevronDown
+  Upload,
+  FileSpreadsheet,
+  CheckCircle2,
+  AlertTriangle,
+  ArrowRight,
+  Download,
+  Eye,
+  Loader2,
+  ArrowLeft,
+  RefreshCw,
+  FileText,
+  Check,
+  Search,
+  Database,
+  Building2,
+  Layers,
+  ShieldCheck,
+  FileSignature,
+  Zap,
+  FolderArchive,
+  ListTodo,
+  Wrench,
+  Shield,
+  ChevronDown,
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { HOTELS } from '@/lib/assetData';
@@ -33,7 +53,11 @@ export interface DestinationConfig {
   systemFields: { key: string; label: string; required?: boolean }[];
   sampleData: Record<string, any>[];
   autoGuess: (header: string) => string | undefined;
-  transform: (row: Record<string, any>, defaultProperty: string, idx: number) => Record<string, any>;
+  transform: (
+    row: Record<string, any>,
+    defaultProperty: string,
+    idx: number
+  ) => Record<string, any>;
 }
 
 const DESTINATIONS: DestinationConfig[] = [
@@ -41,7 +65,8 @@ const DESTINATIONS: DestinationConfig[] = [
     id: 'fixed-assets',
     name: 'Fixed Assets (Plant, Machinery & HVAC)',
     shortLabel: 'Fixed Assets',
-    categoryDesc: 'Lifts, HVAC, Chillers, Boilers, Generators, Fire Systems & Building Infrastructure',
+    categoryDesc:
+      'Lifts, HVAC, Chillers, Boilers, Generators, Fire Systems & Building Infrastructure',
     collection: 'assets',
     isFixed: true,
     viewHref: '/asset-management/assets?type=fixed',
@@ -68,59 +93,63 @@ const DESTINATIONS: DestinationConfig[] = [
       {
         'Asset ID': 'AST-101',
         'Asset Name': 'Daikin VRV Air Conditioning Unit',
-        'Category': 'HVAC',
-        'Property': 'Crowne Plaza Kingston-south',
-        'Department': 'Engineering',
-        'Location': 'Plant Room 2',
-        'Floor': 'Basement',
-        'Quantity': 2,
-        'Condition': 'good',
+        Category: 'HVAC',
+        Property: 'Crowne Plaza Kingston-south',
+        Department: 'Engineering',
+        Location: 'Plant Room 2',
+        Floor: 'Basement',
+        Quantity: 2,
+        Condition: 'good',
         'Risk Level': 'medium',
-        'Status': 'active',
+        Status: 'active',
         'Serial Number': 'DK-99281-A',
         'Purchase Cost': 4500,
         'Next Inspection': '2026-12-15',
-        'Notes': 'Quarterly filter check scheduled',
+        Notes: 'Quarterly filter check scheduled',
       },
       {
         'Asset ID': 'AST-102',
         'Asset Name': 'Chubb Commercial Fire Alarm Panel',
-        'Category': 'Fire Safety',
-        'Property': 'Stanhill Court',
-        'Department': 'Engineering',
-        'Location': 'Main Reception',
-        'Floor': 'Ground Floor',
-        'Quantity': 1,
-        'Condition': 'excellent',
+        Category: 'Fire Safety',
+        Property: 'Stanhill Court',
+        Department: 'Engineering',
+        Location: 'Main Reception',
+        Floor: 'Ground Floor',
+        Quantity: 1,
+        Condition: 'excellent',
         'Risk Level': 'low',
-        'Status': 'active',
+        Status: 'active',
         'Serial Number': 'CHB-2025-09',
         'Purchase Cost': 7800,
         'Next Inspection': '2026-11-01',
-        'Notes': 'Annual statutory certification current',
+        Notes: 'Annual statutory certification current',
       },
       {
         'Asset ID': 'AST-103',
         'Asset Name': 'Otis Passenger Lift 8-Person',
-        'Category': 'Plant & Machinery',
-        'Property': 'Ravens Ait Island',
-        'Department': 'Engineering',
-        'Location': 'Main Lobby',
-        'Floor': 'All Floors',
-        'Quantity': 1,
-        'Condition': 'good',
+        Category: 'Plant & Machinery',
+        Property: 'Ravens Ait Island',
+        Department: 'Engineering',
+        Location: 'Main Lobby',
+        Floor: 'All Floors',
+        Quantity: 1,
+        Condition: 'good',
         'Risk Level': 'high',
-        'Status': 'active',
+        Status: 'active',
         'Serial Number': 'OTIS-8P-77',
         'Purchase Cost': 55000,
         'Next Inspection': '2026-09-30',
-        'Notes': 'Statutory LOLER 6-monthly thorough exam',
+        Notes: 'Statutory LOLER 6-monthly thorough exam',
       },
     ],
     autoGuess: (h) => {
-      const c = h.toLowerCase().trim().replace(/[^a-z0-9]/g, '');
+      const c = h
+        .toLowerCase()
+        .trim()
+        .replace(/[^a-z0-9]/g, '');
       if (c.includes('assetid') || c === 'id' || c === 'code') return 'assetId';
-      if (c.includes('assetname') || c === 'name' || c === 'title' || c === 'equipment') return 'name';
+      if (c.includes('assetname') || c === 'name' || c === 'title' || c === 'equipment')
+        return 'name';
       if (c.includes('category') || c === 'cat' || c === 'type') return 'category';
       if (c.includes('property') || c.includes('hotel') || c.includes('site')) return 'hotelName';
       if (c.includes('dept') || c.includes('department')) return 'department';
@@ -153,7 +182,8 @@ const DESTINATIONS: DestinationConfig[] = [
       serialNumber: row.serialNumber || '',
       purchaseCost: Number(row.purchaseCost) || 0,
       purchaseDate: row.purchaseDate || new Date().toISOString().slice(0, 10),
-      nextInspection: row.nextInspection || new Date(Date.now() + 180 * 86400000).toISOString().slice(0, 10),
+      nextInspection:
+        row.nextInspection || new Date(Date.now() + 180 * 86400000).toISOString().slice(0, 10),
       notes: row.notes || 'Bulk imported Fixed Asset',
       isFixed: true,
       assetType: 'fixed',
@@ -187,51 +217,54 @@ const DESTINATIONS: DestinationConfig[] = [
       {
         'Item Code': 'NFA-201',
         'Item Name': 'Hypnos King Bed Base & Mattress Set',
-        'Category': 'Furniture & Joinery',
-        'Property': 'River Club',
-        'Department': 'Housekeeping',
-        'Location': 'Guest Rooms 201-220',
-        'Floor': '2nd Floor',
-        'Quantity': 20,
-        'Condition': 'excellent',
+        Category: 'Furniture & Joinery',
+        Property: 'River Club',
+        Department: 'Housekeeping',
+        Location: 'Guest Rooms 201-220',
+        Floor: '2nd Floor',
+        Quantity: 20,
+        Condition: 'excellent',
         'Risk Level': 'low',
-        'Status': 'active',
+        Status: 'active',
         'Unit Cost': 800,
-        'Notes': 'Brand new luxury bedding installed',
+        Notes: 'Brand new luxury bedding installed',
       },
       {
         'Item Code': 'NFA-202',
         'Item Name': 'Samsung 55-inch 4K Smart Hospitality TV',
-        'Category': 'Electronics & AV',
-        'Property': 'Crowne Plaza Kingston-south',
-        'Department': 'IT & Guest Services',
-        'Location': 'Executive Suites',
-        'Floor': '3rd Floor',
-        'Quantity': 15,
-        'Condition': 'good',
+        Category: 'Electronics & AV',
+        Property: 'Crowne Plaza Kingston-south',
+        Department: 'IT & Guest Services',
+        Location: 'Executive Suites',
+        Floor: '3rd Floor',
+        Quantity: 15,
+        Condition: 'good',
         'Risk Level': 'low',
-        'Status': 'active',
+        Status: 'active',
         'Unit Cost': 450,
-        'Notes': 'Mounted with anti-tamper brackets',
+        Notes: 'Mounted with anti-tamper brackets',
       },
       {
         'Item Code': 'NFA-203',
         'Item Name': 'Rational Combi Oven Pro Countertop',
-        'Category': 'Kitchen Equipment',
-        'Property': 'Hampton 1 & 2',
-        'Department': 'Food & Beverage',
-        'Location': 'Main Kitchen',
-        'Floor': 'Ground Floor',
-        'Quantity': 2,
-        'Condition': 'good',
+        Category: 'Kitchen Equipment',
+        Property: 'Hampton 1 & 2',
+        Department: 'Food & Beverage',
+        Location: 'Main Kitchen',
+        Floor: 'Ground Floor',
+        Quantity: 2,
+        Condition: 'good',
         'Risk Level': 'medium',
-        'Status': 'active',
+        Status: 'active',
         'Unit Cost': 5750,
-        'Notes': 'Descaling service completed quarterly',
+        Notes: 'Descaling service completed quarterly',
       },
     ],
     autoGuess: (h) => {
-      const c = h.toLowerCase().trim().replace(/[^a-z0-9]/g, '');
+      const c = h
+        .toLowerCase()
+        .trim()
+        .replace(/[^a-z0-9]/g, '');
       if (c.includes('itemcode') || c.includes('barcode') || c === 'id') return 'assetId';
       if (c.includes('itemname') || c.includes('description') || c === 'name') return 'name';
       if (c.includes('category') || c === 'type') return 'category';
@@ -295,13 +328,13 @@ const DESTINATIONS: DestinationConfig[] = [
       {
         'Service Title': 'VRV Air Conditioning Quarterly Service',
         'Asset / Equipment': 'Daikin VRV System A',
-        'Property': 'Crowne Plaza Kingston-south',
-        'Category': 'HVAC',
-        'Frequency': 'Quarterly',
-        'Priority': 'medium',
-        'Status': 'scheduled',
-        'Contractor': 'CoolTech Solutions Ltd',
-        'Cost': 650,
+        Property: 'Crowne Plaza Kingston-south',
+        Category: 'HVAC',
+        Frequency: 'Quarterly',
+        Priority: 'medium',
+        Status: 'scheduled',
+        Contractor: 'CoolTech Solutions Ltd',
+        Cost: 650,
         'Next Due Date': '2026-11-15',
         'Last Completed Date': '2026-08-10',
         'Scope of Work': 'Clean coils, replace filters, check refrigerant levels',
@@ -309,13 +342,13 @@ const DESTINATIONS: DestinationConfig[] = [
       {
         'Service Title': 'Fire Damper Inspection & Drop Test',
         'Asset / Equipment': 'Ductwork Fire Dampers (32 Units)',
-        'Property': 'Stanhill Court',
-        'Category': 'Fire Safety',
-        'Frequency': 'Annual',
-        'Priority': 'critical',
-        'Status': 'scheduled',
-        'Contractor': 'SafeAir Engineering',
-        'Cost': 1400,
+        Property: 'Stanhill Court',
+        Category: 'Fire Safety',
+        Frequency: 'Annual',
+        Priority: 'critical',
+        Status: 'scheduled',
+        Contractor: 'SafeAir Engineering',
+        Cost: 1400,
         'Next Due Date': '2026-12-01',
         'Last Completed Date': '2025-12-05',
         'Scope of Work': 'Statutory BS 9999 annual mechanical drop test & lubricate seals',
@@ -323,20 +356,23 @@ const DESTINATIONS: DestinationConfig[] = [
       {
         'Service Title': 'Commercial Kitchen Grease Trap Emptying',
         'Asset / Equipment': 'Under-Sink Grease Interceptor',
-        'Property': 'River Club',
-        'Category': 'Plumbing & Drainage',
-        'Frequency': 'Monthly',
-        'Priority': 'high',
-        'Status': 'scheduled',
-        'Contractor': 'ClearDrain UK',
-        'Cost': 320,
+        Property: 'River Club',
+        Category: 'Plumbing & Drainage',
+        Frequency: 'Monthly',
+        Priority: 'high',
+        Status: 'scheduled',
+        Contractor: 'ClearDrain UK',
+        Cost: 320,
         'Next Due Date': '2026-10-30',
         'Last Completed Date': '2026-09-28',
         'Scope of Work': 'Pump out, steam sanitize and replenish biological enzyme dosing',
       },
     ],
     autoGuess: (h) => {
-      const c = h.toLowerCase().trim().replace(/[^a-z0-9]/g, '');
+      const c = h
+        .toLowerCase()
+        .trim()
+        .replace(/[^a-z0-9]/g, '');
       if (c.includes('servicetitle') || c.includes('task') || c === 'title') return 'title';
       if (c.includes('asset') || c.includes('equipment')) return 'assetName';
       if (c.includes('property') || c.includes('hotel')) return 'property';
@@ -344,7 +380,8 @@ const DESTINATIONS: DestinationConfig[] = [
       if (c.includes('freq')) return 'frequency';
       if (c.includes('priority')) return 'priority';
       if (c.includes('status')) return 'status';
-      if (c.includes('contractor') || c.includes('tech') || c.includes('vendor')) return 'contractor';
+      if (c.includes('contractor') || c.includes('tech') || c.includes('vendor'))
+        return 'contractor';
       if (c.includes('cost') || c.includes('price')) return 'cost';
       if (c.includes('nextdue') || c.includes('duedate')) return 'nextDue';
       if (c.includes('lastcomp') || c.includes('completed')) return 'lastCompleted';
@@ -394,52 +431,55 @@ const DESTINATIONS: DestinationConfig[] = [
     sampleData: [
       {
         'Regulation Title': 'Fire Risk Assessment (FRA)',
-        'Category': 'Fire Safety',
-        'Property': 'Crowne Plaza Kingston-south',
+        Category: 'Fire Safety',
+        Property: 'Crowne Plaza Kingston-south',
         'Check Type': 'Statutory',
-        'Standard': 'Regulatory Reform (Fire Safety) Order 2005',
+        Standard: 'Regulatory Reform (Fire Safety) Order 2005',
         'Certificate Ref': 'FRA-2026-CPS',
         'Responsible Person': 'Marcus Webb',
-        'Contractor': 'FireGuard Systems UK',
-        'Frequency': 'Yearly',
+        Contractor: 'FireGuard Systems UK',
+        Frequency: 'Yearly',
         'Last Inspection': '2025-05-10',
         'Expiry Date': '2026-05-10',
-        'Status': 'compliant',
+        Status: 'compliant',
         'Risk Rating': 'high',
       },
       {
         'Regulation Title': 'Commercial Gas Safety Inspection (CP12)',
-        'Category': 'Gas Safety',
-        'Property': 'Stanhill Court',
+        Category: 'Gas Safety',
+        Property: 'Stanhill Court',
         'Check Type': 'Statutory',
-        'Standard': 'Gas Safety (Installation and Use) Regulations 1998',
+        Standard: 'Gas Safety (Installation and Use) Regulations 1998',
         'Certificate Ref': 'GAS-2026-STH',
         'Responsible Person': 'Sarah Chen',
-        'Contractor': 'GasSafe Pro Heating',
-        'Frequency': 'Yearly',
+        Contractor: 'GasSafe Pro Heating',
+        Frequency: 'Yearly',
         'Last Inspection': '2025-09-18',
         'Expiry Date': '2026-09-18',
-        'Status': 'compliant',
+        Status: 'compliant',
         'Risk Rating': 'critical',
       },
       {
         'Regulation Title': 'Legionella Bacteria Water Risk Assessment',
-        'Category': 'Water Hygiene',
-        'Property': 'Hampton 1 & 2',
+        Category: 'Water Hygiene',
+        Property: 'Hampton 1 & 2',
         'Check Type': 'Statutory',
-        'Standard': 'HSE ACOP L8 / HSG274',
+        Standard: 'HSE ACOP L8 / HSG274',
         'Certificate Ref': 'LEG-2025-HMP',
         'Responsible Person': 'James Okafor',
-        'Contractor': 'AquaSafe Environmental Ltd',
-        'Frequency': '2-Yearly',
+        Contractor: 'AquaSafe Environmental Ltd',
+        Frequency: '2-Yearly',
         'Last Inspection': '2025-02-14',
         'Expiry Date': '2027-02-14',
-        'Status': 'compliant',
+        Status: 'compliant',
         'Risk Rating': 'high',
       },
     ],
     autoGuess: (h) => {
-      const c = h.toLowerCase().trim().replace(/[^a-z0-9]/g, '');
+      const c = h
+        .toLowerCase()
+        .trim()
+        .replace(/[^a-z0-9]/g, '');
       if (c.includes('title') || c.includes('check') || c === 'name') return 'name';
       if (c.includes('cat') || c.includes('regulation')) return 'category';
       if (c.includes('prop') || c.includes('hotel')) return 'property';
@@ -470,8 +510,10 @@ const DESTINATIONS: DestinationConfig[] = [
       inspectionFrequency: row.inspectionFrequency || 'Yearly',
       issueDate: row.lastInspection || new Date().toISOString().slice(0, 10),
       lastInspection: row.lastInspection || new Date().toISOString().slice(0, 10),
-      expiryDate: row.expiryDate || new Date(Date.now() + 365 * 86400000).toISOString().slice(0, 10),
-      renewalDate: row.expiryDate || new Date(Date.now() + 335 * 86400000).toISOString().slice(0, 10),
+      expiryDate:
+        row.expiryDate || new Date(Date.now() + 365 * 86400000).toISOString().slice(0, 10),
+      renewalDate:
+        row.expiryDate || new Date(Date.now() + 335 * 86400000).toISOString().slice(0, 10),
       status: (row.status || 'compliant').toLowerCase(),
       riskRating: (row.riskRating || 'medium').toLowerCase(),
     }),
@@ -501,47 +543,51 @@ const DESTINATIONS: DestinationConfig[] = [
       {
         'Policy Name': 'Property Damage & Business Interruption',
         'Policy Number': 'AV-PROP-2026-99',
-        'Insurer': 'Aviva Commercial',
-        'Property': 'Crowne Plaza Kingston-south',
+        Insurer: 'Aviva Commercial',
+        Property: 'Crowne Plaza Kingston-south',
         'Policy Type': 'Property & Assets',
         'Coverage Limit (£)': 25000000,
         'Annual Premium (£)': 48500,
         'Renewal Date': '2027-01-31',
         'Effective Date': '2026-02-01',
-        'Broker': 'Marsh McLennan Commercial',
-        'Status': 'active',
+        Broker: 'Marsh McLennan Commercial',
+        Status: 'active',
       },
       {
         'Policy Name': 'Public & Products Liability (£10M)',
         'Policy Number': 'AXA-PL-88301',
-        'Insurer': 'AXA Insurance UK',
-        'Property': 'All Properties',
+        Insurer: 'AXA Insurance UK',
+        Property: 'All Properties',
         'Policy Type': 'Public Liability',
         'Coverage Limit (£)': 10000000,
         'Annual Premium (£)': 14200,
         'Renewal Date': '2026-11-30',
         'Effective Date': '2025-12-01',
-        'Broker': 'Howden Insurance Brokers',
-        'Status': 'active',
+        Broker: 'Howden Insurance Brokers',
+        Status: 'active',
       },
       {
         'Policy Name': 'Employers Liability Statutory (£20M)',
         'Policy Number': 'ZUR-EL-44021',
-        'Insurer': 'Zurich Insurance',
-        'Property': 'All Properties',
+        Insurer: 'Zurich Insurance',
+        Property: 'All Properties',
         'Policy Type': 'Employers Liability',
         'Coverage Limit (£)': 20000000,
         'Annual Premium (£)': 22800,
         'Renewal Date': '2026-12-15',
         'Effective Date': '2025-12-16',
-        'Broker': 'Aon UK Limited',
-        'Status': 'active',
+        Broker: 'Aon UK Limited',
+        Status: 'active',
       },
     ],
     autoGuess: (h) => {
-      const c = h.toLowerCase().trim().replace(/[^a-z0-9]/g, '');
+      const c = h
+        .toLowerCase()
+        .trim()
+        .replace(/[^a-z0-9]/g, '');
       if (c.includes('policyname') || c.includes('title') || c === 'name') return 'policyName';
-      if (c.includes('policynumber') || c.includes('policyno') || c.includes('number')) return 'policyNumber';
+      if (c.includes('policynumber') || c.includes('policyno') || c.includes('number'))
+        return 'policyNumber';
       if (c.includes('insurer') || c.includes('underwriter')) return 'insurer';
       if (c.includes('prop') || c.includes('hotel') || c.includes('scope')) return 'property';
       if (c.includes('type')) return 'policyType';
@@ -565,8 +611,10 @@ const DESTINATIONS: DestinationConfig[] = [
       coverageLimit: Number(row.coverageAmount) || 5000000,
       annualPremium: Number(row.premium) || 12000,
       premium: Number(row.premium) || 12000,
-      renewalDate: row.renewalDate || new Date(Date.now() + 365 * 86400000).toISOString().slice(0, 10),
-      expiryDate: row.renewalDate || new Date(Date.now() + 365 * 86400000).toISOString().slice(0, 10),
+      renewalDate:
+        row.renewalDate || new Date(Date.now() + 365 * 86400000).toISOString().slice(0, 10),
+      expiryDate:
+        row.renewalDate || new Date(Date.now() + 365 * 86400000).toISOString().slice(0, 10),
       startDate: row.startDate || new Date().toISOString().slice(0, 10),
       broker: row.broker || 'Commercial Insurance Broker',
       status: (row.status || 'active').toLowerCase(),
@@ -596,35 +644,39 @@ const DESTINATIONS: DestinationConfig[] = [
     sampleData: [
       {
         'Contract Name': 'Otis Lifts Full Comprehensive Maintenance Agreement',
-        'Vendor': 'Otis Elevators UK Ltd',
-        'Property': 'Crowne Plaza Kingston-south',
-        'Category': 'Vertical Transport',
+        Vendor: 'Otis Elevators UK Ltd',
+        Property: 'Crowne Plaza Kingston-south',
+        Category: 'Vertical Transport',
         'Annual Value (£)': 18500,
         'Start Date': '2024-04-01',
         'Expiry Date': '2027-03-31',
         'Notice Period (Days)': 90,
         'Notice Date': '2026-12-31',
-        'SLA': '2-hour response for entrapments, 4-hour for breakdowns',
-        'Status': 'active',
+        SLA: '2-hour response for entrapments, 4-hour for breakdowns',
+        Status: 'active',
       },
       {
         'Contract Name': 'Commercial Linen & Laundry Rental Agreement',
-        'Vendor': 'Elis UK Textile Solutions',
-        'Property': 'All Properties',
-        'Category': 'Housekeeping & Linen',
+        Vendor: 'Elis UK Textile Solutions',
+        Property: 'All Properties',
+        Category: 'Housekeeping & Linen',
         'Annual Value (£)': 62000,
         'Start Date': '2025-01-01',
         'Expiry Date': '2028-01-01',
         'Notice Period (Days)': 60,
         'Notice Date': '2027-11-01',
-        'SLA': '3 deliveries/week per hotel, zero tolerance stain replacement',
-        'Status': 'active',
+        SLA: '3 deliveries/week per hotel, zero tolerance stain replacement',
+        Status: 'active',
       },
     ],
     autoGuess: (h) => {
-      const c = h.toLowerCase().trim().replace(/[^a-z0-9]/g, '');
+      const c = h
+        .toLowerCase()
+        .trim()
+        .replace(/[^a-z0-9]/g, '');
       if (c.includes('contract') || c.includes('title') || c === 'name') return 'title';
-      if (c.includes('vendor') || c.includes('supplier') || c.includes('contractor')) return 'contractor';
+      if (c.includes('vendor') || c.includes('supplier') || c.includes('contractor'))
+        return 'contractor';
       if (c.includes('prop') || c.includes('hotel')) return 'property';
       if (c.includes('cat') || c.includes('service')) return 'category';
       if (c.includes('value') || c.includes('cost') || c.includes('spend')) return 'annualValue';
@@ -645,9 +697,11 @@ const DESTINATIONS: DestinationConfig[] = [
       category: row.category || 'Operations & Facilities',
       annualValue: Number(row.annualValue) || 10000,
       startDate: row.startDate || new Date().toISOString().slice(0, 10),
-      expiryDate: row.expiryDate || new Date(Date.now() + 365 * 86400000).toISOString().slice(0, 10),
+      expiryDate:
+        row.expiryDate || new Date(Date.now() + 365 * 86400000).toISOString().slice(0, 10),
       noticePeriodDays: Number(row.noticePeriodDays) || 90,
-      noticeDate: row.noticeDate || new Date(Date.now() + 275 * 86400000).toISOString().slice(0, 10),
+      noticeDate:
+        row.noticeDate || new Date(Date.now() + 275 * 86400000).toISOString().slice(0, 10),
       sla: row.sla || 'Standard supplier SLA terms',
       status: (row.status || 'active').toLowerCase(),
     }),
@@ -676,30 +730,33 @@ const DESTINATIONS: DestinationConfig[] = [
       {
         'Utility Name': 'Main Fiscal Half-Hourly Electricity',
         'Utility Type': 'Electricity',
-        'Supplier': 'British Gas Business',
+        Supplier: 'British Gas Business',
         'Account Number': 'BGB-8840192',
         'Meter / MPAN': '1012938475820',
-        'Property': 'Crowne Plaza Kingston-south',
+        Property: 'Crowne Plaza Kingston-south',
         'Tariff Type': 'Half-Hourly Fixed 2-Year',
         'Contract End Date': '2027-09-30',
         'Annual Spend (£)': 82500,
-        'Status': 'active',
+        Status: 'active',
       },
       {
         'Utility Name': 'Commercial Low-Pressure Gas Supply',
         'Utility Type': 'Gas',
-        'Supplier': 'TotalEnergies Gas & Power',
+        Supplier: 'TotalEnergies Gas & Power',
         'Account Number': 'TE-GAS-99120',
         'Meter / MPRN': '77291830',
-        'Property': 'Stanhill Court',
+        Property: 'Stanhill Court',
         'Tariff Type': 'Fixed Commercial Gas',
         'Contract End Date': '2026-10-31',
         'Annual Spend (£)': 44000,
-        'Status': 'active',
+        Status: 'active',
       },
     ],
     autoGuess: (h) => {
-      const c = h.toLowerCase().trim().replace(/[^a-z0-9]/g, '');
+      const c = h
+        .toLowerCase()
+        .trim()
+        .replace(/[^a-z0-9]/g, '');
       if (c.includes('name') || c.includes('utility')) return 'name';
       if (c.includes('type') || c === 'commodity') return 'type';
       if (c.includes('supplier') || c.includes('provider')) return 'supplier';
@@ -722,7 +779,8 @@ const DESTINATIONS: DestinationConfig[] = [
       hotel: row.property || defaultProp || 'Crowne Plaza Kingston-south',
       property: row.property || defaultProp || 'Crowne Plaza Kingston-south',
       tariffType: row.tariffType || 'Commercial Fixed',
-      contractEndDate: row.contractEndDate || new Date(Date.now() + 365 * 86400000).toISOString().slice(0, 10),
+      contractEndDate:
+        row.contractEndDate || new Date(Date.now() + 365 * 86400000).toISOString().slice(0, 10),
       annualSpend: Number(row.annualSpend) || 25000,
       status: (row.status || 'active').toLowerCase(),
     }),
@@ -749,29 +807,32 @@ const DESTINATIONS: DestinationConfig[] = [
     sampleData: [
       {
         'Document Title': 'Stanhill Court Asbestos Management Survey & Register',
-        'Category': 'Health & Safety',
-        'Property': 'Stanhill Court',
+        Category: 'Health & Safety',
+        Property: 'Stanhill Court',
         'Document Type': 'Survey Report',
         'File Reference': 'SC-Asbestos-Reg-2025.pdf',
         'Expiry Date': '2027-04-15',
         'Issue Date': '2025-04-15',
         'Uploaded By': 'Alexander Vance',
-        'Status': 'active',
+        Status: 'active',
       },
       {
         'Document Title': 'Commercial Kitchen Extraction Cleaning Certificate TR19',
-        'Category': 'Fire Safety',
-        'Property': 'Crowne Plaza Kingston-south',
+        Category: 'Fire Safety',
+        Property: 'Crowne Plaza Kingston-south',
         'Document Type': 'Statutory Certificate',
         'File Reference': 'CPKS-TR19-DuctClean-2026.pdf',
         'Expiry Date': '2026-11-20',
         'Issue Date': '2025-11-20',
         'Uploaded By': 'Marcus Webb',
-        'Status': 'active',
+        Status: 'active',
       },
     ],
     autoGuess: (h) => {
-      const c = h.toLowerCase().trim().replace(/[^a-z0-9]/g, '');
+      const c = h
+        .toLowerCase()
+        .trim()
+        .replace(/[^a-z0-9]/g, '');
       if (c.includes('title') || c.includes('doc') || c === 'name') return 'name';
       if (c.includes('cat') || c.includes('discipline')) return 'category';
       if (c.includes('property') || c.includes('site') || c.includes('hotel')) return 'property';
@@ -792,7 +853,8 @@ const DESTINATIONS: DestinationConfig[] = [
       documentType: row.documentType || 'PDF Document',
       fileRef: row.fileRef || `file-${Date.now().toString().slice(-4)}.pdf`,
       fileUrl: '#',
-      expiryDate: row.expiryDate || new Date(Date.now() + 365 * 86400000).toISOString().slice(0, 10),
+      expiryDate:
+        row.expiryDate || new Date(Date.now() + 365 * 86400000).toISOString().slice(0, 10),
       issueDate: row.issueDate || new Date().toISOString().slice(0, 10),
       uploadedBy: row.uploadedBy || 'Admin',
       status: (row.status || 'active').toLowerCase(),
@@ -819,27 +881,31 @@ const DESTINATIONS: DestinationConfig[] = [
     sampleData: [
       {
         'Task Title': 'Replace broken self-closer on 2nd Floor Fire Door 12',
-        'Property': 'Crowne Plaza Kingston-south',
-        'Priority': 'Urgent',
+        Property: 'Crowne Plaza Kingston-south',
+        Priority: 'Urgent',
         'Due Date': '2026-10-28',
         'Assigned To': 'Marcus Webb',
-        'Category': 'Fire Safety',
-        'Status': 'open',
-        'Description': 'Identified during weekly fire door audit. Door currently fails to latch fully.',
+        Category: 'Fire Safety',
+        Status: 'open',
+        Description:
+          'Identified during weekly fire door audit. Door currently fails to latch fully.',
       },
       {
         'Task Title': 'Service water softener brine tank and test hardness',
-        'Property': 'Stanhill Court',
-        'Priority': 'Medium',
+        Property: 'Stanhill Court',
+        Priority: 'Medium',
         'Due Date': '2026-11-05',
         'Assigned To': 'Sarah Chen',
-        'Category': 'Plumbing',
-        'Status': 'open',
-        'Description': 'Check salt levels and regenerate resin bed.',
+        Category: 'Plumbing',
+        Status: 'open',
+        Description: 'Check salt levels and regenerate resin bed.',
       },
     ],
     autoGuess: (h) => {
-      const c = h.toLowerCase().trim().replace(/[^a-z0-9]/g, '');
+      const c = h
+        .toLowerCase()
+        .trim()
+        .replace(/[^a-z0-9]/g, '');
       if (c.includes('task') || c.includes('title') || c === 'name') return 'title';
       if (c.includes('property') || c.includes('hotel') || c.includes('site')) return 'property';
       if (c.includes('priority')) return 'priority';
@@ -901,7 +967,11 @@ export default function ImportClient() {
   // Loading & Execution State
   const [importing, setImporting] = useState(false);
   const [exporting, setExporting] = useState(false);
-  const [importResult, setImportResult] = useState<{ total: number; destination: string; collection: string } | null>(null);
+  const [importResult, setImportResult] = useState<{
+    total: number;
+    destination: string;
+    collection: string;
+  } | null>(null);
 
   const activeDestination = useMemo(() => {
     return DESTINATIONS.find((d) => d.id === selectedDestinationId) || DESTINATIONS[0];
@@ -1122,7 +1192,9 @@ export default function ImportClient() {
       XLSX.utils.book_append_sheet(wb, ws, activeDestination.shortLabel);
       const filename = `SamkoCentral_${activeDestination.id.replace(/-/g, '_')}_Export_${new Date().toISOString().slice(0, 10)}.xlsx`;
       XLSX.writeFile(wb, filename);
-      toast.success(`Exported ${items.length} records for ${activeDestination.shortLabel} to Excel!`);
+      toast.success(
+        `Exported ${items.length} records for ${activeDestination.shortLabel} to Excel!`
+      );
     } catch (err: any) {
       toast.error('Export failed', { description: err.message });
     } finally {
@@ -1180,9 +1252,12 @@ export default function ImportClient() {
           );
         }
 
-        toast.success(`Successfully imported ${res.count} records into ${activeDestination.shortLabel}!`, {
-          description: `All records are permanently stored in Firestore & database.`,
-        });
+        toast.success(
+          `Successfully imported ${res.count} records into ${activeDestination.shortLabel}!`,
+          {
+            description: `All records are permanently stored in Firestore & database.`,
+          }
+        );
       } else {
         toast.error('Import failed', { description: res.message || 'Database error occurred' });
       }
@@ -1197,9 +1272,7 @@ export default function ImportClient() {
   const filteredPreviewRows = useMemo(() => {
     if (!previewSearch.trim()) return rawRows;
     const q = previewSearch.toLowerCase();
-    return rawRows.filter((r) =>
-      Object.values(r).some((v) => String(v).toLowerCase().includes(q))
-    );
+    return rawRows.filter((r) => Object.values(r).some((v) => String(v).toLowerCase().includes(q)));
   }, [rawRows, previewSearch]);
 
   return (
@@ -1211,7 +1284,9 @@ export default function ImportClient() {
       >
         <div>
           <div className="flex items-center gap-2.5">
-            <h1 className="font-head text-xl font-bold">{cms.title || cmsImportExport?.moduleTitle || 'Universal Data Import & Export Hub'}</h1>
+            <h1 className="font-head text-xl font-bold">
+              {cms.title || cmsImportExport?.moduleTitle || 'Universal Data Import & Export Hub'}
+            </h1>
             <span
               className="text-xs px-2.5 py-0.5 rounded-full font-semibold border flex items-center gap-1.5"
               style={{
@@ -1225,7 +1300,8 @@ export default function ImportClient() {
             </span>
           </div>
           <p className="text-xs text-muted-foreground mt-0.5">
-            {cms.subtitle || 'Upload, preview, map and export multi-sheet Excel files (.xlsx, .csv) for any module'}
+            {cms.subtitle ||
+              'Upload, preview, map and export multi-sheet Excel files (.xlsx, .csv) for any module'}
           </p>
         </div>
 
@@ -1288,7 +1364,11 @@ export default function ImportClient() {
             className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold border border-border transition-colors hover:border-border"
             style={{ background: 'var(--surface2)', color: 'var(--text2)' }}
           >
-            {exporting ? <Loader2 size={14} className="animate-spin text-primary" /> : <FileSpreadsheet size={14} />}
+            {exporting ? (
+              <Loader2 size={14} className="animate-spin text-primary" />
+            ) : (
+              <FileSpreadsheet size={14} />
+            )}
             <span>Export {activeDestination.shortLabel}</span>
           </button>
         </div>
@@ -1310,7 +1390,12 @@ export default function ImportClient() {
                   disabled={s.id > step && (s.id !== 2 || rawRows.length === 0)}
                   className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold transition-all cursor-pointer disabled:cursor-not-allowed"
                   style={{
-                    background: step === s.id ? 'var(--primary)' : step > s.id ? 'rgba(61,214,140,0.2)' : 'var(--surface2)',
+                    background:
+                      step === s.id
+                        ? 'var(--primary)'
+                        : step > s.id
+                          ? 'rgba(61,214,140,0.2)'
+                          : 'var(--surface2)',
                     color: step === s.id ? '#000' : step > s.id ? '#3dd68c' : 'var(--text2)',
                     border: step > s.id ? '1px solid #3dd68c' : '1px solid var(--border)',
                   }}
@@ -1338,18 +1423,28 @@ export default function ImportClient() {
         {step === 1 && (
           <div className="max-w-3xl mx-auto space-y-6">
             {/* Destination Selector Card */}
-            <div className="p-5 rounded-2xl border border-border" style={{ background: 'var(--surface)' }}>
+            <div
+              className="p-5 rounded-2xl border border-border"
+              style={{ background: 'var(--surface)' }}
+            >
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2">
                   <div className="p-2 rounded-lg" style={{ background: 'var(--surface2)' }}>
                     {activeDestination.icon}
                   </div>
                   <div>
-                    <h2 className="font-head text-sm font-bold text-foreground">Select Target Destination for Upload & Export</h2>
-                    <p className="text-xs text-muted-foreground">{activeDestination.categoryDesc}</p>
+                    <h2 className="font-head text-sm font-bold text-foreground">
+                      Select Target Destination for Upload & Export
+                    </h2>
+                    <p className="text-xs text-muted-foreground">
+                      {activeDestination.categoryDesc}
+                    </p>
                   </div>
                 </div>
-                <span className="text-xs px-2.5 py-1 rounded-md font-mono font-medium border border-border" style={{ background: 'var(--surface2)', color: 'var(--text2)' }}>
+                <span
+                  className="text-xs px-2.5 py-1 rounded-md font-mono font-medium border border-border"
+                  style={{ background: 'var(--surface2)', color: 'var(--text2)' }}
+                >
                   Collection: {activeDestination.collection}
                 </span>
               </div>
@@ -1376,12 +1471,19 @@ export default function ImportClient() {
                     >
                       <div className="mt-0.5 flex-shrink-0">{dest.icon}</div>
                       <div className="min-w-0 flex-1">
-                        <div className="text-xs font-bold truncate" style={{ color: isSelected ? 'var(--primary)' : 'var(--foreground)' }}>
+                        <div
+                          className="text-xs font-bold truncate"
+                          style={{ color: isSelected ? 'var(--primary)' : 'var(--foreground)' }}
+                        >
                           {dest.shortLabel}
                         </div>
-                        <div className="text-[11px] text-muted-foreground truncate">{dest.collection}</div>
+                        <div className="text-[11px] text-muted-foreground truncate">
+                          {dest.collection}
+                        </div>
                       </div>
-                      {isSelected && <Check size={14} className="text-primary flex-shrink-0 mt-0.5" />}
+                      {isSelected && (
+                        <Check size={14} className="text-primary flex-shrink-0 mt-0.5" />
+                      )}
                     </button>
                   );
                 })}
@@ -1401,13 +1503,18 @@ export default function ImportClient() {
                 isViewer ? 'cursor-not-allowed opacity-80' : 'cursor-pointer'
               }`}
               style={{
-                borderColor: isViewer ? 'var(--border)' : dragOver ? 'var(--primary)' : 'var(--border)',
+                borderColor: isViewer
+                  ? 'var(--border)'
+                  : dragOver
+                    ? 'var(--primary)'
+                    : 'var(--border)',
                 background: dragOver ? 'rgba(232,201,122,0.05)' : 'var(--surface)',
               }}
               onClick={() => {
                 if (isViewer) {
                   toast.error('Permission Denied', {
-                    description: 'L4 Viewers have read-only access. Bulk data upload is restricted.',
+                    description:
+                      'L4 Viewers have read-only access. Bulk data upload is restricted.',
                   });
                   return;
                 }
@@ -1432,7 +1539,9 @@ export default function ImportClient() {
                 <FileSpreadsheet size={32} />
               </div>
               <h3 className="font-head font-bold text-lg mb-1">
-                {isViewer ? 'Read-Only Mode: Bulk Ingestion Restricted' : `Upload Excel Sheet for ${activeDestination.shortLabel}`}
+                {isViewer
+                  ? 'Read-Only Mode: Bulk Ingestion Restricted'
+                  : `Upload Excel Sheet for ${activeDestination.shortLabel}`}
               </h3>
               <p className="text-xs text-muted-foreground mb-4">
                 {isViewer
@@ -1452,11 +1561,17 @@ export default function ImportClient() {
             </div>
 
             {/* Pre-structured Template Download Card */}
-            <div className="p-4 rounded-xl border border-border flex items-center justify-between" style={{ background: 'var(--surface2)' }}>
+            <div
+              className="p-4 rounded-xl border border-border flex items-center justify-between"
+              style={{ background: 'var(--surface2)' }}
+            >
               <div>
-                <div className="text-xs font-semibold text-foreground">Need standard column headers for {activeDestination.shortLabel}?</div>
+                <div className="text-xs font-semibold text-foreground">
+                  Need standard column headers for {activeDestination.shortLabel}?
+                </div>
                 <div className="text-xs text-muted-foreground mt-0.5">
-                  Download our pre-structured template containing exact fields and sample entries for {activeDestination.name}.
+                  Download our pre-structured template containing exact fields and sample entries
+                  for {activeDestination.name}.
                 </div>
               </div>
               <button
@@ -1475,20 +1590,30 @@ export default function ImportClient() {
         {step === 2 && (
           <div className="max-w-5xl mx-auto space-y-5">
             {/* File Info Bar */}
-            <div className="rounded-xl border border-border p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3" style={{ background: 'var(--surface)' }}>
+            <div
+              className="rounded-xl border border-border p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+              style={{ background: 'var(--surface)' }}
+            >
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ background: 'rgba(61,214,140,0.12)', color: '#3dd68c' }}>
+                <div
+                  className="w-10 h-10 rounded-lg flex items-center justify-center"
+                  style={{ background: 'rgba(61,214,140,0.12)', color: '#3dd68c' }}
+                >
                   <FileSpreadsheet size={20} />
                 </div>
                 <div>
                   <div className="text-sm font-bold text-foreground flex items-center gap-2">
                     {fileName}
-                    <span className="text-[11px] px-2 py-0.5 rounded-full font-semibold border border-primary/30 text-primary" style={{ background: 'rgba(232,201,122,0.1)' }}>
+                    <span
+                      className="text-[11px] px-2 py-0.5 rounded-full font-semibold border border-primary/30 text-primary"
+                      style={{ background: 'rgba(232,201,122,0.1)' }}
+                    >
                       Target: {activeDestination.shortLabel}
                     </span>
                   </div>
                   <div className="text-xs text-muted-foreground mt-0.5">
-                    {fileSize} · {sheetNames.length} sheet(s) detected · Active Sheet: &quot;{selectedSheetName}&quot; ({rawRows.length} rows, {fileHeaders.length} columns)
+                    {fileSize} · {sheetNames.length} sheet(s) detected · Active Sheet: &quot;
+                    {selectedSheetName}&quot; ({rawRows.length} rows, {fileHeaders.length} columns)
                   </div>
                 </div>
               </div>
@@ -1516,7 +1641,10 @@ export default function ImportClient() {
 
             {/* Multi-Sheet Selector Tabs (if workbook has multiple sheets) */}
             {sheetNames.length > 1 && (
-              <div className="p-3.5 rounded-xl border border-border" style={{ background: 'var(--surface)' }}>
+              <div
+                className="p-3.5 rounded-xl border border-border"
+                style={{ background: 'var(--surface)' }}
+              >
                 <div className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2 flex items-center gap-2">
                   <Layers size={13} />
                   Workbook Sheets ({sheetNames.length}) — Select sheet to preview & import:
@@ -1556,17 +1684,27 @@ export default function ImportClient() {
             )}
 
             {/* Sheet Preview Table */}
-            <div className="rounded-xl border border-border overflow-hidden" style={{ background: 'var(--surface)' }}>
-              <div className="px-5 py-3 border-b border-border flex flex-col sm:flex-row sm:items-center justify-between gap-3" style={{ background: 'var(--surface2)' }}>
+            <div
+              className="rounded-xl border border-border overflow-hidden"
+              style={{ background: 'var(--surface)' }}
+            >
+              <div
+                className="px-5 py-3 border-b border-border flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+                style={{ background: 'var(--surface2)' }}
+              >
                 <div className="flex items-center gap-2">
                   <Eye size={15} className="text-primary" />
                   <span className="text-xs font-bold text-foreground">
-                    Sheet Preview: &quot;{selectedSheetName}&quot; ({filteredPreviewRows.length} of {rawRows.length} rows)
+                    Sheet Preview: &quot;{selectedSheetName}&quot; ({filteredPreviewRows.length} of{' '}
+                    {rawRows.length} rows)
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
                   <div className="relative">
-                    <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                    <Search
+                      size={13}
+                      className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground"
+                    />
                     <input
                       type="text"
                       placeholder="Search preview rows..."
@@ -1582,12 +1720,18 @@ export default function ImportClient() {
               <div className="overflow-x-auto max-h-96">
                 <table className="w-full text-xs">
                   <thead>
-                    <tr className="border-b border-border sticky top-0" style={{ background: 'var(--surface2)' }}>
+                    <tr
+                      className="border-b border-border sticky top-0"
+                      style={{ background: 'var(--surface2)' }}
+                    >
                       <th className="px-3 py-2.5 text-center font-mono text-[10px] text-muted-foreground border-r border-border w-10">
                         #
                       </th>
                       {fileHeaders.map((h) => (
-                        <th key={h} className="px-4 py-2.5 text-left font-semibold text-muted-foreground whitespace-nowrap">
+                        <th
+                          key={h}
+                          className="px-4 py-2.5 text-left font-semibold text-muted-foreground whitespace-nowrap"
+                        >
                           {h}
                         </th>
                       ))}
@@ -1595,12 +1739,18 @@ export default function ImportClient() {
                   </thead>
                   <tbody>
                     {filteredPreviewRows.slice(0, 15).map((row, rIdx) => (
-                      <tr key={rIdx} className="border-b border-border/40 hover:bg-white/5 transition-colors">
+                      <tr
+                        key={rIdx}
+                        className="border-b border-border/40 hover:bg-white/5 transition-colors"
+                      >
                         <td className="px-3 py-2 text-center font-mono text-[10px] text-muted-foreground border-r border-border/40">
                           {rIdx + 1}
                         </td>
                         {fileHeaders.map((h) => (
-                          <td key={h} className="px-4 py-2 text-foreground whitespace-nowrap max-w-xs truncate">
+                          <td
+                            key={h}
+                            className="px-4 py-2 text-foreground whitespace-nowrap max-w-xs truncate"
+                          >
                             {String(row[h] ?? '')}
                           </td>
                         ))}
@@ -1608,7 +1758,10 @@ export default function ImportClient() {
                     ))}
                     {filteredPreviewRows.length === 0 && (
                       <tr>
-                        <td colSpan={fileHeaders.length + 1} className="py-8 text-center text-xs text-muted-foreground">
+                        <td
+                          colSpan={fileHeaders.length + 1}
+                          className="py-8 text-center text-xs text-muted-foreground"
+                        >
                           No matching rows found for query &quot;{previewSearch}&quot;
                         </td>
                       </tr>
@@ -1618,8 +1771,12 @@ export default function ImportClient() {
               </div>
 
               {rawRows.length > 15 && (
-                <div className="px-4 py-2 border-t border-border text-[11px] text-muted-foreground text-center" style={{ background: 'var(--surface2)' }}>
-                  Showing first 15 rows of {rawRows.length} total rows in this sheet. All {rawRows.length} rows will be processed.
+                <div
+                  className="px-4 py-2 border-t border-border text-[11px] text-muted-foreground text-center"
+                  style={{ background: 'var(--surface2)' }}
+                >
+                  Showing first 15 rows of {rawRows.length} total rows in this sheet. All{' '}
+                  {rawRows.length} rows will be processed.
                 </div>
               )}
             </div>
@@ -1640,7 +1797,8 @@ export default function ImportClient() {
                 className="flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-semibold"
                 style={{ background: 'var(--primary)', color: '#000' }}
               >
-                Proceed to Column Mapping for {activeDestination.shortLabel} <ArrowRight size={15} />
+                Proceed to Column Mapping for {activeDestination.shortLabel}{' '}
+                <ArrowRight size={15} />
               </button>
             </div>
           </div>
@@ -1649,7 +1807,10 @@ export default function ImportClient() {
         {/* STEP 3: Map Columns */}
         {step === 3 && (
           <div className="max-w-3xl mx-auto space-y-5">
-            <div className="rounded-xl border border-border p-5" style={{ background: 'var(--surface)' }}>
+            <div
+              className="rounded-xl border border-border p-5"
+              style={{ background: 'var(--surface)' }}
+            >
               <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-border gap-3">
                 <div>
                   <h3 className="font-head font-bold text-base flex items-center gap-2">
@@ -1657,7 +1818,8 @@ export default function ImportClient() {
                     Map Excel Columns to {activeDestination.shortLabel} Fields
                   </h3>
                   <p className="text-xs text-muted-foreground mt-0.5">
-                    Match the columns from &quot;{selectedSheetName}&quot; to system fields in {activeDestination.collection}.
+                    Match the columns from &quot;{selectedSheetName}&quot; to system fields in{' '}
+                    {activeDestination.collection}.
                   </p>
                 </div>
 
@@ -1701,8 +1863,8 @@ export default function ImportClient() {
                           { value: '', label: '— Skip This Column —' },
                           ...activeDestination.systemFields.map((f) => ({
                             value: f.key,
-                            label: `${f.label}${f.required ? ' * (Required)' : ''}`
-                          }))
+                            label: `${f.label}${f.required ? ' * (Required)' : ''}`,
+                          })),
                         ]}
                         placeholder="— Skip This Column —"
                         showAllOption={false}
@@ -1741,46 +1903,78 @@ export default function ImportClient() {
         {/* STEP 4: Validate */}
         {step === 4 && (
           <div className="max-w-2xl mx-auto space-y-5">
-            <div className="rounded-xl border border-border p-5" style={{ background: 'var(--surface)' }}>
+            <div
+              className="rounded-xl border border-border p-5"
+              style={{ background: 'var(--surface)' }}
+            >
               <h3 className="font-head font-bold text-base mb-4 flex items-center gap-2">
                 <CheckCircle2 size={18} className="text-primary" />
                 Pre-Import Verification for {activeDestination.shortLabel}
               </h3>
 
               <div className="space-y-3">
-                <div className="flex items-center gap-3 p-3.5 rounded-lg" style={{ background: 'rgba(61,214,140,0.08)', border: '1px solid rgba(61,214,140,0.2)' }}>
+                <div
+                  className="flex items-center gap-3 p-3.5 rounded-lg"
+                  style={{
+                    background: 'rgba(61,214,140,0.08)',
+                    border: '1px solid rgba(61,214,140,0.2)',
+                  }}
+                >
                   <CheckCircle2 size={18} style={{ color: '#3dd68c' }} className="flex-shrink-0" />
                   <div>
                     <div className="text-sm font-semibold" style={{ color: '#3dd68c' }}>
                       {rawRows.length} records ready from sheet &quot;{selectedSheetName}&quot;
                     </div>
                     <div className="text-xs text-muted-foreground">
-                      Destination Module: {activeDestination.name} (Collection: {activeDestination.collection})
+                      Destination Module: {activeDestination.name} (Collection:{' '}
+                      {activeDestination.collection})
                     </div>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-3 p-3.5 rounded-lg" style={{ background: 'rgba(96,165,250,0.08)', border: '1px solid rgba(96,165,250,0.2)' }}>
+                <div
+                  className="flex items-center gap-3 p-3.5 rounded-lg"
+                  style={{
+                    background: 'rgba(96,165,250,0.08)',
+                    border: '1px solid rgba(96,165,250,0.2)',
+                  }}
+                >
                   <Database size={18} style={{ color: '#60a5fa' }} className="flex-shrink-0" />
                   <div>
                     <div className="text-sm font-semibold" style={{ color: '#60a5fa' }}>
                       Target Firestore & Local DB: `{activeDestination.collection}`
                     </div>
                     <div className="text-xs text-muted-foreground">
-                      {selectedProperty ? `Assigned to: ${selectedProperty}` : 'Property will be mapped dynamically from sheet columns'}
+                      {selectedProperty
+                        ? `Assigned to: ${selectedProperty}`
+                        : 'Property will be mapped dynamically from sheet columns'}
                     </div>
                   </div>
                 </div>
 
                 {activeDestination.isFixed !== undefined && (
-                  <div className="flex items-center gap-3 p-3.5 rounded-lg" style={{ background: 'rgba(232,201,122,0.08)', border: '1px solid rgba(232,201,122,0.2)' }}>
-                    <Layers size={18} style={{ color: 'var(--primary)' }} className="flex-shrink-0" />
+                  <div
+                    className="flex items-center gap-3 p-3.5 rounded-lg"
+                    style={{
+                      background: 'rgba(232,201,122,0.08)',
+                      border: '1px solid rgba(232,201,122,0.2)',
+                    }}
+                  >
+                    <Layers
+                      size={18}
+                      style={{ color: 'var(--primary)' }}
+                      className="flex-shrink-0"
+                    />
                     <div>
                       <div className="text-sm font-semibold" style={{ color: 'var(--primary)' }}>
-                        Asset Type Tag: {activeDestination.isFixed ? 'Fixed Asset' : 'Non-Fixed Asset (FF&E)'}
+                        Asset Type Tag:{' '}
+                        {activeDestination.isFixed ? 'Fixed Asset' : 'Non-Fixed Asset (FF&E)'}
                       </div>
                       <div className="text-xs text-muted-foreground">
-                        Will appear in {activeDestination.isFixed ? 'Fixed Assets register' : 'Non-Fixed Assets (FF&E) register'}
+                        Will appear in{' '}
+                        {activeDestination.isFixed
+                          ? 'Fixed Assets register'
+                          : 'Non-Fixed Assets (FF&E) register'}
                       </div>
                     </div>
                   </div>
@@ -1807,11 +2001,13 @@ export default function ImportClient() {
               >
                 {importing ? (
                   <>
-                    <Loader2 size={16} className="animate-spin" /> Saving {rawRows.length} Records to Database…
+                    <Loader2 size={16} className="animate-spin" /> Saving {rawRows.length} Records
+                    to Database…
                   </>
                 ) : (
                   <>
-                    Import & Save {rawRows.length} Records to {activeDestination.shortLabel} <ArrowRight size={15} />
+                    Import & Save {rawRows.length} Records to {activeDestination.shortLabel}{' '}
+                    <ArrowRight size={15} />
                   </>
                 )}
               </button>
@@ -1822,21 +2018,38 @@ export default function ImportClient() {
         {/* STEP 5: Complete */}
         {step === 5 && (
           <div className="max-w-lg mx-auto text-center py-6">
-            <div className="w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-5" style={{ background: 'rgba(61,214,140,0.15)' }}>
+            <div
+              className="w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-5"
+              style={{ background: 'rgba(61,214,140,0.15)' }}
+            >
               <CheckCircle2 size={44} style={{ color: '#3dd68c' }} />
             </div>
-            <h3 className="font-head font-bold text-2xl mb-1 text-foreground">Import Complete & Saved!</h3>
+            <h3 className="font-head font-bold text-2xl mb-1 text-foreground">
+              Import Complete & Saved!
+            </h3>
             <p className="text-muted-foreground text-xs mb-6">
-              {importResult?.total ?? 0} records have been successfully added to {importResult?.destination || activeDestination.name}. Data is persisted in Google Cloud Firestore & local cache.
+              {importResult?.total ?? 0} records have been successfully added to{' '}
+              {importResult?.destination || activeDestination.name}. Data is persisted in Google
+              Cloud Firestore & local cache.
             </p>
 
             <div className="grid grid-cols-2 gap-3 mb-6">
-              <div className="rounded-xl border border-border p-4" style={{ background: 'var(--surface)' }}>
-                <div className="font-head font-bold text-2xl" style={{ color: '#3dd68c' }}>{importResult?.total ?? 0}</div>
+              <div
+                className="rounded-xl border border-border p-4"
+                style={{ background: 'var(--surface)' }}
+              >
+                <div className="font-head font-bold text-2xl" style={{ color: '#3dd68c' }}>
+                  {importResult?.total ?? 0}
+                </div>
                 <div className="text-xs text-muted-foreground">Records Imported</div>
               </div>
-              <div className="rounded-xl border border-border p-4" style={{ background: 'var(--surface)' }}>
-                <div className="font-head font-bold text-2xl" style={{ color: '#60a5fa' }}>{importResult?.collection || activeDestination.collection}</div>
+              <div
+                className="rounded-xl border border-border p-4"
+                style={{ background: 'var(--surface)' }}
+              >
+                <div className="font-head font-bold text-2xl" style={{ color: '#60a5fa' }}>
+                  {importResult?.collection || activeDestination.collection}
+                </div>
                 <div className="text-xs text-muted-foreground">Target Collection</div>
               </div>
             </div>

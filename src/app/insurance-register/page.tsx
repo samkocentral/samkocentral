@@ -20,7 +20,13 @@ function InsuranceRegisterInner() {
 
 export default function InsuranceRegisterPage() {
   return (
-    <Suspense fallback={<div className="flex items-center justify-center h-screen text-muted-foreground text-sm">Loading insurance register…</div>}>
+    <Suspense
+      fallback={
+        <div className="flex items-center justify-center h-screen text-muted-foreground text-sm">
+          Loading insurance register…
+        </div>
+      }
+    >
       <InsuranceRegisterInner />
     </Suspense>
   );

@@ -81,19 +81,19 @@ export default function CustomDropdown({
   const selectedValues: string[] = Array.isArray(value)
     ? value
     : typeof value === 'string' && value !== ''
-    ? [value]
-    : typeof value === 'number'
-    ? [String(value)]
-    : [];
+      ? [value]
+      : typeof value === 'number'
+        ? [String(value)]
+        : [];
 
   const isAllValue = (v: any) => {
-    const s = String(v ?? '').trim().toLowerCase();
+    const s = String(v ?? '')
+      .trim()
+      .toLowerCase();
     return s === '' || s === 'all' || s.startsWith('all ') || s === 'all properties';
   };
 
-  const isAllSelected =
-    selectedValues.length === 0 ||
-    selectedValues.some((v) => isAllValue(v));
+  const isAllSelected = selectedValues.length === 0 || selectedValues.some((v) => isAllValue(v));
 
   // Compute fixed viewport coordinates to prevent clipping by overflow containers
   useEffect(() => {
@@ -126,9 +126,7 @@ export default function CustomDropdown({
 
       const wouldOverflowRight = rect.left + menuWidth > vw - 16;
       const isRight =
-        align === 'right' ||
-        (align === 'auto' && wouldOverflowRight) ||
-        rect.right > vw - 120;
+        align === 'right' || (align === 'auto' && wouldOverflowRight) || rect.right > vw - 120;
 
       setCoords({
         top: openUp ? undefined : rect.bottom + 6,
@@ -154,16 +152,20 @@ export default function CustomDropdown({
   }, [isOpen, align]);
 
   // Normalize options
-  const normalizedOptions: DropdownOption[] = options.map((opt) =>
-    typeof opt === 'string'
-      ? { value: opt, label: opt }
-      : typeof opt === 'number'
-      ? { value: String(opt), label: String(opt) }
-      : opt
-  );
+  const normalizedOptions: DropdownOption[] = (options || []).filter(Boolean).map((opt) => {
+    if (typeof opt === 'string' || typeof opt === 'number') {
+      const str = String(opt);
+      return { value: str, label: str };
+    }
+    return {
+      ...opt,
+      value: String(opt?.value ?? ''),
+      label: String(opt?.label ?? opt?.value ?? ''),
+    };
+  });
 
   const hasExplicitAll = normalizedOptions.some(
-    (opt) => opt.value === '' || opt.value.toLowerCase() === 'all'
+    (opt) => !opt.value || String(opt.value).toLowerCase() === 'all'
   );
 
   const shouldShowAll =
@@ -183,10 +185,14 @@ export default function CustomDropdown({
       const allOpt = normalizedOptions.find((opt) => isAllValue(opt.value));
       displayText = allOpt ? allOpt.label : label ? label : placeholder;
     } else if (selectedValues.length === 1) {
-      const match = normalizedOptions.find((opt) => String(opt.value) === String(selectedValues[0]));
+      const match = normalizedOptions.find(
+        (opt) => String(opt.value) === String(selectedValues[0])
+      );
       displayText = match ? match.label : selectedValues[0];
     } else {
-      displayText = label ? `${label} (${selectedValues.length})` : `${selectedValues.length} Selected`;
+      displayText = label
+        ? `${label} (${selectedValues.length})`
+        : `${selectedValues.length} Selected`;
     }
   } else {
     if (singleSelectedOption) {
@@ -202,7 +208,9 @@ export default function CustomDropdown({
     ? isAllSelected && !!label
     : (!singleSelectedOption || singleSelectedOption.value === '') && !value;
 
-  const hasActiveFilter = isMulti ? !isAllSelected : Boolean(value && value !== '' && String(value).toLowerCase() !== 'all');
+  const hasActiveFilter = isMulti
+    ? !isAllSelected
+    : Boolean(value && value !== '' && String(value).toLowerCase() !== 'all');
 
   // Click outside listener
   useEffect(() => {
@@ -259,14 +267,18 @@ export default function CustomDropdown({
     }
   };
 
-  const showSearch =
-    searchable === true || (searchable !== false && normalizedOptions.length > 7);
+  const showSearch = searchable === true || (searchable !== false && normalizedOptions.length > 7);
 
-  const filteredOptions = searchQuery.trim()
+  const searchQ = (searchQuery || '').toLowerCase().trim();
+  const filteredOptions = searchQ
     ? normalizedOptions.filter(
         (opt) =>
-          opt.label.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          opt.value.toLowerCase().includes(searchQuery.toLowerCase())
+          String(opt.label || '')
+            .toLowerCase()
+            .includes(searchQ) ||
+          String(opt.value || '')
+            .toLowerCase()
+            .includes(searchQ)
       )
     : normalizedOptions;
 
@@ -292,7 +304,10 @@ export default function CustomDropdown({
       {showSearch && (
         <div className="p-1 mb-1 border-b border-white/10">
           <div className="relative flex items-center">
-            <Search size={12} className="absolute left-2.5 text-muted-foreground pointer-events-none" />
+            <Search
+              size={12}
+              className="absolute left-2.5 text-muted-foreground pointer-events-none"
+            />
             <input
               type="text"
               value={searchQuery}
@@ -330,9 +345,7 @@ export default function CustomDropdown({
                   : 'border border-white/25 bg-white/[0.04] group-hover:border-[#e8c97a]/60 group-hover:bg-white/[0.08]'
               }`}
             >
-              {isAllSelected && (
-                <Check size={11} strokeWidth={3.5} className="text-[#121316]" />
-              )}
+              {isAllSelected && <Check size={11} strokeWidth={3.5} className="text-[#121316]" />}
             </div>
             <span>{allLabel || `All (${label})`}</span>
           </div>
@@ -350,8 +363,8 @@ export default function CustomDropdown({
         const isSelected = isOptionAll
           ? isAllSelected
           : isMulti
-          ? selectedValues.includes(option.value)
-          : String(option.value) === String(value ?? '');
+            ? selectedValues.includes(option.value)
+            : String(option.value) === String(value ?? '');
 
         return (
           <button
@@ -377,9 +390,7 @@ export default function CustomDropdown({
                     : 'border border-white/25 bg-white/[0.04] group-hover:border-[#e8c97a]/60 group-hover:bg-white/[0.08]'
                 }`}
               >
-                {isSelected && (
-                  <Check size={11} strokeWidth={3.5} className="text-[#121316]" />
-                )}
+                {isSelected && <Check size={11} strokeWidth={3.5} className="text-[#121316]" />}
               </div>
 
               {option.icon && (
@@ -457,19 +468,22 @@ export default function CustomDropdown({
         style={{
           width: width === '100%' ? '100%' : width ? width : undefined,
           minHeight: variant === 'form' ? '40px' : size === 'sm' ? '32px' : '38px',
-          background: variant === 'filter' ? 'var(--surface2)' : variant === 'form' ? 'var(--surface2)' : 'var(--surface)',
+          background:
+            variant === 'filter'
+              ? 'var(--surface2)'
+              : variant === 'form'
+                ? 'var(--surface2)'
+                : 'var(--surface)',
           color: isPlaceholder ? 'var(--text3)' : 'var(--foreground)',
           borderRadius: variant === 'form' ? '8px' : variant === 'pill' ? '9999px' : '10px',
           border: isOpen
             ? '1px solid var(--primary)'
             : hasActiveFilter && variant === 'filter'
-            ? '1px solid rgba(232, 201, 122, 0.45)'
-            : variant === 'form'
-            ? '1px solid var(--border-strong)'
-            : '1px solid var(--border)',
-          boxShadow: isOpen
-            ? '0 0 0 2px rgba(232, 201, 122, 0.15)'
-            : 'none',
+              ? '1px solid rgba(232, 201, 122, 0.45)'
+              : variant === 'form'
+                ? '1px solid var(--border-strong)'
+                : '1px solid var(--border)',
+          boxShadow: isOpen ? '0 0 0 2px rgba(232, 201, 122, 0.15)' : 'none',
           padding: variant === 'form' ? '8px 12px' : size === 'sm' ? '4px 8px' : '7px 12px',
           fontSize: variant === 'form' ? '13px' : size === 'sm' ? '12px' : '13px',
           fontWeight: 500,

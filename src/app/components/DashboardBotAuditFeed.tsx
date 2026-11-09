@@ -21,7 +21,9 @@ import { useAuth } from '@/lib/authContext';
 export default function DashboardBotAuditFeed() {
   const { user, originalAdmin } = useAuth();
   const [logs, setLogs] = useState<AuditLogEntry[]>([]);
-  const [selectedFilter, setSelectedFilter] = useState<'all' | 'compliance' | 'assets' | 'maintenance'>('all');
+  const [selectedFilter, setSelectedFilter] = useState<
+    'all' | 'compliance' | 'assets' | 'maintenance'
+  >('all');
   const [selectedLog, setSelectedLog] = useState<AuditLogEntry | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
@@ -138,7 +140,12 @@ export default function DashboardBotAuditFeed() {
             <div className="flex items-center gap-2">
               <h2
                 className="font-head text-foreground"
-                style={{ fontSize: 13, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em' }}
+                style={{
+                  fontSize: 13,
+                  fontWeight: 700,
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.08em',
+                }}
               >
                 Audit Logs
               </h2>
@@ -301,9 +308,7 @@ export default function DashboardBotAuditFeed() {
             <div className="space-y-3 text-xs">
               <div className="p-3 rounded-xl border border-border bg-surface2/60">
                 <p className="font-semibold text-foreground mb-1">Operational Event Summary</p>
-                <p className="text-muted-foreground leading-relaxed">
-                  {selectedLog.details}
-                </p>
+                <p className="text-muted-foreground leading-relaxed">{selectedLog.details}</p>
               </div>
 
               <div className="grid grid-cols-2 gap-2 text-[11px]">
@@ -311,8 +316,12 @@ export default function DashboardBotAuditFeed() {
                   <span className="text-muted-foreground block text-[10px] uppercase font-bold tracking-wider mb-0.5">
                     Operator / User
                   </span>
-                  <span className="font-semibold text-foreground">{selectedLog.actorName} ({selectedLog.roleLevel})</span>
-                  <p className="text-[10px] text-muted-foreground truncate">{selectedLog.actorEmail}</p>
+                  <span className="font-semibold text-foreground">
+                    {selectedLog.actorName} ({selectedLog.roleLevel})
+                  </span>
+                  <p className="text-[10px] text-muted-foreground truncate">
+                    {selectedLog.actorEmail}
+                  </p>
                 </div>
 
                 <div className="p-2.5 rounded-lg border border-border bg-surface">
@@ -335,17 +344,26 @@ export default function DashboardBotAuditFeed() {
                   <span className="text-muted-foreground block text-[10px] uppercase font-bold tracking-wider mb-0.5">
                     Target Resource
                   </span>
-                  <span className="font-semibold text-foreground truncate block">{selectedLog.resource}</span>
-                  <p className="text-[10px] text-muted-foreground">{selectedLog.property || 'Portfolio-wide'}</p>
+                  <span className="font-semibold text-foreground truncate block">
+                    {selectedLog.resource}
+                  </span>
+                  <p className="text-[10px] text-muted-foreground">
+                    {selectedLog.property || 'Portfolio-wide'}
+                  </p>
                 </div>
               </div>
 
               {/* State Diff (if available) */}
               {selectedLog.diff && selectedLog.diff.length > 0 && (
                 <div className="p-3 rounded-xl border border-border bg-surface space-y-1.5">
-                  <p className="text-[11px] font-bold text-foreground">State Changes & Verifications</p>
+                  <p className="text-[11px] font-bold text-foreground">
+                    State Changes & Verifications
+                  </p>
                   {selectedLog.diff.map((d, i) => (
-                    <div key={i} className="flex items-center justify-between text-[11px] py-1 border-b border-border/40 last:border-0">
+                    <div
+                      key={i}
+                      className="flex items-center justify-between text-[11px] py-1 border-b border-border/40 last:border-0"
+                    >
                       <span className="font-mono text-muted-foreground">{d.field}</span>
                       <div className="flex items-center gap-2">
                         <span className="line-through text-rose-400/80">{d.previous}</span>

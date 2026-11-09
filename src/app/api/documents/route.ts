@@ -4,7 +4,8 @@ import { getCollectionData, createDocument } from '@/lib/serverData';
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const search = searchParams.get('search')?.toLowerCase() || '';
-  const site = searchParams.get('site')?.toLowerCase() || searchParams.get('property')?.toLowerCase() || '';
+  const site =
+    searchParams.get('site')?.toLowerCase() || searchParams.get('property')?.toLowerCase() || '';
   const category = searchParams.get('category')?.toLowerCase() || '';
   const status = searchParams.get('status')?.toLowerCase() || '';
 
@@ -49,7 +50,10 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const docName = body.name || body.documentName || body.title;
     if (!docName) {
-      return NextResponse.json({ success: false, error: 'Document name is required' }, { status: 400 });
+      return NextResponse.json(
+        { success: false, error: 'Document name is required' },
+        { status: 400 }
+      );
     }
 
     const propName = body.site || body.property || body.hotel || 'Crowne Plaza Kingston-south';
@@ -70,6 +74,9 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ success: true, data: newDoc }, { status: 201 });
   } catch (error: any) {
-    return NextResponse.json({ success: false, error: error?.message || 'Failed to create document' }, { status: 500 });
+    return NextResponse.json(
+      { success: false, error: error?.message || 'Failed to create document' },
+      { status: 500 }
+    );
   }
 }

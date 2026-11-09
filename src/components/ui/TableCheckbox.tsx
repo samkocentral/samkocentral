@@ -35,16 +35,14 @@ export default function TableCheckbox({
         disabled
           ? 'opacity-30 cursor-not-allowed border border-white/10 bg-white/[0.02]'
           : isSelected
-          ? 'border border-[#e8c97a] bg-[#e8c97a] shadow-sm cursor-pointer'
-          : 'border border-white/25 bg-white/[0.04] hover:border-[#e8c97a]/60 hover:bg-white/[0.08] cursor-pointer'
+            ? 'border border-[#e8c97a] bg-[#e8c97a] shadow-sm cursor-pointer'
+            : 'border border-white/25 bg-white/[0.04] hover:border-[#e8c97a]/60 hover:bg-white/[0.08] cursor-pointer'
       } ${className}`}
     >
       {checked && !indeterminate && (
         <Check size={11} strokeWidth={3.5} className="text-[#121316]" />
       )}
-      {indeterminate && (
-        <Minus size={11} strokeWidth={3.5} className="text-[#121316]" />
-      )}
+      {indeterminate && <Minus size={11} strokeWidth={3.5} className="text-[#121316]" />}
     </button>
   );
 }

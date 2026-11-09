@@ -23,15 +23,18 @@ export function useLoadingPagination<T>(items: T[], initialPageSize: number = 10
     return items.slice(startIndex, endIndex);
   }, [items, startIndex, endIndex]);
 
-  const changePage = useCallback((page: number) => {
-    if (page < 1 || page > totalPages) return;
-    setIsPageLoading(true);
-    setCurrentPage(page);
-    const timer = setTimeout(() => {
-      setIsPageLoading(false);
-    }, 180);
-    return () => clearTimeout(timer);
-  }, [totalPages]);
+  const changePage = useCallback(
+    (page: number) => {
+      if (page < 1 || page > totalPages) return;
+      setIsPageLoading(true);
+      setCurrentPage(page);
+      const timer = setTimeout(() => {
+        setIsPageLoading(false);
+      }, 180);
+      return () => clearTimeout(timer);
+    },
+    [totalPages]
+  );
 
   const changePageSize = useCallback((newSize: number) => {
     setIsPageLoading(true);

@@ -4,11 +4,37 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
-  ArrowLeft, Package, MapPin, Calendar, Wrench, FileText, Camera,
-  QrCode, ClipboardCheck, AlertTriangle, CheckCircle2, Clock,
-  User, Building2, Tag, Activity, ChevronRight, ChevronDown, Plus,
-  Trash2, Eye, Download, X, Upload, Loader2, Maximize2, Printer, ShieldCheck, ExternalLink,
-  Edit2, Check
+  ArrowLeft,
+  Package,
+  MapPin,
+  Calendar,
+  Wrench,
+  FileText,
+  Camera,
+  QrCode,
+  ClipboardCheck,
+  AlertTriangle,
+  CheckCircle2,
+  Clock,
+  User,
+  Building2,
+  Tag,
+  Activity,
+  ChevronRight,
+  ChevronDown,
+  Plus,
+  Trash2,
+  Eye,
+  Download,
+  X,
+  Upload,
+  Loader2,
+  Maximize2,
+  Printer,
+  ShieldCheck,
+  ExternalLink,
+  Edit2,
+  Check,
 } from 'lucide-react';
 import { ASSETS, MAINTENANCE_RECORDS, type Asset, type MaintenanceRecord } from '@/lib/assetData';
 import { api } from '@/lib/api';
@@ -36,17 +62,32 @@ const RISK_COLORS: Record<string, string> = {
 const STATUS_COLORS: Record<string, { bg: string; color: string; label: string }> = {
   active: { bg: 'rgba(61,214,140,0.12)', color: '#3dd68c', label: 'Active' },
   inactive: { bg: 'rgba(148,163,184,0.12)', color: '#94a3b8', label: 'Inactive' },
-  'under-maintenance': { bg: 'rgba(245,158,11,0.12)', color: '#f59e0b', label: 'Under Maintenance' },
+  'under-maintenance': {
+    bg: 'rgba(245,158,11,0.12)',
+    color: '#f59e0b',
+    label: 'Under Maintenance',
+  },
   disposed: { bg: 'rgba(244,63,94,0.12)', color: '#f43f5e', label: 'Disposed' },
   lost: { bg: 'rgba(244,63,94,0.12)', color: '#f43f5e', label: 'Lost' },
 };
 
-function InfoRow({ label, value, accent }: { label: string; value?: string | number; accent?: string }) {
+function InfoRow({
+  label,
+  value,
+  accent,
+}: {
+  label: string;
+  value?: string | number;
+  accent?: string;
+}) {
   if (!value && value !== 0) return null;
   return (
     <div className="flex items-start justify-between py-2.5 border-b border-border last:border-0">
       <span className="text-xs text-muted-foreground w-36 flex-shrink-0">{label}</span>
-      <span className="text-sm font-medium text-right" style={{ color: accent || 'var(--foreground)' }}>
+      <span
+        className="text-sm font-medium text-right"
+        style={{ color: accent || 'var(--foreground)' }}
+      >
         {value}
       </span>
     </div>
@@ -61,7 +102,8 @@ export interface AuditEvent {
   initials?: string;
   date: string;
   detail: string;
-  type?: 'registration' | 'compliance' | 'maintenance' | 'status' | 'document' | 'photo' | 'deletion';
+  type?:
+    'registration' | 'compliance' | 'maintenance' | 'status' | 'document' | 'photo' | 'deletion';
 }
 
 // Initial realistic audit trail linked to asset context
@@ -72,9 +114,12 @@ const getInitialAuditEvents = (
 ): AuditEvent[] => {
   const assetName = targetAsset?.name || 'Carrier Rooftop Air Handler 20kW';
   const assetCode = targetAsset?.assetId || 'AST-BULK-001';
-  const hotel = targetAsset?.hotelName || (targetAsset as any)?.propertyName || 'Crowne Plaza Kingston-south';
+  const hotel =
+    targetAsset?.hotelName || (targetAsset as any)?.propertyName || 'Crowne Plaza Kingston-south';
   const location = targetAsset?.location || 'Roof Level B';
-  const statusLabel = targetAsset?.status ? targetAsset.status.replace(/-/g, ' ').toUpperCase() : 'UNDER MAINTENANCE';
+  const statusLabel = targetAsset?.status
+    ? targetAsset.status.replace(/-/g, ' ').toUpperCase()
+    : 'UNDER MAINTENANCE';
 
   return [
     {
@@ -191,7 +236,9 @@ function getInitialAsset(id: string): Asset | null {
   // 2. Browser sessionStorage cache (instant 0ms retrieval)
   if (typeof window !== 'undefined') {
     try {
-      const single = sessionStorage.getItem(`samko_asset_${id}`) || sessionStorage.getItem('samko_last_clicked_asset');
+      const single =
+        sessionStorage.getItem(`samko_asset_${id}`) ||
+        sessionStorage.getItem('samko_last_clicked_asset');
       if (single) {
         const parsed = JSON.parse(single);
         if (parsed && (parsed.id === id || parsed.assetId === id)) {
@@ -335,7 +382,8 @@ export default function AssetDetailClient({ assetId }: { assetId: string }) {
         const targetId = asset?.id || assetId;
         const targetCode = asset?.assetId || assetId;
         const matched = mRes.value.data.filter(
-          (m: any) => m.assetId === targetId || m.assetId === targetCode || m.assetName === asset?.name
+          (m: any) =>
+            m.assetId === targetId || m.assetId === targetCode || m.assetName === asset?.name
         );
         if (matched.length > 0) {
           setMRecords(matched);
@@ -393,7 +441,11 @@ export default function AssetDetailClient({ assetId }: { assetId: string }) {
         <ShieldCheck size={40} style={{ color: '#f59e0b' }} />
         <div className="font-head font-bold text-lg">Access Restricted</div>
         <p className="text-sm text-muted-foreground text-center max-w-md">
-          This asset belongs to <span className="font-semibold text-foreground">{asset.hotelName || 'another property'}</span>, which is not included in your assigned properties.
+          This asset belongs to{' '}
+          <span className="font-semibold text-foreground">
+            {asset.hotelName || 'another property'}
+          </span>
+          , which is not included in your assigned properties.
         </p>
         <Link
           href="/asset-management/assets"
@@ -414,7 +466,12 @@ export default function AssetDetailClient({ assetId }: { assetId: string }) {
 
   // Handle status update dynamically
   const handleStatusChange = async (newStatus: string) => {
-    const approvalStatus = newStatus === 'active' ? 'approved' : newStatus === 'under-maintenance' ? 'hold' : (asset as any).approvalStatus || 'approved';
+    const approvalStatus =
+      newStatus === 'active'
+        ? 'approved'
+        : newStatus === 'under-maintenance'
+          ? 'hold'
+          : (asset as any).approvalStatus || 'approved';
     const updated = { ...asset, status: newStatus as any, approvalStatus };
     setAsset(updated);
     setAuditEvents((prev) => [
@@ -432,7 +489,11 @@ export default function AssetDetailClient({ assetId }: { assetId: string }) {
     ]);
 
     if (typeof window !== 'undefined') {
-      window.dispatchEvent(new CustomEvent('samko:data-changed', { detail: { type: 'asset', id: asset.id, status: newStatus } }));
+      window.dispatchEvent(
+        new CustomEvent('samko:data-changed', {
+          detail: { type: 'asset', id: asset.id, status: newStatus },
+        })
+      );
     }
 
     toast.success('Asset Status Updated', {
@@ -466,7 +527,11 @@ export default function AssetDetailClient({ assetId }: { assetId: string }) {
     ]);
 
     if (typeof window !== 'undefined') {
-      window.dispatchEvent(new CustomEvent('samko:data-changed', { detail: { type: 'asset', id: asset.id, condition: newCondition } }));
+      window.dispatchEvent(
+        new CustomEvent('samko:data-changed', {
+          detail: { type: 'asset', id: asset.id, condition: newCondition },
+        })
+      );
     }
 
     toast.success('Asset Condition Updated', {
@@ -500,7 +565,9 @@ export default function AssetDetailClient({ assetId }: { assetId: string }) {
 
         setPhotos((prev) => {
           const updated = [newPhoto, ...prev];
-          api.assets.update(asset.id, { photos: updated }).catch((err) => console.error('Error saving photo:', err));
+          api.assets
+            .update(asset.id, { photos: updated })
+            .catch((err) => console.error('Error saving photo:', err));
           return updated;
         });
 
@@ -550,7 +617,9 @@ export default function AssetDetailClient({ assetId }: { assetId: string }) {
 
         setDocuments((prev) => {
           const updated = [newDoc, ...prev];
-          api.assets.update(asset.id, { documents: updated }).catch((err) => console.error('Error saving document:', err));
+          api.assets
+            .update(asset.id, { documents: updated })
+            .catch((err) => console.error('Error saving document:', err));
           return updated;
         });
 
@@ -599,7 +668,9 @@ export default function AssetDetailClient({ assetId }: { assetId: string }) {
       setPreviewDoc(updatedDoc);
       setDocuments((prev) => {
         const updated = prev.map((d) => (d.id === previewDoc.id ? updatedDoc : d));
-        api.assets.update(asset.id, { documents: updated }).catch((err) => console.error('Error updating doc file:', err));
+        api.assets
+          .update(asset.id, { documents: updated })
+          .catch((err) => console.error('Error updating doc file:', err));
         return updated;
       });
 
@@ -620,7 +691,9 @@ export default function AssetDetailClient({ assetId }: { assetId: string }) {
       const docName = deleteConfirm.name;
       setDocuments((prev) => {
         const updated = prev.filter((d) => d.id !== docId);
-        api.assets.update(asset.id, { documents: updated }).catch((err) => console.error('Error deleting doc:', err));
+        api.assets
+          .update(asset.id, { documents: updated })
+          .catch((err) => console.error('Error deleting doc:', err));
         return updated;
       });
 
@@ -646,7 +719,9 @@ export default function AssetDetailClient({ assetId }: { assetId: string }) {
       const photoName = deleteConfirm.name;
       setPhotos((prev) => {
         const updated = prev.filter((p) => p.id !== photoId);
-        api.assets.update(asset.id, { photos: updated }).catch((err) => console.error('Error removing photo:', err));
+        api.assets
+          .update(asset.id, { photos: updated })
+          .catch((err) => console.error('Error removing photo:', err));
         return updated;
       });
 
@@ -713,7 +788,9 @@ export default function AssetDetailClient({ assetId }: { assetId: string }) {
       ]);
 
       if (typeof window !== 'undefined') {
-        window.dispatchEvent(new CustomEvent('samko:data-changed', { detail: { type: 'maintenance' } }));
+        window.dispatchEvent(
+          new CustomEvent('samko:data-changed', { detail: { type: 'maintenance' } })
+        );
       }
     } catch (err: any) {
       alert(`Error logging maintenance: ${err.message}`);
@@ -754,7 +831,9 @@ export default function AssetDetailClient({ assetId }: { assetId: string }) {
       setShowEditModal(false);
       if (typeof window !== 'undefined') {
         sessionStorage.setItem(`samko_asset_${asset.id}`, JSON.stringify(updated));
-        window.dispatchEvent(new CustomEvent('samko:data-changed', { detail: { type: 'assets', id: asset.id } }));
+        window.dispatchEvent(
+          new CustomEvent('samko:data-changed', { detail: { type: 'assets', id: asset.id } })
+        );
       }
     } catch (err: any) {
       toast.error('Failed to update asset');
@@ -769,7 +848,9 @@ export default function AssetDetailClient({ assetId }: { assetId: string }) {
       await api.assets.delete(asset.id);
       toast.success('Asset Deleted', { description: `${asset.name} removed successfully` });
       if (typeof window !== 'undefined') {
-        window.dispatchEvent(new CustomEvent('samko:data-changed', { detail: { type: 'assets', id: asset.id } }));
+        window.dispatchEvent(
+          new CustomEvent('samko:data-changed', { detail: { type: 'assets', id: asset.id } })
+        );
       }
       router.push('/asset-management/assets');
     } catch (err: any) {
@@ -830,7 +911,10 @@ export default function AssetDetailClient({ assetId }: { assetId: string }) {
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-3 flex-wrap">
             <h1 className="font-head text-xl font-bold">{asset.name}</h1>
-            <span className="font-mono text-xs px-2 py-0.5 rounded" style={{ background: 'var(--surface3)', color: 'var(--text2)' }}>
+            <span
+              className="font-mono text-xs px-2 py-0.5 rounded"
+              style={{ background: 'var(--surface3)', color: 'var(--text2)' }}
+            >
               {asset.assetId}
             </span>
 
@@ -859,13 +943,13 @@ export default function AssetDetailClient({ assetId }: { assetId: string }) {
                   { value: 'under-maintenance', label: 'Under Maintenance', color: '#f59e0b' },
                   { value: 'inactive', label: 'Inactive', color: '#94a3b8' },
                   { value: 'disposed', label: 'Disposed', color: '#f43f5e' },
-                  { value: 'lost', label: 'Lost', color: '#f43f5e' }
+                  { value: 'lost', label: 'Lost', color: '#f43f5e' },
                 ]}
                 variant="pill"
                 size="sm"
               />
             )}
-          {/* Condition in Header */}
+            {/* Condition in Header */}
             {isViewer || !canEdit ? (
               <span
                 className="inline-flex items-center gap-1.5 pl-3 pr-3.5 py-1 rounded-full text-xs font-semibold capitalize select-none"
@@ -875,10 +959,7 @@ export default function AssetDetailClient({ assetId }: { assetId: string }) {
                   border: `1px solid ${condStyle}33`,
                 }}
               >
-                <span
-                  className="w-1.5 h-1.5 rounded-full"
-                  style={{ background: condStyle }}
-                />
+                <span className="w-1.5 h-1.5 rounded-full" style={{ background: condStyle }} />
                 {asset.condition}
               </span>
             ) : (
@@ -890,7 +971,7 @@ export default function AssetDetailClient({ assetId }: { assetId: string }) {
                   { value: 'good', label: 'Good', color: '#60a5fa' },
                   { value: 'fair', label: 'Fair', color: '#f59e0b' },
                   { value: 'poor', label: 'Poor', color: '#f97316' },
-                  { value: 'critical', label: 'Critical', color: '#f43f5e' }
+                  { value: 'critical', label: 'Critical', color: '#f43f5e' },
                 ]}
                 variant="pill"
                 size="sm"
@@ -898,10 +979,18 @@ export default function AssetDetailClient({ assetId }: { assetId: string }) {
             )}
           </div>
           <div className="flex items-center gap-4 mt-1.5 text-xs text-muted-foreground flex-wrap">
-            <span className="flex items-center gap-1"><Building2 size={11} /> {asset.hotelName || (asset as any).propertyName || 'Property'}</span>
-            <span className="flex items-center gap-1"><MapPin size={11} /> {asset.location}, {asset.floor}</span>
-            <span className="flex items-center gap-1"><Tag size={11} /> {asset.category}</span>
-            <span className="flex items-center gap-1"><User size={11} /> {asset.responsibleUser || 'Unassigned'}</span>
+            <span className="flex items-center gap-1">
+              <Building2 size={11} /> {asset.hotelName || (asset as any).propertyName || 'Property'}
+            </span>
+            <span className="flex items-center gap-1">
+              <MapPin size={11} /> {asset.location}, {asset.floor}
+            </span>
+            <span className="flex items-center gap-1">
+              <Tag size={11} /> {asset.category}
+            </span>
+            <span className="flex items-center gap-1">
+              <User size={11} /> {asset.responsibleUser || 'Unassigned'}
+            </span>
           </div>
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">
@@ -957,12 +1046,18 @@ export default function AssetDetailClient({ assetId }: { assetId: string }) {
               <IconComponent size={14} />
               {tab.label}
               {tab.id === 'photos' && photos.length > 0 && (
-                <span className="px-1.5 py-0.2 rounded text-xs font-bold" style={{ background: 'var(--surface2)', color: 'var(--text2)' }}>
+                <span
+                  className="px-1.5 py-0.2 rounded text-xs font-bold"
+                  style={{ background: 'var(--surface2)', color: 'var(--text2)' }}
+                >
                   {photos.length}
                 </span>
               )}
               {tab.id === 'documents' && documents.length > 0 && (
-                <span className="px-1.5 py-0.2 rounded text-xs font-bold" style={{ background: 'var(--surface2)', color: 'var(--text2)' }}>
+                <span
+                  className="px-1.5 py-0.2 rounded text-xs font-bold"
+                  style={{ background: 'var(--surface2)', color: 'var(--text2)' }}
+                >
                   {documents.length}
                 </span>
               )}
@@ -977,8 +1072,13 @@ export default function AssetDetailClient({ assetId }: { assetId: string }) {
         {activeTab === 'overview' && (
           <div className="grid gap-6" style={{ gridTemplateColumns: '1fr 1fr 320px' }}>
             {/* Asset Details */}
-            <div className="rounded-xl border border-border p-5" style={{ background: 'var(--surface)' }}>
-              <div className="font-head font-bold text-sm mb-3 uppercase tracking-wide text-muted-foreground">Asset Details</div>
+            <div
+              className="rounded-xl border border-border p-5"
+              style={{ background: 'var(--surface)' }}
+            >
+              <div className="font-head font-bold text-sm mb-3 uppercase tracking-wide text-muted-foreground">
+                Asset Details
+              </div>
               <InfoRow label="Asset ID" value={asset.assetId} />
               <InfoRow label="Name" value={asset.name} />
               <InfoRow label="Category" value={asset.category} />
@@ -988,20 +1088,47 @@ export default function AssetDetailClient({ assetId }: { assetId: string }) {
               <InfoRow label="Floor" value={asset.floor} />
               {asset.roomNumber && <InfoRow label="Room Number" value={asset.roomNumber} />}
               <InfoRow label="Quantity" value={`${asset.quantity} ${asset.unit}`} />
-              <InfoRow label="Asset Type" value={asset.isFixed ? 'Fixed Asset' : 'Non-Fixed Asset'} />
+              <InfoRow
+                label="Asset Type"
+                value={asset.isFixed ? 'Fixed Asset' : 'Non-Fixed Asset'}
+              />
             </div>
 
             {/* Technical Details */}
-            <div className="rounded-xl border border-border p-5" style={{ background: 'var(--surface)' }}>
-              <div className="font-head font-bold text-sm mb-3 uppercase tracking-wide text-muted-foreground">Technical Details</div>
+            <div
+              className="rounded-xl border border-border p-5"
+              style={{ background: 'var(--surface)' }}
+            >
+              <div className="font-head font-bold text-sm mb-3 uppercase tracking-wide text-muted-foreground">
+                Technical Details
+              </div>
               {asset.manufacturer && <InfoRow label="Manufacturer" value={asset.manufacturer} />}
               {asset.model && <InfoRow label="Model" value={asset.model} />}
               {asset.serialNumber && <InfoRow label="Serial Number" value={asset.serialNumber} />}
-              {asset.purchaseDate && <InfoRow label="Purchase Date" value={new Date(asset.purchaseDate).toLocaleDateString('en-GB')} />}
-              {asset.warrantyExpiry && <InfoRow label="Warranty Expiry" value={new Date(asset.warrantyExpiry).toLocaleDateString('en-GB')} />}
-              {asset.replacementDate && <InfoRow label="Replacement Date" value={new Date(asset.replacementDate).toLocaleDateString('en-GB')} />}
-              {asset.purchaseCost && <InfoRow label="Purchase Cost" value={`£${asset.purchaseCost.toLocaleString()}`} />}
-              {asset.currentValue && <InfoRow label="Current Value" value={`£${asset.currentValue.toLocaleString()}`} />}
+              {asset.purchaseDate && (
+                <InfoRow
+                  label="Purchase Date"
+                  value={new Date(asset.purchaseDate).toLocaleDateString('en-GB')}
+                />
+              )}
+              {asset.warrantyExpiry && (
+                <InfoRow
+                  label="Warranty Expiry"
+                  value={new Date(asset.warrantyExpiry).toLocaleDateString('en-GB')}
+                />
+              )}
+              {asset.replacementDate && (
+                <InfoRow
+                  label="Replacement Date"
+                  value={new Date(asset.replacementDate).toLocaleDateString('en-GB')}
+                />
+              )}
+              {asset.purchaseCost && (
+                <InfoRow label="Purchase Cost" value={`£${asset.purchaseCost.toLocaleString()}`} />
+              )}
+              {asset.currentValue && (
+                <InfoRow label="Current Value" value={`£${asset.currentValue.toLocaleString()}`} />
+              )}
               <InfoRow label="Condition" value={asset.condition} accent={condStyle} />
               <InfoRow label="Risk Level" value={asset.riskLevel} accent={riskStyle} />
             </div>
@@ -1009,24 +1136,41 @@ export default function AssetDetailClient({ assetId }: { assetId: string }) {
             {/* Right Panel */}
             <div className="flex flex-col gap-4">
               {/* Maintenance Schedule */}
-              <div className="rounded-xl border border-border p-4" style={{ background: 'var(--surface)' }}>
-                <div className="font-head font-bold text-xs mb-3 uppercase tracking-wide text-muted-foreground">Maintenance Schedule</div>
+              <div
+                className="rounded-xl border border-border p-4"
+                style={{ background: 'var(--surface)' }}
+              >
+                <div className="font-head font-bold text-xs mb-3 uppercase tracking-wide text-muted-foreground">
+                  Maintenance Schedule
+                </div>
                 <div className="flex flex-col gap-2">
                   <div className="flex items-center justify-between">
                     <span className="text-xs text-muted-foreground">Frequency</span>
-                    <span className="text-xs font-semibold capitalize">{asset.maintenanceSchedule}</span>
+                    <span className="text-xs font-semibold capitalize">
+                      {asset.maintenanceSchedule}
+                    </span>
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-xs text-muted-foreground">Next Inspection</span>
                     <span className="text-xs font-semibold">
-                      {asset.nextInspectionDate ? new Date(asset.nextInspectionDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: '2-digit' }) : '—'}
+                      {asset.nextInspectionDate
+                        ? new Date(asset.nextInspectionDate).toLocaleDateString('en-GB', {
+                            day: 'numeric',
+                            month: 'short',
+                            year: '2-digit',
+                          })
+                        : '—'}
                     </span>
                   </div>
                   {asset.lastInspectionDate && (
                     <div className="flex items-center justify-between">
                       <span className="text-xs text-muted-foreground">Last Inspection</span>
                       <span className="text-xs font-semibold">
-                        {new Date(asset.lastInspectionDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: '2-digit' })}
+                        {new Date(asset.lastInspectionDate).toLocaleDateString('en-GB', {
+                          day: 'numeric',
+                          month: 'short',
+                          year: '2-digit',
+                        })}
                       </span>
                     </div>
                   )}
@@ -1034,8 +1178,13 @@ export default function AssetDetailClient({ assetId }: { assetId: string }) {
               </div>
 
               {/* Responsible */}
-              <div className="rounded-xl border border-border p-4" style={{ background: 'var(--surface)' }}>
-                <div className="font-head font-bold text-xs mb-3 uppercase tracking-wide text-muted-foreground">Responsible</div>
+              <div
+                className="rounded-xl border border-border p-4"
+                style={{ background: 'var(--surface)' }}
+              >
+                <div className="font-head font-bold text-xs mb-3 uppercase tracking-wide text-muted-foreground">
+                  Responsible
+                </div>
                 <div className="flex items-center gap-3">
                   <div
                     className="w-9 h-9 rounded-full flex items-center justify-center font-bold text-sm flex-shrink-0"
@@ -1050,24 +1199,43 @@ export default function AssetDetailClient({ assetId }: { assetId: string }) {
                       .toUpperCase() || 'UN'}
                   </div>
                   <div>
-                    <div className="font-semibold text-sm">{asset.responsibleUser || 'Unassigned'}</div>
-                    <div className="text-xs text-muted-foreground">{asset.responsibleRole || 'Staff Member'}</div>
+                    <div className="font-semibold text-sm">
+                      {asset.responsibleUser || 'Unassigned'}
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      {asset.responsibleRole || 'Staff Member'}
+                    </div>
                   </div>
                 </div>
               </div>
 
               {/* Quick Stats */}
-              <div className="rounded-xl border border-border p-4" style={{ background: 'var(--surface)' }}>
-                <div className="font-head font-bold text-xs mb-3 uppercase tracking-wide text-muted-foreground">Maintenance Stats</div>
+              <div
+                className="rounded-xl border border-border p-4"
+                style={{ background: 'var(--surface)' }}
+              >
+                <div className="font-head font-bold text-xs mb-3 uppercase tracking-wide text-muted-foreground">
+                  Maintenance Stats
+                </div>
                 <div className="grid grid-cols-2 gap-2">
                   {[
                     { label: 'Total Records', value: mRecords.length, color: '#60a5fa' },
                     { label: 'Completed', value: completedMaintenance.length, color: '#3dd68c' },
                     { label: 'Pending', value: pendingMaintenance.length, color: '#f59e0b' },
-                    { label: 'Overdue', value: mRecords.filter((m) => m.status === 'overdue').length, color: '#f43f5e' },
+                    {
+                      label: 'Overdue',
+                      value: mRecords.filter((m) => m.status === 'overdue').length,
+                      color: '#f43f5e',
+                    },
                   ].map((s) => (
-                    <div key={s.label} className="rounded-lg p-2.5" style={{ background: 'var(--surface2)' }}>
-                      <div className="font-head font-extrabold text-lg" style={{ color: s.color }}>{s.value}</div>
+                    <div
+                      key={s.label}
+                      className="rounded-lg p-2.5"
+                      style={{ background: 'var(--surface2)' }}
+                    >
+                      <div className="font-head font-extrabold text-lg" style={{ color: s.color }}>
+                        {s.value}
+                      </div>
                       <div className="text-xs text-muted-foreground">{s.label}</div>
                     </div>
                   ))}
@@ -1081,7 +1249,9 @@ export default function AssetDetailClient({ assetId }: { assetId: string }) {
         {activeTab === 'maintenance' && (
           <div className="flex flex-col gap-4">
             <div className="flex items-center justify-between">
-              <div className="font-head font-bold text-sm">{mRecords.length} Maintenance Records</div>
+              <div className="font-head font-bold text-sm">
+                {mRecords.length} Maintenance Records
+              </div>
               {!isViewer && canEdit && (
                 <button
                   onClick={() => setShowLogModal(true)}
@@ -1114,7 +1284,11 @@ export default function AssetDetailClient({ assetId }: { assetId: string }) {
                           <div
                             className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5"
                             style={{
-                              background: isCompleted ? 'rgba(61,214,140,0.12)' : isOverdue ? 'rgba(244,63,94,0.12)' : 'rgba(245,158,11,0.12)',
+                              background: isCompleted
+                                ? 'rgba(61,214,140,0.12)'
+                                : isOverdue
+                                  ? 'rgba(244,63,94,0.12)'
+                                  : 'rgba(245,158,11,0.12)',
                             }}
                           >
                             {isCompleted ? (
@@ -1131,7 +1305,9 @@ export default function AssetDetailClient({ assetId }: { assetId: string }) {
                               Assigned to {record.assignedTo} · {record.frequency}
                             </div>
                             {record.notes && (
-                              <div className="text-xs text-muted-foreground mt-1">{record.notes}</div>
+                              <div className="text-xs text-muted-foreground mt-1">
+                                {record.notes}
+                              </div>
                             )}
                           </div>
                         </div>
@@ -1143,7 +1319,11 @@ export default function AssetDetailClient({ assetId }: { assetId: string }) {
                           <span
                             className="text-xs font-semibold px-2.5 py-0.5 rounded-full capitalize"
                             style={{
-                              background: isCompleted ? 'rgba(61,214,140,0.12)' : isOverdue ? 'rgba(244,63,94,0.12)' : 'rgba(96,165,250,0.12)',
+                              background: isCompleted
+                                ? 'rgba(61,214,140,0.12)'
+                                : isOverdue
+                                  ? 'rgba(244,63,94,0.12)'
+                                  : 'rgba(96,165,250,0.12)',
                               color: isCompleted ? '#3dd68c' : isOverdue ? '#f43f5e' : '#60a5fa',
                             }}
                           >
@@ -1162,31 +1342,66 @@ export default function AssetDetailClient({ assetId }: { assetId: string }) {
         {/* ── INSPECTIONS ── */}
         {activeTab === 'inspections' && (
           <div className="flex flex-col gap-4">
-            <div className="rounded-xl border border-border p-5" style={{ background: 'var(--surface)' }}>
+            <div
+              className="rounded-xl border border-border p-5"
+              style={{ background: 'var(--surface)' }}
+            >
               <div className="font-head font-bold text-sm mb-3">Inspection Schedule</div>
               <InfoRow label="Frequency" value={asset.inspectionFrequency} />
-              <InfoRow label="Next Due" value={asset.nextInspectionDate ? new Date(asset.nextInspectionDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) : '—'} />
+              <InfoRow
+                label="Next Due"
+                value={
+                  asset.nextInspectionDate
+                    ? new Date(asset.nextInspectionDate).toLocaleDateString('en-GB', {
+                        day: 'numeric',
+                        month: 'long',
+                        year: 'numeric',
+                      })
+                    : '—'
+                }
+              />
               {asset.lastInspectionDate && (
-                <InfoRow label="Last Completed" value={new Date(asset.lastInspectionDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })} />
+                <InfoRow
+                  label="Last Completed"
+                  value={new Date(asset.lastInspectionDate).toLocaleDateString('en-GB', {
+                    day: 'numeric',
+                    month: 'long',
+                    year: 'numeric',
+                  })}
+                />
               )}
             </div>
             {completedMaintenance.length > 0 ? (
               <div className="flex flex-col gap-3">
                 {completedMaintenance.map((record) => (
-                  <div key={record.id} className="rounded-xl border border-border p-4 flex items-center gap-4" style={{ background: 'var(--surface)' }}>
+                  <div
+                    key={record.id}
+                    className="rounded-xl border border-border p-4 flex items-center gap-4"
+                    style={{ background: 'var(--surface)' }}
+                  >
                     <CheckCircle2 size={18} style={{ color: '#3dd68c', flexShrink: 0 }} />
                     <div className="flex-1">
                       <div className="font-semibold text-sm">{record.type}</div>
-                      <div className="text-xs text-muted-foreground mt-0.5">By {record.assignedTo}</div>
+                      <div className="text-xs text-muted-foreground mt-0.5">
+                        By {record.assignedTo}
+                      </div>
                     </div>
                     <div className="text-xs text-muted-foreground">
-                      {record.completedDate && new Date(record.completedDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: '2-digit' })}
+                      {record.completedDate &&
+                        new Date(record.completedDate).toLocaleDateString('en-GB', {
+                          day: 'numeric',
+                          month: 'short',
+                          year: '2-digit',
+                        })}
                     </div>
                     {record.result && (
                       <span
                         className="text-xs font-semibold px-2 py-0.5 rounded-full"
                         style={{
-                          background: record.result === 'pass' ? 'rgba(61,214,140,0.12)' : 'rgba(244,63,94,0.12)',
+                          background:
+                            record.result === 'pass'
+                              ? 'rgba(61,214,140,0.12)'
+                              : 'rgba(244,63,94,0.12)',
                           color: record.result === 'pass' ? '#3dd68c' : '#f43f5e',
                         }}
                       >
@@ -1210,8 +1425,12 @@ export default function AssetDetailClient({ assetId }: { assetId: string }) {
           <div className="flex flex-col gap-4">
             <div className="flex items-center justify-between">
               <div>
-                <div className="font-head font-bold text-sm">{documents.length} Documents Registered</div>
-                <p className="text-xs text-muted-foreground mt-0.5">Statutory certificates, purchase invoices, and maintenance manuals</p>
+                <div className="font-head font-bold text-sm">
+                  {documents.length} Documents Registered
+                </div>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Statutory certificates, purchase invoices, and maintenance manuals
+                </p>
               </div>
               <button
                 type="button"
@@ -1223,7 +1442,10 @@ export default function AssetDetailClient({ assetId }: { assetId: string }) {
               </button>
             </div>
 
-            <div className="grid gap-3" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))' }}>
+            <div
+              className="grid gap-3"
+              style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))' }}
+            >
               {documents.map((doc) => (
                 <div
                   key={doc.id}
@@ -1249,10 +1471,15 @@ export default function AssetDetailClient({ assetId }: { assetId: string }) {
                     }}
                     title="Click to preview document"
                   >
-                    <div className="font-semibold text-sm truncate group-hover:text-primary transition-colors" title={doc.fullName || doc.name}>
+                    <div
+                      className="font-semibold text-sm truncate group-hover:text-primary transition-colors"
+                      title={doc.fullName || doc.name}
+                    >
                       {doc.fullName || doc.name}
                     </div>
-                    <div className="text-xs text-muted-foreground mt-0.5">{doc.type} · {doc.size}</div>
+                    <div className="text-xs text-muted-foreground mt-0.5">
+                      {doc.type} · {doc.size}
+                    </div>
                     <div className="text-xs text-muted-foreground">
                       {new Date(doc.date).toLocaleDateString('en-GB')}
                       {doc.uploadedBy && ` · By ${doc.uploadedBy}`}
@@ -1274,7 +1501,9 @@ export default function AssetDetailClient({ assetId }: { assetId: string }) {
                     {hasDeleteAccess && (
                       <button
                         type="button"
-                        onClick={() => setDeleteConfirm({ type: 'document', id: doc.id, name: doc.name })}
+                        onClick={() =>
+                          setDeleteConfirm({ type: 'document', id: doc.id, name: doc.name })
+                        }
                         title="Delete document"
                         className="p-1.5 rounded-lg text-muted-foreground hover:text-red-400 hover:bg-red-500/10 transition-colors"
                       >
@@ -1293,8 +1522,12 @@ export default function AssetDetailClient({ assetId }: { assetId: string }) {
           <div className="flex flex-col gap-5">
             <div className="flex items-center justify-between">
               <div>
-                <div className="font-head font-bold text-sm">{photos.length} Asset Photos Uploaded</div>
-                <p className="text-xs text-muted-foreground mt-0.5">High-resolution condition logs and nameplate records</p>
+                <div className="font-head font-bold text-sm">
+                  {photos.length} Asset Photos Uploaded
+                </div>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  High-resolution condition logs and nameplate records
+                </p>
               </div>
               <button
                 type="button"
@@ -1321,7 +1554,9 @@ export default function AssetDetailClient({ assetId }: { assetId: string }) {
                   <Camera size={24} style={{ color: 'var(--primary)' }} />
                 </div>
                 <div className="text-sm font-semibold">No photos uploaded yet</div>
-                <div className="text-xs text-muted-foreground">Click to upload or drag and drop photos here</div>
+                <div className="text-xs text-muted-foreground">
+                  Click to upload or drag and drop photos here
+                </div>
                 <button
                   type="button"
                   className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold mt-2"
@@ -1361,7 +1596,9 @@ export default function AssetDetailClient({ assetId }: { assetId: string }) {
                         {hasDeleteAccess && (
                           <button
                             type="button"
-                            onClick={() => setDeleteConfirm({ type: 'photo', id: photo.id, name: photo.name })}
+                            onClick={() =>
+                              setDeleteConfirm({ type: 'photo', id: photo.id, name: photo.name })
+                            }
                             className="w-9 h-9 rounded-full bg-red-500/30 backdrop-blur-md flex items-center justify-center text-red-300 hover:bg-red-500/50 transition-colors"
                             title="Delete Photo"
                           >
@@ -1372,7 +1609,9 @@ export default function AssetDetailClient({ assetId }: { assetId: string }) {
                     </div>
                     <div className="p-3 flex items-center justify-between">
                       <div className="min-w-0 pr-2">
-                        <div className="text-xs font-semibold truncate" title={photo.name}>{photo.name}</div>
+                        <div className="text-xs font-semibold truncate" title={photo.name}>
+                          {photo.name}
+                        </div>
                         <div className="text-[11px] text-muted-foreground mt-0.5">
                           {new Date(photo.date).toLocaleDateString('en-GB')} · {photo.size}
                         </div>
@@ -1398,7 +1637,9 @@ export default function AssetDetailClient({ assetId }: { assetId: string }) {
           <div className="flex flex-col gap-5">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
-                <div className="font-head font-bold text-base">Verified Audit Trail ({auditEvents.length} Events)</div>
+                <div className="font-head font-bold text-base">
+                  Verified Audit Trail ({auditEvents.length} Events)
+                </div>
                 <p className="text-xs text-muted-foreground mt-0.5">
                   Statutory compliance audit log showing who audited each equipment lifecycle event
                 </p>
@@ -1415,19 +1656,50 @@ export default function AssetDetailClient({ assetId }: { assetId: string }) {
               {/* Timeline spine */}
               <div
                 className="absolute left-3 sm:left-4 top-4 bottom-4 w-0.5"
-                style={{ background: 'linear-gradient(180deg, var(--primary) 0%, rgba(232,201,122,0.15) 100%)' }}
+                style={{
+                  background:
+                    'linear-gradient(180deg, var(--primary) 0%, rgba(232,201,122,0.15) 100%)',
+                }}
               />
 
               <div className="flex flex-col gap-4">
                 {auditEvents.map((event, idx) => {
                   const typeColors: Record<string, { bg: string; text: string; border: string }> = {
-                    status: { bg: 'rgba(232,201,122,0.12)', text: 'var(--primary)', border: 'rgba(232,201,122,0.3)' },
-                    compliance: { bg: 'rgba(61,214,140,0.12)', text: '#3dd68c', border: 'rgba(61,214,140,0.3)' },
-                    maintenance: { bg: 'rgba(96,165,250,0.12)', text: '#60a5fa', border: 'rgba(96,165,250,0.3)' },
-                    registration: { bg: 'rgba(168,85,247,0.12)', text: '#c084fc', border: 'rgba(168,85,247,0.3)' },
-                    document: { bg: 'rgba(244,63,94,0.12)', text: '#f43f5e', border: 'rgba(244,63,94,0.3)' },
-                    photo: { bg: 'rgba(45,212,191,0.12)', text: '#2dd4bf', border: 'rgba(45,212,191,0.3)' },
-                    deletion: { bg: 'rgba(239,68,68,0.15)', text: '#ef4444', border: 'rgba(239,68,68,0.35)' },
+                    status: {
+                      bg: 'rgba(232,201,122,0.12)',
+                      text: 'var(--primary)',
+                      border: 'rgba(232,201,122,0.3)',
+                    },
+                    compliance: {
+                      bg: 'rgba(61,214,140,0.12)',
+                      text: '#3dd68c',
+                      border: 'rgba(61,214,140,0.3)',
+                    },
+                    maintenance: {
+                      bg: 'rgba(96,165,250,0.12)',
+                      text: '#60a5fa',
+                      border: 'rgba(96,165,250,0.3)',
+                    },
+                    registration: {
+                      bg: 'rgba(168,85,247,0.12)',
+                      text: '#c084fc',
+                      border: 'rgba(168,85,247,0.3)',
+                    },
+                    document: {
+                      bg: 'rgba(244,63,94,0.12)',
+                      text: '#f43f5e',
+                      border: 'rgba(244,63,94,0.3)',
+                    },
+                    photo: {
+                      bg: 'rgba(45,212,191,0.12)',
+                      text: '#2dd4bf',
+                      border: 'rgba(45,212,191,0.3)',
+                    },
+                    deletion: {
+                      bg: 'rgba(239,68,68,0.15)',
+                      text: '#ef4444',
+                      border: 'rgba(239,68,68,0.35)',
+                    },
                   };
                   const badge = typeColors[event.type || 'status'] || typeColors.status;
                   const formattedDate = new Date(event.date).toLocaleDateString('en-GB', {
@@ -1450,7 +1722,10 @@ export default function AssetDetailClient({ assetId }: { assetId: string }) {
                           border: idx === 0 ? '2px solid #000' : '2px solid var(--border)',
                         }}
                       >
-                        <Activity size={12} style={{ color: idx === 0 ? '#000' : 'var(--text2)' }} />
+                        <Activity
+                          size={12}
+                          style={{ color: idx === 0 ? '#000' : 'var(--text2)' }}
+                        />
                       </div>
 
                       {/* Card Content */}
@@ -1463,17 +1738,28 @@ export default function AssetDetailClient({ assetId }: { assetId: string }) {
                       >
                         <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
                           <div className="flex items-center gap-2">
-                            <span className="font-head font-bold text-sm text-foreground">{event.action}</span>
+                            <span className="font-head font-bold text-sm text-foreground">
+                              {event.action}
+                            </span>
                             <span
                               className="text-[10px] font-bold px-2 py-0.5 rounded-full border uppercase tracking-wider"
-                              style={{ background: badge.bg, color: badge.text, borderColor: badge.border }}
+                              style={{
+                                background: badge.bg,
+                                color: badge.text,
+                                borderColor: badge.border,
+                              }}
                             >
                               {event.type || 'Audit'}
                             </span>
                           </div>
                           <div className="flex items-center gap-1.5 text-xs text-muted-foreground font-mono">
                             <Clock size={12} />
-                            <span>{formattedDate} {formattedTime !== '00:00' && formattedTime !== 'Invalid Date' ? `· ${formattedTime}` : ''}</span>
+                            <span>
+                              {formattedDate}{' '}
+                              {formattedTime !== '00:00' && formattedTime !== 'Invalid Date'
+                                ? `· ${formattedTime}`
+                                : ''}
+                            </span>
                           </div>
                         </div>
 
@@ -1584,7 +1870,9 @@ export default function AssetDetailClient({ assetId }: { assetId: string }) {
             <div className="flex items-center justify-between pb-4 border-b border-border mb-4">
               <div>
                 <h2 className="font-head font-bold text-lg">Log Maintenance</h2>
-                <p className="text-xs text-muted-foreground mt-0.5">Record for {asset.name} ({asset.assetId})</p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Record for {asset.name} ({asset.assetId})
+                </p>
               </div>
               <button
                 onClick={() => setShowLogModal(false)}
@@ -1596,7 +1884,9 @@ export default function AssetDetailClient({ assetId }: { assetId: string }) {
 
             <form onSubmit={handleCreateMaintenance} className="space-y-4">
               <div>
-                <label className="text-xs font-semibold text-muted-foreground block mb-1">Maintenance Type</label>
+                <label className="text-xs font-semibold text-muted-foreground block mb-1">
+                  Maintenance Type
+                </label>
                 <input
                   type="text"
                   required
@@ -1610,7 +1900,9 @@ export default function AssetDetailClient({ assetId }: { assetId: string }) {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs font-semibold text-muted-foreground block mb-1">Frequency</label>
+                  <label className="text-xs font-semibold text-muted-foreground block mb-1">
+                    Frequency
+                  </label>
                   <CustomDropdown
                     value={logForm.frequency}
                     onChange={(val) => setLogForm({ ...logForm, frequency: val })}
@@ -1619,7 +1911,7 @@ export default function AssetDetailClient({ assetId }: { assetId: string }) {
                       { value: 'quarterly', label: 'Quarterly' },
                       { value: '6-monthly', label: '6-Monthly' },
                       { value: 'yearly', label: 'Yearly' },
-                      { value: 'custom', label: 'Custom' }
+                      { value: 'custom', label: 'Custom' },
                     ]}
                     variant="form"
                     width="100%"
@@ -1627,7 +1919,9 @@ export default function AssetDetailClient({ assetId }: { assetId: string }) {
                 </div>
 
                 <div>
-                  <label className="text-xs font-semibold text-muted-foreground block mb-1">Assigned To</label>
+                  <label className="text-xs font-semibold text-muted-foreground block mb-1">
+                    Assigned To
+                  </label>
                   <input
                     type="text"
                     required
@@ -1641,7 +1935,9 @@ export default function AssetDetailClient({ assetId }: { assetId: string }) {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs font-semibold text-muted-foreground block mb-1">Scheduled Date</label>
+                  <label className="text-xs font-semibold text-muted-foreground block mb-1">
+                    Scheduled Date
+                  </label>
                   <input
                     type="date"
                     required
@@ -1653,7 +1949,9 @@ export default function AssetDetailClient({ assetId }: { assetId: string }) {
                 </div>
 
                 <div>
-                  <label className="text-xs font-semibold text-muted-foreground block mb-1">Initial Status</label>
+                  <label className="text-xs font-semibold text-muted-foreground block mb-1">
+                    Initial Status
+                  </label>
                   <CustomDropdown
                     value={logForm.status}
                     onChange={(val) => setLogForm({ ...logForm, status: val })}
@@ -1661,7 +1959,7 @@ export default function AssetDetailClient({ assetId }: { assetId: string }) {
                       { value: 'scheduled', label: 'Scheduled', color: '#60a5fa' },
                       { value: 'due-today', label: 'Due Today', color: '#f59e0b' },
                       { value: 'in-progress', label: 'In Progress', color: '#a78bfa' },
-                      { value: 'completed', label: 'Completed', color: '#3dd68c' }
+                      { value: 'completed', label: 'Completed', color: '#3dd68c' },
                     ]}
                     variant="form"
                     width="100%"
@@ -1670,7 +1968,9 @@ export default function AssetDetailClient({ assetId }: { assetId: string }) {
               </div>
 
               <div>
-                <label className="text-xs font-semibold text-muted-foreground block mb-1">Notes / Instructions</label>
+                <label className="text-xs font-semibold text-muted-foreground block mb-1">
+                  Notes / Instructions
+                </label>
                 <textarea
                   rows={3}
                   value={logForm.notes}
@@ -1704,40 +2004,45 @@ export default function AssetDetailClient({ assetId }: { assetId: string }) {
       )}
 
       {/* Document Preview Modal */}
-      {previewDoc && (() => {
-        const isImageDoc =
-          previewDoc.url?.startsWith('data:image/') ||
-          ['JPEG', 'JPG', 'PNG', 'WEBP', 'GIF', 'SVG'].includes((previewDoc.type || '').toUpperCase()) ||
-          /\.(jpg|jpeg|png|webp|gif|svg)$/i.test(previewDoc.url || '') ||
-          /\.(jpg|jpeg|png|webp|gif|svg)$/i.test(previewDoc.fullName || previewDoc.name || '');
+      {previewDoc &&
+        (() => {
+          const isImageDoc =
+            previewDoc.url?.startsWith('data:image/') ||
+            ['JPEG', 'JPG', 'PNG', 'WEBP', 'GIF', 'SVG'].includes(
+              (previewDoc.type || '').toUpperCase()
+            ) ||
+            /\.(jpg|jpeg|png|webp|gif|svg)$/i.test(previewDoc.url || '') ||
+            /\.(jpg|jpeg|png|webp|gif|svg)$/i.test(previewDoc.fullName || previewDoc.name || '');
 
-        const isPdfDoc =
-          previewDoc.url?.startsWith('data:application/pdf') ||
-          (previewDoc.type || '').toUpperCase() === 'PDF' ||
-          /\.pdf$/i.test(previewDoc.url || '') ||
-          /\.pdf$/i.test(previewDoc.fullName || previewDoc.name || '');
+          const isPdfDoc =
+            previewDoc.url?.startsWith('data:application/pdf') ||
+            (previewDoc.type || '').toUpperCase() === 'PDF' ||
+            /\.pdf$/i.test(previewDoc.url || '') ||
+            /\.pdf$/i.test(previewDoc.fullName || previewDoc.name || '');
 
-        const handleDownload = () => {
-          if (previewDoc.url) {
-            const a = document.createElement('a');
-            a.href = previewDoc.url;
-            a.download = previewDoc.fullName || `${previewDoc.name}.${(previewDoc.type || 'file').toLowerCase()}`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            toast.success('Document Download Started', {
-              description: `Downloading ${previewDoc.fullName || previewDoc.name}`,
-            });
-          } else {
-            toast.info('No binary file attached yet to download');
-          }
-        };
+          const handleDownload = () => {
+            if (previewDoc.url) {
+              const a = document.createElement('a');
+              a.href = previewDoc.url;
+              a.download =
+                previewDoc.fullName ||
+                `${previewDoc.name}.${(previewDoc.type || 'file').toLowerCase()}`;
+              document.body.appendChild(a);
+              a.click();
+              document.body.removeChild(a);
+              toast.success('Document Download Started', {
+                description: `Downloading ${previewDoc.fullName || previewDoc.name}`,
+              });
+            } else {
+              toast.info('No binary file attached yet to download');
+            }
+          };
 
-        const handlePrint = () => {
-          if (previewDoc.url && isImageDoc) {
-            const printWindow = window.open('', '_blank');
-            if (printWindow) {
-              printWindow.document.write(`
+          const handlePrint = () => {
+            if (previewDoc.url && isImageDoc) {
+              const printWindow = window.open('', '_blank');
+              if (printWindow) {
+                printWindow.document.write(`
                 <html>
                   <head><title>Print ${previewDoc.name}</title></head>
                   <body style="margin:0;display:flex;justify-content:center;align-items:center;min-height:100vh;background:#fff;">
@@ -1745,312 +2050,363 @@ export default function AssetDetailClient({ assetId }: { assetId: string }) {
                   </body>
                 </html>
               `);
-              printWindow.document.close();
+                printWindow.document.close();
+              }
+            } else {
+              window.print();
             }
-          } else {
-            window.print();
-          }
-        };
+          };
 
-        return (
-          <div
-            className="fixed inset-0 z-[10000] flex items-center justify-center p-3 sm:p-5 bg-black/85 backdrop-blur-md animate-in fade-in duration-150"
-            onClick={() => setPreviewDoc(null)}
-          >
+          return (
             <div
-              className="relative w-full max-w-4xl max-h-[94vh] flex flex-col rounded-2xl border overflow-hidden shadow-2xl animate-in zoom-in-95 duration-150"
-              style={{ background: '#12161f', borderColor: 'rgba(232, 201, 122, 0.35)' }}
-              onClick={(e) => e.stopPropagation()}
+              className="fixed inset-0 z-[10000] flex items-center justify-center p-3 sm:p-5 bg-black/85 backdrop-blur-md animate-in fade-in duration-150"
+              onClick={() => setPreviewDoc(null)}
             >
-              {/* Header */}
-              <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-3.5 border-b border-border bg-surface2/70">
-                <div className="flex items-center gap-3 min-w-0">
-                  <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-red-500/15 border border-red-500/30 text-red-500 flex-shrink-0">
-                    <FileText size={20} />
-                  </div>
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-2">
-                      <h3 className="font-head font-bold text-sm truncate text-foreground" title={previewDoc.fullName || previewDoc.name}>
-                        {previewDoc.fullName || previewDoc.name}
-                      </h3>
-                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-primary/15 text-primary border border-primary/30 uppercase">
-                        {previewDoc.type}
-                      </span>
+              <div
+                className="relative w-full max-w-4xl max-h-[94vh] flex flex-col rounded-2xl border overflow-hidden shadow-2xl animate-in zoom-in-95 duration-150"
+                style={{ background: '#12161f', borderColor: 'rgba(232, 201, 122, 0.35)' }}
+                onClick={(e) => e.stopPropagation()}
+              >
+                {/* Header */}
+                <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-3.5 border-b border-border bg-surface2/70">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-red-500/15 border border-red-500/30 text-red-500 flex-shrink-0">
+                      <FileText size={20} />
                     </div>
-                    <p className="text-xs text-muted-foreground mt-0.5">
-                      {previewDoc.size} &bull; Registered on {new Date(previewDoc.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
-                      {previewDoc.uploadedBy ? ` &bull; By ${previewDoc.uploadedBy}` : ''}
-                    </p>
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2">
+                        <h3
+                          className="font-head font-bold text-sm truncate text-foreground"
+                          title={previewDoc.fullName || previewDoc.name}
+                        >
+                          {previewDoc.fullName || previewDoc.name}
+                        </h3>
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-primary/15 text-primary border border-primary/30 uppercase">
+                          {previewDoc.type}
+                        </span>
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        {previewDoc.size} &bull; Registered on{' '}
+                        {new Date(previewDoc.date).toLocaleDateString('en-GB', {
+                          day: 'numeric',
+                          month: 'short',
+                          year: 'numeric',
+                        })}
+                        {previewDoc.uploadedBy ? ` &bull; By ${previewDoc.uploadedBy}` : ''}
+                      </p>
+                    </div>
                   </div>
-                </div>
 
-                {/* View Switcher Pills */}
-                <div className="flex items-center bg-surface border border-border rounded-xl p-1 gap-1">
-                  <button
-                    type="button"
-                    onClick={() => setDocViewMode('real')}
-                    className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${
-                      docViewMode === 'real'
-                        ? 'bg-primary text-black shadow-sm'
-                        : 'text-muted-foreground hover:text-foreground'
-                    }`}
-                  >
-                    Real Document
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setDocViewMode('certificate')}
-                    className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${
-                      docViewMode === 'certificate'
-                        ? 'bg-primary text-black shadow-sm'
-                        : 'text-muted-foreground hover:text-foreground'
-                    }`}
-                  >
-                    Compliance Details
-                  </button>
-                </div>
-
-                {/* Header Actions */}
-                <div className="flex items-center gap-2">
-                  {previewDoc.url && (
-                    <>
-                      <button
-                        type="button"
-                        onClick={handleDownload}
-                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-surface3 border border-border hover:border-primary/40 transition-all text-foreground"
-                        title="Download Document"
-                      >
-                        <Download size={13} />
-                        <span className="hidden sm:inline">Download</span>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={handlePrint}
-                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-surface3 border border-border hover:border-primary/40 transition-all text-foreground"
-                        title="Print Document"
-                      >
-                        <Printer size={13} />
-                        <span className="hidden sm:inline">Print</span>
-                      </button>
-                    </>
-                  )}
-                  {!previewDoc.url && (
+                  {/* View Switcher Pills */}
+                  <div className="flex items-center bg-surface border border-border rounded-xl p-1 gap-1">
                     <button
                       type="button"
-                      onClick={() => attachDocFileInputRef.current?.click()}
-                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-primary text-black hover:opacity-90 transition-all"
-                      title="Attach Real File"
+                      onClick={() => setDocViewMode('real')}
+                      className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${
+                        docViewMode === 'real'
+                          ? 'bg-primary text-black shadow-sm'
+                          : 'text-muted-foreground hover:text-foreground'
+                      }`}
                     >
-                      <Upload size={13} />
-                      <span>Attach File</span>
+                      Real Document
                     </button>
-                  )}
-                  <button
-                    type="button"
-                    onClick={() => setPreviewDoc(null)}
-                    className="w-8 h-8 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-surface3 transition-all ml-1"
-                  >
-                    <X size={16} />
-                  </button>
-                </div>
-              </div>
+                    <button
+                      type="button"
+                      onClick={() => setDocViewMode('certificate')}
+                      className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${
+                        docViewMode === 'certificate'
+                          ? 'bg-primary text-black shadow-sm'
+                          : 'text-muted-foreground hover:text-foreground'
+                      }`}
+                    >
+                      Compliance Details
+                    </button>
+                  </div>
 
-              {/* Document Body */}
-              {docViewMode === 'real' ? (
-                previewDoc.url ? (
-                  <div className="flex-1 overflow-auto p-4 sm:p-6 flex flex-col items-center justify-center bg-[#07090d] min-h-[460px] max-h-[75vh]">
-                    {isImageDoc ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={previewDoc.url}
-                        alt={previewDoc.name}
-                        className="max-h-[68vh] max-w-full object-contain rounded-xl shadow-2xl border border-white/10"
-                      />
-                    ) : isPdfDoc ? (
-                      previewDoc.url.startsWith('data:application/pdf') || previewDoc.url.endsWith('.pdf') ? (
-                        <iframe
-                          src={previewDoc.url}
-                          title={previewDoc.name}
-                          className="w-full h-[70vh] rounded-xl border border-border bg-white"
-                        />
-                      ) : (
+                  {/* Header Actions */}
+                  <div className="flex items-center gap-2">
+                    {previewDoc.url && (
+                      <>
+                        <button
+                          type="button"
+                          onClick={handleDownload}
+                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-surface3 border border-border hover:border-primary/40 transition-all text-foreground"
+                          title="Download Document"
+                        >
+                          <Download size={13} />
+                          <span className="hidden sm:inline">Download</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handlePrint}
+                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-surface3 border border-border hover:border-primary/40 transition-all text-foreground"
+                          title="Print Document"
+                        >
+                          <Printer size={13} />
+                          <span className="hidden sm:inline">Print</span>
+                        </button>
+                      </>
+                    )}
+                    {!previewDoc.url && (
+                      <button
+                        type="button"
+                        onClick={() => attachDocFileInputRef.current?.click()}
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-primary text-black hover:opacity-90 transition-all"
+                        title="Attach Real File"
+                      >
+                        <Upload size={13} />
+                        <span>Attach File</span>
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => setPreviewDoc(null)}
+                      className="w-8 h-8 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-surface3 transition-all ml-1"
+                    >
+                      <X size={16} />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Document Body */}
+                {docViewMode === 'real' ? (
+                  previewDoc.url ? (
+                    <div className="flex-1 overflow-auto p-4 sm:p-6 flex flex-col items-center justify-center bg-[#07090d] min-h-[460px] max-h-[75vh]">
+                      {isImageDoc ? (
                         // eslint-disable-next-line @next/next/no-img-element
                         <img
                           src={previewDoc.url}
                           alt={previewDoc.name}
                           className="max-h-[68vh] max-w-full object-contain rounded-xl shadow-2xl border border-white/10"
                         />
-                      )
-                    ) : (
-                      <div className="flex flex-col items-center justify-center py-16 gap-3">
-                        <FileText size={48} className="text-primary" />
-                        <p className="text-sm font-semibold">{previewDoc.fullName || previewDoc.name}</p>
+                      ) : isPdfDoc ? (
+                        previewDoc.url.startsWith('data:application/pdf') ||
+                        previewDoc.url.endsWith('.pdf') ? (
+                          <iframe
+                            src={previewDoc.url}
+                            title={previewDoc.name}
+                            className="w-full h-[70vh] rounded-xl border border-border bg-white"
+                          />
+                        ) : (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            src={previewDoc.url}
+                            alt={previewDoc.name}
+                            className="max-h-[68vh] max-w-full object-contain rounded-xl shadow-2xl border border-white/10"
+                          />
+                        )
+                      ) : (
+                        <div className="flex flex-col items-center justify-center py-16 gap-3">
+                          <FileText size={48} className="text-primary" />
+                          <p className="text-sm font-semibold">
+                            {previewDoc.fullName || previewDoc.name}
+                          </p>
+                          <button
+                            type="button"
+                            onClick={handleDownload}
+                            className="px-4 py-2 rounded-lg text-xs font-semibold bg-primary text-black flex items-center gap-1.5"
+                          >
+                            <Download size={13} /> Download File
+                          </button>
+                        </div>
+                      )}
+
+                      <div className="mt-3 flex flex-wrap items-center justify-center gap-2.5 text-xs text-muted-foreground bg-surface2/80 px-4 py-1.5 rounded-full border border-border/60">
+                        <span className="font-semibold text-primary">
+                          Original Uploaded Document
+                        </span>
+                        <span>&bull;</span>
+                        <span className="text-foreground font-mono">
+                          {previewDoc.fullName ||
+                            `${previewDoc.name}.${(previewDoc.type || 'file').toLowerCase()}`}
+                        </span>
+                        <span>&bull;</span>
+                        <span>{previewDoc.size}</span>
                         <button
                           type="button"
-                          onClick={handleDownload}
-                          className="px-4 py-2 rounded-lg text-xs font-semibold bg-primary text-black flex items-center gap-1.5"
+                          onClick={() => attachDocFileInputRef.current?.click()}
+                          className="text-xs text-primary hover:underline ml-2 font-medium"
                         >
-                          <Download size={13} /> Download File
+                          Replace File
                         </button>
                       </div>
-                    )}
-
-                    <div className="mt-3 flex flex-wrap items-center justify-center gap-2.5 text-xs text-muted-foreground bg-surface2/80 px-4 py-1.5 rounded-full border border-border/60">
-                      <span className="font-semibold text-primary">Original Uploaded Document</span>
-                      <span>&bull;</span>
-                      <span className="text-foreground font-mono">{previewDoc.fullName || `${previewDoc.name}.${(previewDoc.type || 'file').toLowerCase()}`}</span>
-                      <span>&bull;</span>
-                      <span>{previewDoc.size}</span>
+                    </div>
+                  ) : (
+                    <div className="flex-1 p-8 sm:p-12 flex flex-col items-center justify-center text-center gap-4 bg-[#090b10] min-h-[420px]">
+                      <div className="w-16 h-16 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400">
+                        <FileText size={32} />
+                      </div>
+                      <div>
+                        <h4 className="font-head font-bold text-lg text-foreground">
+                          Attach Real File for "{previewDoc.name}"
+                        </h4>
+                        <p className="text-xs text-muted-foreground mt-1.5 max-w-md mx-auto leading-relaxed">
+                          This document record was saved without an attached file binary. Click
+                          below to select and attach your real document file (
+                          <span className="font-semibold text-primary">{previewDoc.type}</span>) to
+                          view it directly.
+                        </p>
+                      </div>
                       <button
                         type="button"
                         onClick={() => attachDocFileInputRef.current?.click()}
-                        className="text-xs text-primary hover:underline ml-2 font-medium"
+                        className="flex items-center gap-2 px-6 py-3 rounded-xl font-bold text-xs shadow-lg transition-transform active:scale-95 mt-2"
+                        style={{ background: 'var(--primary)', color: '#000' }}
                       >
-                        Replace File
+                        <Upload size={15} /> Attach "{previewDoc.name}.
+                        {(previewDoc.type || 'jpeg').toLowerCase()}" Now
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setDocViewMode('certificate')}
+                        className="text-xs text-muted-foreground hover:text-primary transition-colors underline mt-1"
+                      >
+                        View Generated Compliance Certificate instead
                       </button>
                     </div>
-                  </div>
+                  )
                 ) : (
-                  <div className="flex-1 p-8 sm:p-12 flex flex-col items-center justify-center text-center gap-4 bg-[#090b10] min-h-[420px]">
-                    <div className="w-16 h-16 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400">
-                      <FileText size={32} />
-                    </div>
-                    <div>
-                      <h4 className="font-head font-bold text-lg text-foreground">Attach Real File for "{previewDoc.name}"</h4>
-                      <p className="text-xs text-muted-foreground mt-1.5 max-w-md mx-auto leading-relaxed">
-                        This document record was saved without an attached file binary. Click below to select and attach your real document file (<span className="font-semibold text-primary">{previewDoc.type}</span>) to view it directly.
-                      </p>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => attachDocFileInputRef.current?.click()}
-                      className="flex items-center gap-2 px-6 py-3 rounded-xl font-bold text-xs shadow-lg transition-transform active:scale-95 mt-2"
-                      style={{ background: 'var(--primary)', color: '#000' }}
+                  /* Compliance Certificate View */
+                  <div className="flex-1 overflow-y-auto p-6 space-y-6">
+                    <div
+                      className="rounded-xl border p-7 shadow-inner space-y-6"
+                      style={{
+                        background: 'linear-gradient(180deg, #181d27 0%, #131720 100%)',
+                        borderColor: 'rgba(255, 255, 255, 0.08)',
+                      }}
                     >
-                      <Upload size={15} /> Attach "{previewDoc.name}.{(previewDoc.type || 'jpeg').toLowerCase()}" Now
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setDocViewMode('certificate')}
-                      className="text-xs text-muted-foreground hover:text-primary transition-colors underline mt-1"
-                    >
-                      View Generated Compliance Certificate instead
-                    </button>
-                  </div>
-                )
-              ) : (
-                /* Compliance Certificate View */
-                <div className="flex-1 overflow-y-auto p-6 space-y-6">
-                  <div
-                    className="rounded-xl border p-7 shadow-inner space-y-6"
-                    style={{
-                      background: 'linear-gradient(180deg, #181d27 0%, #131720 100%)',
-                      borderColor: 'rgba(255, 255, 255, 0.08)',
-                    }}
-                  >
-                    {/* Letterhead */}
-                    <div className="flex items-start justify-between border-b border-border pb-5">
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <div className="w-6 h-6 rounded bg-primary text-black font-extrabold flex items-center justify-center text-xs">
-                            S
+                      {/* Letterhead */}
+                      <div className="flex items-start justify-between border-b border-border pb-5">
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <div className="w-6 h-6 rounded bg-primary text-black font-extrabold flex items-center justify-center text-xs">
+                              S
+                            </div>
+                            <span className="font-head font-extrabold text-base tracking-wide text-primary">
+                              SAMKO CENTRAL UK
+                            </span>
                           </div>
-                          <span className="font-head font-extrabold text-base tracking-wide text-primary">
-                            SAMKO CENTRAL UK
+                          <p className="text-[11px] text-muted-foreground mt-1">
+                            Operations, Governance & Asset Assurance Documentation Vault
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-surface3 text-muted-foreground border border-border">
+                            DOC REF: #{previewDoc.id.toUpperCase()}
+                          </span>
+                          <p className="text-[11px] text-muted-foreground mt-1.5">
+                            Issued:{' '}
+                            {new Date(previewDoc.date).toLocaleDateString('en-GB', {
+                              day: 'numeric',
+                              month: 'long',
+                              year: 'numeric',
+                            })}
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Document Main Heading */}
+                      <div className="text-center py-2">
+                        <span className="text-[11px] font-bold uppercase tracking-wider text-primary">
+                          Certified Asset Documentation
+                        </span>
+                        <h2 className="font-head font-extrabold text-xl text-foreground mt-1">
+                          {previewDoc.fullName || previewDoc.name}
+                        </h2>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Document associated with registered equipment asset {asset.assetId}
+                        </p>
+                      </div>
+
+                      {/* Asset Metadata Grid */}
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 p-4 rounded-xl border border-border/60 bg-surface/50 text-xs">
+                        <div>
+                          <span className="text-muted-foreground block text-[10px] uppercase font-bold">
+                            Asset ID
+                          </span>
+                          <span className="font-mono font-semibold text-primary">
+                            {asset.assetId}
                           </span>
                         </div>
-                        <p className="text-[11px] text-muted-foreground mt-1">
-                          Operations, Governance & Asset Assurance Documentation Vault
-                        </p>
-                      </div>
-                      <div className="text-right">
-                        <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-surface3 text-muted-foreground border border-border">
-                          DOC REF: #{previewDoc.id.toUpperCase()}
-                        </span>
-                        <p className="text-[11px] text-muted-foreground mt-1.5">
-                          Issued: {new Date(previewDoc.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}
-                        </p>
-                      </div>
-                    </div>
-
-                    {/* Document Main Heading */}
-                    <div className="text-center py-2">
-                      <span className="text-[11px] font-bold uppercase tracking-wider text-primary">
-                        Certified Asset Documentation
-                      </span>
-                      <h2 className="font-head font-extrabold text-xl text-foreground mt-1">
-                        {previewDoc.fullName || previewDoc.name}
-                      </h2>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        Document associated with registered equipment asset {asset.assetId}
-                      </p>
-                    </div>
-
-                    {/* Asset Metadata Grid */}
-                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 p-4 rounded-xl border border-border/60 bg-surface/50 text-xs">
-                      <div>
-                        <span className="text-muted-foreground block text-[10px] uppercase font-bold">Asset ID</span>
-                        <span className="font-mono font-semibold text-primary">{asset.assetId}</span>
-                      </div>
-                      <div>
-                        <span className="text-muted-foreground block text-[10px] uppercase font-bold">Asset Name</span>
-                        <span className="font-semibold text-foreground truncate block">{asset.name}</span>
-                      </div>
-                      <div>
-                        <span className="text-muted-foreground block text-[10px] uppercase font-bold">Category</span>
-                        <span className="font-semibold text-foreground">{asset.category}</span>
-                      </div>
-                      <div>
-                        <span className="text-muted-foreground block text-[10px] uppercase font-bold">Property</span>
-                        <span className="font-semibold text-foreground truncate block">{asset.hotelName || 'Property'}</span>
-                      </div>
-                      <div>
-                        <span className="text-muted-foreground block text-[10px] uppercase font-bold">Location</span>
-                        <span className="font-semibold text-foreground">{asset.location}</span>
-                      </div>
-                      <div>
-                        <span className="text-muted-foreground block text-[10px] uppercase font-bold">Department</span>
-                        <span className="font-semibold text-foreground">{asset.department}</span>
-                      </div>
-                    </div>
-
-                    {/* Audit & Compliance Stamp Box */}
-                    <div className="p-4 rounded-xl border border-emerald-500/25 bg-emerald-500/5 flex items-start gap-3">
-                      <CheckCircle2 size={18} className="text-emerald-400 mt-0.5 flex-shrink-0" />
-                      <div className="text-xs space-y-1">
-                        <div className="font-bold text-emerald-300">
-                          Compliance Assurance & Verification Status: PASSED
+                        <div>
+                          <span className="text-muted-foreground block text-[10px] uppercase font-bold">
+                            Asset Name
+                          </span>
+                          <span className="font-semibold text-foreground truncate block">
+                            {asset.name}
+                          </span>
                         </div>
-                        <p className="text-muted-foreground leading-relaxed">
-                          This document has been verified against UK statutory safety, health, and equipment inspection protocols. Archived by authorized compliance officer for audit inspections.
-                        </p>
-                        <div className="text-[11px] text-muted-foreground pt-1 flex items-center gap-2">
-                          <span>Audited By:</span>
-                          <span className="font-semibold text-foreground">{previewDoc.uploadedBy || currentUserName}</span>
-                          <span>&bull;</span>
-                          <span className="text-primary font-mono">HASH: SHA256-SAMKO-VALIDATED</span>
+                        <div>
+                          <span className="text-muted-foreground block text-[10px] uppercase font-bold">
+                            Category
+                          </span>
+                          <span className="font-semibold text-foreground">{asset.category}</span>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground block text-[10px] uppercase font-bold">
+                            Property
+                          </span>
+                          <span className="font-semibold text-foreground truncate block">
+                            {asset.hotelName || 'Property'}
+                          </span>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground block text-[10px] uppercase font-bold">
+                            Location
+                          </span>
+                          <span className="font-semibold text-foreground">{asset.location}</span>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground block text-[10px] uppercase font-bold">
+                            Department
+                          </span>
+                          <span className="font-semibold text-foreground">{asset.department}</span>
+                        </div>
+                      </div>
+
+                      {/* Audit & Compliance Stamp Box */}
+                      <div className="p-4 rounded-xl border border-emerald-500/25 bg-emerald-500/5 flex items-start gap-3">
+                        <CheckCircle2 size={18} className="text-emerald-400 mt-0.5 flex-shrink-0" />
+                        <div className="text-xs space-y-1">
+                          <div className="font-bold text-emerald-300">
+                            Compliance Assurance & Verification Status: PASSED
+                          </div>
+                          <p className="text-muted-foreground leading-relaxed">
+                            This document has been verified against UK statutory safety, health, and
+                            equipment inspection protocols. Archived by authorized compliance
+                            officer for audit inspections.
+                          </p>
+                          <div className="text-[11px] text-muted-foreground pt-1 flex items-center gap-2">
+                            <span>Audited By:</span>
+                            <span className="font-semibold text-foreground">
+                              {previewDoc.uploadedBy || currentUserName}
+                            </span>
+                            <span>&bull;</span>
+                            <span className="text-primary font-mono">
+                              HASH: SHA256-SAMKO-VALIDATED
+                            </span>
+                          </div>
                         </div>
                       </div>
                     </div>
                   </div>
-                </div>
-              )}
+                )}
 
-              {/* Footer */}
-              <div className="px-6 py-3 border-t border-border flex items-center justify-between text-xs text-muted-foreground bg-surface2/40">
-                <span>Samko Central Operations &bull; Certified Asset Document</span>
-                <button
-                  type="button"
-                  onClick={() => setPreviewDoc(null)}
-                  className="px-4 py-1.5 rounded-lg text-xs font-semibold bg-surface border border-border hover:bg-surface2 transition-all text-foreground"
-                >
-                  Close Preview
-                </button>
+                {/* Footer */}
+                <div className="px-6 py-3 border-t border-border flex items-center justify-between text-xs text-muted-foreground bg-surface2/40">
+                  <span>Samko Central Operations &bull; Certified Asset Document</span>
+                  <button
+                    type="button"
+                    onClick={() => setPreviewDoc(null)}
+                    className="px-4 py-1.5 rounded-lg text-xs font-semibold bg-surface border border-border hover:bg-surface2 transition-all text-foreground"
+                  >
+                    Close Preview
+                  </button>
+                </div>
               </div>
             </div>
-          </div>
-        );
-      })()}
+          );
+        })()}
 
       {/* Delete Confirmation Modal in the Middle of Screen */}
       {deleteConfirm && (
@@ -2071,14 +2427,13 @@ export default function AssetDetailClient({ assetId }: { assetId: string }) {
               <Trash2 size={26} className="animate-pulse" />
             </div>
 
-            <h3 className="font-head font-bold text-lg mb-2 text-foreground">
-              Confirm Deletion
-            </h3>
+            <h3 className="font-head font-bold text-lg mb-2 text-foreground">Confirm Deletion</h3>
 
             <p className="text-xs text-muted-foreground leading-relaxed mb-6">
               Are you sure you want to permanently delete{' '}
-              <span className="font-semibold text-foreground">"{deleteConfirm.name}"</span>?
-              This item will be permanently removed from this asset's vault. This action cannot be undone.
+              <span className="font-semibold text-foreground">"{deleteConfirm.name}"</span>? This
+              item will be permanently removed from this asset's vault. This action cannot be
+              undone.
             </p>
 
             <div className="flex items-center gap-3">
@@ -2105,15 +2460,28 @@ export default function AssetDetailClient({ assetId }: { assetId: string }) {
       {/* Edit Asset Modal */}
       {showEditModal && (
         <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-150">
-          <div className="w-full max-w-2xl rounded-2xl border border-border overflow-hidden shadow-2xl animate-in zoom-in-95 duration-150" style={{ background: 'var(--surface)' }}>
-            <div className="flex items-center justify-between px-6 py-4 border-b border-border" style={{ background: 'var(--surface2)' }}>
+          <div
+            className="w-full max-w-2xl rounded-2xl border border-border overflow-hidden shadow-2xl animate-in zoom-in-95 duration-150"
+            style={{ background: 'var(--surface)' }}
+          >
+            <div
+              className="flex items-center justify-between px-6 py-4 border-b border-border"
+              style={{ background: 'var(--surface2)' }}
+            >
               <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'rgba(232,201,122,0.15)', color: 'var(--primary)' }}>
+                <div
+                  className="w-8 h-8 rounded-lg flex items-center justify-center"
+                  style={{ background: 'rgba(232,201,122,0.15)', color: 'var(--primary)' }}
+                >
                   <Edit2 size={16} />
                 </div>
                 <div>
-                  <h3 className="font-head font-bold text-base text-foreground">Edit Asset: {asset.name}</h3>
-                  <p className="text-xs text-muted-foreground">{asset.assetId} · Update asset details dynamically</p>
+                  <h3 className="font-head font-bold text-base text-foreground">
+                    Edit Asset: {asset.name}
+                  </h3>
+                  <p className="text-xs text-muted-foreground">
+                    {asset.assetId} · Update asset details dynamically
+                  </p>
                 </div>
               </div>
               <button
@@ -2194,7 +2562,9 @@ export default function AssetDetailClient({ assetId }: { assetId: string }) {
                   <input
                     type="text"
                     value={editFormData.department || ''}
-                    onChange={(e) => setEditFormData({ ...editFormData, department: e.target.value })}
+                    onChange={(e) =>
+                      setEditFormData({ ...editFormData, department: e.target.value })
+                    }
                     className="w-full px-3 py-2 rounded-lg border border-border text-xs outline-none"
                     style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
                   />
@@ -2238,7 +2608,7 @@ export default function AssetDetailClient({ assetId }: { assetId: string }) {
                       { value: 'under-maintenance', label: 'Under Maintenance', color: '#f59e0b' },
                       { value: 'inactive', label: 'Inactive', color: '#94a3b8' },
                       { value: 'disposed', label: 'Disposed', color: '#f43f5e' },
-                      { value: 'lost', label: 'Lost', color: '#f43f5e' }
+                      { value: 'lost', label: 'Lost', color: '#f43f5e' },
                     ]}
                     variant="form"
                     width="100%"
@@ -2257,7 +2627,7 @@ export default function AssetDetailClient({ assetId }: { assetId: string }) {
                       { value: 'good', label: 'Good', color: '#60a5fa' },
                       { value: 'fair', label: 'Fair', color: '#f59e0b' },
                       { value: 'poor', label: 'Poor', color: '#f97316' },
-                      { value: 'critical', label: 'Critical', color: '#f43f5e' }
+                      { value: 'critical', label: 'Critical', color: '#f43f5e' },
                     ]}
                     variant="form"
                     width="100%"
@@ -2275,7 +2645,7 @@ export default function AssetDetailClient({ assetId }: { assetId: string }) {
                       { value: 'low', label: 'Low Risk', color: '#3dd68c' },
                       { value: 'medium', label: 'Medium Risk', color: '#f59e0b' },
                       { value: 'high', label: 'High Risk', color: '#f97316' },
-                      { value: 'critical', label: 'Critical Risk', color: '#f43f5e' }
+                      { value: 'critical', label: 'Critical Risk', color: '#f43f5e' },
                     ]}
                     variant="form"
                     width="100%"
@@ -2289,7 +2659,9 @@ export default function AssetDetailClient({ assetId }: { assetId: string }) {
                   <input
                     type="text"
                     value={editFormData.serialNumber || ''}
-                    onChange={(e) => setEditFormData({ ...editFormData, serialNumber: e.target.value })}
+                    onChange={(e) =>
+                      setEditFormData({ ...editFormData, serialNumber: e.target.value })
+                    }
                     className="w-full px-3 py-2 rounded-lg border border-border text-xs outline-none"
                     style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
                   />
@@ -2302,7 +2674,9 @@ export default function AssetDetailClient({ assetId }: { assetId: string }) {
                   <input
                     type="text"
                     value={editFormData.responsibleUser || ''}
-                    onChange={(e) => setEditFormData({ ...editFormData, responsibleUser: e.target.value })}
+                    onChange={(e) =>
+                      setEditFormData({ ...editFormData, responsibleUser: e.target.value })
+                    }
                     className="w-full px-3 py-2 rounded-lg border border-border text-xs outline-none"
                     style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
                   />
@@ -2317,7 +2691,10 @@ export default function AssetDetailClient({ assetId }: { assetId: string }) {
                   onChange={(e) => setEditFormData({ ...editFormData, isFixed: e.target.checked })}
                   className="rounded cursor-pointer"
                 />
-                <label htmlFor="detail-edit-is-fixed" className="text-xs text-foreground cursor-pointer">
+                <label
+                  htmlFor="detail-edit-is-fixed"
+                  className="text-xs text-foreground cursor-pointer"
+                >
                   Fixed Asset (affects balance sheet & fixed asset register)
                 </label>
               </div>
@@ -2372,12 +2749,15 @@ export default function AssetDetailClient({ assetId }: { assetId: string }) {
               <Trash2 size={26} className="animate-pulse" />
             </div>
 
-            <h3 className="font-head font-bold text-lg mb-2 text-foreground">
-              Confirm Deletion
-            </h3>
+            <h3 className="font-head font-bold text-lg mb-2 text-foreground">Confirm Deletion</h3>
 
             <p className="text-xs text-muted-foreground leading-relaxed mb-6">
-              Are you sure you want to permanently delete <strong className="text-foreground">"{asset.name}" ({asset.assetId})</strong>? All maintenance records, inspection histories, uploaded photos and documents associated with this asset will be permanently erased. This action cannot be undone.
+              Are you sure you want to permanently delete{' '}
+              <strong className="text-foreground">
+                "{asset.name}" ({asset.assetId})
+              </strong>
+              ? All maintenance records, inspection histories, uploaded photos and documents
+              associated with this asset will be permanently erased. This action cannot be undone.
             </p>
 
             <div className="flex items-center gap-3">

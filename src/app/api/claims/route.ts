@@ -39,7 +39,10 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     if (!body.policyNumber && !body.description) {
-      return NextResponse.json({ success: false, error: 'Policy number or description is required' }, { status: 400 });
+      return NextResponse.json(
+        { success: false, error: 'Policy number or description is required' },
+        { status: 400 }
+      );
     }
 
     const newItem = await createDocument('claims', {
@@ -49,6 +52,9 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ success: true, data: newItem }, { status: 201 });
   } catch (error: any) {
-    return NextResponse.json({ success: false, error: error?.message || 'Failed to create claim' }, { status: 500 });
+    return NextResponse.json(
+      { success: false, error: error?.message || 'Failed to create claim' },
+      { status: 500 }
+    );
   }
 }

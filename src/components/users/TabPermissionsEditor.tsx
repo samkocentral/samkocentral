@@ -74,14 +74,35 @@ const TAB_ICONS: Record<string, React.ReactNode> = {
   settings: <Settings size={14} className="text-slate-400" />,
 };
 
-const ROLE_METADATA: Record<string, { label: string; title: string; color: string; badgeBg: string }> = {
-  L1: { label: 'L1 – Super Admin', title: 'Super Admin', color: '#f43f5e', badgeBg: 'rgba(244,63,94,0.15)' },
+const ROLE_METADATA: Record<
+  string,
+  { label: string; title: string; color: string; badgeBg: string }
+> = {
+  L1: {
+    label: 'L1 – Super Admin',
+    title: 'Super Admin',
+    color: '#f43f5e',
+    badgeBg: 'rgba(244,63,94,0.15)',
+  },
   L2: { label: 'L2 – Admin', title: 'Admin', color: '#a78bfa', badgeBg: 'rgba(167,139,250,0.15)' },
-  L3: { label: 'L3 – Uploader', title: 'Uploader', color: '#10b981', badgeBg: 'rgba(16,185,129,0.15)' },
-  L4: { label: 'L4 – Viewer', title: 'Viewer', color: '#94a3b8', badgeBg: 'rgba(148,163,184,0.15)' },
+  L3: {
+    label: 'L3 – Uploader',
+    title: 'Uploader',
+    color: '#10b981',
+    badgeBg: 'rgba(16,185,129,0.15)',
+  },
+  L4: {
+    label: 'L4 – Viewer',
+    title: 'Viewer',
+    color: '#94a3b8',
+    badgeBg: 'rgba(148,163,184,0.15)',
+  },
 };
 
-const SECTION_METADATA: Record<TabSectionLocation, { label: string; badgeBg: string; color: string }> = {
+const SECTION_METADATA: Record<
+  TabSectionLocation,
+  { label: string; badgeBg: string; color: string }
+> = {
   propco: { label: 'PROPCO', badgeBg: 'rgba(232,201,122,0.15)', color: '#e8c97a' },
   opco: { label: 'OPCO', badgeBg: 'rgba(96,165,250,0.15)', color: '#60a5fa' },
   both: { label: 'PROPCO & OPCO', badgeBg: 'rgba(61,214,140,0.15)', color: '#3dd68c' },
@@ -276,8 +297,12 @@ export default function TabPermissionsEditor({
         }
         setSectionMapping(updatedSecs);
         if (typeof window !== 'undefined') {
-          window.dispatchEvent(new CustomEvent('samko:sections-changed', { detail: { mapping: updatedSecs } }));
-          window.dispatchEvent(new CustomEvent('samko:app-cms-updated', { detail: { mapping: updatedSecs } }));
+          window.dispatchEvent(
+            new CustomEvent('samko:sections-changed', { detail: { mapping: updatedSecs } })
+          );
+          window.dispatchEvent(
+            new CustomEvent('samko:app-cms-updated', { detail: { mapping: updatedSecs } })
+          );
         }
       }
 
@@ -335,17 +360,27 @@ export default function TabPermissionsEditor({
         }
 
         const actionText = singleActionType === 'copy' ? 'Copied' : 'Moved';
-        const targetLabel = singleTargetRole === 'ALL' ? 'All Roles' : ROLE_METADATA[singleTargetRole]?.title || singleTargetRole;
-        toast.success(`Successfully ${actionText.toLowerCase()} "${singleTabModalTab.name}" to ${targetLabel}!`, {
-          description: `Access set to ${singleAccessLevel === 'write' ? 'Edit & Write' : 'Read Only'}${
-            singleSectionChanged ? ` · Section: ${SECTION_METADATA[singleSectionTarget]?.label}` : ''
-          }.`,
-        });
+        const targetLabel =
+          singleTargetRole === 'ALL'
+            ? 'All Roles'
+            : ROLE_METADATA[singleTargetRole]?.title || singleTargetRole;
+        toast.success(
+          `Successfully ${actionText.toLowerCase()} "${singleTabModalTab.name}" to ${targetLabel}!`,
+          {
+            description: `Access set to ${singleAccessLevel === 'write' ? 'Edit & Write' : 'Read Only'}${
+              singleSectionChanged
+                ? ` · Section: ${SECTION_METADATA[singleSectionTarget]?.label}`
+                : ''
+            }.`,
+          }
+        );
       }
 
       setSingleTabModalTab(null);
     } catch (err: any) {
-      toast.error('Failed to complete tab transfer', { description: err?.message || 'Unknown error' });
+      toast.error('Failed to complete tab transfer', {
+        description: err?.message || 'Unknown error',
+      });
     } finally {
       setSingleProcessing(false);
     }
@@ -382,14 +417,22 @@ export default function TabPermissionsEditor({
       }
 
       const modeWord = bulkMode === 'copy' ? 'copied' : 'moved';
-      const targetLabel = bulkTargetRole === 'ALL' ? 'All Roles' : ROLE_METADATA[bulkTargetRole]?.title || bulkTargetRole;
-      toast.success(`Tabs ${modeWord} from ${ROLE_METADATA[bulkSourceRole]?.title} to ${targetLabel}!`, {
-        description: `Templates updated${bulkSyncUsers ? ' and synced to active accounts.' : '.'}`,
-      });
+      const targetLabel =
+        bulkTargetRole === 'ALL'
+          ? 'All Roles'
+          : ROLE_METADATA[bulkTargetRole]?.title || bulkTargetRole;
+      toast.success(
+        `Tabs ${modeWord} from ${ROLE_METADATA[bulkSourceRole]?.title} to ${targetLabel}!`,
+        {
+          description: `Templates updated${bulkSyncUsers ? ' and synced to active accounts.' : '.'}`,
+        }
+      );
 
       setShowBulkModal(false);
     } catch (err: any) {
-      toast.error('Failed to execute bulk tab transfer', { description: err?.message || 'Unknown error' });
+      toast.error('Failed to execute bulk tab transfer', {
+        description: err?.message || 'Unknown error',
+      });
     } finally {
       setBulkProcessing(false);
     }
@@ -431,24 +474,37 @@ export default function TabPermissionsEditor({
     <div className="space-y-4 text-xs">
       {/* Top Metric Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-        <div className="p-2.5 rounded-xl border border-border" style={{ background: 'var(--surface2)' }}>
+        <div
+          className="p-2.5 rounded-xl border border-border"
+          style={{ background: 'var(--surface2)' }}
+        >
           <div className="text-[11px] text-muted-foreground font-medium">Enabled Tabs</div>
           <div className="text-lg font-bold text-emerald-400 mt-0.5">
-            {stats.enabledCount} <span className="text-xs text-muted-foreground font-normal">/ {stats.total}</span>
+            {stats.enabledCount}{' '}
+            <span className="text-xs text-muted-foreground font-normal">/ {stats.total}</span>
           </div>
         </div>
 
-        <div className="p-2.5 rounded-xl border border-border" style={{ background: 'var(--surface2)' }}>
+        <div
+          className="p-2.5 rounded-xl border border-border"
+          style={{ background: 'var(--surface2)' }}
+        >
           <div className="text-[11px] text-muted-foreground font-medium">Edit & Write (Full)</div>
           <div className="text-lg font-bold text-primary mt-0.5">{stats.writeCount}</div>
         </div>
 
-        <div className="p-2.5 rounded-xl border border-border" style={{ background: 'var(--surface2)' }}>
+        <div
+          className="p-2.5 rounded-xl border border-border"
+          style={{ background: 'var(--surface2)' }}
+        >
           <div className="text-[11px] text-muted-foreground font-medium">Read Only (View)</div>
           <div className="text-lg font-bold text-sky-400 mt-0.5">{stats.readCount}</div>
         </div>
 
-        <div className="p-2.5 rounded-xl border border-border" style={{ background: 'var(--surface2)' }}>
+        <div
+          className="p-2.5 rounded-xl border border-border"
+          style={{ background: 'var(--surface2)' }}
+        >
           <div className="text-[11px] text-muted-foreground font-medium">Disabled / Hidden</div>
           <div className="text-lg font-bold text-slate-400 mt-0.5">{stats.disabledCount}</div>
         </div>
@@ -517,7 +573,10 @@ export default function TabPermissionsEditor({
           </div>
 
           <div className="relative">
-            <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+            <Search
+              size={13}
+              className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground"
+            />
             <input
               type="text"
               placeholder="Search tabs..."
@@ -568,8 +627,15 @@ export default function TabPermissionsEditor({
       {/* Tabs Table / List by Group */}
       <div className="space-y-4 max-h-[500px] overflow-y-auto pr-1">
         {groups.map(({ groupName, tabs }) => (
-          <div key={groupName} className="rounded-xl border border-border overflow-hidden" style={{ background: 'var(--surface)' }}>
-            <div className="px-4 py-2 border-b border-border flex items-center justify-between" style={{ background: 'var(--surface2)' }}>
+          <div
+            key={groupName}
+            className="rounded-xl border border-border overflow-hidden"
+            style={{ background: 'var(--surface)' }}
+          >
+            <div
+              className="px-4 py-2 border-b border-border flex items-center justify-between"
+              style={{ background: 'var(--surface2)' }}
+            >
               <span className="font-head text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
                 {groupName}
               </span>
@@ -587,7 +653,8 @@ export default function TabPermissionsEditor({
 
                 // Check role templates access for this tab
                 const roleAccess = (['L1', 'L2', 'L3', 'L4'] as RoleLevel[]).map((r) => {
-                  const rPerm = roleTemplates[r]?.[tab.id] || getDefaultTabPermissionsForRole(r)[tab.id];
+                  const rPerm =
+                    roleTemplates[r]?.[tab.id] || getDefaultTabPermissionsForRole(r)[tab.id];
                   return {
                     role: r,
                     enabled: !!rPerm?.enabled,
@@ -606,7 +673,10 @@ export default function TabPermissionsEditor({
                   >
                     {/* Left: Tab info */}
                     <div className="flex items-start gap-2.5 min-w-0 flex-1">
-                      <div className="p-1.5 rounded-lg flex-shrink-0 mt-0.5" style={{ background: 'var(--surface2)' }}>
+                      <div
+                        className="p-1.5 rounded-lg flex-shrink-0 mt-0.5"
+                        style={{ background: 'var(--surface2)' }}
+                      >
                         {icon}
                       </div>
                       <div className="min-w-0 flex-1">
@@ -716,7 +786,10 @@ export default function TabPermissionsEditor({
 
                       {/* Access Level Selector (Read Only vs Edit & Write) */}
                       {isEnabled ? (
-                        <div className="flex items-center rounded-lg border border-border p-0.5" style={{ background: 'var(--surface2)' }}>
+                        <div
+                          className="flex items-center rounded-lg border border-border p-0.5"
+                          style={{ background: 'var(--surface2)' }}
+                        >
                           <button
                             type="button"
                             disabled={readOnly}
@@ -816,7 +889,9 @@ export default function TabPermissionsEditor({
               </div>
               <div className="min-w-0 flex-1">
                 <div className="font-bold text-sm text-foreground">{singleTabModalTab.name}</div>
-                <div className="text-[11px] text-muted-foreground font-mono">{singleTabModalTab.path}</div>
+                <div className="text-[11px] text-muted-foreground font-mono">
+                  {singleTabModalTab.path}
+                </div>
                 <div className="text-[11px] text-muted-foreground mt-0.5 line-clamp-1">
                   {singleTabModalTab.description}
                 </div>
@@ -834,25 +909,38 @@ export default function TabPermissionsEditor({
                 <span
                   className="px-2 py-0.5 rounded text-[9.5px] font-extrabold uppercase tracking-wider border"
                   style={{
-                    background: SECTION_METADATA[sectionMapping[singleTabModalTab.id] || 'propco']?.badgeBg,
-                    color: SECTION_METADATA[sectionMapping[singleTabModalTab.id] || 'propco']?.color,
+                    background:
+                      SECTION_METADATA[sectionMapping[singleTabModalTab.id] || 'propco']?.badgeBg,
+                    color:
+                      SECTION_METADATA[sectionMapping[singleTabModalTab.id] || 'propco']?.color,
                     borderColor: `${SECTION_METADATA[sectionMapping[singleTabModalTab.id] || 'propco']?.color}44`,
                   }}
                 >
-                  Section: {sectionMapping[singleTabModalTab.id] === 'both' ? 'PropCo & OpCo' : SECTION_METADATA[sectionMapping[singleTabModalTab.id] || 'propco']?.label}
+                  Section:{' '}
+                  {sectionMapping[singleTabModalTab.id] === 'both'
+                    ? 'PropCo & OpCo'
+                    : SECTION_METADATA[sectionMapping[singleTabModalTab.id] || 'propco']?.label}
                 </span>
               </div>
             </div>
 
             {/* 1. Sidebar Section Placement (PropCo / OpCo / Both) */}
-            <div className="p-3 rounded-xl border border-border" style={{ background: 'var(--surface)' }}>
+            <div
+              className="p-3 rounded-xl border border-border"
+              style={{ background: 'var(--surface)' }}
+            >
               <div className="flex items-center justify-between mb-2">
                 <label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
                   <SlidersHorizontal size={12} className="text-primary" />
                   <span>Sidebar Section: PROPCO &amp; OPCO</span>
                 </label>
                 <span className="text-[10px] text-muted-foreground">
-                  Current: <strong className="text-foreground uppercase">{sectionMapping[singleTabModalTab.id] === 'both' ? 'PropCo & OpCo' : sectionMapping[singleTabModalTab.id] || 'propco'}</strong>
+                  Current:{' '}
+                  <strong className="text-foreground uppercase">
+                    {sectionMapping[singleTabModalTab.id] === 'both'
+                      ? 'PropCo & OpCo'
+                      : sectionMapping[singleTabModalTab.id] || 'propco'}
+                  </strong>
                 </span>
               </div>
 
@@ -866,9 +954,27 @@ export default function TabPermissionsEditor({
                   }}
                   className="flex flex-col items-center justify-center p-2.5 rounded-xl border text-center transition-all cursor-pointer"
                   style={{
-                    background: (singleSectionChanged ? singleSectionTarget === 'propco' : (sectionMapping[singleTabModalTab.id] || 'propco') === 'propco') ? 'rgba(232,201,122,0.15)' : 'var(--surface2)',
-                    borderColor: (singleSectionChanged ? singleSectionTarget === 'propco' : (sectionMapping[singleTabModalTab.id] || 'propco') === 'propco') ? 'var(--primary)' : 'var(--border)',
-                    color: (singleSectionChanged ? singleSectionTarget === 'propco' : (sectionMapping[singleTabModalTab.id] || 'propco') === 'propco') ? 'var(--primary)' : 'var(--foreground)',
+                    background: (
+                      singleSectionChanged
+                        ? singleSectionTarget === 'propco'
+                        : (sectionMapping[singleTabModalTab.id] || 'propco') === 'propco'
+                    )
+                      ? 'rgba(232,201,122,0.15)'
+                      : 'var(--surface2)',
+                    borderColor: (
+                      singleSectionChanged
+                        ? singleSectionTarget === 'propco'
+                        : (sectionMapping[singleTabModalTab.id] || 'propco') === 'propco'
+                    )
+                      ? 'var(--primary)'
+                      : 'var(--border)',
+                    color: (
+                      singleSectionChanged
+                        ? singleSectionTarget === 'propco'
+                        : (sectionMapping[singleTabModalTab.id] || 'propco') === 'propco'
+                    )
+                      ? 'var(--primary)'
+                      : 'var(--foreground)',
                   }}
                 >
                   <Building2 size={14} className="mb-1 text-amber-400" />
@@ -885,9 +991,27 @@ export default function TabPermissionsEditor({
                   }}
                   className="flex flex-col items-center justify-center p-2.5 rounded-xl border text-center transition-all cursor-pointer"
                   style={{
-                    background: (singleSectionChanged ? singleSectionTarget === 'opco' : (sectionMapping[singleTabModalTab.id] || 'propco') === 'opco') ? 'rgba(96,165,250,0.15)' : 'var(--surface2)',
-                    borderColor: (singleSectionChanged ? singleSectionTarget === 'opco' : (sectionMapping[singleTabModalTab.id] || 'propco') === 'opco') ? '#60a5fa' : 'var(--border)',
-                    color: (singleSectionChanged ? singleSectionTarget === 'opco' : (sectionMapping[singleTabModalTab.id] || 'propco') === 'opco') ? '#60a5fa' : 'var(--foreground)',
+                    background: (
+                      singleSectionChanged
+                        ? singleSectionTarget === 'opco'
+                        : (sectionMapping[singleTabModalTab.id] || 'propco') === 'opco'
+                    )
+                      ? 'rgba(96,165,250,0.15)'
+                      : 'var(--surface2)',
+                    borderColor: (
+                      singleSectionChanged
+                        ? singleSectionTarget === 'opco'
+                        : (sectionMapping[singleTabModalTab.id] || 'propco') === 'opco'
+                    )
+                      ? '#60a5fa'
+                      : 'var(--border)',
+                    color: (
+                      singleSectionChanged
+                        ? singleSectionTarget === 'opco'
+                        : (sectionMapping[singleTabModalTab.id] || 'propco') === 'opco'
+                    )
+                      ? '#60a5fa'
+                      : 'var(--foreground)',
                   }}
                 >
                   <ShieldCheck size={14} className="mb-1 text-blue-400" />
@@ -904,9 +1028,27 @@ export default function TabPermissionsEditor({
                   }}
                   className="flex flex-col items-center justify-center p-2.5 rounded-xl border text-center transition-all cursor-pointer"
                   style={{
-                    background: (singleSectionChanged ? singleSectionTarget === 'both' : (sectionMapping[singleTabModalTab.id] || 'propco') === 'both') ? 'rgba(61,214,140,0.15)' : 'var(--surface2)',
-                    borderColor: (singleSectionChanged ? singleSectionTarget === 'both' : (sectionMapping[singleTabModalTab.id] || 'propco') === 'both') ? '#3dd68c' : 'var(--border)',
-                    color: (singleSectionChanged ? singleSectionTarget === 'both' : (sectionMapping[singleTabModalTab.id] || 'propco') === 'both') ? '#3dd68c' : 'var(--foreground)',
+                    background: (
+                      singleSectionChanged
+                        ? singleSectionTarget === 'both'
+                        : (sectionMapping[singleTabModalTab.id] || 'propco') === 'both'
+                    )
+                      ? 'rgba(61,214,140,0.15)'
+                      : 'var(--surface2)',
+                    borderColor: (
+                      singleSectionChanged
+                        ? singleSectionTarget === 'both'
+                        : (sectionMapping[singleTabModalTab.id] || 'propco') === 'both'
+                    )
+                      ? '#3dd68c'
+                      : 'var(--border)',
+                    color: (
+                      singleSectionChanged
+                        ? singleSectionTarget === 'both'
+                        : (sectionMapping[singleTabModalTab.id] || 'propco') === 'both'
+                    )
+                      ? '#3dd68c'
+                      : 'var(--foreground)',
                   }}
                   title="Copy to both PropCo and OpCo sections so it exists in both places"
                 >
@@ -924,9 +1066,27 @@ export default function TabPermissionsEditor({
                   }}
                   className="flex flex-col items-center justify-center p-2.5 rounded-xl border text-center transition-all cursor-pointer"
                   style={{
-                    background: (singleSectionChanged ? singleSectionTarget === 'bottom' : (sectionMapping[singleTabModalTab.id] || 'propco') === 'bottom') ? 'rgba(148,163,184,0.15)' : 'var(--surface2)',
-                    borderColor: (singleSectionChanged ? singleSectionTarget === 'bottom' : (sectionMapping[singleTabModalTab.id] || 'propco') === 'bottom') ? '#94a3b8' : 'var(--border)',
-                    color: (singleSectionChanged ? singleSectionTarget === 'bottom' : (sectionMapping[singleTabModalTab.id] || 'propco') === 'bottom') ? '#94a3b8' : 'var(--foreground)',
+                    background: (
+                      singleSectionChanged
+                        ? singleSectionTarget === 'bottom'
+                        : (sectionMapping[singleTabModalTab.id] || 'propco') === 'bottom'
+                    )
+                      ? 'rgba(148,163,184,0.15)'
+                      : 'var(--surface2)',
+                    borderColor: (
+                      singleSectionChanged
+                        ? singleSectionTarget === 'bottom'
+                        : (sectionMapping[singleTabModalTab.id] || 'propco') === 'bottom'
+                    )
+                      ? '#94a3b8'
+                      : 'var(--border)',
+                    color: (
+                      singleSectionChanged
+                        ? singleSectionTarget === 'bottom'
+                        : (sectionMapping[singleTabModalTab.id] || 'propco') === 'bottom'
+                    )
+                      ? '#94a3b8'
+                      : 'var(--foreground)',
                   }}
                 >
                   <Settings size={14} className="mb-1 text-slate-400" />
@@ -937,7 +1097,8 @@ export default function TabPermissionsEditor({
 
               <div className="flex items-center gap-2 mt-2">
                 <span className="text-[10px] text-muted-foreground">
-                  💡 Tip: Choosing <strong>BOTH SECTIONS</strong> copies this tab to appear in both PropCo and OpCo without removing it from either.
+                  💡 Tip: Choosing <strong>BOTH SECTIONS</strong> copies this tab to appear in both
+                  PropCo and OpCo without removing it from either.
                 </span>
               </div>
             </div>
@@ -953,14 +1114,17 @@ export default function TabPermissionsEditor({
                   onClick={() => setSingleActionType('copy')}
                   className="flex flex-col items-center justify-center p-3 rounded-xl border transition-all text-center cursor-pointer"
                   style={{
-                    background: singleActionType === 'copy' ? 'rgba(232,201,122,0.12)' : 'var(--surface2)',
+                    background:
+                      singleActionType === 'copy' ? 'rgba(232,201,122,0.12)' : 'var(--surface2)',
                     borderColor: singleActionType === 'copy' ? 'var(--primary)' : 'var(--border)',
                     color: singleActionType === 'copy' ? 'var(--primary)' : 'var(--foreground)',
                   }}
                 >
                   <Copy size={16} className="mb-1" />
                   <span className="font-bold">Copy to Role</span>
-                  <span className="text-[10px] text-muted-foreground mt-0.5">Keep here &amp; add to role</span>
+                  <span className="text-[10px] text-muted-foreground mt-0.5">
+                    Keep here &amp; add to role
+                  </span>
                 </button>
 
                 <button
@@ -968,14 +1132,17 @@ export default function TabPermissionsEditor({
                   onClick={() => setSingleActionType('move')}
                   className="flex flex-col items-center justify-center p-3 rounded-xl border transition-all text-center cursor-pointer"
                   style={{
-                    background: singleActionType === 'move' ? 'rgba(167,139,250,0.15)' : 'var(--surface2)',
+                    background:
+                      singleActionType === 'move' ? 'rgba(167,139,250,0.15)' : 'var(--surface2)',
                     borderColor: singleActionType === 'move' ? '#a78bfa' : 'var(--border)',
                     color: singleActionType === 'move' ? '#a78bfa' : 'var(--foreground)',
                   }}
                 >
                   <ArrowRightLeft size={16} className="mb-1" />
                   <span className="font-bold">Move to Role</span>
-                  <span className="text-[10px] text-muted-foreground mt-0.5">Transfer away from {roleLevel}</span>
+                  <span className="text-[10px] text-muted-foreground mt-0.5">
+                    Transfer away from {roleLevel}
+                  </span>
                 </button>
 
                 <button
@@ -983,14 +1150,17 @@ export default function TabPermissionsEditor({
                   onClick={() => setSingleActionType('everyone')}
                   className="flex flex-col items-center justify-center p-3 rounded-xl border transition-all text-center cursor-pointer"
                   style={{
-                    background: singleActionType === 'everyone' ? 'rgba(61,214,140,0.12)' : 'var(--surface2)',
+                    background:
+                      singleActionType === 'everyone' ? 'rgba(61,214,140,0.12)' : 'var(--surface2)',
                     borderColor: singleActionType === 'everyone' ? '#3dd68c' : 'var(--border)',
                     color: singleActionType === 'everyone' ? '#3dd68c' : 'var(--foreground)',
                   }}
                 >
                   <Globe size={16} className="mb-1" />
                   <span className="font-bold">Assign to Everyone</span>
-                  <span className="text-[10px] text-muted-foreground mt-0.5">Enable for all roles &amp; users</span>
+                  <span className="text-[10px] text-muted-foreground mt-0.5">
+                    Enable for all roles &amp; users
+                  </span>
                 </button>
               </div>
             </div>
@@ -1027,7 +1197,9 @@ export default function TabPermissionsEditor({
                         <div className="min-w-0 flex-1">
                           <div className="font-bold text-xs truncate">{meta.title}</div>
                           {isCurrent && (
-                            <span className="text-[9px] text-muted-foreground italic">Current Role</span>
+                            <span className="text-[9px] text-muted-foreground italic">
+                              Current Role
+                            </span>
                           )}
                         </div>
                       </button>
@@ -1048,7 +1220,8 @@ export default function TabPermissionsEditor({
                   onClick={() => setSingleAccessLevel('write')}
                   className="flex items-center gap-2 p-2.5 rounded-xl border text-left transition-all cursor-pointer"
                   style={{
-                    background: singleAccessLevel === 'write' ? 'rgba(232,201,122,0.12)' : 'var(--surface2)',
+                    background:
+                      singleAccessLevel === 'write' ? 'rgba(232,201,122,0.12)' : 'var(--surface2)',
                     borderColor: singleAccessLevel === 'write' ? 'var(--primary)' : 'var(--border)',
                     color: singleAccessLevel === 'write' ? 'var(--primary)' : 'var(--foreground)',
                   }}
@@ -1056,7 +1229,9 @@ export default function TabPermissionsEditor({
                   <Edit3 size={14} />
                   <div>
                     <div className="font-bold">Edit &amp; Write</div>
-                    <div className="text-[10px] text-muted-foreground">Full permission to create, edit, update</div>
+                    <div className="text-[10px] text-muted-foreground">
+                      Full permission to create, edit, update
+                    </div>
                   </div>
                 </button>
 
@@ -1065,7 +1240,8 @@ export default function TabPermissionsEditor({
                   onClick={() => setSingleAccessLevel('read')}
                   className="flex items-center gap-2 p-2.5 rounded-xl border text-left transition-all cursor-pointer"
                   style={{
-                    background: singleAccessLevel === 'read' ? 'rgba(96,165,250,0.15)' : 'var(--surface2)',
+                    background:
+                      singleAccessLevel === 'read' ? 'rgba(96,165,250,0.15)' : 'var(--surface2)',
                     borderColor: singleAccessLevel === 'read' ? '#60a5fa' : 'var(--border)',
                     color: singleAccessLevel === 'read' ? '#60a5fa' : 'var(--foreground)',
                   }}
@@ -1073,14 +1249,19 @@ export default function TabPermissionsEditor({
                   <Eye size={14} />
                   <div>
                     <div className="font-bold">Read Only</div>
-                    <div className="text-[10px] text-muted-foreground">Strictly viewing without edit access</div>
+                    <div className="text-[10px] text-muted-foreground">
+                      Strictly viewing without edit access
+                    </div>
                   </div>
                 </button>
               </div>
             </div>
 
             {/* Scope Checkbox */}
-            <div className="p-3 rounded-xl border border-border/60" style={{ background: 'var(--surface2)' }}>
+            <div
+              className="p-3 rounded-xl border border-border/60"
+              style={{ background: 'var(--surface2)' }}
+            >
               <label className="flex items-start gap-2.5 cursor-pointer">
                 <input
                   type="checkbox"
@@ -1093,7 +1274,8 @@ export default function TabPermissionsEditor({
                     Instantly update all existing users in target role
                   </div>
                   <div className="text-[11px] text-muted-foreground">
-                    Saves tab access immediately to all user records in the database, without requiring manual edits per user.
+                    Saves tab access immediately to all user records in the database, without
+                    requiring manual edits per user.
                   </div>
                 </div>
               </label>
@@ -1114,7 +1296,11 @@ export default function TabPermissionsEditor({
                 onClick={handleConfirmSingleTransfer}
                 className="samko-btn-primary flex items-center gap-1.5 text-xs font-bold cursor-pointer"
               >
-                {singleProcessing ? <Loader2 size={13} className="animate-spin" /> : <Check size={13} />}
+                {singleProcessing ? (
+                  <Loader2 size={13} className="animate-spin" />
+                ) : (
+                  <Check size={13} />
+                )}
                 Confirm &amp; Apply Transfer
               </button>
             </div>
@@ -1133,7 +1319,10 @@ export default function TabPermissionsEditor({
         >
           <div className="space-y-4 text-xs">
             {/* Source Role -> Target Role Selection */}
-            <div className="grid grid-cols-2 gap-3 p-3.5 rounded-xl border border-border" style={{ background: 'var(--surface2)' }}>
+            <div
+              className="grid grid-cols-2 gap-3 p-3.5 rounded-xl border border-border"
+              style={{ background: 'var(--surface2)' }}
+            >
               <div>
                 <label className="block text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-1.5">
                   Source Role (Copy From)
@@ -1195,7 +1384,9 @@ export default function TabPermissionsEditor({
                   <Copy size={16} />
                   <div>
                     <div className="font-bold">Copy All Tabs (Clone)</div>
-                    <div className="text-[10px] text-muted-foreground">Keep tabs in source role and replicate to target</div>
+                    <div className="text-[10px] text-muted-foreground">
+                      Keep tabs in source role and replicate to target
+                    </div>
                   </div>
                 </button>
 
@@ -1212,7 +1403,9 @@ export default function TabPermissionsEditor({
                   <ArrowRightLeft size={16} />
                   <div>
                     <div className="font-bold">Move Tabs (Transfer)</div>
-                    <div className="text-[10px] text-muted-foreground">Transfer to target and disable in source role</div>
+                    <div className="text-[10px] text-muted-foreground">
+                      Transfer to target and disable in source role
+                    </div>
                   </div>
                 </button>
               </div>
@@ -1229,7 +1422,8 @@ export default function TabPermissionsEditor({
                   onClick={() => setBulkAccessLevel('keep')}
                   className="p-2.5 rounded-lg border text-center transition-all cursor-pointer"
                   style={{
-                    background: bulkAccessLevel === 'keep' ? 'rgba(232,201,122,0.12)' : 'var(--surface2)',
+                    background:
+                      bulkAccessLevel === 'keep' ? 'rgba(232,201,122,0.12)' : 'var(--surface2)',
                     borderColor: bulkAccessLevel === 'keep' ? 'var(--primary)' : 'var(--border)',
                     color: bulkAccessLevel === 'keep' ? 'var(--primary)' : 'var(--foreground)',
                   }}
@@ -1243,7 +1437,8 @@ export default function TabPermissionsEditor({
                   onClick={() => setBulkAccessLevel('write')}
                   className="p-2.5 rounded-lg border text-center transition-all cursor-pointer"
                   style={{
-                    background: bulkAccessLevel === 'write' ? 'rgba(232,201,122,0.12)' : 'var(--surface2)',
+                    background:
+                      bulkAccessLevel === 'write' ? 'rgba(232,201,122,0.12)' : 'var(--surface2)',
                     borderColor: bulkAccessLevel === 'write' ? 'var(--primary)' : 'var(--border)',
                     color: bulkAccessLevel === 'write' ? 'var(--primary)' : 'var(--foreground)',
                   }}
@@ -1257,7 +1452,8 @@ export default function TabPermissionsEditor({
                   onClick={() => setBulkAccessLevel('read')}
                   className="p-2.5 rounded-lg border text-center transition-all cursor-pointer"
                   style={{
-                    background: bulkAccessLevel === 'read' ? 'rgba(96,165,250,0.15)' : 'var(--surface2)',
+                    background:
+                      bulkAccessLevel === 'read' ? 'rgba(96,165,250,0.15)' : 'var(--surface2)',
                     borderColor: bulkAccessLevel === 'read' ? '#60a5fa' : 'var(--border)',
                     color: bulkAccessLevel === 'read' ? '#60a5fa' : 'var(--foreground)',
                   }}
@@ -1269,7 +1465,10 @@ export default function TabPermissionsEditor({
             </div>
 
             {/* Sync Checkbox */}
-            <div className="p-3 rounded-xl border border-border/60" style={{ background: 'var(--surface2)' }}>
+            <div
+              className="p-3 rounded-xl border border-border/60"
+              style={{ background: 'var(--surface2)' }}
+            >
               <label className="flex items-start gap-2.5 cursor-pointer">
                 <input
                   type="checkbox"
@@ -1282,7 +1481,8 @@ export default function TabPermissionsEditor({
                     Update all existing users assigned to target role
                   </div>
                   <div className="text-[11px] text-muted-foreground">
-                    Automatically syncs all accounts matching target role with this new tab configuration.
+                    Automatically syncs all accounts matching target role with this new tab
+                    configuration.
                   </div>
                 </div>
               </label>
@@ -1303,7 +1503,11 @@ export default function TabPermissionsEditor({
                 onClick={handleConfirmBulkTransfer}
                 className="samko-btn-primary flex items-center gap-1.5 text-xs font-bold cursor-pointer"
               >
-                {bulkProcessing ? <Loader2 size={13} className="animate-spin" /> : <ArrowRightLeft size={13} />}
+                {bulkProcessing ? (
+                  <Loader2 size={13} className="animate-spin" />
+                ) : (
+                  <ArrowRightLeft size={13} />
+                )}
                 Execute Transfer &amp; Sync
               </button>
             </div>

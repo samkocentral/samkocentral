@@ -50,7 +50,7 @@ export default function StatusDropdown({
   const safeValue = typeof value === 'string' ? value : '';
   const currentOption = (options || []).find((o) => o.value === safeValue) || {
     value: safeValue,
-    label: safeValue ? safeValue.replace(/-/g, ' ') : (options?.[0]?.label || 'Active'),
+    label: safeValue ? safeValue.replace(/-/g, ' ') : options?.[0]?.label || 'Active',
     color: options?.[0]?.color || '#3dd68c',
     bg: options?.[0]?.bg || 'rgba(61,214,140,0.12)',
   };
@@ -84,9 +84,7 @@ export default function StatusDropdown({
       // Horizontal alignment:
       const wouldOverflowRight = rect.left + menuWidth > vw - 16;
       const isRight =
-        align === 'right' ||
-        (align === 'auto' && wouldOverflowRight) ||
-        rect.right > vw - 120;
+        align === 'right' || (align === 'auto' && wouldOverflowRight) || rect.right > vw - 120;
 
       setCoords({
         top: openUp ? undefined : rect.bottom + 6,
@@ -178,7 +176,9 @@ export default function StatusDropdown({
               type="button"
               onClick={(e) => handleSelect(e, opt.value)}
               className={`flex w-full items-center justify-between gap-2.5 rounded-xl px-2.5 py-2 text-xs font-medium transition-all text-left group ${
-                isSelected ? 'font-semibold text-foreground' : 'text-foreground/90 hover:bg-white/[0.06] hover:text-white'
+                isSelected
+                  ? 'font-semibold text-foreground'
+                  : 'text-foreground/90 hover:bg-white/[0.06] hover:text-white'
               }`}
               style={{
                 background: isSelected ? 'rgba(232, 201, 122, 0.12)' : 'transparent',
@@ -193,9 +193,7 @@ export default function StatusDropdown({
                       : 'border border-white/25 bg-white/[0.04] group-hover:border-[#e8c97a]/60 group-hover:bg-white/[0.08]'
                   }`}
                 >
-                  {isSelected && (
-                    <Check size={11} strokeWidth={3.5} className="text-[#121316]" />
-                  )}
+                  {isSelected && <Check size={11} strokeWidth={3.5} className="text-[#121316]" />}
                 </div>
 
                 {/* Status Dot */}
@@ -205,7 +203,10 @@ export default function StatusDropdown({
                 />
 
                 {/* Status Label */}
-                <span className="capitalize truncate" style={{ color: isSelected ? opt.color : undefined }}>
+                <span
+                  className="capitalize truncate"
+                  style={{ color: isSelected ? opt.color : undefined }}
+                >
                   {opt.label}
                 </span>
               </div>
@@ -232,7 +233,9 @@ export default function StatusDropdown({
         }}
         title={disabled ? 'Read-only access' : title}
         className={`group inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border transition-all select-none ${
-          disabled ? 'opacity-75 cursor-default' : 'cursor-pointer hover:scale-[1.02] active:scale-95'
+          disabled
+            ? 'opacity-75 cursor-default'
+            : 'cursor-pointer hover:scale-[1.02] active:scale-95'
         }`}
         style={{
           background: bg,

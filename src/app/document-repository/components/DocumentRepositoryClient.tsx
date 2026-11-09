@@ -2,7 +2,23 @@
 
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { useForm } from 'react-hook-form';
-import { Search, Upload, FileText, X, Download, Eye, Edit2, Trash2, CloudUpload, ChevronDown, CheckCircle2, Clock, Tag, RefreshCw, Printer } from 'lucide-react';
+import {
+  Search,
+  Upload,
+  FileText,
+  X,
+  Download,
+  Eye,
+  Edit2,
+  Trash2,
+  CloudUpload,
+  ChevronDown,
+  CheckCircle2,
+  Clock,
+  Tag,
+  RefreshCw,
+  Printer,
+} from 'lucide-react';
 import { DOCUMENTS, daysUntil, formatDateGB, type Document, type DocStatus } from '@/lib/mockData';
 import { DEPARTMENTS } from '@/lib/assetData';
 import Modal from '@/components/ui/Modal';
@@ -11,14 +27,23 @@ import { toast } from 'sonner';
 import { api } from '@/lib/api';
 import { useAuth } from '@/lib/authContext';
 import PageCMSEditButton from '@/components/cms/PageCMSEditButton';
-import { useDeepPageCms, DEFAULT_DOCUMENT_CATEGORIES, addDropdownOption, removeDropdownOptionByName } from '@/lib/deepPageCms';
+import {
+  useDeepPageCms,
+  DEFAULT_DOCUMENT_CATEGORIES,
+  addDropdownOption,
+  removeDropdownOptionByName,
+} from '@/lib/deepPageCms';
 import LoadingPagination from '@/components/ui/LoadingPagination';
 import ConfirmDeleteModal from '@/components/modals/ConfirmDeleteModal';
 import { useLoadingPagination } from '@/hooks/useLoadingPagination';
 import CustomDropdown from '@/components/ui/CustomDropdown';
 import TableCheckbox from '@/components/ui/TableCheckbox';
 import BulkActionBar from '@/components/ui/BulkActionBar';
-import { useLiveProperties, getLiveProperties } from '@/hooks/useLiveProperties';
+import {
+  useLiveProperties,
+  getLiveProperties,
+  saveLivePropertiesToCache,
+} from '@/hooks/useLiveProperties';
 
 const DEFAULT_CATEGORIES = ['All', ...Array.from(new Set(DOCUMENTS.map((d) => d.category))).sort()];
 const DEFAULT_SITES = ['All Sites', ...Array.from(new Set(DOCUMENTS.map((d) => d.site))).sort()];
@@ -33,7 +58,6 @@ interface UploadFormValues {
   version: string;
   notes: string;
 }
-
 
 function createRealDocumentBlob(doc: Document): { url: string; filename: string } {
   if (doc.fileUrl) {
@@ -77,7 +101,7 @@ export default function DocumentRepositoryClient() {
             setDocuments(parsed);
           }
         }
-      } catch { }
+      } catch {}
     };
     window.addEventListener('samko:doc_approved', handleSync);
     window.addEventListener('samko:approvals-changed', handleSync);
@@ -95,15 +119,15 @@ export default function DocumentRepositoryClient() {
         const saved = localStorage.getItem('samko_repository_documents');
         if (saved) {
           const parsed = JSON.parse(saved);
-          if (Array.isArray(parsed) && parsed.length > 0) {
+          if (Array.isArray(parsed) && parsed.length > 0 && parsed.length <= 3) {
             const enriched = parsed.map((doc: any) => {
               const isFood =
                 (doc.name && doc.name.toLowerCase().includes('food')) ||
                 (doc.category && doc.category.toLowerCase().includes('food'));
               const isUserUpload =
-                String(doc.id).startsWith('doc-17') ||
-                String(doc.id).startsWith('doc-food');
-              const status = doc.approvalStatus || (isFood || isUserUpload ? 'pending' : 'approved');
+                String(doc.id).startsWith('doc-17') || String(doc.id).startsWith('doc-food');
+              const status =
+                doc.approvalStatus || (isFood || isUserUpload ? 'pending' : 'approved');
               return {
                 ...doc,
                 department: doc.department || (isFood ? 'Kitchen' : 'Maintenance'),
@@ -112,13 +136,17 @@ export default function DocumentRepositoryClient() {
             });
             try {
               localStorage.setItem('samko_repository_documents', JSON.stringify(enriched));
-              const pendingCount = enriched.filter((d: any) => d.approvalStatus === 'pending' || d.approvalStatus === 'hold').length;
+              const pendingCount = enriched.filter(
+                (d: any) => d.approvalStatus === 'pending' || d.approvalStatus === 'hold'
+              ).length;
               localStorage.setItem('samko_approvals_count', String(pendingCount));
-            } catch { }
+            } catch {}
             return enriched;
+          } else if (Array.isArray(parsed) && parsed.length > 3) {
+            localStorage.removeItem('samko_repository_documents');
           }
         }
-      } catch { }
+      } catch {}
     }
     return DOCUMENTS;
   });
@@ -140,7 +168,9 @@ export default function DocumentRepositoryClient() {
   const [editVersion, setEditVersion] = useState('v1.0');
   const [editNotes, setEditNotes] = useState('');
   const [editStatus, setEditStatus] = useState<DocStatus>('ok');
-  const [editApprovalStatus, setEditApprovalStatus] = useState<'pending' | 'hold' | 'approved'>('pending');
+  const [editApprovalStatus, setEditApprovalStatus] = useState<'pending' | 'hold' | 'approved'>(
+    'pending'
+  );
 
   const handleOpenEditDoc = (doc: Document) => {
     setEditingDoc(doc);
@@ -185,12 +215,20 @@ export default function DocumentRepositoryClient() {
     if (typeof window !== 'undefined') {
       try {
         localStorage.setItem('samko_repository_documents', JSON.stringify(updated));
-        const pendingCount = updated.filter((d: any) => d.approvalStatus === 'pending' || d.approvalStatus === 'hold').length;
+        const pendingCount = updated.filter(
+          (d: any) => d.approvalStatus === 'pending' || d.approvalStatus === 'hold'
+        ).length;
         localStorage.setItem('samko_approvals_count', String(pendingCount));
-        window.dispatchEvent(new CustomEvent('samko:doc_approved', { detail: { documents: updated } }));
-        window.dispatchEvent(new CustomEvent('samko:approvals-changed', { detail: { count: pendingCount } }));
-        window.dispatchEvent(new CustomEvent('samko:data-changed', { detail: { type: 'documents' } }));
-      } catch { }
+        window.dispatchEvent(
+          new CustomEvent('samko:doc_approved', { detail: { documents: updated } })
+        );
+        window.dispatchEvent(
+          new CustomEvent('samko:approvals-changed', { detail: { count: pendingCount } })
+        );
+        window.dispatchEvent(
+          new CustomEvent('samko:data-changed', { detail: { type: 'documents' } })
+        );
+      } catch {}
     }
 
     toast.success('Document updated successfully', {
@@ -221,7 +259,7 @@ export default function DocumentRepositoryClient() {
           const parsed = JSON.parse(saved);
           if (Array.isArray(parsed)) return parsed;
         }
-      } catch { }
+      } catch {}
     }
     return [];
   });
@@ -240,7 +278,12 @@ export default function DocumentRepositoryClient() {
 
     cmsOptions.forEach((c) => {
       const clean = c.trim();
-      if (clean && !clean.toLowerCase().startsWith('all ') && clean.toLowerCase() !== 'all' && !isExcluded(clean)) {
+      if (
+        clean &&
+        !clean.toLowerCase().startsWith('all ') &&
+        clean.toLowerCase() !== 'all' &&
+        !isExcluded(clean)
+      ) {
         merged.add(clean);
       }
     });
@@ -283,7 +326,11 @@ export default function DocumentRepositoryClient() {
       setCustomCategories(updated);
       if (typeof window !== 'undefined') {
         localStorage.setItem('samko_document_categories', JSON.stringify(updated));
-        window.dispatchEvent(new CustomEvent('samko:data-changed', { detail: { type: 'document_category', name: trimmed } }));
+        window.dispatchEvent(
+          new CustomEvent('samko:data-changed', {
+            detail: { type: 'document_category', name: trimmed },
+          })
+        );
       }
     }
     toast.success('Category created', { description: `Added "${trimmed}" to document categories` });
@@ -298,7 +345,11 @@ export default function DocumentRepositoryClient() {
     setCustomCategories(updated);
     if (typeof window !== 'undefined') {
       localStorage.setItem('samko_document_categories', JSON.stringify(updated));
-      window.dispatchEvent(new CustomEvent('samko:data-changed', { detail: { type: 'document_category_deleted', name: clean } }));
+      window.dispatchEvent(
+        new CustomEvent('samko:data-changed', {
+          detail: { type: 'document_category_deleted', name: clean },
+        })
+      );
       window.dispatchEvent(new CustomEvent('samko:deep-page-cms-updated'));
     }
     if (categoryFilter === clean) setCategoryFilter('All');
@@ -308,9 +359,10 @@ export default function DocumentRepositoryClient() {
   const handleReplaceFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !replacingDocId) return;
-    const computedSize = file.size > 1048576
-      ? `${(file.size / 1048576).toFixed(1)} MB`
-      : `${Math.max(1, Math.round(file.size / 1024))} KB`;
+    const computedSize =
+      file.size > 1048576
+        ? `${(file.size / 1048576).toFixed(1)} MB`
+        : `${Math.max(1, Math.round(file.size / 1024))} KB`;
 
     const reader = new FileReader();
     reader.onload = (event) => {
@@ -342,7 +394,7 @@ export default function DocumentRepositoryClient() {
         if (typeof window !== 'undefined') {
           try {
             localStorage.setItem('samko_repository_documents', JSON.stringify(updated));
-          } catch { }
+          } catch {}
         }
         return updated;
       });
@@ -352,7 +404,6 @@ export default function DocumentRepositoryClient() {
     };
     reader.readAsDataURL(file);
   };
-
 
   const fetchDocuments = useCallback(async () => {
     try {
@@ -368,14 +419,24 @@ export default function DocumentRepositoryClient() {
             if (saved) {
               const parsed = JSON.parse(saved);
               const customOnly = parsed.filter((p: any) => p.fileUrl || p.id?.startsWith('doc-17'));
-              docsToSet = [...customOnly, ...docRes.value.data.filter((d: any) => !customOnly.some((c: any) => c.id === d.id))];
+              docsToSet = [
+                ...customOnly,
+                ...docRes.value.data.filter(
+                  (d: any) => !customOnly.some((c: any) => c.id === d.id)
+                ),
+              ];
             }
-          } catch { }
+          } catch {}
         }
         setDocuments(docsToSet);
       }
-      if (propRes.status === 'fulfilled' && propRes.value.success && propRes.value.data?.length > 0) {
+      if (
+        propRes.status === 'fulfilled' &&
+        propRes.value.success &&
+        propRes.value.data?.length > 0
+      ) {
         setProperties(propRes.value.data);
+        saveLivePropertiesToCache(propRes.value.data);
       }
     } catch (err) {
       console.warn('Documents live fetch fallback:', err);
@@ -386,19 +447,33 @@ export default function DocumentRepositoryClient() {
     fetchDocuments();
     const handleDataChanged = () => fetchDocuments();
     window.addEventListener('samko:data-changed', handleDataChanged);
-    return () => window.removeEventListener('samko:data-changed', handleDataChanged);
+    window.addEventListener('samko:property-changed', handleDataChanged);
+    return () => {
+      window.removeEventListener('samko:data-changed', handleDataChanged);
+      window.removeEventListener('samko:property-changed', handleDataChanged);
+    };
   }, [fetchDocuments]);
 
   const sitesList = useMemo(() => {
-    const propNames = (properties.length > 0 ? properties : liveProperties).map((p: any) => p.name).filter(Boolean);
-    const docSites = documents.map((d) => d.site || (d as any).property || (d as any).hotel).filter(Boolean);
-    const combined = Array.from(new Set([...propNames, ...docSites, ...DEFAULT_SITES.filter((s) => s !== 'All Sites')])).sort();
+    const allProps = [
+      ...(Array.isArray(properties) ? properties : []),
+      ...(Array.isArray(liveProperties) ? liveProperties : []),
+    ];
+    const propNames = allProps.map((p: any) => p?.name || p?.hotelName || p?.title).filter(Boolean);
+    const docSites = documents
+      .map((d) => d.site || (d as any).property || (d as any).hotel)
+      .filter(Boolean);
+    const combined = Array.from(
+      new Set([...propNames, ...docSites, ...DEFAULT_SITES.filter((s) => s !== 'All Sites')])
+    ).sort();
     const filteredSites = combined.filter((s) => isPropertyAccessible(s));
     return ['All Sites', ...filteredSites];
   }, [properties, liveProperties, documents, isPropertyAccessible]);
 
   const accessibleDocuments = useMemo(() => {
-    return documents.filter((d) => isPropertyAccessible(d.site || (d as any).property || (d as any).hotel));
+    return documents.filter((d) =>
+      isPropertyAccessible(d.site || (d as any).property || (d as any).hotel)
+    );
   }, [documents, isPropertyAccessible]);
 
   const {
@@ -431,7 +506,8 @@ export default function DocumentRepositoryClient() {
       );
     }
     if (categoryFilter !== 'All') docs = docs.filter((d) => d.category === categoryFilter);
-    if (departmentFilter !== 'All Departments') docs = docs.filter((d) => (d.department || 'Maintenance') === departmentFilter);
+    if (departmentFilter !== 'All Departments')
+      docs = docs.filter((d) => (d.department || 'Maintenance') === departmentFilter);
     if (siteFilter !== 'All Sites') docs = docs.filter((d) => d.site === siteFilter);
     if (statusFilter !== 'All') docs = docs.filter((d) => d.status === statusFilter);
 
@@ -500,14 +576,31 @@ export default function DocumentRepositoryClient() {
         opts.push({ label: `Category: ${cat}`, value: `cat:${cat}`, count: counts[`cat:${cat}`] });
       }
     });
-    sitesList.filter((s) => s !== 'All Sites').forEach((site) => {
-      if (counts[`site:${site}`]) {
-        opts.push({ label: `Property: ${site}`, value: `site:${site}`, count: counts[`site:${site}`] });
-      }
-    });
-    if (counts['status:critical']) opts.push({ label: 'Status: Overdue', value: 'status:critical', count: counts['status:critical'] });
-    if (counts['status:warning']) opts.push({ label: 'Status: Due Soon', value: 'status:warning', count: counts['status:warning'] });
-    if (counts['status:ok']) opts.push({ label: 'Status: Compliant', value: 'status:ok', count: counts['status:ok'] });
+    sitesList
+      .filter((s) => s !== 'All Sites')
+      .forEach((site) => {
+        if (counts[`site:${site}`]) {
+          opts.push({
+            label: `Property: ${site}`,
+            value: `site:${site}`,
+            count: counts[`site:${site}`],
+          });
+        }
+      });
+    if (counts['status:critical'])
+      opts.push({
+        label: 'Status: Overdue',
+        value: 'status:critical',
+        count: counts['status:critical'],
+      });
+    if (counts['status:warning'])
+      opts.push({
+        label: 'Status: Due Soon',
+        value: 'status:warning',
+        count: counts['status:warning'],
+      });
+    if (counts['status:ok'])
+      opts.push({ label: 'Status: Compliant', value: 'status:ok', count: counts['status:ok'] });
 
     return opts;
   }, [filtered, allCategories, sitesList]);
@@ -544,7 +637,9 @@ export default function DocumentRepositoryClient() {
       await Promise.allSettled(ids.map((id) => api.documents.delete(id)));
 
       if (typeof window !== 'undefined') {
-        window.dispatchEvent(new CustomEvent('samko:data-changed', { detail: { type: 'documents' } }));
+        window.dispatchEvent(
+          new CustomEvent('samko:data-changed', { detail: { type: 'documents' } })
+        );
       }
 
       toast.success(`Deleted ${count} documents successfully!`);
@@ -557,7 +652,10 @@ export default function DocumentRepositoryClient() {
 
   const handleSort = (col: typeof sortCol) => {
     if (sortCol === col) setSortDir(sortDir === 'asc' ? 'desc' : 'asc');
-    else { setSortCol(col); setSortDir('asc'); }
+    else {
+      setSortCol(col);
+      setSortDir('asc');
+    }
   };
 
   const handleStatusChange = async (id: string, newStatus: DocStatus) => {
@@ -567,9 +665,7 @@ export default function DocumentRepositoryClient() {
       });
       return;
     }
-    setDocuments((prev) =>
-      prev.map((d) => (d.id === id ? { ...d, status: newStatus } : d))
-    );
+    setDocuments((prev) => prev.map((d) => (d.id === id ? { ...d, status: newStatus } : d)));
     if (previewDoc && previewDoc.id === id) {
       setPreviewDoc((prev) => (prev ? { ...prev, status: newStatus } : null));
     }
@@ -631,7 +727,12 @@ export default function DocumentRepositoryClient() {
         : `${Math.max(1, Math.round(uploadedFileObj.size / 1024))} KB`
       : '1.4 MB';
 
-    const targetDept = data.department || (data.category?.toLowerCase().includes('food') || data.documentName?.toLowerCase().includes('food') ? 'Kitchen' : 'Maintenance');
+    const targetDept =
+      data.department ||
+      (data.category?.toLowerCase().includes('food') ||
+      data.documentName?.toLowerCase().includes('food')
+        ? 'Kitchen'
+        : 'Maintenance');
 
     const docPayload: Document = {
       id: `doc-${Date.now()}`,
@@ -649,7 +750,9 @@ export default function DocumentRepositoryClient() {
       fileName: uploadedFileObj?.name || `${data.documentName}.pdf`,
       fileType: uploadedFileObj?.type || 'application/pdf',
       approvalStatus: 'pending',
-      approvalNotes: data.notes || `Uploaded document awaiting Super Admin or Digital Bot approval before dispatching to ${targetDept}.`,
+      approvalNotes:
+        data.notes ||
+        `Uploaded document awaiting Super Admin or Digital Bot approval before dispatching to ${targetDept}.`,
     };
 
     setDocuments((prev) => {
@@ -657,9 +760,11 @@ export default function DocumentRepositoryClient() {
       if (typeof window !== 'undefined') {
         try {
           localStorage.setItem('samko_repository_documents', JSON.stringify(updated));
-          const pendingCount = updated.filter((d: any) => d.approvalStatus === 'pending' || d.approvalStatus === 'hold').length;
+          const pendingCount = updated.filter(
+            (d: any) => d.approvalStatus === 'pending' || d.approvalStatus === 'hold'
+          ).length;
           localStorage.setItem('samko_approvals_count', String(pendingCount));
-        } catch { }
+        } catch {}
       }
       return updated;
     });
@@ -708,7 +813,9 @@ export default function DocumentRepositoryClient() {
 
   const sortIndicator = (col: typeof sortCol) => {
     if (sortCol !== col) return <span style={{ color: 'var(--text3)', fontSize: 9 }}>↕</span>;
-    return <span style={{ color: 'var(--primary)', fontSize: 9 }}>{sortDir === 'asc' ? '↑' : '↓'}</span>;
+    return (
+      <span style={{ color: 'var(--primary)', fontSize: 9 }}>{sortDir === 'asc' ? '↑' : '↓'}</span>
+    );
   };
 
   const critCount = accessibleDocuments.filter((d) => d.status === 'critical').length;
@@ -720,20 +827,56 @@ export default function DocumentRepositoryClient() {
       {/* Summary KPI row */}
       <div className="grid gap-4 mb-5" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
         {[
-          { label: 'Total Documents', val: accessibleDocuments.length, color: 'var(--info)', bg: 'var(--info-bg)', top: 'var(--info)' },
-          { label: 'Overdue / Expired', val: critCount, color: 'var(--critical)', bg: 'var(--critical-bg)', top: 'var(--critical)' },
-          { label: 'Expiring Soon', val: warnCount, color: 'var(--warning)', bg: 'var(--warning-bg)', top: 'var(--warning)' },
-          { label: 'Compliant', val: okCount, color: 'var(--ok)', bg: 'var(--ok-bg)', top: 'var(--ok)' },
+          {
+            label: 'Total Documents',
+            val: accessibleDocuments.length,
+            color: 'var(--info)',
+            bg: 'var(--info-bg)',
+            top: 'var(--info)',
+          },
+          {
+            label: 'Overdue / Expired',
+            val: critCount,
+            color: 'var(--critical)',
+            bg: 'var(--critical-bg)',
+            top: 'var(--critical)',
+          },
+          {
+            label: 'Expiring Soon',
+            val: warnCount,
+            color: 'var(--warning)',
+            bg: 'var(--warning-bg)',
+            top: 'var(--warning)',
+          },
+          {
+            label: 'Compliant',
+            val: okCount,
+            color: 'var(--ok)',
+            bg: 'var(--ok-bg)',
+            top: 'var(--ok)',
+          },
         ].map((kpi) => (
           <div
             key={`kpi-doc-${kpi.label}`}
             className="samko-card"
             style={{ padding: '16px 18px', borderTop: `3px solid ${kpi.top}` }}
           >
-            <div className="text-muted-foreground font-head" style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 8 }}>
+            <div
+              className="text-muted-foreground font-head"
+              style={{
+                fontSize: 10,
+                fontWeight: 700,
+                letterSpacing: '0.08em',
+                textTransform: 'uppercase',
+                marginBottom: 8,
+              }}
+            >
               {kpi.label}
             </div>
-            <div className="font-head tabular-nums" style={{ fontSize: 30, fontWeight: 800, color: kpi.color, lineHeight: 1 }}>
+            <div
+              className="font-head tabular-nums"
+              style={{ fontSize: 30, fontWeight: 800, color: kpi.color, lineHeight: 1 }}
+            >
               {kpi.val}
             </div>
           </div>
@@ -771,7 +914,13 @@ export default function DocumentRepositoryClient() {
           {search && (
             <button
               onClick={() => setSearch('')}
-              style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text3)', padding: 0 }}
+              style={{
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                color: 'var(--text3)',
+                padding: 0,
+              }}
             >
               <X size={13} />
             </button>
@@ -813,7 +962,11 @@ export default function DocumentRepositoryClient() {
           ) : isViewer ? (
             <span
               className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold ml-auto"
-              style={{ background: 'rgba(148,163,184,0.12)', color: '#94a3b8', border: '1px solid rgba(148,163,184,0.25)' }}
+              style={{
+                background: 'rgba(148,163,184,0.12)',
+                color: '#94a3b8',
+                border: '1px solid rgba(148,163,184,0.25)',
+              }}
             >
               L4 · Read-Only Access
             </span>
@@ -829,7 +982,13 @@ export default function DocumentRepositoryClient() {
             onClick={() => setStatusFilter(s)}
             className={`filter-chip-btn ${statusFilter === s ? 'active-chip' : ''}`}
           >
-            {s === 'All' ? 'All Status' : s === 'critical' ? '🔴 Overdue' : s === 'warning' ? '🟡 Due Soon' : '🟢 Compliant'}
+            {s === 'All'
+              ? 'All Status'
+              : s === 'critical'
+                ? '🔴 Overdue'
+                : s === 'warning'
+                  ? '🟡 Due Soon'
+                  : '🟢 Compliant'}
           </button>
         ))}
         <div style={{ width: 1, background: 'var(--border)', margin: '0 4px' }} />
@@ -847,12 +1006,29 @@ export default function DocumentRepositoryClient() {
       {/* Results count */}
       <div className="flex items-center justify-between mb-3">
         <p className="text-muted-foreground" style={{ fontSize: 12 }}>
-          Showing <span style={{ color: 'var(--foreground)', fontWeight: 600 }}>{filtered.length}</span> of {accessibleDocuments.length} documents
+          Showing{' '}
+          <span style={{ color: 'var(--foreground)', fontWeight: 600 }}>{filtered.length}</span> of{' '}
+          {accessibleDocuments.length} documents
         </p>
-        {(search || categoryFilter !== 'All' || siteFilter !== 'All Sites' || statusFilter !== 'All') && (
+        {(search ||
+          categoryFilter !== 'All' ||
+          siteFilter !== 'All Sites' ||
+          statusFilter !== 'All') && (
           <button
-            onClick={() => { setSearch(''); setCategoryFilter('All'); setSiteFilter('All Sites'); setStatusFilter('All'); }}
-            style={{ fontSize: 11, color: 'var(--primary)', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'var(--font-sans)' }}
+            onClick={() => {
+              setSearch('');
+              setCategoryFilter('All');
+              setSiteFilter('All Sites');
+              setStatusFilter('All');
+            }}
+            style={{
+              fontSize: 11,
+              color: 'var(--primary)',
+              background: 'none',
+              border: 'none',
+              cursor: 'pointer',
+              fontFamily: 'var(--font-sans)',
+            }}
           >
             Clear all filters
           </button>
@@ -868,7 +1044,12 @@ export default function DocumentRepositoryClient() {
             description="Try adjusting your search term, category, or status filter to find the document you're looking for."
             action={
               <button
-                onClick={() => { setSearch(''); setCategoryFilter('All'); setSiteFilter('All Sites'); setStatusFilter('All'); }}
+                onClick={() => {
+                  setSearch('');
+                  setCategoryFilter('All');
+                  setSiteFilter('All Sites');
+                  setStatusFilter('All');
+                }}
                 className="samko-btn-ghost"
               >
                 Clear filters
@@ -931,7 +1112,9 @@ export default function DocumentRepositoryClient() {
               <tbody>
                 {paginatedDocs.map((doc) => {
                   const days = daysUntil(doc.expiry);
-                  const isFood = (doc.name && doc.name.toLowerCase().includes('food')) || (doc.category && doc.category.toLowerCase().includes('food'));
+                  const isFood =
+                    (doc.name && doc.name.toLowerCase().includes('food')) ||
+                    (doc.category && doc.category.toLowerCase().includes('food'));
                   const dept = doc.department || (isFood ? 'Kitchen' : 'Maintenance');
                   return (
                     <tr
@@ -1022,13 +1205,37 @@ export default function DocumentRepositoryClient() {
                           <span
                             className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold select-none"
                             style={{
-                              background: doc.status === 'ok' ? 'rgba(61,214,140,0.12)' : doc.status === 'warning' ? 'rgba(245,158,11,0.12)' : 'rgba(244,63,94,0.12)',
-                              color: doc.status === 'ok' ? '#3dd68c' : doc.status === 'warning' ? '#f59e0b' : '#f43f5e',
+                              background:
+                                doc.status === 'ok'
+                                  ? 'rgba(61,214,140,0.12)'
+                                  : doc.status === 'warning'
+                                    ? 'rgba(245,158,11,0.12)'
+                                    : 'rgba(244,63,94,0.12)',
+                              color:
+                                doc.status === 'ok'
+                                  ? '#3dd68c'
+                                  : doc.status === 'warning'
+                                    ? '#f59e0b'
+                                    : '#f43f5e',
                               border: `1px solid ${doc.status === 'ok' ? '#3dd68c33' : doc.status === 'warning' ? '#f59e0b33' : '#f43f5e33'}`,
                             }}
                           >
-                            <span className="w-1.5 h-1.5 rounded-full" style={{ background: doc.status === 'ok' ? '#3dd68c' : doc.status === 'warning' ? '#f59e0b' : '#f43f5e' }} />
-                            {doc.status === 'ok' ? 'Compliant' : doc.status === 'warning' ? 'Due Soon' : 'Overdue'}
+                            <span
+                              className="w-1.5 h-1.5 rounded-full"
+                              style={{
+                                background:
+                                  doc.status === 'ok'
+                                    ? '#3dd68c'
+                                    : doc.status === 'warning'
+                                      ? '#f59e0b'
+                                      : '#f43f5e',
+                              }}
+                            />
+                            {doc.status === 'ok'
+                              ? 'Compliant'
+                              : doc.status === 'warning'
+                                ? 'Due Soon'
+                                : 'Overdue'}
                           </span>
                         ) : (
                           <CustomDropdown
@@ -1042,8 +1249,18 @@ export default function DocumentRepositoryClient() {
                               { value: 'critical', label: 'Overdue', color: '#f43f5e' },
                             ]}
                             style={{
-                              background: doc.status === 'ok' ? 'rgba(61,214,140,0.12)' : doc.status === 'warning' ? 'rgba(245,158,11,0.12)' : 'rgba(244,63,94,0.12)',
-                              color: doc.status === 'ok' ? '#3dd68c' : doc.status === 'warning' ? '#f59e0b' : '#f43f5e',
+                              background:
+                                doc.status === 'ok'
+                                  ? 'rgba(61,214,140,0.12)'
+                                  : doc.status === 'warning'
+                                    ? 'rgba(245,158,11,0.12)'
+                                    : 'rgba(244,63,94,0.12)',
+                              color:
+                                doc.status === 'ok'
+                                  ? '#3dd68c'
+                                  : doc.status === 'warning'
+                                    ? '#f59e0b'
+                                    : '#f43f5e',
                               border: `1px solid ${doc.status === 'ok' ? '#3dd68c33' : doc.status === 'warning' ? '#f59e0b33' : '#f43f5e33'}`,
                             }}
                           />
@@ -1177,7 +1394,8 @@ export default function DocumentRepositoryClient() {
                       </td>
                     </tr>
                   );
-                })}</tbody>
+                })}
+              </tbody>
             </table>
             <LoadingPagination
               currentPage={currentPage}
@@ -1223,10 +1441,15 @@ export default function DocumentRepositoryClient() {
         >
           <div className="flex flex-col gap-4">
             {/* Visual Document Viewer Surface */}
-            <div className="rounded-xl border border-border overflow-hidden" style={{ background: 'var(--surface2)' }}>
+            <div
+              className="rounded-xl border border-border overflow-hidden"
+              style={{ background: 'var(--surface2)' }}
+            >
               {previewDoc.fileUrl ? (
                 previewDoc.fileUrl.startsWith('data:image/') ||
-                  ['.JPEG', '.JPG', '.PNG', '.WEBP', '.GIF', '.SVG'].some((ext) => (previewDoc.fileName || previewDoc.name || '').toUpperCase().endsWith(ext)) ? (
+                ['.JPEG', '.JPG', '.PNG', '.WEBP', '.GIF', '.SVG'].some((ext) =>
+                  (previewDoc.fileName || previewDoc.name || '').toUpperCase().endsWith(ext)
+                ) ? (
                   <div className="p-4 flex items-center justify-center bg-black/40 min-h-[300px]">
                     <img
                       src={previewDoc.fileUrl}
@@ -1253,18 +1476,32 @@ export default function DocumentRepositoryClient() {
                 )
               ) : (
                 /* Fallback stylized official compliance certificate preview canvas */
-                <div className="p-8 flex flex-col items-center justify-center text-center relative overflow-hidden" style={{ minHeight: 290, background: 'radial-gradient(ellipse at top, rgba(232,201,122,0.10) 0%, rgba(20,20,25,0.98) 75%)' }}>
-                  <div className="w-16 h-16 rounded-2xl flex items-center justify-center mb-3" style={{ background: 'rgba(232,201,122,0.15)', color: 'var(--primary)' }}>
+                <div
+                  className="p-8 flex flex-col items-center justify-center text-center relative overflow-hidden"
+                  style={{
+                    minHeight: 290,
+                    background:
+                      'radial-gradient(ellipse at top, rgba(232,201,122,0.10) 0%, rgba(20,20,25,0.98) 75%)',
+                  }}
+                >
+                  <div
+                    className="w-16 h-16 rounded-2xl flex items-center justify-center mb-3"
+                    style={{ background: 'rgba(232,201,122,0.15)', color: 'var(--primary)' }}
+                  >
                     <FileText size={32} />
                   </div>
-                  <div className="inline-block px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider mb-2 border border-primary/30" style={{ background: 'rgba(232,201,122,0.10)', color: 'var(--primary)' }}>
+                  <div
+                    className="inline-block px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider mb-2 border border-primary/30"
+                    style={{ background: 'rgba(232,201,122,0.10)', color: 'var(--primary)' }}
+                  >
                     Official Samko Statutory Compliance Certificate
                   </div>
                   <h3 className="font-head font-bold text-lg text-foreground max-w-lg">
                     {previewDoc.name}
                   </h3>
                   <p className="text-xs text-muted-foreground mt-1 max-w-sm">
-                    {previewDoc.site} · {previewDoc.category} · Valid through {formatDateGB(previewDoc.expiry)}
+                    {previewDoc.site} · {previewDoc.category} · Valid through{' '}
+                    {formatDateGB(previewDoc.expiry)}
                   </p>
                   <div className="mt-5 flex items-center gap-4 text-[11px] text-muted-foreground border-t border-border/60 pt-3">
                     <span>Doc Ref: #{previewDoc.id.toUpperCase()}</span>
@@ -1278,20 +1515,30 @@ export default function DocumentRepositoryClient() {
             </div>
 
             {/* Metadata Grid */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 p-3.5 rounded-xl border border-border" style={{ background: 'var(--surface2)' }}>
+            <div
+              className="grid grid-cols-2 md:grid-cols-4 gap-3 p-3.5 rounded-xl border border-border"
+              style={{ background: 'var(--surface2)' }}
+            >
               <div>
                 <span className="text-[11px] text-muted-foreground block mb-0.5">Property</span>
-                <span className="text-xs font-medium text-foreground truncate block">{previewDoc.site}</span>
+                <span className="text-xs font-medium text-foreground truncate block">
+                  {previewDoc.site}
+                </span>
               </div>
               <div>
                 <span className="text-[11px] text-muted-foreground block mb-0.5">Category</span>
-                <span className="text-xs px-2 py-0.5 rounded font-semibold inline-block" style={{ background: 'var(--surface3)', color: 'var(--text2)' }}>
+                <span
+                  className="text-xs px-2 py-0.5 rounded font-semibold inline-block"
+                  style={{ background: 'var(--surface3)', color: 'var(--text2)' }}
+                >
                   {previewDoc.category}
                 </span>
               </div>
               <div>
                 <span className="text-[11px] text-muted-foreground block mb-0.5">Expiry Date</span>
-                <span className="text-xs font-medium text-foreground">{formatDateGB(previewDoc.expiry)}</span>
+                <span className="text-xs font-medium text-foreground">
+                  {formatDateGB(previewDoc.expiry)}
+                </span>
               </div>
               <div>
                 <span className="text-[11px] text-muted-foreground block mb-0.5">Status</span>
@@ -1307,8 +1554,18 @@ export default function DocumentRepositoryClient() {
                       { value: 'critical', label: 'Overdue', color: '#f43f5e' },
                     ]}
                     style={{
-                      background: previewDoc.status === 'ok' ? 'rgba(61,214,140,0.12)' : previewDoc.status === 'warning' ? 'rgba(245,158,11,0.12)' : 'rgba(244,63,94,0.12)',
-                      color: previewDoc.status === 'ok' ? '#3dd68c' : previewDoc.status === 'warning' ? '#f59e0b' : '#f43f5e',
+                      background:
+                        previewDoc.status === 'ok'
+                          ? 'rgba(61,214,140,0.12)'
+                          : previewDoc.status === 'warning'
+                            ? 'rgba(245,158,11,0.12)'
+                            : 'rgba(244,63,94,0.12)',
+                      color:
+                        previewDoc.status === 'ok'
+                          ? '#3dd68c'
+                          : previewDoc.status === 'warning'
+                            ? '#f59e0b'
+                            : '#f43f5e',
                       border: `1px solid ${previewDoc.status === 'ok' ? '#3dd68c33' : previewDoc.status === 'warning' ? '#f59e0b33' : '#f43f5e33'}`,
                     }}
                   />
@@ -1327,8 +1584,12 @@ export default function DocumentRepositoryClient() {
                 <span className="text-xs font-medium text-foreground">{previewDoc.uploadedBy}</span>
               </div>
               <div>
-                <span className="text-[11px] text-muted-foreground block mb-0.5">Uploaded Date</span>
-                <span className="text-xs font-medium text-foreground">{previewDoc.uploaded ? formatDateGB(previewDoc.uploaded) : 'Recently'}</span>
+                <span className="text-[11px] text-muted-foreground block mb-0.5">
+                  Uploaded Date
+                </span>
+                <span className="text-xs font-medium text-foreground">
+                  {previewDoc.uploaded ? formatDateGB(previewDoc.uploaded) : 'Recently'}
+                </span>
               </div>
             </div>
 
@@ -1363,7 +1624,9 @@ export default function DocumentRepositoryClient() {
                   onClick={() => {
                     const printWin = window.open('', '_blank');
                     if (printWin) {
-                      printWin.document.write(`<html><head><title>${previewDoc.name}</title></head><body style="font-family:sans-serif;padding:30px;"><h2>${previewDoc.name}</h2><p>Property: ${previewDoc.site}</p><p>Category: ${previewDoc.category}</p><p>Expiry: ${previewDoc.expiry}</p><p>Uploaded by: ${previewDoc.uploadedBy}</p></body></html>`);
+                      printWin.document.write(
+                        `<html><head><title>${previewDoc.name}</title></head><body style="font-family:sans-serif;padding:30px;"><h2>${previewDoc.name}</h2><p>Property: ${previewDoc.site}</p><p>Category: ${previewDoc.category}</p><p>Expiry: ${previewDoc.expiry}</p><p>Uploaded by: ${previewDoc.uploadedBy}</p></body></html>`
+                      );
                       printWin.document.close();
                       printWin.focus();
                       printWin.print();
@@ -1391,7 +1654,12 @@ export default function DocumentRepositoryClient() {
       {/* Upload Modal */}
       <Modal
         open={uploadOpen}
-        onClose={() => { setUploadOpen(false); reset(); setSelectedFile(''); setUploadedFileObj(null); }}
+        onClose={() => {
+          setUploadOpen(false);
+          reset();
+          setSelectedFile('');
+          setUploadedFileObj(null);
+        }}
         title="Upload Compliance Document"
         subtitle="Add a new document to the repository — all fields marked * are required"
         width={580}
@@ -1406,7 +1674,10 @@ export default function DocumentRepositoryClient() {
               padding: selectedFile ? '14px 16px' : '26px 20px',
               cursor: selectedFile ? 'default' : 'pointer',
             }}
-            onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+            onDragOver={(e) => {
+              e.preventDefault();
+              setIsDragging(true);
+            }}
             onDragLeave={() => setIsDragging(false)}
             onDrop={(e) => {
               e.preventDefault();
@@ -1416,7 +1687,8 @@ export default function DocumentRepositoryClient() {
                 setSelectedFile(file.name);
                 setUploadedFileObj(file);
                 const cleanName = file.name.replace(/\.[^/.]+$/, '').replace(/[_-]/g, ' ');
-                const curName = (document.getElementById('upload-docname') as HTMLInputElement)?.value;
+                const curName = (document.getElementById('upload-docname') as HTMLInputElement)
+                  ?.value;
                 if (!curName || curName.trim() === '') {
                   setValue('documentName', cleanName);
                 }
@@ -1438,7 +1710,8 @@ export default function DocumentRepositoryClient() {
                   setSelectedFile(file.name);
                   setUploadedFileObj(file);
                   const cleanName = file.name.replace(/\.[^/.]+$/, '').replace(/[_-]/g, ' ');
-                  const curName = (document.getElementById('upload-docname') as HTMLInputElement)?.value;
+                  const curName = (document.getElementById('upload-docname') as HTMLInputElement)
+                    ?.value;
                   if (!curName || curName.trim() === '') {
                     setValue('documentName', cleanName);
                   }
@@ -1453,17 +1726,28 @@ export default function DocumentRepositoryClient() {
             }}
           >
             {selectedFile ? (
-              <div className="w-full flex items-center justify-between p-3 rounded-xl border border-primary/30" style={{ background: 'rgba(232,201,122,0.08)' }}>
+              <div
+                className="w-full flex items-center justify-between p-3 rounded-xl border border-primary/30"
+                style={{ background: 'rgba(232,201,122,0.08)' }}
+              >
                 <div className="flex items-center gap-3 overflow-hidden">
-                  <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(232,201,122,0.20)', color: 'var(--primary)' }}>
+                  <div
+                    className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+                    style={{ background: 'rgba(232,201,122,0.20)', color: 'var(--primary)' }}
+                  >
                     <FileText size={20} />
                   </div>
                   <div className="text-left overflow-hidden">
-                    <p className="text-foreground font-semibold text-sm truncate max-w-[280px]" title={selectedFile}>
+                    <p
+                      className="text-foreground font-semibold text-sm truncate max-w-[280px]"
+                      title={selectedFile}
+                    >
                       {selectedFile}
                     </p>
                     <p className="text-xs text-muted-foreground mt-0.5">
-                      {uploadedFileObj ? `${(uploadedFileObj.size / 1024).toFixed(0)} KB · Ready to attach` : 'File ready'}
+                      {uploadedFileObj
+                        ? `${(uploadedFileObj.size / 1024).toFixed(0)} KB · Ready to attach`
+                        : 'File ready'}
                     </p>
                   </div>
                 </div>
@@ -1501,8 +1785,12 @@ export default function DocumentRepositoryClient() {
                         if (file) {
                           setSelectedFile(file.name);
                           setUploadedFileObj(file);
-                          const cleanName = file.name.replace(/\.[^/.]+$/, '').replace(/[_-]/g, ' ');
-                          const curName = (document.getElementById('upload-docname') as HTMLInputElement)?.value;
+                          const cleanName = file.name
+                            .replace(/\.[^/.]+$/, '')
+                            .replace(/[_-]/g, ' ');
+                          const curName = (
+                            document.getElementById('upload-docname') as HTMLInputElement
+                          )?.value;
                           if (!curName || curName.trim() === '') {
                             setValue('documentName', cleanName);
                           }
@@ -1571,7 +1859,9 @@ export default function DocumentRepositoryClient() {
                 {...register('documentName', { required: 'Document name is required' })}
               />
               {errors.documentName && (
-                <p style={{ fontSize: 11, color: 'var(--critical)', marginTop: 4 }}>{errors.documentName.message}</p>
+                <p style={{ fontSize: 11, color: 'var(--critical)', marginTop: 4 }}>
+                  {errors.documentName.message}
+                </p>
               )}
             </div>
 
@@ -1585,7 +1875,9 @@ export default function DocumentRepositoryClient() {
                 width="100%"
                 value={watch('site') || sitesList.filter((s) => s !== 'All Sites')[0]}
                 onChange={(val) => setValue('site', val)}
-                options={sitesList.filter((s) => s !== 'All Sites').map((s) => ({ value: s, label: s }))}
+                options={sitesList
+                  .filter((s) => s !== 'All Sites')
+                  .map((s) => ({ value: s, label: s }))}
               />
             </div>
 
@@ -1614,7 +1906,9 @@ export default function DocumentRepositoryClient() {
                 {...register('expiryDate', { required: 'Expiry date is required' })}
               />
               {errors.expiryDate && (
-                <p style={{ fontSize: 11, color: 'var(--critical)', marginTop: 4 }}>{errors.expiryDate.message}</p>
+                <p style={{ fontSize: 11, color: 'var(--critical)', marginTop: 4 }}>
+                  {errors.expiryDate.message}
+                </p>
               )}
             </div>
 
@@ -1652,7 +1946,12 @@ export default function DocumentRepositoryClient() {
           <div className="flex items-center justify-end gap-3 mt-6 pt-5 border-t border-border">
             <button
               type="button"
-              onClick={() => { setUploadOpen(false); reset(); setSelectedFile(''); setUploadedFileObj(null); }}
+              onClick={() => {
+                setUploadOpen(false);
+                reset();
+                setSelectedFile('');
+                setUploadedFileObj(null);
+              }}
               className="samko-btn-ghost"
             >
               Cancel
@@ -1667,7 +1966,12 @@ export default function DocumentRepositoryClient() {
                 <>
                   <span
                     className="rounded-full border-2 animate-spin"
-                    style={{ width: 13, height: 13, borderColor: 'rgba(0,0,0,0.2)', borderTopColor: '#000' }}
+                    style={{
+                      width: 13,
+                      height: 13,
+                      borderColor: 'rgba(0,0,0,0.2)',
+                      borderTopColor: '#000',
+                    }}
                   />
                   Uploading…
                 </>
@@ -1717,7 +2021,9 @@ export default function DocumentRepositoryClient() {
                   width="100%"
                   value={editSite}
                   onChange={(val) => setEditSite(val)}
-                  options={sitesList.filter((s) => s !== 'All Sites').map((s) => ({ value: s, label: s }))}
+                  options={sitesList
+                    .filter((s) => s !== 'All Sites')
+                    .map((s) => ({ value: s, label: s }))}
                 />
               </div>
 
@@ -1731,7 +2037,21 @@ export default function DocumentRepositoryClient() {
                   width="100%"
                   value={editDept}
                   onChange={(val) => setEditDept(val)}
-                  options={['Kitchen', 'Maintenance', 'Housekeeping', 'Front Office', 'F&B', 'Finance', 'Engineering', 'HR & People', 'Legal & Compliance', 'Operations', 'Plant Room', 'Reception', 'Public Areas'].map((dept) => ({ value: dept, label: dept }))}
+                  options={[
+                    'Kitchen',
+                    'Maintenance',
+                    'Housekeeping',
+                    'Front Office',
+                    'F&B',
+                    'Finance',
+                    'Engineering',
+                    'HR & People',
+                    'Legal & Compliance',
+                    'Operations',
+                    'Plant Room',
+                    'Reception',
+                    'Public Areas',
+                  ].map((dept) => ({ value: dept, label: dept }))}
                 />
               </div>
             </div>
@@ -1900,7 +2220,10 @@ export default function DocumentRepositoryClient() {
           width={750}
         >
           <div className="flex flex-col gap-3">
-            <div className="rounded-xl overflow-hidden border border-border bg-black/60 flex items-center justify-center" style={{ minHeight: 400 }}>
+            <div
+              className="rounded-xl overflow-hidden border border-border bg-black/60 flex items-center justify-center"
+              style={{ minHeight: 400 }}
+            >
               {uploadedFileDataUrl.startsWith('data:image/') ? (
                 <img
                   src={uploadedFileDataUrl}

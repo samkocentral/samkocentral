@@ -4,10 +4,13 @@ import { bulkCreateDocuments } from '@/lib/serverData';
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const items = Array.isArray(body?.items) ? body.items : (Array.isArray(body) ? body : []);
+    const items = Array.isArray(body?.items) ? body.items : Array.isArray(body) ? body : [];
 
     if (!items.length) {
-      return NextResponse.json({ success: false, error: 'No items provided for bulk upload' }, { status: 400 });
+      return NextResponse.json(
+        { success: false, error: 'No items provided for bulk upload' },
+        { status: 400 }
+      );
     }
 
     const result = await bulkCreateDocuments('assets', items);

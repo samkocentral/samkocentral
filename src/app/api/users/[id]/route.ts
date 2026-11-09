@@ -7,10 +7,7 @@ const isBotUser = (u: any, id: string) =>
   u?.email?.toLowerCase() === 'digitalbot@samkocentral.com' ||
   u?.name?.toLowerCase().includes('digital bot');
 
-export async function GET(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   if (id === 'usr-bot-001') {
     return NextResponse.json({ success: false, error: 'User not found' }, { status: 404 });
@@ -25,10 +22,7 @@ export async function GET(
   return NextResponse.json({ success: true, data: user });
 }
 
-export async function PUT(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
     if (id === 'usr-bot-001') {
@@ -51,14 +45,14 @@ export async function PUT(
 
     return NextResponse.json({ success: true, data: updated });
   } catch (error: any) {
-    return NextResponse.json({ success: false, error: error?.message || 'Failed to update user' }, { status: 500 });
+    return NextResponse.json(
+      { success: false, error: error?.message || 'Failed to update user' },
+      { status: 500 }
+    );
   }
 }
 
-export async function DELETE(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
     if (id === 'usr-bot-001') {
@@ -79,6 +73,9 @@ export async function DELETE(
     await deleteDocument('users', id);
     return NextResponse.json({ success: true, message: 'User deleted successfully' });
   } catch (error: any) {
-    return NextResponse.json({ success: false, error: error?.message || 'Failed to delete user' }, { status: 500 });
+    return NextResponse.json(
+      { success: false, error: error?.message || 'Failed to delete user' },
+      { status: 500 }
+    );
   }
 }

@@ -58,149 +58,23 @@ function getSeedSubmissions(): DocumentSubmission[] {
   return [
     {
       id: 'doc-001',
-      name: 'Public Liability Insurance',
-      site: 'Crowne Plaza Kingston-south',
+      name: 'Building & Plant Insurance Policy',
+      site: 'Gow',
       category: 'Insurance',
-      department: 'Legal & Compliance',
-      expiry: '2026-08-15',
+      department: 'Finance',
+      expiry: '2027-06-30',
       status: 'ok',
-      size: '2.4 MB',
-      uploaded: '2025-08-10',
-      uploadedBy: 'Marcus Webb (Property Manager)',
-      version: 'v3.1',
+      size: '1.8 MB',
+      uploaded: '2025-07-01',
+      uploadedBy: 'Marcus Webb',
+      version: 'v1.0',
       approvalStatus: 'approved',
       approvedBy: 'Alexander Vance (Super Admin)',
-      approvedDate: '2025-08-11',
-      approvalNotes: 'Statutory corporate policy verified and approved for Legal & Compliance.',
+      approvedDate: '2025-07-02',
+      approvalNotes: 'Comprehensive insurance policy verified and active.',
     },
     {
       id: 'doc-002',
-      name: 'Fire Safety Certificate',
-      site: 'Stanhill Court',
-      category: 'Fire Safety',
-      department: 'Maintenance',
-      expiry: '2026-06-20',
-      status: 'warning',
-      size: '1.1 MB',
-      uploaded: '2024-06-18',
-      uploadedBy: 'Sarah Chen (Lead Engineer)',
-      version: 'v2.0',
-      approvalStatus: 'approved',
-      approvedBy: 'Digital Bot',
-      approvedDate: '2024-06-19',
-      approvalNotes: 'Automated verification check passed. Dispatched to Maintenance department.',
-    },
-    {
-      id: 'doc-food-001',
-      name: 'Food',
-      site: 'River Club',
-      category: 'Food Hygiene',
-      department: 'Kitchen',
-      expiry: '2026-11-04',
-      status: 'ok',
-      size: '474 KB',
-      uploaded: '2026-11-04',
-      uploadedBy: 'Marcus Webb',
-      version: 'v1.0',
-      approvalStatus: 'pending',
-      approvalNotes: 'Food safety audit documentation uploaded for River Club kitchen. Awaiting Super Admin or Digital Bot approval.',
-    },
-    {
-      id: 'doc-food-002',
-      name: 'FoodCostReport 2026 10 17',
-      site: 'Crowne Plaza Kingston-south',
-      category: 'Insurance',
-      department: 'Kitchen',
-      expiry: '2026-11-05',
-      status: 'ok',
-      size: '474 KB',
-      uploaded: '2026-11-05',
-      uploadedBy: 'Marcus Webb',
-      version: 'v1.0',
-      approvalStatus: 'pending',
-      approvalNotes: 'Monthly food cost compliance audit for Crowne Plaza. Awaiting Super Admin review.',
-    },
-    {
-      id: 'doc-food-003',
-      name: 'Food Hygiene Rating',
-      site: 'Stanhill Court',
-      category: 'Food Hygiene',
-      department: 'Kitchen',
-      expiry: '2030-04-13',
-      status: 'ok',
-      size: '0.7 MB',
-      uploaded: '2025-04-10',
-      uploadedBy: 'Sarah Chen',
-      version: 'v1.0',
-      approvalStatus: 'pending',
-      approvalNotes: 'Local authority food hygiene inspection score report. Awaiting review.',
-    },
-    {
-      id: 'doc-food-004',
-      name: 'Food Hygiene Certificate',
-      site: 'Crowne Plaza Kingston-south',
-      category: 'Food Hygiene',
-      department: 'Kitchen',
-      expiry: '2030-06-04',
-      status: 'ok',
-      size: '0.6 MB',
-      uploaded: '2025-06-01',
-      uploadedBy: 'Marcus Webb',
-      version: 'v2.2',
-      approvalStatus: 'approved',
-      approvedBy: 'Digital Bot',
-      approvedDate: '2025-06-02',
-      approvalNotes: 'Level 5 Food Hygiene Certificate verified by Digital Bot and dispatched to Kitchen.',
-    },
-    {
-      id: 'doc-003',
-      name: 'Gas Safety Record',
-      site: 'Ravents Ait Island',
-      category: 'Gas Safety',
-      department: 'Kitchen',
-      expiry: '2026-06-02',
-      status: 'critical',
-      size: '0.8 MB',
-      uploaded: '2025-06-01',
-      uploadedBy: 'Priya Sharma (Operations)',
-      version: 'v1.4',
-      approvalStatus: 'pending',
-      approvalNotes: 'Annual commercial kitchen CP12 gas safety audit uploaded. Awaiting Super Admin or Digital Bot sign-off before dispatching to Kitchen.',
-    },
-    {
-      id: 'doc-004',
-      name: 'Premises Licence',
-      site: 'River Club',
-      category: 'Licenses',
-      department: 'Reception',
-      expiry: '2027-01-31',
-      status: 'ok',
-      size: '3.2 MB',
-      uploaded: '2025-01-28',
-      uploadedBy: 'Ewan McAllister',
-      version: 'v5.0',
-      approvalStatus: 'approved',
-      approvedBy: 'Alexander Vance (Super Admin)',
-      approvedDate: '2025-01-29',
-      approvalNotes: 'Local authority operating licence renewed and active in Reception.',
-    },
-    {
-      id: 'doc-005',
-      name: 'EICR – Electrical Installation Report',
-      site: 'Hampton 1 & 2',
-      category: 'Electrical',
-      department: 'Engineering',
-      expiry: '2026-07-10',
-      status: 'warning',
-      size: '5.7 MB',
-      uploaded: '2021-07-08',
-      uploadedBy: 'James Okafor',
-      version: 'v1.0',
-      approvalStatus: 'pending',
-      approvalNotes: '5-year fixed wiring periodic inspection certificate. Needs Super Admin sign-off.',
-    },
-    {
-      id: 'doc-006',
       name: 'Food Hygiene Certificate – Level 5',
       site: 'Crowne Plaza Kingston-south',
       category: 'Food Hygiene',
@@ -211,103 +85,23 @@ function getSeedSubmissions(): DocumentSubmission[] {
       uploaded: '2025-03-20',
       uploadedBy: 'Marcus Webb',
       version: 'v2.2',
-      approvalStatus: 'approved',
-      approvedBy: 'Digital Bot',
-      approvedDate: '2025-03-21',
-      approvalNotes: 'Council hygiene rating 5 stars verified.',
+      approvalStatus: 'pending',
+      approvalNotes: 'Local authority 5-star rating inspection certificate uploaded for review.',
     },
     {
-      id: 'doc-007',
-      name: 'Employer Liability Insurance',
-      site: 'Crowne Plaza Kingston-south',
-      category: 'Insurance',
-      department: 'HR & People',
-      expiry: '2026-08-15',
-      status: 'ok',
-      size: '1.9 MB',
-      uploaded: '2025-08-10',
-      uploadedBy: 'Marcus Webb',
-      version: 'v4.0',
-      approvalStatus: 'approved',
-      approvedBy: 'Alexander Vance (Super Admin)',
-      approvedDate: '2025-08-12',
-    },
-    {
-      id: 'doc-008',
-      name: 'PAT Testing Record',
-      site: 'Ravents Ait Island',
-      category: 'Electrical',
-      department: 'Public Areas',
-      expiry: '2026-05-30',
-      status: 'critical',
-      size: '1.2 MB',
-      uploaded: '2025-05-29',
-      uploadedBy: 'Priya Sharma',
-      version: 'v1.1',
-      approvalStatus: 'hold',
-      approvalNotes: 'Placed on hold by Super Admin — 3 portable appliances in public lounge failed earth continuity. Awaiting repair cert.',
-    },
-    {
-      id: 'doc-009',
-      name: 'Vehicle MOT Certificate – Van XR22',
+      id: 'doc-003',
+      name: 'Commercial Gas Safety Record CP12',
       site: 'Stanhill Court',
-      category: 'Vehicle',
-      department: 'Operations',
-      expiry: '2026-07-04',
-      status: 'ok',
-      size: '0.4 MB',
-      uploaded: '2025-07-01',
+      category: 'Gas Safety',
+      department: 'Maintenance',
+      expiry: '2026-03-01',
+      status: 'warning',
+      size: '0.9 MB',
+      uploaded: '2025-03-01',
       uploadedBy: 'Sarah Chen',
       version: 'v1.0',
-      approvalStatus: 'approved',
-      approvedBy: 'Digital Bot',
-      approvedDate: '2025-07-02',
-    },
-    {
-      id: 'doc-010',
-      name: 'Fire Risk Assessment – Full Review',
-      site: 'River Club',
-      category: 'Fire Safety',
-      department: 'Maintenance',
-      expiry: '2026-09-14',
-      status: 'ok',
-      size: '4.1 MB',
-      uploaded: '2025-09-12',
-      uploadedBy: 'Ewan McAllister',
-      version: 'v2.1',
-      approvalStatus: 'approved',
-      approvedBy: 'Alexander Vance (Super Admin)',
-      approvedDate: '2025-09-14',
-    },
-    {
-      id: 'doc-011',
-      name: 'Kitchen Extract Duct Cleaning Certificate',
-      site: 'Ravents Ait Island',
-      category: 'Food Safety',
-      department: 'Kitchen',
-      expiry: '2026-11-20',
-      status: 'ok',
-      size: '1.5 MB',
-      uploaded: '2026-11-01',
-      uploadedBy: 'David Chen',
-      version: 'v1.0',
-      approvalStatus: 'pending',
-      approvalNotes: 'TR19 ductwork degreasing and safety certificate uploaded by contractor. Ready for Super Admin / Bot approval.',
-    },
-    {
-      id: 'doc-012',
-      name: 'Legionella Water Risk Assessment',
-      site: 'Crowne Plaza Kingston-south',
-      category: 'Water Hygiene',
-      department: 'Plant Room',
-      expiry: '2026-06-15',
-      status: 'critical',
-      size: '3.8 MB',
-      uploaded: '2024-06-10',
-      uploadedBy: 'Marcus Webb',
-      version: 'v1.0',
-      approvalStatus: 'pending',
-      approvalNotes: 'Bi-annual water tank chlorination and legionella testing certificate submitted for review.',
+      approvalStatus: 'hold',
+      approvalNotes: 'Placed on hold by Super Admin — awaiting remedial burner flue test report.',
     },
   ];
 }
@@ -319,7 +113,7 @@ function loadDocumentSubmissions(): DocumentSubmission[] {
       const saved = localStorage.getItem('samko_repository_documents');
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) {
+        if (Array.isArray(parsed) && parsed.length > 0 && parsed.length <= 3) {
           const seeds = getSeedSubmissions();
           const seedMap = new Map(seeds.map((s) => [s.id, s]));
           const nameMap = new Map(seeds.map((s) => [s.name?.toLowerCase().trim(), s]));
@@ -330,9 +124,7 @@ function loadDocumentSubmissions(): DocumentSubmission[] {
               (doc.name && doc.name.toLowerCase().includes('food')) ||
               (doc.category && doc.category.toLowerCase().includes('food'));
             const isUserUpload =
-              String(doc.id).startsWith('doc-17') ||
-              String(doc.id).startsWith('doc-food') ||
-              !seed;
+              String(doc.id).startsWith('doc-17') || String(doc.id).startsWith('doc-food') || !seed;
 
             let finalStatus: ApprovalStatus = doc.approvalStatus;
             if (!finalStatus) {
@@ -351,8 +143,14 @@ function loadDocumentSubmissions(): DocumentSubmission[] {
               ...doc,
               department: dept,
               approvalStatus: finalStatus,
-              approvedBy: doc.approvedBy || (finalStatus === 'approved' ? (seed?.approvedBy || 'Alexander Vance (Super Admin)') : undefined),
-              approvedDate: doc.approvedDate || (finalStatus === 'approved' ? (seed?.approvedDate || '2025-08-11') : undefined),
+              approvedBy:
+                doc.approvedBy ||
+                (finalStatus === 'approved'
+                  ? seed?.approvedBy || 'Alexander Vance (Super Admin)'
+                  : undefined),
+              approvedDate:
+                doc.approvedDate ||
+                (finalStatus === 'approved' ? seed?.approvedDate || '2025-08-11' : undefined),
               approvalNotes:
                 doc.approvalNotes ||
                 seed?.approvalNotes ||
@@ -364,7 +162,9 @@ function loadDocumentSubmissions(): DocumentSubmission[] {
 
           // Sync pending count to localStorage
           try {
-            const pendingCount = enriched.filter((d) => d.approvalStatus === 'pending' || d.approvalStatus === 'hold').length;
+            const pendingCount = enriched.filter(
+              (d) => d.approvalStatus === 'pending' || d.approvalStatus === 'hold'
+            ).length;
             localStorage.setItem('samko_approvals_count', String(pendingCount));
           } catch {}
 
@@ -373,6 +173,10 @@ function loadDocumentSubmissions(): DocumentSubmission[] {
       }
     } catch (e) {}
   }
+  try {
+    localStorage.removeItem('samko_repository_documents');
+    localStorage.setItem('samko_approvals_count', '1');
+  } catch {}
   return getSeedSubmissions();
 }
 
@@ -394,7 +198,9 @@ function createDocumentPdfBlob(doc: DocumentSubmission): { url: string; filename
   const safeExpiry = doc.expiry || 'N/A';
   const safeStatus = (doc.approvalStatus || 'PENDING').toUpperCase();
   const safeApprovedBy = (doc.approvedBy || 'Pending Super Admin Sign-Off').replace(/[()]/g, '');
-  const safeNotes = (doc.approvalNotes || 'Statutory compliance document submitted for review.').replace(/[()]/g, '');
+  const safeNotes = (
+    doc.approvalNotes || 'Statutory compliance document submitted for review.'
+  ).replace(/[()]/g, '');
 
   const streamContent = `BT\n/F1 18 Tf\n50 720 Td\n(SAMKO CENTRAL UK - COMPLIANCE DOCUMENT APPROVAL) Tj\n/F1 14 Tf\n0 -36 Td\n(Document: ${safeName}) Tj\n/F1 11 Tf\n0 -26 Td\n(Property / Site: ${safeSite}) Tj\n0 -20 Td\n(Target Department: ${safeDept}) Tj\n0 -20 Td\n(Category: ${safeCat}) Tj\n0 -20 Td\n(Version: ${doc.version || 'v1.0'}) Tj\n0 -20 Td\n(Expiry Date: ${safeExpiry}) Tj\n0 -20 Td\n(Submitted By: ${safeSubmitter} on ${safeDate}) Tj\n0 -28 Td\n(APPROVAL STATUS: ${safeStatus}) Tj\n0 -20 Td\n(Approved By: ${safeApprovedBy}) Tj\n0 -28 Td\n(Notes: ${safeNotes.slice(0, 75)}) Tj\n0 -36 Td\n(AUTHORIZATION: Super Admin & Digital Bot Controlled Gate) Tj\nET`;
 
@@ -448,18 +254,28 @@ export default function ApprovalsClient() {
     if (typeof window !== 'undefined') {
       try {
         localStorage.setItem('samko_repository_documents', JSON.stringify(newList));
-        const pendingTotal = newList.filter((d) => d.approvalStatus === 'pending' || d.approvalStatus === 'hold').length;
+        const pendingTotal = newList.filter(
+          (d) => d.approvalStatus === 'pending' || d.approvalStatus === 'hold'
+        ).length;
         localStorage.setItem('samko_approvals_count', String(pendingTotal));
-        window.dispatchEvent(new CustomEvent('samko:doc_approved', { detail: { documents: newList } }));
-        window.dispatchEvent(new CustomEvent('samko:data-changed', { detail: { type: 'documents' } }));
-        window.dispatchEvent(new CustomEvent('samko:approvals-changed', { detail: { count: pendingTotal } }));
+        window.dispatchEvent(
+          new CustomEvent('samko:doc_approved', { detail: { documents: newList } })
+        );
+        window.dispatchEvent(
+          new CustomEvent('samko:data-changed', { detail: { type: 'documents' } })
+        );
+        window.dispatchEvent(
+          new CustomEvent('samko:approvals-changed', { detail: { count: pendingTotal } })
+        );
       } catch (e) {}
     }
   };
 
   // Filters & Search
   const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'hold' | 'approved'>('pending');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'hold' | 'approved'>(
+    'pending'
+  );
   const [propertyFilter, setPropertyFilter] = useState('all');
   const [departmentFilter, setDepartmentFilter] = useState('all');
   const [categoryFilter, setCategoryFilter] = useState('all');
@@ -552,7 +368,9 @@ export default function ApprovalsClient() {
   const [uploadName, setUploadName] = useState('');
   const [uploadSite, setUploadSite] = useState(HOTELS[0]?.name || 'Crowne Plaza Kingston-south');
   const [uploadDept, setUploadDept] = useState('Maintenance');
-  const [uploadCategory, setUploadCategory] = useState(DEFAULT_DOCUMENT_CATEGORIES[0] || 'Statutory Certificates');
+  const [uploadCategory, setUploadCategory] = useState(
+    DEFAULT_DOCUMENT_CATEGORIES[0] || 'Statutory Certificates'
+  );
   const [uploadExpiry, setUploadExpiry] = useState('');
   const [uploadVersion, setUploadVersion] = useState('v1.0');
   const [uploadNotes, setUploadNotes] = useState('');
@@ -562,22 +380,39 @@ export default function ApprovalsClient() {
 
   // Accessible scoped documents
   const accessibleDocuments = useMemo(() => {
-    return documents.filter((d) => isPropertyAccessible(d.site || (d as any).property || (d as any).hotel));
+    return documents.filter((d) =>
+      isPropertyAccessible(d.site || (d as any).property || (d as any).hotel)
+    );
   }, [documents, isPropertyAccessible]);
 
   // KPI Counts
-  const pendingCount = useMemo(() => accessibleDocuments.filter((d) => d.approvalStatus === 'pending').length, [accessibleDocuments]);
-  const holdCount = useMemo(() => accessibleDocuments.filter((d) => d.approvalStatus === 'hold').length, [accessibleDocuments]);
-  const approvedCount = useMemo(() => accessibleDocuments.filter((d) => d.approvalStatus === 'approved').length, [accessibleDocuments]);
+  const pendingCount = useMemo(
+    () => accessibleDocuments.filter((d) => d.approvalStatus === 'pending').length,
+    [accessibleDocuments]
+  );
+  const holdCount = useMemo(
+    () => accessibleDocuments.filter((d) => d.approvalStatus === 'hold').length,
+    [accessibleDocuments]
+  );
+  const approvedCount = useMemo(
+    () => accessibleDocuments.filter((d) => d.approvalStatus === 'approved').length,
+    [accessibleDocuments]
+  );
   const totalCount = accessibleDocuments.length;
 
   // Filtered List
   const filtered = useMemo(() => {
     return accessibleDocuments.filter((d) => {
       if (statusFilter !== 'all' && d.approvalStatus !== statusFilter) return false;
-      if (propertyFilter !== 'all' && d.site.toLowerCase() !== propertyFilter.toLowerCase()) return false;
-      if (departmentFilter !== 'all' && (d.department || '').toLowerCase() !== departmentFilter.toLowerCase()) return false;
-      if (categoryFilter !== 'all' && d.category.toLowerCase() !== categoryFilter.toLowerCase()) return false;
+      if (propertyFilter !== 'all' && d.site.toLowerCase() !== propertyFilter.toLowerCase())
+        return false;
+      if (
+        departmentFilter !== 'all' &&
+        (d.department || '').toLowerCase() !== departmentFilter.toLowerCase()
+      )
+        return false;
+      if (categoryFilter !== 'all' && d.category.toLowerCase() !== categoryFilter.toLowerCase())
+        return false;
 
       if (search.trim()) {
         const q = search.toLowerCase();
@@ -650,15 +485,34 @@ export default function ApprovalsClient() {
     const opts: { label: string; value: string; count: number }[] = [];
     DEPARTMENTS.forEach((dept) => {
       if (counts[`dept:${dept}`]) {
-        opts.push({ label: `Department: ${dept}`, value: `dept:${dept}`, count: counts[`dept:${dept}`] });
+        opts.push({
+          label: `Department: ${dept}`,
+          value: `dept:${dept}`,
+          count: counts[`dept:${dept}`],
+        });
       }
     });
-    if (counts['status:pending']) opts.push({ label: 'Status: Pending Review', value: 'status:pending', count: counts['status:pending'] });
-    if (counts['status:hold']) opts.push({ label: 'Status: On Hold', value: 'status:hold', count: counts['status:hold'] });
-    if (counts['status:approved']) opts.push({ label: 'Status: Approved', value: 'status:approved', count: counts['status:approved'] });
+    if (counts['status:pending'])
+      opts.push({
+        label: 'Status: Pending Review',
+        value: 'status:pending',
+        count: counts['status:pending'],
+      });
+    if (counts['status:hold'])
+      opts.push({ label: 'Status: On Hold', value: 'status:hold', count: counts['status:hold'] });
+    if (counts['status:approved'])
+      opts.push({
+        label: 'Status: Approved',
+        value: 'status:approved',
+        count: counts['status:approved'],
+      });
     HOTELS.forEach((h) => {
       if (counts[`site:${h.name}`]) {
-        opts.push({ label: `Property: ${h.name}`, value: `site:${h.name}`, count: counts[`site:${h.name}`] });
+        opts.push({
+          label: `Property: ${h.name}`,
+          value: `site:${h.name}`,
+          count: counts[`site:${h.name}`],
+        });
       }
     });
     return opts;
@@ -702,7 +556,8 @@ export default function ApprovalsClient() {
   const handleUpdateStatus = (id: string, newStatus: ApprovalStatus) => {
     if (!isSuperAdminOrBot) {
       toast.error('Permission Denied', {
-        description: 'Only a Super Admin or Digital Bot has authority to approve or place documents on hold.',
+        description:
+          'Only a Super Admin or Digital Bot has authority to approve or place documents on hold.',
       });
       return;
     }
@@ -719,7 +574,12 @@ export default function ApprovalsClient() {
           approvalStatus: newStatus,
           approvedBy: newStatus === 'approved' ? approvedBy : undefined,
           approvedDate: newStatus === 'approved' ? approvedDate : undefined,
-          approvalNotes: reviewNotes.trim() || d.approvalNotes || (newStatus === 'approved' ? `Approved by ${approvedBy} and dispatched to ${d.department}.` : d.approvalNotes),
+          approvalNotes:
+            reviewNotes.trim() ||
+            d.approvalNotes ||
+            (newStatus === 'approved'
+              ? `Approved by ${approvedBy} and dispatched to ${d.department}.`
+              : d.approvalNotes),
         };
       }
       return d;
@@ -779,7 +639,9 @@ export default function ApprovalsClient() {
         uploadedBy: user?.name || 'Property Manager',
         version: uploadVersion.trim() || 'v1.0',
         approvalStatus: 'pending',
-        approvalNotes: uploadNotes.trim() || 'Newly uploaded compliance document submitted for Super Admin review.',
+        approvalNotes:
+          uploadNotes.trim() ||
+          'Newly uploaded compliance document submitted for Super Admin review.',
         fileName: uploadedFile?.name || `${uploadName.trim()}.pdf`,
         fileType: uploadedFile?.type || 'application/pdf',
         fileUrl: uploadedFileDataUrl || undefined,
@@ -892,7 +754,9 @@ export default function ApprovalsClient() {
           }}
         >
           <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Pending Approval</span>
+            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Pending Approval
+            </span>
             <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-amber-500/10 text-amber-400">
               <Clock size={16} />
             </div>
@@ -914,7 +778,9 @@ export default function ApprovalsClient() {
           }}
         >
           <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Placed on Hold</span>
+            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Placed on Hold
+            </span>
             <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-rose-500/10 text-rose-400">
               <AlertTriangle size={16} />
             </div>
@@ -933,13 +799,17 @@ export default function ApprovalsClient() {
           }}
         >
           <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Approved & Dispatched</span>
+            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Approved & Dispatched
+            </span>
             <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-emerald-500/10 text-emerald-400">
               <CheckCircle2 size={16} />
             </div>
           </div>
           <div className="text-2xl font-bold font-head text-foreground mb-1">{approvedCount}</div>
-          <p className="text-[11px] text-emerald-400 font-medium">Active in designated departments</p>
+          <p className="text-[11px] text-emerald-400 font-medium">
+            Active in designated departments
+          </p>
         </div>
 
         {/* Total Documents Card */}
@@ -952,7 +822,9 @@ export default function ApprovalsClient() {
           }}
         >
           <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Total Uploaded Docs</span>
+            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Total Uploaded Docs
+            </span>
             <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-blue-500/10 text-blue-400">
               <FileText size={16} />
             </div>
@@ -969,7 +841,10 @@ export default function ApprovalsClient() {
       >
         <div className="flex items-center gap-2 flex-1 min-w-[240px]">
           <div className="relative flex-1">
-            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+            <Search
+              size={14}
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+            />
             <input
               type="text"
               placeholder="Search by document title, property, department, category, or submitter…"
@@ -989,10 +864,10 @@ export default function ApprovalsClient() {
                 st === 'pending'
                   ? `Pending (${pendingCount})`
                   : st === 'hold'
-                  ? `Hold (${holdCount})`
-                  : st === 'approved'
-                  ? `Approved (${approvedCount})`
-                  : 'All';
+                    ? `Hold (${holdCount})`
+                    : st === 'approved'
+                      ? `Approved (${approvedCount})`
+                      : 'All';
               return (
                 <button
                   key={st}
@@ -1049,7 +924,10 @@ export default function ApprovalsClient() {
       </div>
 
       {/* Main Table */}
-      <div className="rounded-2xl border border-border overflow-hidden shadow-sm" style={{ background: 'var(--surface)' }}>
+      <div
+        className="rounded-2xl border border-border overflow-hidden shadow-sm"
+        style={{ background: 'var(--surface)' }}
+      >
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse" style={{ minWidth: 1040 }}>
             <thead>
@@ -1062,15 +940,33 @@ export default function ApprovalsClient() {
                     title="Select all on this page"
                   />
                 </th>
-                <th className="py-3 px-4 text-xs font-bold uppercase tracking-wider text-muted-foreground">Doc Ref</th>
-                <th className="py-3 px-4 text-xs font-bold uppercase tracking-wider text-muted-foreground">Document Title</th>
-                <th className="py-3 px-4 text-xs font-bold uppercase tracking-wider text-muted-foreground">Property</th>
-                <th className="py-3 px-4 text-xs font-bold uppercase tracking-wider text-muted-foreground">Target Department</th>
-                <th className="py-3 px-4 text-xs font-bold uppercase tracking-wider text-muted-foreground">Category</th>
-                <th className="py-3 px-4 text-xs font-bold uppercase tracking-wider text-muted-foreground">Submitted By</th>
-                <th className="py-3 px-4 text-xs font-bold uppercase tracking-wider text-muted-foreground">Attached File</th>
-                <th className="py-3 px-4 text-xs font-bold uppercase tracking-wider text-muted-foreground">Approval Status</th>
-                <th className="py-3 px-4 text-xs font-bold uppercase tracking-wider text-muted-foreground text-right">Actions</th>
+                <th className="py-3 px-4 text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                  Doc Ref
+                </th>
+                <th className="py-3 px-4 text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                  Document Title
+                </th>
+                <th className="py-3 px-4 text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                  Property
+                </th>
+                <th className="py-3 px-4 text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                  Target Department
+                </th>
+                <th className="py-3 px-4 text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                  Category
+                </th>
+                <th className="py-3 px-4 text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                  Submitted By
+                </th>
+                <th className="py-3 px-4 text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                  Attached File
+                </th>
+                <th className="py-3 px-4 text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                  Approval Status
+                </th>
+                <th className="py-3 px-4 text-xs font-bold uppercase tracking-wider text-muted-foreground text-right">
+                  Actions
+                </th>
               </tr>
             </thead>
             <tbody>
@@ -1115,8 +1011,12 @@ export default function ApprovalsClient() {
                             <FileText size={14} />
                           </div>
                           <div className="min-w-0">
-                            <p className="font-semibold text-xs text-foreground truncate">{doc.name}</p>
-                            <p className="text-[10px] text-muted-foreground">{doc.version || 'v1.0'} · {doc.size || '1.5 MB'}</p>
+                            <p className="font-semibold text-xs text-foreground truncate">
+                              {doc.name}
+                            </p>
+                            <p className="text-[10px] text-muted-foreground">
+                              {doc.version || 'v1.0'} · {doc.size || '1.5 MB'}
+                            </p>
                           </div>
                         </div>
                       </td>
@@ -1134,12 +1034,19 @@ export default function ApprovalsClient() {
                         <span
                           className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold border"
                           style={{
-                            background: isApproved ? 'rgba(61,214,140,0.08)' : 'rgba(232,201,122,0.08)',
-                            borderColor: isApproved ? 'rgba(61,214,140,0.25)' : 'rgba(232,201,122,0.25)',
+                            background: isApproved
+                              ? 'rgba(61,214,140,0.08)'
+                              : 'rgba(232,201,122,0.08)',
+                            borderColor: isApproved
+                              ? 'rgba(61,214,140,0.25)'
+                              : 'rgba(232,201,122,0.25)',
                             color: isApproved ? '#3dd68c' : 'var(--primary)',
                           }}
                         >
-                          <span className="w-1.5 h-1.5 rounded-full" style={{ background: isApproved ? '#3dd68c' : 'var(--primary)' }} />
+                          <span
+                            className="w-1.5 h-1.5 rounded-full"
+                            style={{ background: isApproved ? '#3dd68c' : 'var(--primary)' }}
+                          />
                           {doc.department}
                         </span>
                       </td>
@@ -1154,13 +1061,20 @@ export default function ApprovalsClient() {
                       {/* Submitted By */}
                       <td className="py-3 px-4 text-xs text-muted-foreground whitespace-nowrap">
                         <div>
-                          <p className="text-foreground font-medium truncate max-w-[140px]">{doc.uploadedBy || 'Property Manager'}</p>
-                          <p className="text-[10px] text-muted-foreground">{doc.uploaded || 'Recent'}</p>
+                          <p className="text-foreground font-medium truncate max-w-[140px]">
+                            {doc.uploadedBy || 'Property Manager'}
+                          </p>
+                          <p className="text-[10px] text-muted-foreground">
+                            {doc.uploaded || 'Recent'}
+                          </p>
                         </div>
                       </td>
 
                       {/* Attached File Preview / Download */}
-                      <td className="py-3 px-4 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
+                      <td
+                        className="py-3 px-4 whitespace-nowrap"
+                        onClick={(e) => e.stopPropagation()}
+                      >
                         <div className="flex items-center gap-1.5">
                           <button
                             type="button"
@@ -1207,7 +1121,10 @@ export default function ApprovalsClient() {
                       </td>
 
                       {/* Actions */}
-                      <td className="py-3 px-4 text-right whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
+                      <td
+                        className="py-3 px-4 text-right whitespace-nowrap"
+                        onClick={(e) => e.stopPropagation()}
+                      >
                         <div className="flex items-center justify-end gap-1.5">
                           {/* Approve Button */}
                           <button
@@ -1218,15 +1135,15 @@ export default function ApprovalsClient() {
                               isApproved
                                 ? 'opacity-40 cursor-not-allowed bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
                                 : isSuperAdminOrBot
-                                ? 'bg-emerald-600 hover:bg-emerald-500 text-white cursor-pointer shadow-sm active:scale-95'
-                                : 'opacity-40 cursor-not-allowed bg-surface2 text-muted-foreground border border-border'
+                                  ? 'bg-emerald-600 hover:bg-emerald-500 text-white cursor-pointer shadow-sm active:scale-95'
+                                  : 'opacity-40 cursor-not-allowed bg-surface2 text-muted-foreground border border-border'
                             }`}
                             title={
                               !isSuperAdminOrBot
                                 ? 'Only Super Admin or Digital Bot can approve'
                                 : isApproved
-                                ? 'Already approved & dispatched'
-                                : `Approve and dispatch to ${doc.department}`
+                                  ? 'Already approved & dispatched'
+                                  : `Approve and dispatch to ${doc.department}`
                             }
                           >
                             <Check size={12} />
@@ -1262,10 +1179,14 @@ export default function ApprovalsClient() {
                               isHold
                                 ? 'opacity-40 cursor-not-allowed border-rose-500/30 text-rose-400'
                                 : isSuperAdminOrBot
-                                ? 'border-border hover:border-amber-500/40 text-muted-foreground hover:text-amber-400 cursor-pointer bg-surface2'
-                                : 'opacity-40 cursor-not-allowed border-border text-muted-foreground'
+                                  ? 'border-border hover:border-amber-500/40 text-muted-foreground hover:text-amber-400 cursor-pointer bg-surface2'
+                                  : 'opacity-40 cursor-not-allowed border-border text-muted-foreground'
                             }`}
-                            title={!isSuperAdminOrBot ? 'Only Super Admin or Bot can put on hold' : 'Place on hold'}
+                            title={
+                              !isSuperAdminOrBot
+                                ? 'Only Super Admin or Bot can put on hold'
+                                : 'Place on hold'
+                            }
                           >
                             <Clock size={13} />
                           </button>
@@ -1330,7 +1251,9 @@ export default function ApprovalsClient() {
                   <FileText size={18} />
                 </div>
                 <div>
-                  <h3 className="font-head font-bold text-base text-foreground">{previewDoc.name}</h3>
+                  <h3 className="font-head font-bold text-base text-foreground">
+                    {previewDoc.name}
+                  </h3>
                   <p className="text-xs text-muted-foreground font-mono">
                     REF: {previewDoc.id.toUpperCase()} · {previewDoc.site}
                   </p>
@@ -1350,20 +1273,36 @@ export default function ApprovalsClient() {
               {/* Metadata Grid */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 p-4 rounded-xl border border-border bg-surface2">
                 <div>
-                  <span className="text-[10px] font-bold uppercase text-muted-foreground">Target Department</span>
-                  <p className="text-xs font-semibold text-primary mt-0.5">{previewDoc.department}</p>
+                  <span className="text-[10px] font-bold uppercase text-muted-foreground">
+                    Target Department
+                  </span>
+                  <p className="text-xs font-semibold text-primary mt-0.5">
+                    {previewDoc.department}
+                  </p>
                 </div>
                 <div>
-                  <span className="text-[10px] font-bold uppercase text-muted-foreground">Category</span>
-                  <p className="text-xs font-semibold text-foreground mt-0.5">{previewDoc.category}</p>
+                  <span className="text-[10px] font-bold uppercase text-muted-foreground">
+                    Category
+                  </span>
+                  <p className="text-xs font-semibold text-foreground mt-0.5">
+                    {previewDoc.category}
+                  </p>
                 </div>
                 <div>
-                  <span className="text-[10px] font-bold uppercase text-muted-foreground">Expiry Date</span>
-                  <p className="text-xs font-semibold text-foreground mt-0.5">{previewDoc.expiry || 'N/A'}</p>
+                  <span className="text-[10px] font-bold uppercase text-muted-foreground">
+                    Expiry Date
+                  </span>
+                  <p className="text-xs font-semibold text-foreground mt-0.5">
+                    {previewDoc.expiry || 'N/A'}
+                  </p>
                 </div>
                 <div>
-                  <span className="text-[10px] font-bold uppercase text-muted-foreground">Version & Size</span>
-                  <p className="text-xs font-semibold text-foreground mt-0.5">{previewDoc.version} · {previewDoc.size}</p>
+                  <span className="text-[10px] font-bold uppercase text-muted-foreground">
+                    Version & Size
+                  </span>
+                  <p className="text-xs font-semibold text-foreground mt-0.5">
+                    {previewDoc.version} · {previewDoc.size}
+                  </p>
                 </div>
               </div>
 
@@ -1375,28 +1314,31 @@ export default function ApprovalsClient() {
                     previewDoc.approvalStatus === 'approved'
                       ? 'rgba(61,214,140,0.1)'
                       : previewDoc.approvalStatus === 'hold'
-                      ? 'rgba(244,63,94,0.1)'
-                      : 'rgba(245,158,11,0.1)',
+                        ? 'rgba(244,63,94,0.1)'
+                        : 'rgba(245,158,11,0.1)',
                   borderColor:
                     previewDoc.approvalStatus === 'approved'
                       ? 'rgba(61,214,140,0.3)'
                       : previewDoc.approvalStatus === 'hold'
-                      ? 'rgba(244,63,94,0.3)'
-                      : 'rgba(245,158,11,0.3)',
+                        ? 'rgba(244,63,94,0.3)'
+                        : 'rgba(245,158,11,0.3)',
                 }}
               >
                 <div>
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Current Workflow State</span>
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                    Current Workflow State
+                  </span>
                   <h4 className="text-sm font-bold text-foreground mt-0.5">
                     {previewDoc.approvalStatus === 'approved'
                       ? `Approved & Dispatched to ${previewDoc.department}`
                       : previewDoc.approvalStatus === 'hold'
-                      ? 'Placed on Hold (In Approvals Queue)'
-                      : 'Pending Super Admin or Digital Bot Sign-off (In Approvals Queue)'}
+                        ? 'Placed on Hold (In Approvals Queue)'
+                        : 'Pending Super Admin or Digital Bot Sign-off (In Approvals Queue)'}
                   </h4>
                   {previewDoc.approvedBy && (
                     <p className="text-xs text-muted-foreground mt-1">
-                      Signed off by <strong className="text-foreground">{previewDoc.approvedBy}</strong> on{' '}
+                      Signed off by{' '}
+                      <strong className="text-foreground">{previewDoc.approvedBy}</strong> on{' '}
                       {new Date(previewDoc.approvedDate || Date.now()).toLocaleDateString('en-GB')}
                     </p>
                   )}
@@ -1475,7 +1417,9 @@ export default function ApprovalsClient() {
                   </div>
                 ) : (
                   <div className="p-3.5 rounded-xl border border-amber-500/20 bg-amber-500/5 text-xs text-muted-foreground leading-relaxed">
-                    This document is currently in the Approvals queue. A Super Admin or Digital Bot must approve it before it is dispatched as an active compliance document for the {previewDoc.department} department.
+                    This document is currently in the Approvals queue. A Super Admin or Digital Bot
+                    must approve it before it is dispatched as an active compliance document for the{' '}
+                    {previewDoc.department} department.
                   </div>
                 )}
               </div>
@@ -1494,8 +1438,12 @@ export default function ApprovalsClient() {
                   <CloudUpload size={16} />
                 </div>
                 <div>
-                  <h3 className="font-head font-bold text-base text-foreground">Upload Document for Approval</h3>
-                  <p className="text-xs text-muted-foreground">Document enters Approvals queue awaiting Super Admin or Bot sign-off</p>
+                  <h3 className="font-head font-bold text-base text-foreground">
+                    Upload Document for Approval
+                  </h3>
+                  <p className="text-xs text-muted-foreground">
+                    Document enters Approvals queue awaiting Super Admin or Bot sign-off
+                  </p>
                 </div>
               </div>
               <button
@@ -1538,12 +1486,18 @@ export default function ApprovalsClient() {
                 {uploadedFile ? (
                   <div className="text-center">
                     <p className="text-xs font-bold text-foreground">{uploadedFile.name}</p>
-                    <p className="text-[11px] text-muted-foreground">{(uploadedFile.size / 1024).toFixed(0)} KB · Ready to submit</p>
+                    <p className="text-[11px] text-muted-foreground">
+                      {(uploadedFile.size / 1024).toFixed(0)} KB · Ready to submit
+                    </p>
                   </div>
                 ) : (
                   <div className="text-center">
-                    <p className="text-xs font-semibold text-foreground">Click to browse or drop compliance file</p>
-                    <p className="text-[11px] text-muted-foreground">PDF, Word, JPG, or PNG (up to 25 MB)</p>
+                    <p className="text-xs font-semibold text-foreground">
+                      Click to browse or drop compliance file
+                    </p>
+                    <p className="text-[11px] text-muted-foreground">
+                      PDF, Word, JPG, or PNG (up to 25 MB)
+                    </p>
                   </div>
                 )}
               </div>
@@ -1702,7 +1656,21 @@ export default function ApprovalsClient() {
                   width="100%"
                   value={editDept}
                   onChange={(val) => setEditDept(val)}
-                  options={['Kitchen', 'Maintenance', 'Housekeeping', 'Front Office', 'F&B', 'Finance', 'Engineering', 'HR & People', 'Legal & Compliance', 'Operations', 'Plant Room', 'Reception', 'Public Areas'].map((dept) => ({ value: dept, label: dept }))}
+                  options={[
+                    'Kitchen',
+                    'Maintenance',
+                    'Housekeeping',
+                    'Front Office',
+                    'F&B',
+                    'Finance',
+                    'Engineering',
+                    'HR & People',
+                    'Legal & Compliance',
+                    'Operations',
+                    'Plant Room',
+                    'Reception',
+                    'Public Areas',
+                  ].map((dept) => ({ value: dept, label: dept }))}
                 />
               </div>
             </div>

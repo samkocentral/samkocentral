@@ -2,17 +2,45 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { Building2, Package, AlertTriangle, CheckCircle2, Clock, TrendingUp, BarChart3, Activity, ChevronRight, ArrowUpRight } from 'lucide-react';
-import { HOTELS, ASSETS, MAINTENANCE_RECORDS, ASSET_CATEGORIES, DEPARTMENTS, getAssetStats } from '@/lib/assetData';
+import {
+  Building2,
+  Package,
+  AlertTriangle,
+  CheckCircle2,
+  Clock,
+  TrendingUp,
+  BarChart3,
+  Activity,
+  ChevronRight,
+  ArrowUpRight,
+} from 'lucide-react';
+import {
+  HOTELS,
+  ASSETS,
+  MAINTENANCE_RECORDS,
+  ASSET_CATEGORIES,
+  DEPARTMENTS,
+  getAssetStats,
+} from '@/lib/assetData';
 import { useLiveProperties } from '@/hooks/useLiveProperties';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
+} from 'recharts';
 import Icon from '@/components/ui/AppIcon';
 import { useDeepPageCms } from '@/lib/deepPageCms';
 import { useAuth } from '@/lib/authContext';
 import PageCMSEditButton from '@/components/cms/PageCMSEditButton';
 import LoadingPagination from '@/components/ui/LoadingPagination';
 import { useLoadingPagination } from '@/hooks/useLoadingPagination';
-
 
 const CONDITION_COLORS: Record<string, string> = {
   excellent: '#3dd68c',
@@ -30,19 +58,24 @@ const RISK_COLORS: Record<string, string> = {
 };
 
 function StatCard({
-  label, value, sub, color, icon: Icon,
+  label,
+  value,
+  sub,
+  color,
+  icon: Icon,
 }: {
-  label: string; value: string | number; sub?: string; color: string; icon: React.ElementType;
+  label: string;
+  value: string | number;
+  sub?: string;
+  color: string;
+  icon: React.ElementType;
 }) {
   return (
     <div
       className="rounded-xl border border-border p-5 relative overflow-hidden"
       style={{ background: 'var(--surface)' }}
     >
-      <div
-        className="absolute top-0 left-0 right-0 h-0.5"
-        style={{ background: color }}
-      />
+      <div className="absolute top-0 left-0 right-0 h-0.5" style={{ background: color }} />
       <div className="flex items-start justify-between mb-3">
         <div
           className="w-9 h-9 rounded-lg flex items-center justify-center"
@@ -51,13 +84,12 @@ function StatCard({
           <Icon size={17} style={{ color }} />
         </div>
       </div>
-      <div
-        className="font-head text-3xl font-extrabold leading-none mb-1"
-        style={{ color }}
-      >
+      <div className="font-head text-3xl font-extrabold leading-none mb-1" style={{ color }}>
         {value}
       </div>
-      <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mt-1">{label}</div>
+      <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mt-1">
+        {label}
+      </div>
       {sub && <div className="text-xs text-muted-foreground mt-0.5">{sub}</div>}
     </div>
   );
@@ -93,11 +125,15 @@ export default function AssetDashboardClient() {
   }, [liveProperties, isPropertyAccessible]);
 
   const accessibleAssets = React.useMemo(() => {
-    return ASSETS.filter((a) => isPropertyAccessible(a.hotelName || a.hotelId || (a as any).property));
+    return ASSETS.filter((a) =>
+      isPropertyAccessible(a.hotelName || a.hotelId || (a as any).property)
+    );
   }, [isPropertyAccessible]);
 
   const accessibleMaintenance = React.useMemo(() => {
-    return MAINTENANCE_RECORDS.filter((m) => isPropertyAccessible(m.hotelName || m.hotelId || (m as any).property));
+    return MAINTENANCE_RECORDS.filter((m) =>
+      isPropertyAccessible(m.hotelName || m.hotelId || (m as any).property)
+    );
   }, [isPropertyAccessible]);
 
   const stats = React.useMemo(() => {
@@ -107,20 +143,31 @@ export default function AssetDashboardClient() {
     const overdueMaintenance = accessibleMaintenance.filter((m) => m.status === 'overdue').length;
     const dueToday = accessibleMaintenance.filter((m) => m.status === 'due-today').length;
     const criticalAssets = accessibleAssets.filter((a) => a.riskLevel === 'critical').length;
-    const byDepartment = DEPARTMENTS.reduce((acc, dept) => {
-      acc[dept] = accessibleAssets.filter((a) => a.department === dept).length;
-      return acc;
-    }, {} as Record<string, number>);
-    const byCategory = ASSET_CATEGORIES.reduce((acc, cat) => {
-      acc[cat.name] = accessibleAssets.filter((a) => a.category === cat.name).length;
-      return acc;
-    }, {} as Record<string, number>);
-    const byHotel = accessibleHotels.reduce((acc, h) => {
-      acc[h.name] = accessibleAssets.filter((a) => a.hotelName === h.name).length;
-      return acc;
-    }, {} as Record<string, number>);
+    const byDepartment = DEPARTMENTS.reduce(
+      (acc, dept) => {
+        acc[dept] = accessibleAssets.filter((a) => a.department === dept).length;
+        return acc;
+      },
+      {} as Record<string, number>
+    );
+    const byCategory = ASSET_CATEGORIES.reduce(
+      (acc, cat) => {
+        acc[cat.name] = accessibleAssets.filter((a) => a.category === cat.name).length;
+        return acc;
+      },
+      {} as Record<string, number>
+    );
+    const byHotel = accessibleHotels.reduce(
+      (acc, h) => {
+        acc[h.name] = accessibleAssets.filter((a) => a.hotelName === h.name).length;
+        return acc;
+      },
+      {} as Record<string, number>
+    );
     const maintenanceCompletion = Math.round(
-      (accessibleMaintenance.filter((m) => m.status === 'completed').length / (accessibleMaintenance.length || 1)) * 100
+      (accessibleMaintenance.filter((m) => m.status === 'completed').length /
+        (accessibleMaintenance.length || 1)) *
+        100
     );
     return {
       total,
@@ -146,8 +193,11 @@ export default function AssetDashboardClient() {
     changePageSize,
   } = useLoadingPagination(accessibleHotels, 10);
 
-  const categoryChartData = ASSET_CATEGORIES
-    .map((c) => ({ name: c.name.replace(' & ', ' & '), value: stats.byCategory[c.name] || 0, color: c.color }))
+  const categoryChartData = ASSET_CATEGORIES.map((c) => ({
+    name: c.name.replace(' & ', ' & '),
+    value: stats.byCategory[c.name] || 0,
+    color: c.color,
+  }))
     .filter((d) => d.value > 0)
     .sort((a, b) => b.value - a.value)
     .slice(0, 8);
@@ -160,10 +210,26 @@ export default function AssetDashboardClient() {
   const recentMaintenance = accessibleMaintenance.slice(0, 6);
 
   const riskData = [
-    { name: 'Low', value: accessibleAssets.filter((a) => a.riskLevel === 'low').length, color: '#3dd68c' },
-    { name: 'Medium', value: accessibleAssets.filter((a) => a.riskLevel === 'medium').length, color: '#f59e0b' },
-    { name: 'High', value: accessibleAssets.filter((a) => a.riskLevel === 'high').length, color: '#f97316' },
-    { name: 'Critical', value: accessibleAssets.filter((a) => a.riskLevel === 'critical').length, color: '#f43f5e' },
+    {
+      name: 'Low',
+      value: accessibleAssets.filter((a) => a.riskLevel === 'low').length,
+      color: '#3dd68c',
+    },
+    {
+      name: 'Medium',
+      value: accessibleAssets.filter((a) => a.riskLevel === 'medium').length,
+      color: '#f59e0b',
+    },
+    {
+      name: 'High',
+      value: accessibleAssets.filter((a) => a.riskLevel === 'high').length,
+      color: '#f97316',
+    },
+    {
+      name: 'Critical',
+      value: accessibleAssets.filter((a) => a.riskLevel === 'critical').length,
+      color: '#f43f5e',
+    },
   ].filter((d) => d.value > 0);
 
   return (
@@ -174,8 +240,12 @@ export default function AssetDashboardClient() {
         style={{ background: 'var(--surface)' }}
       >
         <div>
-          <h1 className="font-head text-xl font-bold">{cms.title || 'Asset Management Dashboard'}</h1>
-          <p className="text-xs text-muted-foreground mt-0.5">{cms.subtitle || 'Hotel Asset Register & Preventive Maintenance'}</p>
+          <h1 className="font-head text-xl font-bold">
+            {cms.title || 'Asset Management Dashboard'}
+          </h1>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            {cms.subtitle || 'Hotel Asset Register & Preventive Maintenance'}
+          </p>
         </div>
         <div className="flex items-center gap-3">
           <PageCMSEditButton pageId="assetdashboard" pageName="Asset Management Dashboard" />
@@ -202,15 +272,51 @@ export default function AssetDashboardClient() {
       <div className="flex-1 overflow-y-auto px-6 py-5">
         {/* KPI Grid */}
         <div className="grid grid-cols-2 gap-4 mb-6 lg:grid-cols-4">
-          <StatCard label="Total Assets" value={stats.total} sub="Across all hotels" color="#60a5fa" icon={Package} />
-          <StatCard label="Fixed Assets" value={stats.fixed} sub="Permanently installed" color="#a78bfa" icon={Building2} />
-          <StatCard label="Non-Fixed Assets" value={stats.nonFixed} sub="Moveable items" color="#e8c97a" icon={Package} />
-          <StatCard label="Critical Assets" value={stats.criticalAssets} sub="Require priority attention" color="#f43f5e" icon={AlertTriangle} />
+          <StatCard
+            label="Total Assets"
+            value={stats.total}
+            sub="Across all hotels"
+            color="#60a5fa"
+            icon={Package}
+          />
+          <StatCard
+            label="Fixed Assets"
+            value={stats.fixed}
+            sub="Permanently installed"
+            color="#a78bfa"
+            icon={Building2}
+          />
+          <StatCard
+            label="Non-Fixed Assets"
+            value={stats.nonFixed}
+            sub="Moveable items"
+            color="#e8c97a"
+            icon={Package}
+          />
+          <StatCard
+            label="Critical Assets"
+            value={stats.criticalAssets}
+            sub="Require priority attention"
+            color="#f43f5e"
+            icon={AlertTriangle}
+          />
         </div>
 
         <div className="grid grid-cols-2 gap-4 mb-6 lg:grid-cols-4">
-          <StatCard label="Overdue Maintenance" value={stats.overdueMaintenance} sub="Past scheduled date" color="#f43f5e" icon={AlertTriangle} />
-          <StatCard label="Due Today" value={stats.dueToday} sub="Scheduled for today" color="#f59e0b" icon={Clock} />
+          <StatCard
+            label="Overdue Maintenance"
+            value={stats.overdueMaintenance}
+            sub="Past scheduled date"
+            color="#f43f5e"
+            icon={AlertTriangle}
+          />
+          <StatCard
+            label="Due Today"
+            value={stats.dueToday}
+            sub="Scheduled for today"
+            color="#f59e0b"
+            icon={Clock}
+          />
           <StatCard
             label="Maintenance Complete"
             value={`${stats.maintenanceCompletion}%`}
@@ -218,7 +324,13 @@ export default function AssetDashboardClient() {
             color="#3dd68c"
             icon={CheckCircle2}
           />
-          <StatCard label="Properties Managed" value={liveProperties.length} sub="Active properties" color="#34d399" icon={Building2} />
+          <StatCard
+            label="Properties Managed"
+            value={liveProperties.length}
+            sub="Active properties"
+            color="#34d399"
+            icon={Building2}
+          />
         </div>
 
         {/* Charts Row */}
@@ -237,10 +349,20 @@ export default function AssetDashboardClient() {
             <ResponsiveContainer width="100%" height={200}>
               <BarChart data={hotelChartData} barSize={28}>
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-                <XAxis dataKey="name" tick={{ fill: '#8892a4', fontSize: 11 }} axisLine={false} tickLine={false} />
+                <XAxis
+                  dataKey="name"
+                  tick={{ fill: '#8892a4', fontSize: 11 }}
+                  axisLine={false}
+                  tickLine={false}
+                />
                 <YAxis tick={{ fill: '#8892a4', fontSize: 11 }} axisLine={false} tickLine={false} />
                 <Tooltip
-                  contentStyle={{ background: 'var(--surface2)', border: '1px solid var(--border)', borderRadius: 8, fontSize: 12 }}
+                  contentStyle={{
+                    background: 'var(--surface2)',
+                    border: '1px solid var(--border)',
+                    borderRadius: 8,
+                    fontSize: 12,
+                  }}
                   labelStyle={{ color: '#eef0f5' }}
                 />
                 <Bar dataKey="assets" fill="#e8c97a" radius={[4, 4, 0, 0]} />
@@ -261,19 +383,35 @@ export default function AssetDashboardClient() {
             </div>
             <ResponsiveContainer width="100%" height={160}>
               <PieChart>
-                <Pie data={riskData} cx="50%" cy="50%" innerRadius={45} outerRadius={70} paddingAngle={3} dataKey="value">
+                <Pie
+                  data={riskData}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={45}
+                  outerRadius={70}
+                  paddingAngle={3}
+                  dataKey="value"
+                >
                   {riskData.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={entry.color} />
                   ))}
                 </Pie>
                 <Tooltip
-                  contentStyle={{ background: 'var(--surface2)', border: '1px solid var(--border)', borderRadius: 8, fontSize: 12 }}
+                  contentStyle={{
+                    background: 'var(--surface2)',
+                    border: '1px solid var(--border)',
+                    borderRadius: 8,
+                    fontSize: 12,
+                  }}
                 />
               </PieChart>
             </ResponsiveContainer>
             <div className="flex flex-wrap gap-2 mt-2">
               {riskData.map((d) => (
-                <div key={d.name} className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <div
+                  key={d.name}
+                  className="flex items-center gap-1.5 text-xs text-muted-foreground"
+                >
                   <span className="w-2 h-2 rounded-full" style={{ background: d.color }} />
                   {d.name} ({d.value})
                 </div>
@@ -299,7 +437,9 @@ export default function AssetDashboardClient() {
               {categoryChartData.map((cat) => (
                 <div key={cat.name}>
                   <div className="flex items-center justify-between mb-1">
-                    <span className="text-xs font-medium" style={{ color: 'var(--foreground)' }}>{cat.name}</span>
+                    <span className="text-xs font-medium" style={{ color: 'var(--foreground)' }}>
+                      {cat.name}
+                    </span>
                     <span className="text-xs text-muted-foreground">{cat.value}</span>
                   </div>
                   <div className="h-1.5 rounded-full" style={{ background: 'var(--surface3)' }}>
@@ -341,7 +481,9 @@ export default function AssetDashboardClient() {
                 >
                   <div className="flex-1 min-w-0">
                     <div className="text-sm font-medium truncate">{m.assetName}</div>
-                    <div className="text-xs text-muted-foreground truncate">{m.hotelName} · {m.type}</div>
+                    <div className="text-xs text-muted-foreground truncate">
+                      {m.hotelName} · {m.type}
+                    </div>
                   </div>
                   <MaintenanceBadge status={m.status} />
                 </div>
@@ -402,7 +544,10 @@ export default function AssetDashboardClient() {
                       <span
                         className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold"
                         style={{
-                          background: hotel.status === 'active' ? 'rgba(61,214,140,0.12)' : 'rgba(245,158,11,0.12)',
+                          background:
+                            hotel.status === 'active'
+                              ? 'rgba(61,214,140,0.12)'
+                              : 'rgba(245,158,11,0.12)',
                           color: hotel.status === 'active' ? '#3dd68c' : '#f59e0b',
                         }}
                       >

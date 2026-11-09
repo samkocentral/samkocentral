@@ -63,13 +63,7 @@ import { toast } from 'sonner';
 import CustomDropdown from '@/components/ui/CustomDropdown';
 
 export type AppCmsSectionKey =
-  | 'dashboard'
-  | 'propco'
-  | 'opco'
-  | 'recent-logs'
-  | 'import'
-  | 'users'
-  | 'navigation';
+  'dashboard' | 'propco' | 'opco' | 'recent-logs' | 'import' | 'users' | 'navigation';
 
 interface Props {
   activeSection: AppCmsSectionKey;
@@ -108,7 +102,13 @@ export function resolvePageIdFromTab(tab: { id: string; path: string }): string 
   const p = (tab.path || '').toLowerCase();
   const id = (tab.id || '').toLowerCase();
   if (id.includes('dashboard') || p === '/' || p.includes('portal=')) return 'overview';
-  if (id.includes('proper') || id.includes('hotel') || p.includes('/properties') || p.includes('/hotels')) return 'properties';
+  if (
+    id.includes('proper') ||
+    id.includes('hotel') ||
+    p.includes('/properties') ||
+    p.includes('/hotels')
+  )
+    return 'properties';
   if (id.includes('asset') || p.includes('/assets')) return 'assets';
   if (id.includes('categor') || p.includes('/categories')) return 'categories';
   if (id.includes('compliance') || p.includes('/compliance')) return 'compliance';
@@ -124,8 +124,17 @@ export function resolvePageIdFromTab(tab: { id: string; path: string }): string 
 }
 
 export default function CompleteAppCMS({ activeSection, onSelectSection }: Props) {
-  const { config, propco, opco, dashboard, recentLogs, importExport, roles, navigationItems, refresh } =
-    useAppCms();
+  const {
+    config,
+    propco,
+    opco,
+    dashboard,
+    recentLogs,
+    importExport,
+    roles,
+    navigationItems,
+    refresh,
+  } = useAppCms();
 
   // Tab editing state - all fields editable
   const [editingTabId, setEditingTabId] = useState<string | null>(null);
@@ -277,7 +286,11 @@ export default function CompleteAppCMS({ activeSection, onSelectSection }: Props
   };
 
   const handleDeleteTab = (portalId: 'propco' | 'opco', tabId: string, tabName: string) => {
-    if (confirm(`Are you sure you want to remove the tab "${tabName}" from ${portalId.toUpperCase()}?`)) {
+    if (
+      confirm(
+        `Are you sure you want to remove the tab "${tabName}" from ${portalId.toUpperCase()}?`
+      )
+    ) {
       deletePortalTab(portalId, tabId);
       toast.success(`Removed "${tabName}"`);
       refresh();
@@ -332,17 +345,13 @@ export default function CompleteAppCMS({ activeSection, onSelectSection }: Props
   };
 
   const handleToggleKpi = (kpiId: string, current: boolean) => {
-    const updated = dashboard.kpis.map((k) =>
-      k.id === kpiId ? { ...k, enabled: !current } : k
-    );
+    const updated = dashboard.kpis.map((k) => (k.id === kpiId ? { ...k, enabled: !current } : k));
     updateDashboardConfig({ kpis: updated });
     refresh();
   };
 
   const handleUpdateKpi = (kpiId: string, updates: Partial<AppCmsKpiCard>) => {
-    const updated = dashboard.kpis.map((k) =>
-      k.id === kpiId ? { ...k, ...updates } : k
-    );
+    const updated = dashboard.kpis.map((k) => (k.id === kpiId ? { ...k, ...updates } : k));
     updateDashboardConfig({ kpis: updated });
     refresh();
   };
@@ -363,7 +372,8 @@ export default function CompleteAppCMS({ activeSection, onSelectSection }: Props
       <div
         className="rounded-2xl border p-6 relative overflow-hidden shadow-sm"
         style={{
-          background: 'linear-gradient(135deg, rgba(232, 201, 122, 0.08) 0%, rgba(18, 19, 22, 0.95) 100%)',
+          background:
+            'linear-gradient(135deg, rgba(232, 201, 122, 0.08) 0%, rgba(18, 19, 22, 0.95) 100%)',
           borderColor: 'rgba(232, 201, 122, 0.25)',
         }}
       >
@@ -407,8 +417,8 @@ export default function CompleteAppCMS({ activeSection, onSelectSection }: Props
                 </span>
               </div>
               <p className="text-xs text-muted-foreground mt-1 leading-relaxed max-w-2xl">
-                Edit everything in this section: titles, badges, colors, tabs, URLs, icons, descriptions,
-                and add new tabs with dynamic routing.
+                Edit everything in this section: titles, badges, colors, tabs, URLs, icons,
+                descriptions, and add new tabs with dynamic routing.
               </p>
             </div>
           </div>
@@ -441,431 +451,445 @@ export default function CompleteAppCMS({ activeSection, onSelectSection }: Props
       </div>
 
       {/* ─── 1. PROPCO & OPCO SECTION CMS ─── */}
-      {(activeSection === 'propco' || activeSection === 'opco') && (() => {
-        const portal = activeSection === 'propco' ? propco : opco;
+      {(activeSection === 'propco' || activeSection === 'opco') &&
+        (() => {
+          const portal = activeSection === 'propco' ? propco : opco;
 
-        return (
-          <div className="flex flex-col gap-5">
-            {/* Portal Header Customizer Card */}
-            <div
-              className="rounded-xl border p-5 flex flex-col gap-4 shadow-sm"
-              style={{ background: 'var(--surface)', borderColor: 'var(--border)' }}
-            >
-              <div className="flex items-center justify-between pb-3 border-b border-border">
-                <div className="flex items-center gap-2.5">
-                  <div
-                    className="w-7 h-7 rounded-lg flex items-center justify-center font-bold text-xs"
-                    style={{ background: `${portal.badgeColor}25`, color: portal.badgeColor }}
-                  >
-                    {portal.id === 'propco' ? <Building2 size={16} /> : <Shield size={16} />}
+          return (
+            <div className="flex flex-col gap-5">
+              {/* Portal Header Customizer Card */}
+              <div
+                className="rounded-xl border p-5 flex flex-col gap-4 shadow-sm"
+                style={{ background: 'var(--surface)', borderColor: 'var(--border)' }}
+              >
+                <div className="flex items-center justify-between pb-3 border-b border-border">
+                  <div className="flex items-center gap-2.5">
+                    <div
+                      className="w-7 h-7 rounded-lg flex items-center justify-center font-bold text-xs"
+                      style={{ background: `${portal.badgeColor}25`, color: portal.badgeColor }}
+                    >
+                      {portal.id === 'propco' ? <Building2 size={16} /> : <Shield size={16} />}
+                    </div>
+                    <div>
+                      <span className="font-head font-bold text-sm text-foreground">
+                        Sidebar Header Styling & Branding
+                      </span>
+                      <p className="text-[11px] text-muted-foreground">
+                        Controls how this accordion section is displayed in the main application
+                        sidebar
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <span className="font-head font-bold text-sm text-foreground">
-                      Sidebar Header Styling & Branding
-                    </span>
-                    <p className="text-[11px] text-muted-foreground">
-                      Controls how this accordion section is displayed in the main application sidebar
-                    </p>
-                  </div>
+
+                  {!editingHeader ? (
+                    <button
+                      onClick={() => handleStartHeaderEdit(portal)}
+                      className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium border border-border hover:border-primary/50 text-foreground transition-colors cursor-pointer"
+                    >
+                      <Edit2 size={12} /> Edit Section Title & Badges
+                    </button>
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => handleSaveHeader(portal.id)}
+                        className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold transition-transform active:scale-95 cursor-pointer"
+                        style={{ background: 'var(--primary)', color: '#121316' }}
+                      >
+                        <Check size={12} strokeWidth={3} /> Save Header
+                      </button>
+                      <button
+                        onClick={() => setEditingHeader(false)}
+                        className="px-2.5 py-1.5 rounded-lg text-xs font-medium border border-border text-muted-foreground hover:text-foreground"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  )}
                 </div>
 
-                {!editingHeader ? (
-                  <button
-                    onClick={() => handleStartHeaderEdit(portal)}
-                    className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium border border-border hover:border-primary/50 text-foreground transition-colors cursor-pointer"
-                  >
-                    <Edit2 size={12} /> Edit Section Title & Badges
-                  </button>
+                {/* Editable or Display View */}
+                {editingHeader ? (
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-1">
+                    <div className="flex flex-col gap-1.5">
+                      <label className="text-xs font-semibold text-foreground">Section Title</label>
+                      <input
+                        type="text"
+                        value={headerForm.title}
+                        onChange={(e) => setHeaderForm({ ...headerForm, title: e.target.value })}
+                        className="rounded-lg border border-border px-3 py-2 text-xs outline-none"
+                        style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
+                      />
+                    </div>
+                    <div className="flex flex-col gap-1.5">
+                      <label className="text-xs font-semibold text-foreground">
+                        Subtitle Badge Text
+                      </label>
+                      <input
+                        type="text"
+                        value={headerForm.badgeText}
+                        onChange={(e) =>
+                          setHeaderForm({ ...headerForm, badgeText: e.target.value })
+                        }
+                        className="rounded-lg border border-border px-3 py-2 text-xs outline-none"
+                        style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
+                      />
+                    </div>
+                    <div className="flex flex-col gap-1.5">
+                      <label className="text-xs font-semibold text-foreground">
+                        Badge Theme Color
+                      </label>
+                      <div className="flex items-center gap-2">
+                        <div className="flex-1">
+                          <CustomDropdown
+                            value={headerForm.badgeColor}
+                            onChange={(val) => setHeaderForm({ ...headerForm, badgeColor: val })}
+                            options={COLOR_OPTIONS.map((col) => ({
+                              value: col.value,
+                              label: col.label,
+                              color: col.value,
+                            }))}
+                            variant="form"
+                            width="100%"
+                          />
+                        </div>
+                        <div
+                          className="w-7 h-7 rounded-lg border border-white/20 flex-shrink-0"
+                          style={{ background: headerForm.badgeColor }}
+                        />
+                      </div>
+                    </div>
+                    <div className="col-span-1 md:col-span-3 flex flex-col gap-1.5">
+                      <label className="text-xs font-semibold text-foreground">
+                        Section Description
+                      </label>
+                      <input
+                        type="text"
+                        value={headerForm.description}
+                        onChange={(e) =>
+                          setHeaderForm({ ...headerForm, description: e.target.value })
+                        }
+                        className="rounded-lg border border-border px-3 py-2 text-xs outline-none"
+                        style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
+                      />
+                    </div>
+                  </div>
                 ) : (
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => handleSaveHeader(portal.id)}
-                      className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold transition-transform active:scale-95 cursor-pointer"
-                      style={{ background: 'var(--primary)', color: '#121316' }}
-                    >
-                      <Check size={12} strokeWidth={3} /> Save Header
-                    </button>
-                    <button
-                      onClick={() => setEditingHeader(false)}
-                      className="px-2.5 py-1.5 rounded-lg text-xs font-medium border border-border text-muted-foreground hover:text-foreground"
-                    >
-                      Cancel
-                    </button>
+                  <div className="flex items-center justify-between p-3 rounded-lg border border-border/80 bg-black/20">
+                    <div className="flex items-center gap-2.5">
+                      <span
+                        className="font-head font-bold text-sm tracking-wider uppercase"
+                        style={{ color: portal.badgeColor }}
+                      >
+                        {portal.title}
+                      </span>
+                      <span
+                        className="text-[10px] font-extrabold px-2 py-0.5 rounded tracking-wider uppercase"
+                        style={{
+                          background: `${portal.badgeColor}25`,
+                          color: portal.badgeColor,
+                          border: `1px solid ${portal.badgeColor}40`,
+                        }}
+                      >
+                        {portal.badgeText}
+                      </span>
+                      <span className="text-xs text-muted-foreground ml-2 hidden sm:inline">
+                        {portal.description}
+                      </span>
+                    </div>
+                    <span className="text-xs font-semibold px-2 py-1 rounded bg-white/5 border border-white/10 text-muted-foreground">
+                      {portal.tabs.length} Tabs Configured
+                    </span>
                   </div>
                 )}
               </div>
 
-              {/* Editable or Display View */}
-              {editingHeader ? (
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-1">
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-xs font-semibold text-foreground">Section Title</label>
-                    <input
-                      type="text"
-                      value={headerForm.title}
-                      onChange={(e) => setHeaderForm({ ...headerForm, title: e.target.value })}
-                      className="rounded-lg border border-border px-3 py-2 text-xs outline-none"
-                      style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
-                    />
-                  </div>
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-xs font-semibold text-foreground">Subtitle Badge Text</label>
-                    <input
-                      type="text"
-                      value={headerForm.badgeText}
-                      onChange={(e) => setHeaderForm({ ...headerForm, badgeText: e.target.value })}
-                      className="rounded-lg border border-border px-3 py-2 text-xs outline-none"
-                      style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
-                    />
-                  </div>
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-xs font-semibold text-foreground">Badge Theme Color</label>
-                    <div className="flex items-center gap-2">
-                      <div className="flex-1">
-                        <CustomDropdown
-                          value={headerForm.badgeColor}
-                          onChange={(val) => setHeaderForm({ ...headerForm, badgeColor: val })}
-                          options={COLOR_OPTIONS.map((col) => ({
-                            value: col.value,
-                            label: col.label,
-                            color: col.value
-                          }))}
-                          variant="form"
-                          width="100%"
-                        />
-                      </div>
-                      <div
-                        className="w-7 h-7 rounded-lg border border-white/20 flex-shrink-0"
-                        style={{ background: headerForm.badgeColor }}
-                      />
-                    </div>
-                  </div>
-                  <div className="col-span-1 md:col-span-3 flex flex-col gap-1.5">
-                    <label className="text-xs font-semibold text-foreground">Section Description</label>
-                    <input
-                      type="text"
-                      value={headerForm.description}
-                      onChange={(e) => setHeaderForm({ ...headerForm, description: e.target.value })}
-                      className="rounded-lg border border-border px-3 py-2 text-xs outline-none"
-                      style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
-                    />
-                  </div>
-                </div>
-              ) : (
-                <div className="flex items-center justify-between p-3 rounded-lg border border-border/80 bg-black/20">
-                  <div className="flex items-center gap-2.5">
-                    <span
-                      className="font-head font-bold text-sm tracking-wider uppercase"
-                      style={{ color: portal.badgeColor }}
-                    >
-                      {portal.title}
-                    </span>
-                    <span
-                      className="text-[10px] font-extrabold px-2 py-0.5 rounded tracking-wider uppercase"
-                      style={{
-                        background: `${portal.badgeColor}25`,
-                        color: portal.badgeColor,
-                        border: `1px solid ${portal.badgeColor}40`,
-                      }}
-                    >
-                      {portal.badgeText}
-                    </span>
-                    <span className="text-xs text-muted-foreground ml-2 hidden sm:inline">
-                      {portal.description}
-                    </span>
-                  </div>
-                  <span className="text-xs font-semibold px-2 py-1 rounded bg-white/5 border border-white/10 text-muted-foreground">
-                    {portal.tabs.length} Tabs Configured
+              {/* Tabs List */}
+              <div className="flex flex-col gap-2.5">
+                <div className="flex items-center justify-between px-1">
+                  <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                    <Layers size={13} /> {portal.title} Tabs ({portal.tabs.length})
+                  </span>
+                  <span className="text-[11px] text-muted-foreground">
+                    Drag / reorder, rename, or copy to both sections
                   </span>
                 </div>
-              )}
-            </div>
 
-            {/* Tabs List */}
-            <div className="flex flex-col gap-2.5">
-              <div className="flex items-center justify-between px-1">
-                <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-                  <Layers size={13} /> {portal.title} Tabs ({portal.tabs.length})
-                </span>
-                <span className="text-[11px] text-muted-foreground">
-                  Drag / reorder, rename, or copy to both sections
-                </span>
-              </div>
+                <div className="flex flex-col gap-2">
+                  {portal.tabs.map((tab, idx) => {
+                    const isEditing = editingTabId === tab.id;
 
-              <div className="flex flex-col gap-2">
-                {portal.tabs.map((tab, idx) => {
-                  const isEditing = editingTabId === tab.id;
-
-                  return (
-                    <div
-                      key={tab.id}
-                      className={`rounded-xl border transition-all ${
-                        tab.enabled ? 'border-border' : 'border-border/50 opacity-60'
-                      }`}
-                      style={{ background: 'var(--surface)' }}
-                    >
-                      {!isEditing ? (
-                        <div className="p-4 flex flex-col xl:flex-row xl:items-center justify-between gap-3">
-                          <div className="flex items-center gap-3 flex-1 min-w-0">
-                            {/* Order badge */}
-                            <span className="w-6 h-6 rounded-md bg-white/10 text-[11px] font-bold flex items-center justify-center text-muted-foreground flex-shrink-0">
-                              #{idx + 1}
-                            </span>
-
-                            <div className="flex flex-col min-w-0 flex-1">
-                              <div className="flex items-center gap-2 flex-wrap">
-                                <span className="font-head font-bold text-sm text-foreground">
-                                  {tab.name}
-                                </span>
-                                <span className="text-[11px] text-primary/80 font-mono">
-                                  {tab.path}
-                                </span>
-                                {tab.isCustom && (
-                                  <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
-                                    Custom Tab
-                                  </span>
-                                )}
-                                {tab.section === 'both' && (
-                                  <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-purple-500/15 text-purple-400 border border-purple-500/30">
-                                    In Both (PropCo & OpCo)
-                                  </span>
-                                )}
-                                {!tab.enabled && (
-                                  <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-rose-500/15 text-rose-400 border border-rose-500/30">
-                                    Hidden
-                                  </span>
-                                )}
-                              </div>
-                              <p className="text-xs text-muted-foreground mt-0.5 truncate">
-                                {tab.description}
-                              </p>
-                            </div>
-                          </div>
-
-                          {/* Right action buttons */}
-                          <div className="flex items-center gap-1.5 flex-shrink-0 flex-wrap">
-                            {/* Reorder Up/Down */}
-                            <button
-                              disabled={idx === 0}
-                              onClick={() => handleMoveTab(portal.id, idx, 'up')}
-                              className="p-1.5 rounded-lg border border-border text-muted-foreground hover:text-foreground disabled:opacity-20 cursor-pointer"
-                              title="Move Up"
-                            >
-                              <ArrowUp size={12} />
-                            </button>
-                            <button
-                              disabled={idx === portal.tabs.length - 1}
-                              onClick={() => handleMoveTab(portal.id, idx, 'down')}
-                              className="p-1.5 rounded-lg border border-border text-muted-foreground hover:text-foreground disabled:opacity-20 cursor-pointer"
-                              title="Move Down"
-                            >
-                              <ArrowDown size={12} />
-                            </button>
-
-                            {/* Copy to other portal */}
-                            <button
-                              onClick={() =>
-                                handleCopyTab(
-                                  portal.id,
-                                  portal.id === 'propco' ? 'opco' : 'propco',
-                                  tab.id,
-                                  tab.name
-                                )
-                              }
-                              className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium border border-border text-muted-foreground hover:text-primary transition-colors cursor-pointer"
-                              title={`Copy this tab to ${portal.id === 'propco' ? 'OPCO' : 'PROPCO'}`}
-                            >
-                              <Copy size={11} />
-                              <span>Copy to {portal.id === 'propco' ? 'OpCo' : 'PropCo'}</span>
-                            </button>
-
-                            {/* Direct Deep Page CMS Button */}
-                            <Link
-                              href={`/settings?tab=cms-pages&page=${resolvePageIdFromTab(tab)}`}
-                              className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold border border-amber-500/30 text-amber-300 bg-amber-500/10 hover:bg-amber-500/20 transition-colors"
-                              title="Edit this tab's page content, titles, buttons & columns"
-                            >
-                              <Sparkles size={11} />
-                              <span>Page CMS</span>
-                            </Link>
-
-                            {/* Toggle visibility */}
-                            <button
-                              onClick={() => handleToggleTab(portal.id, tab.id, tab.enabled)}
-                              className="p-1.5 rounded-lg border border-border text-muted-foreground hover:text-foreground cursor-pointer"
-                              title={tab.enabled ? 'Hide tab from sidebar' : 'Show tab in sidebar'}
-                            >
-                              {tab.enabled ? <Eye size={13} /> : <EyeOff size={13} />}
-                            </button>
-
-                            {/* Edit Tab */}
-                            <button
-                              onClick={() => handleStartTabEdit(tab)}
-                              className="p-1.5 rounded-lg border border-border text-muted-foreground hover:text-primary cursor-pointer"
-                              title="Edit All Details of this Tab"
-                            >
-                              <Edit2 size={13} />
-                            </button>
-
-                            {/* Delete */}
-                            <button
-                              onClick={() => handleDeleteTab(portal.id, tab.id, tab.name)}
-                              className="p-1.5 rounded-lg border border-border text-muted-foreground hover:text-rose-400 hover:bg-rose-500/10 cursor-pointer"
-                              title="Delete / Remove Tab"
-                            >
-                              <Trash2 size={13} />
-                            </button>
-                          </div>
-                        </div>
-                      ) : (
-                        /* Expanded Dedicated Full-Width Tab Editor */
-                        <div
-                          className="p-5 rounded-xl border-2 flex flex-col gap-4 shadow-lg animate-in fade-in duration-150"
-                          style={{
-                            background: 'rgba(232, 201, 122, 0.04)',
-                            borderColor: 'rgba(232, 201, 122, 0.5)',
-                          }}
-                        >
-                          <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-border gap-2">
-                            <div className="flex items-center gap-2">
-                              <span className="w-6 h-6 rounded-md bg-amber-400/20 text-amber-300 text-xs font-bold flex items-center justify-center">
+                    return (
+                      <div
+                        key={tab.id}
+                        className={`rounded-xl border transition-all ${
+                          tab.enabled ? 'border-border' : 'border-border/50 opacity-60'
+                        }`}
+                        style={{ background: 'var(--surface)' }}
+                      >
+                        {!isEditing ? (
+                          <div className="p-4 flex flex-col xl:flex-row xl:items-center justify-between gap-3">
+                            <div className="flex items-center gap-3 flex-1 min-w-0">
+                              {/* Order badge */}
+                              <span className="w-6 h-6 rounded-md bg-white/10 text-[11px] font-bold flex items-center justify-center text-muted-foreground flex-shrink-0">
                                 #{idx + 1}
                               </span>
-                              <div>
-                                <span className="font-head font-bold text-sm text-foreground">
-                                  Editing Tab: <span className="text-primary">{tab.name}</span>
-                                </span>
-                                <p className="text-[11px] text-muted-foreground">
-                                  Configure route, placement, and visual settings for this tab
+
+                              <div className="flex flex-col min-w-0 flex-1">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <span className="font-head font-bold text-sm text-foreground">
+                                    {tab.name}
+                                  </span>
+                                  <span className="text-[11px] text-primary/80 font-mono">
+                                    {tab.path}
+                                  </span>
+                                  {tab.isCustom && (
+                                    <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+                                      Custom Tab
+                                    </span>
+                                  )}
+                                  {tab.section === 'both' && (
+                                    <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-purple-500/15 text-purple-400 border border-purple-500/30">
+                                      In Both (PropCo & OpCo)
+                                    </span>
+                                  )}
+                                  {!tab.enabled && (
+                                    <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-rose-500/15 text-rose-400 border border-rose-500/30">
+                                      Hidden
+                                    </span>
+                                  )}
+                                </div>
+                                <p className="text-xs text-muted-foreground mt-0.5 truncate">
+                                  {tab.description}
                                 </p>
                               </div>
                             </div>
-                            <div className="flex items-center gap-2 flex-wrap">
+
+                            {/* Right action buttons */}
+                            <div className="flex items-center gap-1.5 flex-shrink-0 flex-wrap">
+                              {/* Reorder Up/Down */}
+                              <button
+                                disabled={idx === 0}
+                                onClick={() => handleMoveTab(portal.id, idx, 'up')}
+                                className="p-1.5 rounded-lg border border-border text-muted-foreground hover:text-foreground disabled:opacity-20 cursor-pointer"
+                                title="Move Up"
+                              >
+                                <ArrowUp size={12} />
+                              </button>
+                              <button
+                                disabled={idx === portal.tabs.length - 1}
+                                onClick={() => handleMoveTab(portal.id, idx, 'down')}
+                                className="p-1.5 rounded-lg border border-border text-muted-foreground hover:text-foreground disabled:opacity-20 cursor-pointer"
+                                title="Move Down"
+                              >
+                                <ArrowDown size={12} />
+                              </button>
+
+                              {/* Copy to other portal */}
+                              <button
+                                onClick={() =>
+                                  handleCopyTab(
+                                    portal.id,
+                                    portal.id === 'propco' ? 'opco' : 'propco',
+                                    tab.id,
+                                    tab.name
+                                  )
+                                }
+                                className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium border border-border text-muted-foreground hover:text-primary transition-colors cursor-pointer"
+                                title={`Copy this tab to ${portal.id === 'propco' ? 'OPCO' : 'PROPCO'}`}
+                              >
+                                <Copy size={11} />
+                                <span>Copy to {portal.id === 'propco' ? 'OpCo' : 'PropCo'}</span>
+                              </button>
+
+                              {/* Direct Deep Page CMS Button */}
                               <Link
                                 href={`/settings?tab=cms-pages&page=${resolvePageIdFromTab(tab)}`}
-                                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border border-amber-500/40 text-amber-300 bg-amber-500/15 hover:bg-amber-500/25 transition-colors"
+                                className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold border border-amber-500/30 text-amber-300 bg-amber-500/10 hover:bg-amber-500/20 transition-colors"
+                                title="Edit this tab's page content, titles, buttons & columns"
                               >
-                                <Sparkles size={12} />
-                                <span>Edit Page Columns & Data</span>
+                                <Sparkles size={11} />
+                                <span>Page CMS</span>
                               </Link>
+
+                              {/* Toggle visibility */}
                               <button
-                                onClick={() => handleSaveTabEdit(portal.id, tab.id)}
-                                className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-transform active:scale-95 cursor-pointer"
-                                style={{ background: 'var(--primary)', color: '#121316' }}
+                                onClick={() => handleToggleTab(portal.id, tab.id, tab.enabled)}
+                                className="p-1.5 rounded-lg border border-border text-muted-foreground hover:text-foreground cursor-pointer"
+                                title={
+                                  tab.enabled ? 'Hide tab from sidebar' : 'Show tab in sidebar'
+                                }
                               >
-                                <Check size={13} strokeWidth={3} /> Save Tab
+                                {tab.enabled ? <Eye size={13} /> : <EyeOff size={13} />}
                               </button>
+
+                              {/* Edit Tab */}
                               <button
-                                onClick={() => setEditingTabId(null)}
-                                className="px-3 py-1.5 rounded-lg text-xs font-medium border border-border text-muted-foreground hover:text-foreground cursor-pointer"
+                                onClick={() => handleStartTabEdit(tab)}
+                                className="p-1.5 rounded-lg border border-border text-muted-foreground hover:text-primary cursor-pointer"
+                                title="Edit All Details of this Tab"
                               >
-                                Cancel
+                                <Edit2 size={13} />
+                              </button>
+
+                              {/* Delete */}
+                              <button
+                                onClick={() => handleDeleteTab(portal.id, tab.id, tab.name)}
+                                className="p-1.5 rounded-lg border border-border text-muted-foreground hover:text-rose-400 hover:bg-rose-500/10 cursor-pointer"
+                                title="Delete / Remove Tab"
+                              >
+                                <Trash2 size={13} />
                               </button>
                             </div>
                           </div>
-
-                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            {/* Tab Display Name */}
-                            <div className="flex flex-col gap-1.5">
-                              <label className="text-xs font-semibold text-foreground">
-                                Tab Display Name *
-                              </label>
-                              <input
-                                type="text"
-                                value={tabEditForm.name}
-                                onChange={(e) =>
-                                  setTabEditForm({ ...tabEditForm, name: e.target.value })
-                                }
-                                className="px-3 py-2 rounded-lg border border-border outline-none text-xs text-foreground focus:border-primary font-medium"
-                                style={{ background: 'var(--surface2)' }}
-                                placeholder="Tab Display Name"
-                              />
+                        ) : (
+                          /* Expanded Dedicated Full-Width Tab Editor */
+                          <div
+                            className="p-5 rounded-xl border-2 flex flex-col gap-4 shadow-lg animate-in fade-in duration-150"
+                            style={{
+                              background: 'rgba(232, 201, 122, 0.04)',
+                              borderColor: 'rgba(232, 201, 122, 0.5)',
+                            }}
+                          >
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-border gap-2">
+                              <div className="flex items-center gap-2">
+                                <span className="w-6 h-6 rounded-md bg-amber-400/20 text-amber-300 text-xs font-bold flex items-center justify-center">
+                                  #{idx + 1}
+                                </span>
+                                <div>
+                                  <span className="font-head font-bold text-sm text-foreground">
+                                    Editing Tab: <span className="text-primary">{tab.name}</span>
+                                  </span>
+                                  <p className="text-[11px] text-muted-foreground">
+                                    Configure route, placement, and visual settings for this tab
+                                  </p>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <Link
+                                  href={`/settings?tab=cms-pages&page=${resolvePageIdFromTab(tab)}`}
+                                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border border-amber-500/40 text-amber-300 bg-amber-500/15 hover:bg-amber-500/25 transition-colors"
+                                >
+                                  <Sparkles size={12} />
+                                  <span>Edit Page Columns & Data</span>
+                                </Link>
+                                <button
+                                  onClick={() => handleSaveTabEdit(portal.id, tab.id)}
+                                  className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-transform active:scale-95 cursor-pointer"
+                                  style={{ background: 'var(--primary)', color: '#121316' }}
+                                >
+                                  <Check size={13} strokeWidth={3} /> Save Tab
+                                </button>
+                                <button
+                                  onClick={() => setEditingTabId(null)}
+                                  className="px-3 py-1.5 rounded-lg text-xs font-medium border border-border text-muted-foreground hover:text-foreground cursor-pointer"
+                                >
+                                  Cancel
+                                </button>
+                              </div>
                             </div>
 
-                            {/* Route Path */}
-                            <div className="flex flex-col gap-1.5">
-                              <label className="text-xs font-semibold text-foreground">
-                                Route URL / Path *
-                              </label>
-                              <input
-                                type="text"
-                                value={tabEditForm.path}
-                                onChange={(e) =>
-                                  setTabEditForm({ ...tabEditForm, path: e.target.value })
-                                }
-                                className="px-3 py-2 rounded-lg border border-border outline-none text-xs font-mono text-foreground focus:border-primary"
-                                style={{ background: 'var(--surface2)' }}
-                                placeholder="/asset-management/..."
-                              />
-                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                              {/* Tab Display Name */}
+                              <div className="flex flex-col gap-1.5">
+                                <label className="text-xs font-semibold text-foreground">
+                                  Tab Display Name *
+                                </label>
+                                <input
+                                  type="text"
+                                  value={tabEditForm.name}
+                                  onChange={(e) =>
+                                    setTabEditForm({ ...tabEditForm, name: e.target.value })
+                                  }
+                                  className="px-3 py-2 rounded-lg border border-border outline-none text-xs text-foreground focus:border-primary font-medium"
+                                  style={{ background: 'var(--surface2)' }}
+                                  placeholder="Tab Display Name"
+                                />
+                              </div>
 
-                            {/* Portal Placement */}
-                            <div className="flex flex-col gap-1.5">
-                              <label className="text-xs font-semibold text-foreground">
-                                Portal Placement
-                              </label>
-                              <CustomDropdown
-                                value={tabEditForm.section}
-                                onChange={(val) =>
-                                  setTabEditForm({ ...tabEditForm, section: val as any })
-                                }
-                                options={[
-                                  { value: 'propco', label: 'PROPCO (Asset Co)' },
-                                  { value: 'opco', label: 'OPCO (Operations)' },
-                                  { value: 'both', label: 'Both (PropCo & OpCo)' }
-                                ]}
-                                variant="form"
-                                width="100%"
-                              />
-                            </div>
+                              {/* Route Path */}
+                              <div className="flex flex-col gap-1.5">
+                                <label className="text-xs font-semibold text-foreground">
+                                  Route URL / Path *
+                                </label>
+                                <input
+                                  type="text"
+                                  value={tabEditForm.path}
+                                  onChange={(e) =>
+                                    setTabEditForm({ ...tabEditForm, path: e.target.value })
+                                  }
+                                  className="px-3 py-2 rounded-lg border border-border outline-none text-xs font-mono text-foreground focus:border-primary"
+                                  style={{ background: 'var(--surface2)' }}
+                                  placeholder="/asset-management/..."
+                                />
+                              </div>
 
-                            {/* Description */}
-                            <div className="col-span-1 md:col-span-2 flex flex-col gap-1.5">
-                              <label className="text-xs font-semibold text-foreground">
-                                Tab Subtitle / Description
-                              </label>
-                              <input
-                                type="text"
-                                value={tabEditForm.description}
-                                onChange={(e) =>
-                                  setTabEditForm({ ...tabEditForm, description: e.target.value })
-                                }
-                                className="px-3 py-2 rounded-lg border border-border outline-none text-xs text-foreground focus:border-primary"
-                                style={{ background: 'var(--surface2)' }}
-                                placeholder="Module description shown below the tab name..."
-                              />
-                            </div>
+                              {/* Portal Placement */}
+                              <div className="flex flex-col gap-1.5">
+                                <label className="text-xs font-semibold text-foreground">
+                                  Portal Placement
+                                </label>
+                                <CustomDropdown
+                                  value={tabEditForm.section}
+                                  onChange={(val) =>
+                                    setTabEditForm({ ...tabEditForm, section: val as any })
+                                  }
+                                  options={[
+                                    { value: 'propco', label: 'PROPCO (Asset Co)' },
+                                    { value: 'opco', label: 'OPCO (Operations)' },
+                                    { value: 'both', label: 'Both (PropCo & OpCo)' },
+                                  ]}
+                                  variant="form"
+                                  width="100%"
+                                />
+                              </div>
 
-                            {/* Icon Selection */}
-                            <div className="flex flex-col gap-1.5">
-                              <label className="text-xs font-semibold text-foreground">
-                                Tab Icon
-                              </label>
-                              <CustomDropdown
-                                value={tabEditForm.iconName}
-                                onChange={(val) =>
-                                  setTabEditForm({ ...tabEditForm, iconName: val })
-                                }
-                                options={AVAILABLE_ICONS.map((ico) => ({
-                                  value: ico.name,
-                                  label: `${ico.name} (${ico.label})`
-                                }))}
-                                variant="form"
-                                width="100%"
-                                searchable
-                              />
+                              {/* Description */}
+                              <div className="col-span-1 md:col-span-2 flex flex-col gap-1.5">
+                                <label className="text-xs font-semibold text-foreground">
+                                  Tab Subtitle / Description
+                                </label>
+                                <input
+                                  type="text"
+                                  value={tabEditForm.description}
+                                  onChange={(e) =>
+                                    setTabEditForm({ ...tabEditForm, description: e.target.value })
+                                  }
+                                  className="px-3 py-2 rounded-lg border border-border outline-none text-xs text-foreground focus:border-primary"
+                                  style={{ background: 'var(--surface2)' }}
+                                  placeholder="Module description shown below the tab name..."
+                                />
+                              </div>
+
+                              {/* Icon Selection */}
+                              <div className="flex flex-col gap-1.5">
+                                <label className="text-xs font-semibold text-foreground">
+                                  Tab Icon
+                                </label>
+                                <CustomDropdown
+                                  value={tabEditForm.iconName}
+                                  onChange={(val) =>
+                                    setTabEditForm({ ...tabEditForm, iconName: val })
+                                  }
+                                  options={AVAILABLE_ICONS.map((ico) => ({
+                                    value: ico.name,
+                                    label: `${ico.name} (${ico.label})`,
+                                  }))}
+                                  variant="form"
+                                  width="100%"
+                                  searchable
+                                />
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
             </div>
-          </div>
-        );
-      })()}
+          );
+        })()}
 
       {/* ─── 2. DASHBOARD CMS ─── */}
       {activeSection === 'dashboard' && (
@@ -911,7 +935,9 @@ export default function CompleteAppCMS({ activeSection, onSelectSection }: Props
               </div>
 
               <div className="col-span-1 md:col-span-2 flex flex-col gap-1.5">
-                <label className="text-xs font-semibold text-foreground">Page Subtitle / Tagline</label>
+                <label className="text-xs font-semibold text-foreground">
+                  Page Subtitle / Tagline
+                </label>
                 <input
                   type="text"
                   value={dashSub}
@@ -937,10 +963,7 @@ export default function CompleteAppCMS({ activeSection, onSelectSection }: Props
                   style={{ background: 'var(--surface)', borderColor: 'var(--border)' }}
                 >
                   <div className="flex items-center justify-between">
-                    <span
-                      className="text-xs font-bold"
-                      style={{ color: kpi.color }}
-                    >
+                    <span className="text-xs font-bold" style={{ color: kpi.color }}>
                       {kpi.label}
                     </span>
                     <button
@@ -1017,7 +1040,7 @@ export default function CompleteAppCMS({ activeSection, onSelectSection }: Props
                   { value: '90', label: '90 Days' },
                   { value: '180', label: '180 Days (Standard)' },
                   { value: '365', label: '1 Year (Statutory)' },
-                  { value: '1825', label: '5 Years (Audit Grade)' }
+                  { value: '1825', label: '5 Years (Audit Grade)' },
                 ]}
                 variant="form"
                 width="100%"
@@ -1026,7 +1049,9 @@ export default function CompleteAppCMS({ activeSection, onSelectSection }: Props
           </div>
 
           <div className="flex flex-col gap-2 pt-2 border-t border-border">
-            <label className="text-xs font-semibold text-foreground">Monitored Event Categories</label>
+            <label className="text-xs font-semibold text-foreground">
+              Monitored Event Categories
+            </label>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
               {recentLogs.categories.map((cat, i) => (
                 <div
@@ -1067,7 +1092,9 @@ export default function CompleteAppCMS({ activeSection, onSelectSection }: Props
               />
             </div>
             <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-semibold text-foreground">Max File Upload Limit (MB)</label>
+              <label className="text-xs font-semibold text-foreground">
+                Max File Upload Limit (MB)
+              </label>
               <input
                 type="number"
                 defaultValue={importExport.maxUploadMb}
@@ -1146,22 +1173,17 @@ export default function CompleteAppCMS({ activeSection, onSelectSection }: Props
                 <div className="flex items-center gap-2">
                   <CustomDropdown
                     value={role.badgeColor}
-                    onChange={(val) =>
-                      updateRoleConfig(role.roleLevel, { badgeColor: val })
-                    }
+                    onChange={(val) => updateRoleConfig(role.roleLevel, { badgeColor: val })}
                     options={COLOR_OPTIONS.map((col) => ({
                       value: col.value,
                       label: col.label,
-                      color: col.value
+                      color: col.value,
                     }))}
                     variant="pill"
                     size="sm"
                     showAllOption={false}
                   />
-                  <div
-                    className="w-4 h-4 rounded-full"
-                    style={{ background: role.badgeColor }}
-                  />
+                  <div className="w-4 h-4 rounded-full" style={{ background: role.badgeColor }} />
                 </div>
               </div>
             ))}
@@ -1285,7 +1307,7 @@ export default function CompleteAppCMS({ activeSection, onSelectSection }: Props
                       { value: 'Maintenance', label: 'Maintenance' },
                       { value: 'Compliance', label: 'Compliance' },
                       { value: 'Governance & Legal', label: 'Governance & Legal' },
-                      { value: 'Analytics & Tools', label: 'Analytics & Tools' }
+                      { value: 'Analytics & Tools', label: 'Analytics & Tools' },
                     ]}
                     variant="form"
                     width="100%"
@@ -1300,7 +1322,7 @@ export default function CompleteAppCMS({ activeSection, onSelectSection }: Props
                   onChange={(val) => setNewTabForm({ ...newTabForm, iconName: val })}
                   options={AVAILABLE_ICONS.map((ico) => ({
                     value: ico.name,
-                    label: `${ico.name} (${ico.label})`
+                    label: `${ico.name} (${ico.label})`,
                   }))}
                   variant="form"
                   width="100%"
@@ -1314,9 +1336,7 @@ export default function CompleteAppCMS({ activeSection, onSelectSection }: Props
                   type="text"
                   placeholder="Module summary and purpose..."
                   value={newTabForm.description}
-                  onChange={(e) =>
-                    setNewTabForm({ ...newTabForm, description: e.target.value })
-                  }
+                  onChange={(e) => setNewTabForm({ ...newTabForm, description: e.target.value })}
                   className="rounded-lg border border-border px-3 py-2 text-xs outline-none"
                   style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
                 />

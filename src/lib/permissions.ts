@@ -3,7 +3,14 @@
 export interface TabConfig {
   id: string;
   name: string;
-  group: 'Core & Portfolio' | 'Asset Management' | 'Maintenance' | 'Compliance' | 'Governance & Legal' | 'Analytics & Tools' | 'Administration';
+  group:
+    | 'Core & Portfolio'
+    | 'Asset Management'
+    | 'Maintenance'
+    | 'Compliance'
+    | 'Governance & Legal'
+    | 'Analytics & Tools'
+    | 'Administration';
   path: string;
   description: string;
   badge?: string;
@@ -53,7 +60,8 @@ export const ALL_SYSTEM_TABS: TabConfig[] = [
     name: 'Audit Logs',
     group: 'Core & Portfolio',
     path: '/recent-logs',
-    description: 'Real-time ledger of actions taken by users, sign-offs, and critical system events',
+    description:
+      'Real-time ledger of actions taken by users, sign-offs, and critical system events',
     isSystem: true,
   },
 
@@ -86,7 +94,8 @@ export const ALL_SYSTEM_TABS: TabConfig[] = [
     name: 'Maintenance & PPM Schedules',
     group: 'Maintenance',
     path: '/asset-management/maintenance',
-    description: 'Planned preventive maintenance calendars, engineer work orders and contractor logs',
+    description:
+      'Planned preventive maintenance calendars, engineer work orders and contractor logs',
   },
 
   // ── COMPLIANCE ──
@@ -125,14 +134,16 @@ export const ALL_SYSTEM_TABS: TabConfig[] = [
     name: 'Utilities & Energy Accounts',
     group: 'Governance & Legal',
     path: '/utilities-register',
-    description: 'Electricity, gas, water meters, billing records, consumption analytics and tariffs',
+    description:
+      'Electricity, gas, water meters, billing records, consumption analytics and tariffs',
   },
   {
     id: 'documents',
     name: 'Document Vault & Repository',
     group: 'Governance & Legal',
     path: '/document-repository',
-    description: 'Secure digital repository for statutory certificates, manuals, floor plans and audits',
+    description:
+      'Secure digital repository for statutory certificates, manuals, floor plans and audits',
   },
 
   // ── ANALYTICS & TOOLS ──
@@ -186,7 +197,8 @@ export const ALL_SYSTEM_TABS: TabConfig[] = [
     name: 'System Settings',
     group: 'Administration',
     path: '/settings',
-    description: 'Global organization preferences, email alerts, CMS customization, and audit retention',
+    description:
+      'Global organization preferences, email alerts, CMS customization, and audit retention',
     isSystem: true,
   },
   {
@@ -201,7 +213,8 @@ export const ALL_SYSTEM_TABS: TabConfig[] = [
     name: 'Document Repository',
     group: 'Governance & Legal',
     path: '/document-repository',
-    description: 'Universal document repository, compliance certificates, warranties and O&M manual uploads',
+    description:
+      'Universal document repository, compliance certificates, warranties and O&M manual uploads',
   },
 ];
 
@@ -248,7 +261,11 @@ export const DEFAULT_L3_UPLOADER_PERMISSIONS: UserTabPermissions = ALL_SYSTEM_TA
     } else if (tab.id === 'docs-upload') {
       // Docs Upload is accessible to L3 Uploader
       acc[tab.id] = { enabled: true, accessLevel: 'write' };
-    } else if (tab.group === 'Core & Portfolio' || tab.group === 'Asset Management' || tab.group === 'Maintenance') {
+    } else if (
+      tab.group === 'Core & Portfolio' ||
+      tab.group === 'Asset Management' ||
+      tab.group === 'Maintenance'
+    ) {
       acc[tab.id] = { enabled: true, accessLevel: 'write' };
     } else {
       acc[tab.id] = { enabled: true, accessLevel: 'read' };
@@ -260,7 +277,12 @@ export const DEFAULT_L3_UPLOADER_PERMISSIONS: UserTabPermissions = ALL_SYSTEM_TA
 
 export const DEFAULT_L4_VIEWER_PERMISSIONS: UserTabPermissions = ALL_SYSTEM_TABS.reduce(
   (acc, tab) => {
-    if (tab.id === 'users' || tab.id === 'settings' || tab.id === 'approvals' || tab.id === 'docs-upload') {
+    if (
+      tab.id === 'users' ||
+      tab.id === 'settings' ||
+      tab.id === 'approvals' ||
+      tab.id === 'docs-upload'
+    ) {
       // Approvals, Docs Upload, Users & Settings are hidden from L4 Viewer
       acc[tab.id] = { enabled: false, accessLevel: 'read' };
     } else {
@@ -385,7 +407,9 @@ export function transferTabBetweenRoles({
 
   if (typeof window !== 'undefined') {
     localStorage.setItem(STORAGE_ROLE_TEMPLATES_KEY, JSON.stringify(templates));
-    window.dispatchEvent(new CustomEvent('samko:role-templates-changed', { detail: { templates } }));
+    window.dispatchEvent(
+      new CustomEvent('samko:role-templates-changed', { detail: { templates } })
+    );
   }
 
   return templates;
@@ -435,7 +459,9 @@ export function transferAllTabsBetweenRoles({
 
   if (typeof window !== 'undefined') {
     localStorage.setItem(STORAGE_ROLE_TEMPLATES_KEY, JSON.stringify(templates));
-    window.dispatchEvent(new CustomEvent('samko:role-templates-changed', { detail: { templates } }));
+    window.dispatchEvent(
+      new CustomEvent('samko:role-templates-changed', { detail: { templates } })
+    );
   }
 
   return templates;

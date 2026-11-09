@@ -12,7 +12,14 @@ interface ModalProps {
   width?: number;
 }
 
-export default function Modal({ open, onClose, title, subtitle, children, width = 560 }: ModalProps) {
+export default function Modal({
+  open,
+  onClose,
+  title,
+  subtitle,
+  children,
+  width = 560,
+}: ModalProps) {
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();

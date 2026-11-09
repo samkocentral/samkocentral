@@ -30,7 +30,8 @@ export function getLiveProperties(): Hotel[] {
  * Saves live properties into local cache and notifies all listeners across the app.
  */
 export function saveLivePropertiesToCache(properties: Hotel[]) {
-  if (typeof window === 'undefined' || !Array.isArray(properties) || properties.length === 0) return;
+  if (typeof window === 'undefined' || !Array.isArray(properties) || properties.length === 0)
+    return;
   try {
     const serialized = JSON.stringify(properties);
     const existing = localStorage.getItem(CACHE_KEY);
@@ -72,7 +73,12 @@ export function useLiveProperties() {
         setProperties((prev) => {
           if (
             prev.length === res.data.length &&
-            prev.every((p, i) => p.id === res.data[i]?.id && p.name === res.data[i]?.name && p.status === res.data[i]?.status)
+            prev.every(
+              (p, i) =>
+                p.id === res.data[i]?.id &&
+                p.name === res.data[i]?.name &&
+                p.status === res.data[i]?.status
+            )
           ) {
             return prev;
           }
@@ -122,11 +128,20 @@ export function useLiveProperties() {
       }
     };
 
+    const handleDataChanged = (e: any) => {
+      const type = e?.detail?.type;
+      if (!type || type === 'properties') {
+        refresh();
+      }
+    };
+
     window.addEventListener('samko:property-changed', handlePropertyChange);
+    window.addEventListener('samko:data-changed', handleDataChanged);
     window.addEventListener('storage', handleStorageChange);
 
     return () => {
       window.removeEventListener('samko:property-changed', handlePropertyChange);
+      window.removeEventListener('samko:data-changed', handleDataChanged);
       window.removeEventListener('storage', handleStorageChange);
     };
   }, [refresh]);
@@ -149,4 +164,3 @@ export function useLiveProperties() {
     count: properties.length,
   };
 }
-

@@ -6,7 +6,8 @@ import PageCMSEditButton from '@/components/cms/PageCMSEditButton';
 
 export const metadata = {
   title: 'Audit Logs | SamkoCentral UK',
-  description: 'Audit trail and activity log of all user operations, compliance inspections, and asset changes.',
+  description:
+    'Audit trail and activity log of all user operations, compliance inspections, and asset changes.',
 };
 
 export default function RecentLogsPage() {

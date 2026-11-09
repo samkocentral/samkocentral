@@ -200,21 +200,13 @@ export default function CMSFieldManager() {
   };
 
   // Handle change option color
-  const handleChangeOptionColor = (
-    fieldId: string,
-    optionId: string,
-    newColor: string
-  ) => {
+  const handleChangeOptionColor = (fieldId: string, optionId: string, newColor: string) => {
     updateOptionInField(selectedFormId, fieldId, optionId, { color: newColor || undefined });
     loadForms();
   };
 
   // Handle reorder options
-  const handleMoveOption = (
-    fieldId: string,
-    fromIndex: number,
-    direction: 'up' | 'down'
-  ) => {
+  const handleMoveOption = (fieldId: string, fromIndex: number, direction: 'up' | 'down') => {
     const field = currentForm?.fields.find((f) => f.id === fieldId);
     if (!field?.options) return;
 
@@ -337,7 +329,8 @@ export default function CMSFieldManager() {
       <div
         className="rounded-2xl border p-6 relative overflow-hidden shadow-sm"
         style={{
-          background: 'linear-gradient(135deg, rgba(232, 201, 122, 0.08) 0%, rgba(18, 19, 22, 0.95) 100%)',
+          background:
+            'linear-gradient(135deg, rgba(232, 201, 122, 0.08) 0%, rgba(18, 19, 22, 0.95) 100%)',
           borderColor: 'rgba(232, 201, 122, 0.25)',
         }}
       >
@@ -369,8 +362,9 @@ export default function CMSFieldManager() {
                 </span>
               </div>
               <p className="text-xs text-muted-foreground mt-1 leading-relaxed max-w-2xl">
-                Full CMS control over all forms across Samko Central. Edit any dropdown label, modify
-                existing option texts, reorder choices, and add brand-new custom fields to any form.
+                Full CMS control over all forms across Samko Central. Edit any dropdown label,
+                modify existing option texts, reorder choices, and add brand-new custom fields to
+                any form.
               </p>
             </div>
           </div>
@@ -488,9 +482,7 @@ export default function CMSFieldManager() {
       >
         <div className="flex-1">
           <div className="flex items-center gap-2.5">
-            <h3 className="font-head font-bold text-base text-foreground">
-              {currentForm?.title}
-            </h3>
+            <h3 className="font-head font-bold text-base text-foreground">{currentForm?.title}</h3>
             <Link
               href={currentForm?.pagePath || '#'}
               target="_blank"
@@ -500,9 +492,7 @@ export default function CMSFieldManager() {
               <ExternalLink size={11} />
             </Link>
           </div>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            {currentForm?.description}
-          </p>
+          <p className="text-xs text-muted-foreground mt-0.5">{currentForm?.description}</p>
         </div>
 
         <div className="flex items-center gap-2.5 flex-wrap">
@@ -596,9 +586,7 @@ export default function CMSFieldManager() {
                         color: opt.color,
                       })) || []
                     }
-                    onChange={(val) =>
-                      setPreviewValues((prev) => ({ ...prev, [field.id]: val }))
-                    }
+                    onChange={(val) => setPreviewValues((prev) => ({ ...prev, [field.id]: val }))}
                   />
                 ) : field.type === 'textarea' ? (
                   <textarea
@@ -722,8 +710,7 @@ export default function CMSFieldManager() {
                           field.type === 'select'
                             ? 'rgba(232, 201, 122, 0.15)'
                             : 'rgba(255, 255, 255, 0.08)',
-                        color:
-                          field.type === 'select' ? 'var(--primary)' : 'var(--text2)',
+                        color: field.type === 'select' ? 'var(--primary)' : 'var(--text2)',
                       }}
                     >
                       {field.type === 'select' ? (
@@ -841,7 +828,7 @@ export default function CMSFieldManager() {
                             options={COLOR_PRESETS.map((col) => ({
                               value: col.value,
                               label: col.label,
-                              color: col.value || undefined
+                              color: col.value || undefined,
                             }))}
                             size="sm"
                             variant="filter"
@@ -882,13 +869,11 @@ export default function CMSFieldManager() {
                                 {/* Color selector pill */}
                                 <CustomDropdown
                                   value={opt.color || ''}
-                                  onChange={(val) =>
-                                    handleChangeOptionColor(field.id, opt.id, val)
-                                  }
+                                  onChange={(val) => handleChangeOptionColor(field.id, opt.id, val)}
                                   options={COLOR_PRESETS.map((col) => ({
                                     value: col.value,
                                     label: col.label,
-                                    color: col.value || undefined
+                                    color: col.value || undefined,
                                   }))}
                                   variant="pill"
                                   size="sm"
@@ -962,9 +947,7 @@ export default function CMSFieldManager() {
                                   <ArrowDown size={11} />
                                 </button>
                                 <button
-                                  onClick={() =>
-                                    handleDeleteOption(field.id, opt.id, opt.label)
-                                  }
+                                  onClick={() => handleDeleteOption(field.id, opt.id, opt.label)}
                                   className="text-muted-foreground hover:text-rose-400 p-1 rounded hover:bg-rose-500/10 cursor-pointer transition-colors"
                                   title="Delete Option"
                                 >
@@ -1019,9 +1002,7 @@ export default function CMSFieldManager() {
                   <h3 className="font-head font-bold text-sm text-foreground">
                     Add New Field to Form
                   </h3>
-                  <p className="text-[11px] text-muted-foreground">
-                    Target: {currentForm?.title}
-                  </p>
+                  <p className="text-[11px] text-muted-foreground">Target: {currentForm?.title}</p>
                 </div>
               </div>
               <button
@@ -1042,9 +1023,7 @@ export default function CMSFieldManager() {
                   required
                   placeholder="e.g. Risk Rating, Secondary Vendor, Approval Status"
                   value={newFieldForm.label}
-                  onChange={(e) =>
-                    setNewFieldForm({ ...newFieldForm, label: e.target.value })
-                  }
+                  onChange={(e) => setNewFieldForm({ ...newFieldForm, label: e.target.value })}
                   className="rounded-lg border border-border px-3 py-2 text-sm outline-none"
                   style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
                 />
@@ -1067,7 +1046,7 @@ export default function CMSFieldManager() {
                       { value: 'number', label: 'Number' },
                       { value: 'date', label: 'Date Picker' },
                       { value: 'textarea', label: 'Multi-Line Textarea' },
-                      { value: 'checkbox', label: 'Checkbox (Yes/No)' }
+                      { value: 'checkbox', label: 'Checkbox (Yes/No)' },
                     ]}
                     variant="form"
                     width="100%"
@@ -1094,9 +1073,7 @@ export default function CMSFieldManager() {
                 <div className="flex flex-col gap-1.5">
                   <label className="text-xs font-semibold text-foreground flex items-center justify-between">
                     <span>Initial Dropdown Options</span>
-                    <span className="text-[10px] text-muted-foreground">
-                      (One choice per line)
-                    </span>
+                    <span className="text-[10px] text-muted-foreground">(One choice per line)</span>
                   </label>
                   <textarea
                     rows={4}
@@ -1116,9 +1093,7 @@ export default function CMSFieldManager() {
                   type="checkbox"
                   id="reqCheck"
                   checked={newFieldForm.required}
-                  onChange={(e) =>
-                    setNewFieldForm({ ...newFieldForm, required: e.target.checked })
-                  }
+                  onChange={(e) => setNewFieldForm({ ...newFieldForm, required: e.target.checked })}
                   className="rounded"
                 />
                 <label

@@ -130,7 +130,12 @@ export const STATUS_STYLES: Record<
 > = {
   success: { bg: 'rgba(52,211,153,0.14)', color: '#34d399', label: 'Success', dotColor: '#10b981' },
   warning: { bg: 'rgba(251,191,36,0.14)', color: '#fbbf24', label: 'Warning', dotColor: '#f59e0b' },
-  alert: { bg: 'rgba(244,63,94,0.16)', color: '#f43f5e', label: 'Security Alert', dotColor: '#f43f5e' },
+  alert: {
+    bg: 'rgba(244,63,94,0.16)',
+    color: '#f43f5e',
+    label: 'Security Alert',
+    dotColor: '#f43f5e',
+  },
 };
 
 /**
@@ -161,8 +166,8 @@ export function getDigitalBotLogs(currentUser?: any): AuditLogEntry[] {
   const isStrictDigitalBot = Boolean(
     !isPreviewMode &&
     (user?.id === 'usr-bot-001' ||
-     user?.email?.toLowerCase() === 'digitalbot@samkocentral.com' ||
-     user?.name?.toLowerCase().includes('digital bot'))
+      user?.email?.toLowerCase() === 'digitalbot@samkocentral.com' ||
+      user?.name?.toLowerCase().includes('digital bot'))
   );
 
   // Requirement: Strictly hide Digital Bot logs from all other users including the admin!

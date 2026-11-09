@@ -1,7 +1,20 @@
 'use client';
 
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
-import { Search, X, ShieldAlert, ShieldCheck, Clock, Loader2, ChevronDown, Plus, FileText, AlertTriangle, CheckCircle2, Tag } from 'lucide-react';
+import {
+  Search,
+  X,
+  ShieldAlert,
+  ShieldCheck,
+  Clock,
+  Loader2,
+  ChevronDown,
+  Plus,
+  FileText,
+  AlertTriangle,
+  CheckCircle2,
+  Tag,
+} from 'lucide-react';
 import { COMPLIANCE, daysUntil, formatDateGB } from '@/lib/mockData';
 import type { ComplianceItem } from '@/lib/mockData';
 import StatusBadge from '@/components/ui/StatusBadge';
@@ -11,7 +24,12 @@ import { api } from '@/lib/api';
 import { useAuth } from '@/lib/authContext';
 import { toast } from 'sonner';
 import PageCMSEditButton from '@/components/cms/PageCMSEditButton';
-import { useDeepPageCms, DEFAULT_COMPLIANCE_CATEGORIES, addDropdownOption, removeDropdownOptionByName } from '@/lib/deepPageCms';
+import {
+  useDeepPageCms,
+  DEFAULT_COMPLIANCE_CATEGORIES,
+  addDropdownOption,
+  removeDropdownOptionByName,
+} from '@/lib/deepPageCms';
 import LoadingPagination from '@/components/ui/LoadingPagination';
 import { useLoadingPagination } from '@/hooks/useLoadingPagination';
 import CustomDropdown from '@/components/ui/CustomDropdown';
@@ -37,7 +55,7 @@ export default function ComplianceTrackerClient() {
           const parsed = JSON.parse(saved);
           if (Array.isArray(parsed)) return parsed;
         }
-      } catch { }
+      } catch {}
     }
     return [];
   });
@@ -81,7 +99,7 @@ export default function ComplianceTrackerClient() {
             const parsed = JSON.parse(saved);
             if (Array.isArray(parsed)) setCustomCategories(parsed);
           }
-        } catch { }
+        } catch {}
       }
     };
     window.addEventListener('samko:compliance_categories_updated', handleCategorySync);
@@ -107,11 +125,21 @@ export default function ComplianceTrackerClient() {
       setCustomCategories(updated);
       if (typeof window !== 'undefined') {
         localStorage.setItem('samko_compliance_categories', JSON.stringify(updated));
-        window.dispatchEvent(new CustomEvent('samko:compliance_categories_updated', { detail: { categories: updated } }));
-        window.dispatchEvent(new CustomEvent('samko:data-changed', { detail: { type: 'compliance_category', name: c } }));
+        window.dispatchEvent(
+          new CustomEvent('samko:compliance_categories_updated', {
+            detail: { categories: updated },
+          })
+        );
+        window.dispatchEvent(
+          new CustomEvent('samko:data-changed', {
+            detail: { type: 'compliance_category', name: c },
+          })
+        );
       }
     }
-    toast.success('Compliance Category Created', { description: `Added "${c}" to compliance categories` });
+    toast.success('Compliance Category Created', {
+      description: `Added "${c}" to compliance categories`,
+    });
     setNewCatName('');
   };
 
@@ -121,8 +149,14 @@ export default function ComplianceTrackerClient() {
     setCustomCategories(updated);
     if (typeof window !== 'undefined') {
       localStorage.setItem('samko_compliance_categories', JSON.stringify(updated));
-      window.dispatchEvent(new CustomEvent('samko:compliance_categories_updated', { detail: { categories: updated } }));
-      window.dispatchEvent(new CustomEvent('samko:data-changed', { detail: { type: 'compliance_category_deleted', name: catName } }));
+      window.dispatchEvent(
+        new CustomEvent('samko:compliance_categories_updated', { detail: { categories: updated } })
+      );
+      window.dispatchEvent(
+        new CustomEvent('samko:data-changed', {
+          detail: { type: 'compliance_category_deleted', name: catName },
+        })
+      );
     }
     setCategoryFilter((prev) => (prev === catName ? 'All' : prev));
     toast.success(`Removed category "${catName}"`);
@@ -192,16 +226,22 @@ export default function ComplianceTrackerClient() {
   const categoriesList = useMemo(() => {
     const set = new Set(['All']);
     allCategories.forEach((c) => set.add(c));
-    complianceList.forEach((c) => { if (c.category) set.add(c.category); });
+    complianceList.forEach((c) => {
+      if (c.category) set.add(c.category);
+    });
     return Array.from(set);
   }, [allCategories, complianceList]);
   const accessibleComplianceList = useMemo(() => {
-    return complianceList.filter((c) => isPropertyAccessible(c.site || (c as any).hotel || (c as any).property));
+    return complianceList.filter((c) =>
+      isPropertyAccessible(c.site || (c as any).hotel || (c as any).property)
+    );
   }, [complianceList, isPropertyAccessible]);
 
   const sitesList = useMemo(() => {
     const liveNames = liveProperties.map((p) => p.name).filter(Boolean);
-    const existingSites = accessibleComplianceList.map((c) => c.site || (c as any).hotel || (c as any).property).filter(Boolean);
+    const existingSites = accessibleComplianceList
+      .map((c) => c.site || (c as any).hotel || (c as any).property)
+      .filter(Boolean);
     const combined = Array.from(new Set([...liveNames, ...existingSites])).sort();
     const filteredSites = combined.filter((s) => isPropertyAccessible(s));
     return ['All Sites', ...filteredSites];
@@ -211,13 +251,17 @@ export default function ComplianceTrackerClient() {
   const warnCount = accessibleComplianceList.filter((c) => c.status === 'warning').length;
   const okCount = accessibleComplianceList.filter((c) => c.status === 'ok').length;
 
-  const handleStatusChange = async (item: ComplianceItem, newStatus: 'ok' | 'warning' | 'critical') => {
+  const handleStatusChange = async (
+    item: ComplianceItem,
+    newStatus: 'ok' | 'warning' | 'critical'
+  ) => {
     setComplianceList((prev) =>
       prev.map((c) => (c.id === item.id ? { ...c, status: newStatus } : c))
     );
     setOpenStatusDropdown(null);
 
-    const dbStatus = newStatus === 'ok' ? 'compliant' : newStatus === 'warning' ? 'expiring-soon' : 'overdue';
+    const dbStatus =
+      newStatus === 'ok' ? 'compliant' : newStatus === 'warning' ? 'expiring-soon' : 'overdue';
     toast.success('Compliance status updated', {
       description: `${item.item} marked as ${newStatus === 'ok' ? 'Compliant' : newStatus === 'warning' ? 'Due Soon' : 'Overdue'}`,
     });
@@ -252,7 +296,9 @@ export default function ComplianceTrackerClient() {
         description: `Follow-up task created in Task Manager for ${item.item}`,
       });
       if (typeof window !== 'undefined') {
-        window.dispatchEvent(new CustomEvent('samko:data-changed', { detail: { type: 'task-created' } }));
+        window.dispatchEvent(
+          new CustomEvent('samko:data-changed', { detail: { type: 'task-created' } })
+        );
       }
     } catch (err: any) {
       toast.error('Failed to create task', { description: err?.message });
@@ -299,7 +345,12 @@ export default function ComplianceTrackerClient() {
         type: addForm.type,
         expiryDate: addForm.dueDate,
         responsiblePerson: addForm.assignee,
-        status: addForm.status === 'ok' ? 'compliant' : addForm.status === 'warning' ? 'expiring-soon' : 'overdue',
+        status:
+          addForm.status === 'ok'
+            ? 'compliant'
+            : addForm.status === 'warning'
+              ? 'expiring-soon'
+              : 'overdue',
         riskRating: addForm.riskRating,
         notes: addForm.notes,
       });
@@ -419,14 +470,25 @@ export default function ComplianceTrackerClient() {
             </div>
             <div
               className="font-head tabular-nums"
-              style={{ fontSize: 36, fontWeight: 800, color: kpi.color, lineHeight: 1, marginBottom: 4 }}
+              style={{
+                fontSize: 36,
+                fontWeight: 800,
+                color: kpi.color,
+                lineHeight: 1,
+                marginBottom: 4,
+              }}
             >
               {kpi.val}
             </div>
-            <div className="font-head text-foreground" style={{ fontSize: 12, fontWeight: 700, marginBottom: 2 }}>
+            <div
+              className="font-head text-foreground"
+              style={{ fontSize: 12, fontWeight: 700, marginBottom: 2 }}
+            >
               {kpi.label}
             </div>
-            <div className="text-muted-foreground" style={{ fontSize: 11 }}>{kpi.sub}</div>
+            <div className="text-muted-foreground" style={{ fontSize: 11 }}>
+              {kpi.sub}
+            </div>
           </div>
         ))}
       </div>
@@ -440,39 +502,39 @@ export default function ComplianceTrackerClient() {
           Compliance health by category
         </div>
         <div className="flex flex-wrap gap-3">
-          {categoriesList.filter((c) => c !== 'All').map((cat) => {
-            const catItems = complianceList.filter((c) => c.category === cat);
-            const hasCrit = catItems.some((c) => c.status === 'critical');
-            const hasWarn = catItems.some((c) => c.status === 'warning');
-            const variant = hasCrit ? 'critical' : hasWarn ? 'warning' : 'ok';
-            const emoji = hasCrit ? '🔴' : hasWarn ? '🟡' : '🟢';
-            return (
-              <div
-                key={`cat-health-${cat}`}
-                className="flex items-center gap-2 rounded-lg cursor-pointer transition-all duration-150"
-                style={{
-                  padding: '6px 12px',
-                  background: categoryFilter === cat ? 'rgba(232,201,122,0.10)' : 'var(--surface2)',
-                  border: `1px solid ${categoryFilter === cat ? 'var(--primary)' : 'var(--border)'}`,
-                }}
-                onClick={() => setCategoryFilter(categoryFilter === cat ? 'All' : cat)}
-              >
-                <span style={{ fontSize: 12 }}>{emoji}</span>
-                <span
-                  className="text-foreground"
-                  style={{ fontSize: 12, fontWeight: 500 }}
+          {categoriesList
+            .filter((c) => c !== 'All')
+            .map((cat) => {
+              const catItems = complianceList.filter((c) => c.category === cat);
+              const hasCrit = catItems.some((c) => c.status === 'critical');
+              const hasWarn = catItems.some((c) => c.status === 'warning');
+              const variant = hasCrit ? 'critical' : hasWarn ? 'warning' : 'ok';
+              const emoji = hasCrit ? '🔴' : hasWarn ? '🟡' : '🟢';
+              return (
+                <div
+                  key={`cat-health-${cat}`}
+                  className="flex items-center gap-2 rounded-lg cursor-pointer transition-all duration-150"
+                  style={{
+                    padding: '6px 12px',
+                    background:
+                      categoryFilter === cat ? 'rgba(232,201,122,0.10)' : 'var(--surface2)',
+                    border: `1px solid ${categoryFilter === cat ? 'var(--primary)' : 'var(--border)'}`,
+                  }}
+                  onClick={() => setCategoryFilter(categoryFilter === cat ? 'All' : cat)}
                 >
-                  {cat}
-                </span>
-                <span
-                  className="font-head tabular-nums"
-                  style={{ fontSize: 11, color: 'var(--text3)' }}
-                >
-                  {catItems.length}
-                </span>
-              </div>
-            );
-          })}
+                  <span style={{ fontSize: 12 }}>{emoji}</span>
+                  <span className="text-foreground" style={{ fontSize: 12, fontWeight: 500 }}>
+                    {cat}
+                  </span>
+                  <span
+                    className="font-head tabular-nums"
+                    style={{ fontSize: 11, color: 'var(--text3)' }}
+                  >
+                    {catItems.length}
+                  </span>
+                </div>
+              );
+            })}
         </div>
       </div>
 
@@ -506,7 +568,13 @@ export default function ComplianceTrackerClient() {
           {search && (
             <button
               onClick={() => setSearch('')}
-              style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text3)', padding: 0 }}
+              style={{
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                color: 'var(--text3)',
+                padding: 0,
+              }}
             >
               <X size={13} />
             </button>
@@ -525,7 +593,8 @@ export default function ComplianceTrackerClient() {
 
         <div className="flex items-center gap-3 ml-auto">
           <p className="text-muted-foreground" style={{ fontSize: 12 }}>
-            <span style={{ color: 'var(--foreground)', fontWeight: 600 }}>{filtered.length}</span> of {complianceList.length} items
+            <span style={{ color: 'var(--foreground)', fontWeight: 600 }}>{filtered.length}</span>{' '}
+            of {complianceList.length} items
           </p>
           <PageCMSEditButton pageId="compliancetracker" pageName="Compliance Expiry Tracker" />
           {canEdit && !isViewer && (
@@ -534,13 +603,18 @@ export default function ComplianceTrackerClient() {
               className="flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-semibold transition-transform active:scale-95 cursor-pointer"
               style={{ background: 'var(--primary)', color: '#000' }}
             >
-              <Plus size={14} /> {(cmsPrimaryActionLabel || 'Log Compliance / Issue').replace(/^[\+\s]+/, '').trim()}
+              <Plus size={14} />{' '}
+              {(cmsPrimaryActionLabel || 'Log Compliance / Issue').replace(/^[\+\s]+/, '').trim()}
             </button>
           )}
           {isViewer && (
             <span
               className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold"
-              style={{ background: 'rgba(148,163,184,0.12)', color: '#94a3b8', border: '1px solid rgba(148,163,184,0.25)' }}
+              style={{
+                background: 'rgba(148,163,184,0.12)',
+                color: '#94a3b8',
+                border: '1px solid rgba(148,163,184,0.25)',
+              }}
             >
               L4 · Read-Only Access
             </span>
@@ -557,7 +631,12 @@ export default function ComplianceTrackerClient() {
             description="Adjust your status, category, or site filters to find the compliance obligation you're looking for."
             action={
               <button
-                onClick={() => { setStatusFilter('All'); setCategoryFilter('All'); setSiteFilter('All Sites'); setSearch(''); }}
+                onClick={() => {
+                  setStatusFilter('All');
+                  setCategoryFilter('All');
+                  setSiteFilter('All Sites');
+                  setSearch('');
+                }}
                 className="samko-btn-ghost"
               >
                 Clear all filters
@@ -569,8 +648,19 @@ export default function ComplianceTrackerClient() {
             <table style={{ width: '100%', minWidth: 880, borderCollapse: 'collapse' }}>
               <thead>
                 <tr>
-                  {['Status', 'Compliance Item', 'Site', 'Category', 'Due Date', 'Days Left', 'Assignee', 'Last Reviewed'].map((h) => (
-                    <th key={`comp-th-${h}`} className="table-header-cell">{h}</th>
+                  {[
+                    'Status',
+                    'Compliance Item',
+                    'Site',
+                    'Category',
+                    'Due Date',
+                    'Days Left',
+                    'Assignee',
+                    'Last Reviewed',
+                  ].map((h) => (
+                    <th key={`comp-th-${h}`} className="table-header-cell">
+                      {h}
+                    </th>
                   ))}
                 </tr>
               </thead>
@@ -592,9 +682,24 @@ export default function ComplianceTrackerClient() {
                             value={item.status}
                             title="Click to change compliance status"
                             options={[
-                              { value: 'ok', label: 'Compliant', color: '#3dd68c', bg: 'var(--ok-bg)' },
-                              { value: 'warning', label: 'Due Soon', color: '#f59e0b', bg: 'var(--warning-bg)' },
-                              { value: 'critical', label: 'Overdue', color: '#f43f5e', bg: 'var(--critical-bg)' },
+                              {
+                                value: 'ok',
+                                label: 'Compliant',
+                                color: '#3dd68c',
+                                bg: 'var(--ok-bg)',
+                              },
+                              {
+                                value: 'warning',
+                                label: 'Due Soon',
+                                color: '#f59e0b',
+                                bg: 'var(--warning-bg)',
+                              },
+                              {
+                                value: 'critical',
+                                label: 'Overdue',
+                                color: '#f43f5e',
+                                bg: 'var(--critical-bg)',
+                              },
                             ]}
                             onChange={(val) => handleStatusChange(item, val as any)}
                           />
@@ -631,7 +736,14 @@ export default function ComplianceTrackerClient() {
                             style={{
                               fontSize: 13,
                               fontWeight: 700,
-                              color: days < 0 ? 'var(--critical)' : days < 30 ? 'var(--warning)' : days < 60 ? 'var(--warning)' : 'var(--text2)',
+                              color:
+                                days < 0
+                                  ? 'var(--critical)'
+                                  : days < 30
+                                    ? 'var(--warning)'
+                                    : days < 60
+                                      ? 'var(--warning)'
+                                      : 'var(--text2)',
                             }}
                           >
                             {days < 0 ? `${Math.abs(days)}d overdue` : `${days}d`}
@@ -650,9 +762,14 @@ export default function ComplianceTrackerClient() {
                                 fontWeight: 700,
                               }}
                             >
-                              {item.assignee.split(' ').map((n) => n[0]).join('')}
+                              {item.assignee
+                                .split(' ')
+                                .map((n) => n[0])
+                                .join('')}
                             </div>
-                            <span className="text-muted2" style={{ fontSize: 12 }}>{item.assignee}</span>
+                            <span className="text-muted2" style={{ fontSize: 12 }}>
+                              {item.assignee}
+                            </span>
                           </div>
                         </td>
                         <td className="table-cell text-muted3" style={{ fontSize: 11 }}>
@@ -673,11 +790,19 @@ export default function ComplianceTrackerClient() {
                               <div>
                                 <p
                                   className="font-head text-muted-foreground"
-                                  style={{ fontSize: 10, letterSpacing: '1px', textTransform: 'uppercase', marginBottom: 4 }}
+                                  style={{
+                                    fontSize: 10,
+                                    letterSpacing: '1px',
+                                    textTransform: 'uppercase',
+                                    marginBottom: 4,
+                                  }}
                                 >
                                   Notes
                                 </p>
-                                <p className="text-foreground" style={{ fontSize: 13, lineHeight: 1.5 }}>
+                                <p
+                                  className="text-foreground"
+                                  style={{ fontSize: 13, lineHeight: 1.5 }}
+                                >
                                   {item.notes}
                                 </p>
                               </div>
@@ -731,7 +856,11 @@ export default function ComplianceTrackerClient() {
       {/* Summary footer */}
       <div
         className="flex items-center justify-between mt-4 rounded-xl"
-        style={{ padding: '12px 18px', background: 'var(--surface2)', border: '1px solid var(--border)' }}
+        style={{
+          padding: '12px 18px',
+          background: 'var(--surface2)',
+          border: '1px solid var(--border)',
+        }}
       >
         <p className="text-muted-foreground" style={{ fontSize: 12 }}>
           Group compliance rate:{' '}
@@ -750,16 +879,32 @@ export default function ComplianceTrackerClient() {
 
       {/* Log Compliance / Incident Modal */}
       {showAddModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(4px)' }}>
-          <div className="w-full max-w-xl rounded-2xl border border-border overflow-hidden shadow-2xl animate-in fade-in zoom-in-95 duration-200" style={{ background: 'var(--surface)' }}>
-            <div className="flex items-center justify-between px-6 py-4 border-b border-border" style={{ background: 'var(--surface2)' }}>
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{ background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(4px)' }}
+        >
+          <div
+            className="w-full max-w-xl rounded-2xl border border-border overflow-hidden shadow-2xl animate-in fade-in zoom-in-95 duration-200"
+            style={{ background: 'var(--surface)' }}
+          >
+            <div
+              className="flex items-center justify-between px-6 py-4 border-b border-border"
+              style={{ background: 'var(--surface2)' }}
+            >
               <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'rgba(232,201,122,0.15)', color: 'var(--primary)' }}>
+                <div
+                  className="w-8 h-8 rounded-lg flex items-center justify-center"
+                  style={{ background: 'rgba(232,201,122,0.15)', color: 'var(--primary)' }}
+                >
                   <ShieldCheck size={16} />
                 </div>
                 <div>
-                  <h3 className="font-head font-bold text-base text-foreground">Log Compliance / Incident / Complaint</h3>
-                  <p className="text-xs text-muted-foreground">Record statutory obligations or property facility issues</p>
+                  <h3 className="font-head font-bold text-base text-foreground">
+                    Log Compliance / Incident / Complaint
+                  </h3>
+                  <p className="text-xs text-muted-foreground">
+                    Record statutory obligations or property facility issues
+                  </p>
                 </div>
               </div>
               <button
@@ -770,7 +915,10 @@ export default function ComplianceTrackerClient() {
               </button>
             </div>
 
-            <form onSubmit={handleAddCompliance} className="p-6 space-y-4 max-h-[80vh] overflow-y-auto">
+            <form
+              onSubmit={handleAddCompliance}
+              className="p-6 space-y-4 max-h-[80vh] overflow-y-auto"
+            >
               <div>
                 <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wide">
                   Title / Obligation / Incident *
@@ -798,7 +946,7 @@ export default function ComplianceTrackerClient() {
                       { value: 'Statutory Obligation', label: 'Statutory Obligation' },
                       { value: 'Complaint / Incident', label: 'Complaint / Incident' },
                       { value: 'Certification Renewal', label: 'Certification Renewal' },
-                      { value: 'Health & Safety Audit', label: 'Health & Safety Audit' }
+                      { value: 'Health & Safety Audit', label: 'Health & Safety Audit' },
                     ]}
                     variant="form"
                     width="100%"
@@ -811,7 +959,9 @@ export default function ComplianceTrackerClient() {
                   <CustomDropdown
                     value={addForm.site}
                     onChange={(val) => setAddForm({ ...addForm, site: val })}
-                    options={sitesList.filter((s) => s !== 'All Sites').map((s) => ({ value: s, label: s }))}
+                    options={sitesList
+                      .filter((s) => s !== 'All Sites')
+                      .map((s) => ({ value: s, label: s }))}
                     placeholder="Select Property"
                     variant="form"
                     width="100%"
@@ -846,7 +996,7 @@ export default function ComplianceTrackerClient() {
                       { value: 'low', label: 'Low Risk', color: '#3dd68c' },
                       { value: 'medium', label: 'Medium Risk', color: '#f59e0b' },
                       { value: 'high', label: 'High Risk', color: '#f97316' },
-                      { value: 'critical', label: 'Critical Risk', color: '#f43f5e' }
+                      { value: 'critical', label: 'Critical Risk', color: '#f43f5e' },
                     ]}
                     variant="form"
                     width="100%"
@@ -878,7 +1028,7 @@ export default function ComplianceTrackerClient() {
                     options={[
                       { value: 'ok', label: 'Compliant / Resolved', color: '#3dd68c' },
                       { value: 'warning', label: 'Due Soon / In Review', color: '#f59e0b' },
-                      { value: 'critical', label: 'Overdue / Action Required', color: '#f43f5e' }
+                      { value: 'critical', label: 'Overdue / Action Required', color: '#f43f5e' },
                     ]}
                     variant="form"
                     width="100%"

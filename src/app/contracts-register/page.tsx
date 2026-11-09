@@ -20,7 +20,13 @@ function ContractsRegisterInner() {
 
 export default function ContractsRegisterPage() {
   return (
-    <Suspense fallback={<div className="flex items-center justify-center h-screen text-muted-foreground text-sm">Loading contracts register…</div>}>
+    <Suspense
+      fallback={
+        <div className="flex items-center justify-center h-screen text-muted-foreground text-sm">
+          Loading contracts register…
+        </div>
+      }
+    >
       <ContractsRegisterInner />
     </Suspense>
   );

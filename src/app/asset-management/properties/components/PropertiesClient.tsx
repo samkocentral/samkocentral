@@ -2,7 +2,22 @@
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import Link from 'next/link';
-import { Building2, MapPin, Phone, User, Package, ChevronRight, ChevronDown, Search, Plus, X, Loader2, Edit2, Trash2, Sparkles } from 'lucide-react';
+import {
+  Building2,
+  MapPin,
+  Phone,
+  User,
+  Package,
+  ChevronRight,
+  ChevronDown,
+  Search,
+  Plus,
+  X,
+  Loader2,
+  Edit2,
+  Trash2,
+  Sparkles,
+} from 'lucide-react';
 import { HOTELS, MAINTENANCE_RECORDS, ASSETS, getAssetStats, type Hotel } from '@/lib/assetData';
 import { getLiveProperties, saveLivePropertiesToCache } from '@/hooks/useLiveProperties';
 import { api } from '@/lib/api';
@@ -16,9 +31,18 @@ import ConfirmDeleteModal from '@/components/modals/ConfirmDeleteModal';
 import { useLoadingPagination } from '@/hooks/useLoadingPagination';
 import TableCheckbox from '@/components/ui/TableCheckbox';
 import BulkActionBar from '@/components/ui/BulkActionBar';
+import { recordAuditLog } from '@/lib/auditLogger';
+import { addNotification } from '@/lib/notifications';
 
 export default function PropertiesClient() {
-  const { isViewer, canEdit, canDelete, canWriteTab, isPropertyAccessible, userAssignedProperties } = useAuth();
+  const {
+    isViewer,
+    canEdit,
+    canDelete,
+    canWriteTab,
+    isPropertyAccessible,
+    userAssignedProperties,
+  } = useAuth();
   const hasWriteAccess = !isViewer && canEdit && canWriteTab('properties');
   const hasDeleteAccess = !isViewer && canDelete && canWriteTab('properties');
   const {
@@ -51,7 +75,9 @@ export default function PropertiesClient() {
   // Edit property modal state
   const [showEditModal, setShowEditModal] = useState(false);
   const [editingProperty, setEditingProperty] = useState<any>(null);
-  const [propertyToDelete, setPropertyToDelete] = useState<{ id: string; name: string } | null>(null);
+  const [propertyToDelete, setPropertyToDelete] = useState<{ id: string; name: string } | null>(
+    null
+  );
   const [isDeletingProperty, setIsDeletingProperty] = useState(false);
   const [editForm, setEditForm] = useState({
     name: '',
@@ -104,8 +130,21 @@ export default function PropertiesClient() {
     }
 
     if (typeof window !== 'undefined') {
-      window.dispatchEvent(new CustomEvent('samko:data-changed', { detail: { type: 'property', id: propertyId } }));
+      window.dispatchEvent(
+        new CustomEvent('samko:data-changed', { detail: { type: 'property', id: propertyId } })
+      );
     }
+
+    recordAuditLog({
+      action: 'UPDATE',
+      actionLabel: 'Property Details Saved',
+      category: 'ASSET_REGISTER',
+      categoryLabel: 'Properties & Sites',
+      resource: `Property: ${editForm.name}`,
+      property: editForm.name,
+      details: `Property "${editForm.name}" details updated (${editForm.city}, Manager: ${editForm.manager}).`,
+      status: 'success',
+    });
 
     toast.success('Property Details Saved', {
       description: `"${editForm.name}" updated successfully`,
@@ -136,8 +175,31 @@ export default function PropertiesClient() {
     }
 
     if (typeof window !== 'undefined') {
-      window.dispatchEvent(new CustomEvent('samko:data-changed', { detail: { type: 'property', id: propertyId } }));
+      window.dispatchEvent(
+        new CustomEvent('samko:data-changed', { detail: { type: 'property', id: propertyId } })
+      );
     }
+
+    recordAuditLog({
+      action: 'DELETE',
+      actionLabel: 'Property Deleted',
+      category: 'ASSET_REGISTER',
+      categoryLabel: 'Properties & Sites',
+      resource: `Property: ${propertyName}`,
+      property: propertyName,
+      details: `Property "${propertyName}" was removed from the active portfolio.`,
+      status: 'warning',
+    });
+
+    addNotification({
+      type: 'warning',
+      title: 'Property Removed',
+      message: `Property "${propertyName}" was deleted from the portfolio.`,
+      site: propertyName,
+      source: 'system',
+      playSound: false,
+      showToast: false,
+    });
 
     toast.success('Property Deleted', {
       description: `"${propertyName}" removed from portfolio`,
@@ -154,14 +216,29 @@ export default function PropertiesClient() {
         api.assets.getAll(),
       ]);
 
-      if (propsRes.status === 'fulfilled' && propsRes.value.success && propsRes.value.data && propsRes.value.data.length > 0) {
+      if (
+        propsRes.status === 'fulfilled' &&
+        propsRes.value.success &&
+        propsRes.value.data &&
+        propsRes.value.data.length > 0
+      ) {
         setProperties(propsRes.value.data);
         saveLivePropertiesToCache(propsRes.value.data);
       }
-      if (mRes.status === 'fulfilled' && mRes.value.success && mRes.value.data && mRes.value.data.length > 0) {
+      if (
+        mRes.status === 'fulfilled' &&
+        mRes.value.success &&
+        mRes.value.data &&
+        mRes.value.data.length > 0
+      ) {
         setMaintenance(mRes.value.data);
       }
-      if (assetsRes.status === 'fulfilled' && assetsRes.value.success && assetsRes.value.data && assetsRes.value.data.length > 0) {
+      if (
+        assetsRes.status === 'fulfilled' &&
+        assetsRes.value.success &&
+        assetsRes.value.data &&
+        assetsRes.value.data.length > 0
+      ) {
         setAssets(assetsRes.value.data);
       }
     } catch (e) {
@@ -186,7 +263,11 @@ export default function PropertiesClient() {
     );
 
     if (typeof window !== 'undefined') {
-      window.dispatchEvent(new CustomEvent('samko:data-changed', { detail: { type: 'property', id: propertyId, status: newStatus } }));
+      window.dispatchEvent(
+        new CustomEvent('samko:data-changed', {
+          detail: { type: 'property', id: propertyId, status: newStatus },
+        })
+      );
     }
 
     toast.success('Property Status Updated', {
@@ -220,8 +301,34 @@ export default function PropertiesClient() {
         });
         setShowAddModal(false);
         if (typeof window !== 'undefined') {
-          window.dispatchEvent(new CustomEvent('samko:data-changed', { detail: { type: 'property' } }));
+          window.dispatchEvent(
+            new CustomEvent('samko:data-changed', { detail: { type: 'property' } })
+          );
         }
+
+        recordAuditLog({
+          action: 'CREATE',
+          actionLabel: 'Property Registered',
+          category: 'ASSET_REGISTER',
+          categoryLabel: 'Properties & Sites',
+          resource: `Property: ${res.data.name}`,
+          property: res.data.name,
+          details: `New property "${res.data.name}" (${res.data.city || 'London'}, Manager: ${res.data.manager || 'Marcus Webb'}) was registered into the portfolio.`,
+          status: 'success',
+        });
+
+        addNotification({
+          type: 'info',
+          title: 'New Property Registered',
+          message: `Property "${res.data.name}" was added to the portfolio.`,
+          site: res.data.name,
+          source: 'system',
+          actionUrl: '/asset-management/properties',
+          actionLabel: 'View Properties',
+          playSound: false,
+          showToast: false,
+        });
+
         toast.success('Property Registered', {
           description: `${res.data.name} successfully added to portfolio`,
         });
@@ -242,7 +349,8 @@ export default function PropertiesClient() {
   };
 
   const effectiveProperties = useMemo(() => {
-    const cmsList = (cmsPropertiesList && cmsPropertiesList.length > 0 ? (cmsPropertiesList as any[]) : []) || [];
+    const cmsList =
+      (cmsPropertiesList && cmsPropertiesList.length > 0 ? (cmsPropertiesList as any[]) : []) || [];
     if (properties.length === 0) return cmsList;
     if (cmsList.length === 0) return properties;
 
@@ -260,7 +368,9 @@ export default function PropertiesClient() {
         return (
           cId === dbId ||
           cCleanName === dbCleanName ||
-          (dbCleanName && cCleanName && (dbCleanName.includes(cCleanName) || cCleanName.includes(dbCleanName)))
+          (dbCleanName &&
+            cCleanName &&
+            (dbCleanName.includes(cCleanName) || cCleanName.includes(dbCleanName)))
         );
       });
 
@@ -288,7 +398,12 @@ export default function PropertiesClient() {
   }, [cmsPropertiesList, properties]);
 
   const filtered = effectiveProperties?.filter((h) => {
-    if (!isPropertyAccessible(h?.name) && !isPropertyAccessible(h?.id) && !isPropertyAccessible(h?.propertyId)) return false;
+    if (
+      !isPropertyAccessible(h?.name) &&
+      !isPropertyAccessible(h?.id) &&
+      !isPropertyAccessible(h?.propertyId)
+    )
+      return false;
     const matchSearch =
       !search ||
       h?.name?.toLowerCase()?.includes(search?.toLowerCase()) ||
@@ -335,7 +450,8 @@ export default function PropertiesClient() {
   const [selectedPropertyTypeFilter, setSelectedPropertyTypeFilter] = useState('');
 
   const isAllPropertiesPageSelected =
-    paginatedProperties.length > 0 && paginatedProperties.every((p) => selectedPropertyIds.includes(p.id));
+    paginatedProperties.length > 0 &&
+    paginatedProperties.every((p) => selectedPropertyIds.includes(p.id));
 
   const handleToggleSelectAllPropertiesPage = () => {
     if (isAllPropertiesPageSelected) {
@@ -365,13 +481,24 @@ export default function PropertiesClient() {
   const propertyTypeOptions = useMemo(() => {
     const counts: Record<string, number> = {};
     filtered.forEach((p) => {
-      counts[`status:${p.status || 'active'}`] = (counts[`status:${p.status || 'active'}`] || 0) + 1;
+      counts[`status:${p.status || 'active'}`] =
+        (counts[`status:${p.status || 'active'}`] || 0) + 1;
       if (p.city) counts[`city:${p.city}`] = (counts[`city:${p.city}`] || 0) + 1;
     });
 
     const opts: { label: string; value: string; count: number }[] = [];
-    if (counts['status:active']) opts.push({ label: 'Status: Active', value: 'status:active', count: counts['status:active'] });
-    if (counts['status:inactive']) opts.push({ label: 'Status: Inactive', value: 'status:inactive', count: counts['status:inactive'] });
+    if (counts['status:active'])
+      opts.push({
+        label: 'Status: Active',
+        value: 'status:active',
+        count: counts['status:active'],
+      });
+    if (counts['status:inactive'])
+      opts.push({
+        label: 'Status: Inactive',
+        value: 'status:inactive',
+        count: counts['status:inactive'],
+      });
     return opts;
   }, [filtered]);
 
@@ -403,7 +530,9 @@ export default function PropertiesClient() {
       setShowBulkDeletePropertiesModal(false);
 
       if (typeof window !== 'undefined') {
-        window.dispatchEvent(new CustomEvent('samko:data-changed', { detail: { type: 'properties' } }));
+        window.dispatchEvent(
+          new CustomEvent('samko:data-changed', { detail: { type: 'properties' } })
+        );
       }
       await Promise.allSettled(ids.map((id) => api.properties.delete(id)));
       toast.success(`Deleted ${count} properties successfully!`);
@@ -424,7 +553,9 @@ export default function PropertiesClient() {
         <div>
           <h1 className="font-head text-xl font-bold">{cmsTitle || 'Properties'}</h1>
           <p className="text-xs text-muted-foreground mt-0.5">
-            {userAssignedProperties && userAssignedProperties.length > 0 && !userAssignedProperties.includes('all')
+            {userAssignedProperties &&
+            userAssignedProperties.length > 0 &&
+            !userAssignedProperties.includes('all')
               ? `${filtered?.length} assigned ${filtered?.length === 1 ? 'property' : 'properties'} managed across portfolio`
               : cmsSubtitle && !/\b\d+\s+properties\b/i.test(cmsSubtitle)
                 ? cmsSubtitle
@@ -454,13 +585,18 @@ export default function PropertiesClient() {
               className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-bold transition-all shadow-sm cursor-pointer"
               style={{ background: 'var(--primary)', color: '#000' }}
             >
-              <Plus size={14} /> {(cmsPrimaryActionLabel || 'Add Property').replace(/^[\+\s]+/, '').trim()}
+              <Plus size={14} />{' '}
+              {(cmsPrimaryActionLabel || 'Add Property').replace(/^[\+\s]+/, '').trim()}
             </button>
           )}
           {isViewer && (
             <span
               className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold"
-              style={{ background: 'rgba(148,163,184,0.12)', color: '#94a3b8', border: '1px solid rgba(148,163,184,0.25)' }}
+              style={{
+                background: 'rgba(148,163,184,0.12)',
+                color: '#94a3b8',
+                border: '1px solid rgba(148,163,184,0.25)',
+              }}
             >
               L4 · Read-Only Access
             </span>
@@ -484,7 +620,9 @@ export default function PropertiesClient() {
               multiple
             />
           ))}
-          <span className="text-xs text-muted-foreground ml-auto">{filtered.length} properties</span>
+          <span className="text-xs text-muted-foreground ml-auto">
+            {filtered.length} properties
+          </span>
         </div>
       )}
 
@@ -494,15 +632,28 @@ export default function PropertiesClient() {
           {paginatedProperties?.map((hotel) => {
             const assetCount =
               assets.filter(
-                (a) => a.hotelId === hotel?.id || a.hotelName === hotel?.name || (a as any).propertyId === hotel?.id
-              ).length || hotel?.totalAssets || 0;
+                (a) =>
+                  a.hotelId === hotel?.id ||
+                  a.hotelName === hotel?.name ||
+                  (a as any).propertyId === hotel?.id
+              ).length ||
+              hotel?.totalAssets ||
+              0;
             const overdueCount =
               maintenance.filter(
-                (m) => (m.hotelId === hotel?.id || m.hotelName === hotel?.name || (m as any).propertyId === hotel?.id) && m.status === 'overdue'
+                (m) =>
+                  (m.hotelId === hotel?.id ||
+                    m.hotelName === hotel?.name ||
+                    (m as any).propertyId === hotel?.id) &&
+                  m.status === 'overdue'
               ).length || 0;
             const dueTodayCount =
               maintenance.filter(
-                (m) => (m.hotelId === hotel?.id || m.hotelName === hotel?.name || (m as any).propertyId === hotel?.id) && m.status === 'due-today'
+                (m) =>
+                  (m.hotelId === hotel?.id ||
+                    m.hotelName === hotel?.name ||
+                    (m as any).propertyId === hotel?.id) &&
+                  m.status === 'due-today'
               ).length || 0;
 
             const isActive = hotel?.status === 'active';
@@ -515,7 +666,11 @@ export default function PropertiesClient() {
                     ? 'border-[#e8c97a] shadow-[0_0_15px_rgba(232,201,122,0.15)] bg-[#e8c97a]/5'
                     : 'border-border'
                 }`}
-                style={{ background: selectedPropertyIds.includes(hotel?.id) ? 'rgba(232,201,122,0.04)' : 'var(--surface)' }}
+                style={{
+                  background: selectedPropertyIds.includes(hotel?.id)
+                    ? 'rgba(232,201,122,0.04)'
+                    : 'var(--surface)',
+                }}
               >
                 {/* Header */}
                 <div className="flex items-start justify-between gap-2.5 mb-3.5">
@@ -545,7 +700,10 @@ export default function PropertiesClient() {
                       </div>
                     </div>
                   </div>
-                  <div className="flex items-center gap-1.5 flex-shrink-0 pt-0.5" onClick={(e) => e.stopPropagation()}>
+                  <div
+                    className="flex items-center gap-1.5 flex-shrink-0 pt-0.5"
+                    onClick={(e) => e.stopPropagation()}
+                  >
                     {/* Status Badge */}
                     {!canEdit || isViewer ? (
                       <span
@@ -568,7 +726,7 @@ export default function PropertiesClient() {
                         onChange={(val) => handleStatusChange(hotel.id, val)}
                         options={[
                           { value: 'active', label: 'Active', color: '#3dd68c' },
-                          { value: 'inactive', label: 'Inactive', color: '#f59e0b' }
+                          { value: 'inactive', label: 'Inactive', color: '#f59e0b' },
                         ]}
                         variant="pill"
                         size="sm"
@@ -591,7 +749,9 @@ export default function PropertiesClient() {
                 <div className="space-y-2 mb-4 pt-2.5 pb-1 border-t border-border/30">
                   <div className="flex items-center gap-2 text-xs text-muted-foreground h-4">
                     <MapPin size={12} className="flex-shrink-0 text-muted-foreground/70" />
-                    <span className="truncate" title={hotel?.address}>{hotel?.address || 'Address not registered'}</span>
+                    <span className="truncate" title={hotel?.address}>
+                      {hotel?.address || 'Address not registered'}
+                    </span>
                   </div>
                   <div className="flex items-center gap-2 text-xs text-muted-foreground h-4">
                     <User size={12} className="flex-shrink-0 text-muted-foreground/70" />
@@ -612,7 +772,9 @@ export default function PropertiesClient() {
                     <div className="font-head font-bold text-lg" style={{ color: '#e8c97a' }}>
                       {assetCount}
                     </div>
-                    <div className="text-xs text-muted-foreground truncate">{cmsCustomLabels.assetsStatLabel || 'Assets'}</div>
+                    <div className="text-xs text-muted-foreground truncate">
+                      {cmsCustomLabels.assetsStatLabel || 'Assets'}
+                    </div>
                   </div>
                   <div
                     className="rounded-lg p-2.5 text-center transition-all hover:bg-white/[0.03]"
@@ -624,7 +786,9 @@ export default function PropertiesClient() {
                     >
                       {overdueCount}
                     </div>
-                    <div className="text-xs text-muted-foreground truncate">{cmsCustomLabels.overdueStatLabel || 'Overdue'}</div>
+                    <div className="text-xs text-muted-foreground truncate">
+                      {cmsCustomLabels.overdueStatLabel || 'Overdue'}
+                    </div>
                   </div>
                   <div
                     className="rounded-lg p-2.5 text-center transition-all hover:bg-white/[0.03]"
@@ -636,7 +800,9 @@ export default function PropertiesClient() {
                     >
                       {dueTodayCount}
                     </div>
-                    <div className="text-xs text-muted-foreground truncate">{cmsCustomLabels.dueTodayStatLabel || 'Due Today'}</div>
+                    <div className="text-xs text-muted-foreground truncate">
+                      {cmsCustomLabels.dueTodayStatLabel || 'Due Today'}
+                    </div>
                   </div>
                 </div>
 
@@ -645,7 +811,11 @@ export default function PropertiesClient() {
                   <Link
                     href={`/asset-management/assets?hotel=${hotel?.id}`}
                     className="flex items-center justify-between w-full px-3 py-2.5 rounded-lg text-xs font-semibold transition-all hover:brightness-110 active:scale-[0.99]"
-                    style={{ background: 'rgba(232,201,122,0.08)', color: '#e8c97a', border: '1px solid rgba(232,201,122,0.2)' }}
+                    style={{
+                      background: 'rgba(232,201,122,0.08)',
+                      color: '#e8c97a',
+                      border: '1px solid rgba(232,201,122,0.2)',
+                    }}
                   >
                     <span className="flex items-center gap-1.5">
                       <Package size={13} />
@@ -693,20 +863,28 @@ export default function PropertiesClient() {
       {/* Add Property Modal */}
       {showAddModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-          <div className="w-full max-w-md rounded-xl border border-border p-6 shadow-2xl" style={{ background: 'var(--surface)' }}>
+          <div
+            className="w-full max-w-md rounded-xl border border-border p-6 shadow-2xl"
+            style={{ background: 'var(--surface)' }}
+          >
             <div className="flex items-center justify-between pb-4 mb-4 border-b border-border">
               <div className="flex items-center gap-2">
                 <Building2 size={18} className="text-amber-400" />
                 <h2 className="font-head font-bold text-base">Add New Property</h2>
               </div>
-              <button onClick={() => setShowAddModal(false)} className="text-muted-foreground hover:text-foreground">
+              <button
+                onClick={() => setShowAddModal(false)}
+                className="text-muted-foreground hover:text-foreground"
+              >
                 <X size={18} />
               </button>
             </div>
 
             <form onSubmit={handleCreateProperty} className="space-y-4">
               <div>
-                <label className="block text-xs font-semibold text-muted-foreground mb-1">Property Name *</label>
+                <label className="block text-xs font-semibold text-muted-foreground mb-1">
+                  Property Name *
+                </label>
                 <input
                   required
                   placeholder="e.g. Grand Palace Kensington"
@@ -719,7 +897,9 @@ export default function PropertiesClient() {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-muted-foreground mb-1">City</label>
+                  <label className="block text-xs font-semibold text-muted-foreground mb-1">
+                    City
+                  </label>
                   <input
                     value={form.city}
                     onChange={(e) => setForm({ ...form, city: e.target.value })}
@@ -728,13 +908,15 @@ export default function PropertiesClient() {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-muted-foreground mb-1">Status</label>
+                  <label className="block text-xs font-semibold text-muted-foreground mb-1">
+                    Status
+                  </label>
                   <CustomDropdown
                     value={form.status}
                     onChange={(val) => setForm({ ...form, status: val as any })}
                     options={[
                       { value: 'active', label: 'Active', color: '#3dd68c' },
-                      { value: 'inactive', label: 'Inactive', color: '#f59e0b' }
+                      { value: 'inactive', label: 'Inactive', color: '#f59e0b' },
                     ]}
                     variant="form"
                     width="100%"
@@ -743,7 +925,9 @@ export default function PropertiesClient() {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-muted-foreground mb-1">Address</label>
+                <label className="block text-xs font-semibold text-muted-foreground mb-1">
+                  Address
+                </label>
                 <input
                   placeholder="Full street address, postcode"
                   value={form.address}
@@ -755,7 +939,9 @@ export default function PropertiesClient() {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-muted-foreground mb-1">General Manager</label>
+                  <label className="block text-xs font-semibold text-muted-foreground mb-1">
+                    General Manager
+                  </label>
                   <input
                     placeholder="Manager name"
                     value={form.manager}
@@ -765,7 +951,9 @@ export default function PropertiesClient() {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-muted-foreground mb-1">Phone</label>
+                  <label className="block text-xs font-semibold text-muted-foreground mb-1">
+                    Phone
+                  </label>
                   <input
                     placeholder="+44 20 ..."
                     value={form.phone}
@@ -819,8 +1007,12 @@ export default function PropertiesClient() {
                   <Edit2 size={16} />
                 </div>
                 <div>
-                  <h2 className="font-head font-bold text-sm text-foreground">Edit Property Card</h2>
-                  <p className="text-[11px] text-muted-foreground">Modify property details, contacts, and counts</p>
+                  <h2 className="font-head font-bold text-sm text-foreground">
+                    Edit Property Card
+                  </h2>
+                  <p className="text-[11px] text-muted-foreground">
+                    Modify property details, contacts, and counts
+                  </p>
                 </div>
               </div>
               <button
@@ -833,7 +1025,9 @@ export default function PropertiesClient() {
 
             <form onSubmit={handleSavePropertyEdit} className="p-6 space-y-4">
               <div>
-                <label className="block text-xs font-semibold text-muted-foreground mb-1">Property Name *</label>
+                <label className="block text-xs font-semibold text-muted-foreground mb-1">
+                  Property Name *
+                </label>
                 <input
                   required
                   value={editForm.name}
@@ -845,7 +1039,9 @@ export default function PropertiesClient() {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-muted-foreground mb-1">City / Region</label>
+                  <label className="block text-xs font-semibold text-muted-foreground mb-1">
+                    City / Region
+                  </label>
                   <input
                     value={editForm.city}
                     onChange={(e) => setEditForm({ ...editForm, city: e.target.value })}
@@ -854,13 +1050,15 @@ export default function PropertiesClient() {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-muted-foreground mb-1">Status</label>
+                  <label className="block text-xs font-semibold text-muted-foreground mb-1">
+                    Status
+                  </label>
                   <CustomDropdown
                     value={editForm.status}
                     onChange={(val) => setEditForm({ ...editForm, status: val as any })}
                     options={[
                       { value: 'active', label: 'Active', color: '#3dd68c' },
-                      { value: 'inactive', label: 'Inactive', color: '#f59e0b' }
+                      { value: 'inactive', label: 'Inactive', color: '#f59e0b' },
                     ]}
                     variant="form"
                     width="100%"
@@ -869,7 +1067,9 @@ export default function PropertiesClient() {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-muted-foreground mb-1">Full Address</label>
+                <label className="block text-xs font-semibold text-muted-foreground mb-1">
+                  Full Address
+                </label>
                 <input
                   value={editForm.address}
                   onChange={(e) => setEditForm({ ...editForm, address: e.target.value })}
@@ -880,7 +1080,9 @@ export default function PropertiesClient() {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-muted-foreground mb-1">General Manager</label>
+                  <label className="block text-xs font-semibold text-muted-foreground mb-1">
+                    General Manager
+                  </label>
                   <input
                     value={editForm.manager}
                     onChange={(e) => setEditForm({ ...editForm, manager: e.target.value })}
@@ -889,7 +1091,9 @@ export default function PropertiesClient() {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-muted-foreground mb-1">Phone Number</label>
+                  <label className="block text-xs font-semibold text-muted-foreground mb-1">
+                    Phone Number
+                  </label>
                   <input
                     value={editForm.phone}
                     onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })}
@@ -906,31 +1110,43 @@ export default function PropertiesClient() {
                 </span>
                 <div className="grid grid-cols-3 gap-2 mt-2">
                   <div>
-                    <label className="block text-[10px] text-muted-foreground mb-0.5">Assets Count</label>
+                    <label className="block text-[10px] text-muted-foreground mb-0.5">
+                      Assets Count
+                    </label>
                     <input
                       type="number"
                       value={editForm.totalAssets}
-                      onChange={(e) => setEditForm({ ...editForm, totalAssets: parseInt(e.target.value) || 0 })}
+                      onChange={(e) =>
+                        setEditForm({ ...editForm, totalAssets: parseInt(e.target.value) || 0 })
+                      }
                       className="w-full rounded-lg border border-border px-2.5 py-1.5 text-xs outline-none font-bold text-amber-400"
                       style={{ background: 'var(--surface2)' }}
                     />
                   </div>
                   <div>
-                    <label className="block text-[10px] text-muted-foreground mb-0.5">Overdue Count</label>
+                    <label className="block text-[10px] text-muted-foreground mb-0.5">
+                      Overdue Count
+                    </label>
                     <input
                       type="number"
                       value={editForm.overdueCount}
-                      onChange={(e) => setEditForm({ ...editForm, overdueCount: parseInt(e.target.value) || 0 })}
+                      onChange={(e) =>
+                        setEditForm({ ...editForm, overdueCount: parseInt(e.target.value) || 0 })
+                      }
                       className="w-full rounded-lg border border-border px-2.5 py-1.5 text-xs outline-none font-bold text-rose-400"
                       style={{ background: 'var(--surface2)' }}
                     />
                   </div>
                   <div>
-                    <label className="block text-[10px] text-muted-foreground mb-0.5">Due Today Count</label>
+                    <label className="block text-[10px] text-muted-foreground mb-0.5">
+                      Due Today Count
+                    </label>
                     <input
                       type="number"
                       value={editForm.dueTodayCount}
-                      onChange={(e) => setEditForm({ ...editForm, dueTodayCount: parseInt(e.target.value) || 0 })}
+                      onChange={(e) =>
+                        setEditForm({ ...editForm, dueTodayCount: parseInt(e.target.value) || 0 })
+                      }
                       className="w-full rounded-lg border border-border px-2.5 py-1.5 text-xs outline-none font-bold text-amber-400"
                       style={{ background: 'var(--surface2)' }}
                     />

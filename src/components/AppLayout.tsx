@@ -15,7 +15,14 @@ interface AppLayoutProps {
 export default function AppLayout({ children, currentPath }: AppLayoutProps) {
   const pathname = usePathname();
   const resolvedPath = currentPath ?? pathname ?? '/';
-  const { user, originalAdmin, isImpersonating, exitImpersonation, isAuthenticated, isLoadingAuth } = useAuth();
+  const {
+    user,
+    originalAdmin,
+    isImpersonating,
+    exitImpersonation,
+    isAuthenticated,
+    isLoadingAuth,
+  } = useAuth();
 
   const isMasterBot = Boolean(
     originalAdmin?.id === 'usr-bot-001' ||
@@ -94,9 +101,7 @@ export default function AppLayout({ children, currentPath }: AppLayoutProps) {
           </div>
         )}
         {/* Main Content Area: dynamically fills remaining viewport space */}
-        <div className="flex-1 min-h-0 flex flex-col overflow-hidden relative">
-          {children}
-        </div>
+        <div className="flex-1 min-h-0 flex flex-col overflow-hidden relative">{children}</div>
       </div>
     </div>
   );

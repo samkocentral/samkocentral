@@ -62,7 +62,10 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     if (!body.name || !body.email) {
-      return NextResponse.json({ success: false, error: 'Name and email are required' }, { status: 400 });
+      return NextResponse.json(
+        { success: false, error: 'Name and email are required' },
+        { status: 400 }
+      );
     }
 
     if (
@@ -75,9 +78,30 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const initials = body.name.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase();
-    const roleLevel = body.roleLevel || (body.role === 'super-admin' ? 'L1' : body.role === 'admin' ? 'L2' : body.role === 'read-only' ? 'L4' : 'L3');
-    const roleTitle = body.roleTitle || (roleLevel === 'L1' ? 'Super Admin' : roleLevel === 'L2' ? 'Admin' : roleLevel === 'L4' ? 'Viewer' : 'Uploader');
+    const initials = body.name
+      .split(' ')
+      .map((n: string) => n[0])
+      .join('')
+      .slice(0, 2)
+      .toUpperCase();
+    const roleLevel =
+      body.roleLevel ||
+      (body.role === 'super-admin'
+        ? 'L1'
+        : body.role === 'admin'
+          ? 'L2'
+          : body.role === 'read-only'
+            ? 'L4'
+            : 'L3');
+    const roleTitle =
+      body.roleTitle ||
+      (roleLevel === 'L1'
+        ? 'Super Admin'
+        : roleLevel === 'L2'
+          ? 'Admin'
+          : roleLevel === 'L4'
+            ? 'Viewer'
+            : 'Uploader');
     const portal = body.portal || (roleLevel === 'L1' ? 'both' : 'opco');
     const password = body.password || `${roleTitle.replace(/\s+/g, '')}2026!`;
 
@@ -91,7 +115,9 @@ export async function POST(req: NextRequest) {
       roleTitle,
       portal,
       hotel: body.hotel || 'Crowne Plaza Kingston-south',
-      assignedProperties: Array.isArray(body.assignedProperties) ? body.assignedProperties : [body.hotel || 'all'],
+      assignedProperties: Array.isArray(body.assignedProperties)
+        ? body.assignedProperties
+        : [body.hotel || 'all'],
       status: body.status || 'active',
       lastLogin: new Date().toISOString().split('T')[0],
       initials,
@@ -99,6 +125,9 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ success: true, data: newUser }, { status: 201 });
   } catch (error: any) {
-    return NextResponse.json({ success: false, error: error?.message || 'Failed to create user' }, { status: 500 });
+    return NextResponse.json(
+      { success: false, error: error?.message || 'Failed to create user' },
+      { status: 500 }
+    );
   }
 }

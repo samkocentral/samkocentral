@@ -2,11 +2,38 @@
 
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import {
-  Building2, Plus, Upload, Check, X, Loader2, AlertCircle,
-  FileText, Shield, ScrollText, Zap, RefreshCw, ShieldCheck, Tag,
-  FolderOpen, CheckSquare, Trash2, Layers, Package,
-  FileUp, CheckCircle2, ChevronRight, AlertTriangle, Download,
-  Table, Sparkles, PlusCircle, Columns, Paperclip, FileCheck, Eye, Edit2
+  Building2,
+  Plus,
+  Upload,
+  Check,
+  X,
+  Loader2,
+  AlertCircle,
+  FileText,
+  Shield,
+  ScrollText,
+  Zap,
+  RefreshCw,
+  ShieldCheck,
+  Tag,
+  FolderOpen,
+  CheckSquare,
+  Trash2,
+  Layers,
+  Package,
+  FileUp,
+  CheckCircle2,
+  ChevronRight,
+  AlertTriangle,
+  Download,
+  Table,
+  Sparkles,
+  PlusCircle,
+  Columns,
+  Paperclip,
+  FileCheck,
+  Eye,
+  Edit2,
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { api } from '@/lib/api';
@@ -18,6 +45,8 @@ import LoadingPagination from '@/components/ui/LoadingPagination';
 import { useLoadingPagination } from '@/hooks/useLoadingPagination';
 import { getLiveProperties, saveLivePropertiesToCache } from '@/hooks/useLiveProperties';
 import { useAuth } from '@/lib/authContext';
+import { recordAuditLog } from '@/lib/auditLogger';
+import { addNotification } from '@/lib/notifications';
 
 interface PropertyItem {
   id: string;
@@ -65,6 +94,7 @@ export interface GridColumnDef {
   isDepartment?: boolean;
   isStatus?: boolean;
   options?: string[];
+  defaultValue?: any;
 }
 
 interface ModuleConfig {
@@ -105,15 +135,15 @@ export const LIVE_DEPARTMENTS = [
 export const LIVE_STATUSES_BY_MODULE: Record<string, string[]> = {
   'fixed-assets': ['active', 'maintenance', 'repair', 'decommissioned', 'in-review'],
   'non-fixed-assets': ['active', 'maintenance', 'repair', 'decommissioned', 'in-review'],
-  'categories': ['Active', 'Archived'],
-  'maintenance': ['scheduled', 'due-today', 'overdue', 'completed', 'pending'],
-  'compliance': ['compliant', 'overdue', 'pending', 'expiring-soon', 'non-compliant'],
-  'insurance': ['active', 'expiring-soon', 'expired', 'cancelled'],
-  'claims': ['open', 'in-progress', 'settled', 'rejected'],
-  'contracts': ['active', 'expiring-soon', 'terminated', 'expired'],
-  'utilities': ['active', 'inactive', 'suspended'],
-  'documents': ['compliant', 'pending-review', 'expired', 'archived'],
-  'tasks': ['open', 'in-progress', 'done', 'on-hold'],
+  categories: ['Active', 'Archived'],
+  maintenance: ['scheduled', 'due-today', 'overdue', 'completed', 'pending'],
+  compliance: ['compliant', 'overdue', 'pending', 'expiring-soon', 'non-compliant'],
+  insurance: ['active', 'expiring-soon', 'expired', 'cancelled'],
+  claims: ['open', 'in-progress', 'settled', 'rejected'],
+  contracts: ['active', 'expiring-soon', 'terminated', 'expired'],
+  utilities: ['active', 'inactive', 'suspended'],
+  documents: ['compliant', 'pending-review', 'expired', 'archived'],
+  tasks: ['open', 'in-progress', 'done', 'on-hold'],
 };
 
 export const LIVE_FREQUENCIES = [
@@ -157,8 +187,8 @@ export const BASE_CATEGORIES_BY_MODULE: Record<string, string[]> = {
     'Outdoor & Leisure',
     'Other',
   ],
-  'categories': ['Fixed Assets', 'Non-Fixed Assets', 'Operations', 'Compliance', 'General'],
-  'maintenance': [
+  categories: ['Fixed Assets', 'Non-Fixed Assets', 'Operations', 'Compliance', 'General'],
+  maintenance: [
     'HVAC Servicing',
     'Boiler Servicing',
     'Lift Maintenance',
@@ -168,7 +198,7 @@ export const BASE_CATEGORIES_BY_MODULE: Record<string, string[]> = {
     'Kitchen Equipment Maintenance',
     'General Maintenance',
   ],
-  'compliance': [
+  compliance: [
     'Fire Safety',
     'Gas Safety',
     'Electrical Safety',
@@ -178,7 +208,7 @@ export const BASE_CATEGORIES_BY_MODULE: Record<string, string[]> = {
     'Food Hygiene',
     'Health & Safety',
   ],
-  'insurance': [
+  insurance: [
     'Buildings & Plant',
     'Public & Employers Liability',
     'Business Interruption',
@@ -186,7 +216,7 @@ export const BASE_CATEGORIES_BY_MODULE: Record<string, string[]> = {
     'Combined Commercial',
     'Directors & Officers',
   ],
-  'claims': [
+  claims: [
     'Water Damage',
     'Fire Damage',
     'Equipment Breakdown',
@@ -195,7 +225,7 @@ export const BASE_CATEGORIES_BY_MODULE: Record<string, string[]> = {
     'Theft / Burglary',
     'Other',
   ],
-  'contracts': [
+  contracts: [
     'HVAC Maintenance',
     'Lift Servicing',
     'Waste Management',
@@ -205,8 +235,8 @@ export const BASE_CATEGORIES_BY_MODULE: Record<string, string[]> = {
     'IT & Telecoms',
     'Facilities Management',
   ],
-  'utilities': ['Electricity', 'Gas', 'Water', 'Solar / Renewable', 'Biomass'],
-  'documents': [
+  utilities: ['Electricity', 'Gas', 'Water', 'Solar / Renewable', 'Biomass'],
+  documents: [
     'O&M Manual',
     'Architectural Drawings',
     'Fire Strategy',
@@ -216,7 +246,7 @@ export const BASE_CATEGORIES_BY_MODULE: Record<string, string[]> = {
     'Floor Plans',
     'Contract Agreement',
   ],
-  'tasks': [
+  tasks: [
     'Plant Inspection',
     'Daily Check',
     'Safety Audit',
@@ -237,14 +267,40 @@ const MODULES: ModuleConfig[] = [
     color: '#e8c97a',
     sidebarGroup: 'PROPCO',
     quickFormFields: [
-      { key: 'name', label: 'Asset Name', placeholder: 'e.g. Carrier Chiller Unit 01', required: true },
-      { key: 'category', label: 'Category', placeholder: 'Select Category', type: 'select', isCategory: true, defaultValue: 'HVAC & Refrigeration' },
-      { key: 'department', label: 'Department', placeholder: 'Select Department', type: 'select', isDepartment: true, defaultValue: 'Engineering' },
+      {
+        key: 'name',
+        label: 'Asset Name',
+        placeholder: 'e.g. Carrier Chiller Unit 01',
+        required: true,
+      },
+      {
+        key: 'category',
+        label: 'Category',
+        placeholder: 'Select Category',
+        type: 'select',
+        isCategory: true,
+        defaultValue: 'HVAC & Refrigeration',
+      },
+      {
+        key: 'department',
+        label: 'Department',
+        placeholder: 'Select Department',
+        type: 'select',
+        isDepartment: true,
+        defaultValue: 'Engineering',
+      },
       { key: 'location', label: 'Location / Room', placeholder: 'e.g. Plant Room Basement' },
       { key: 'manufacturer', label: 'Manufacturer', placeholder: 'e.g. Carrier / Daikin' },
       { key: 'serialNumber', label: 'Serial Number', placeholder: 'e.g. SN-98234-MEP' },
       { key: 'value', label: 'Asset Value (£)', placeholder: 'e.g. 45000', type: 'number' },
-      { key: 'status', label: 'Status', placeholder: 'Select Status', type: 'select', isStatus: true, defaultValue: 'active' },
+      {
+        key: 'status',
+        label: 'Status',
+        placeholder: 'Select Status',
+        type: 'select',
+        isStatus: true,
+        defaultValue: 'active',
+      },
     ],
     defaultGridColumns: [
       { key: 'name', label: 'Asset Name' },
@@ -267,13 +323,39 @@ const MODULES: ModuleConfig[] = [
     color: '#60a5fa',
     sidebarGroup: 'OPCO',
     quickFormFields: [
-      { key: 'name', label: 'Asset Name', placeholder: 'e.g. Commercial Range Cooker', required: true },
-      { key: 'category', label: 'Category', placeholder: 'Select Category', type: 'select', isCategory: true, defaultValue: 'Kitchen Equipment' },
-      { key: 'department', label: 'Department', placeholder: 'Select Department', type: 'select', isDepartment: true, defaultValue: 'Kitchen' },
+      {
+        key: 'name',
+        label: 'Asset Name',
+        placeholder: 'e.g. Commercial Range Cooker',
+        required: true,
+      },
+      {
+        key: 'category',
+        label: 'Category',
+        placeholder: 'Select Category',
+        type: 'select',
+        isCategory: true,
+        defaultValue: 'Kitchen Equipment',
+      },
+      {
+        key: 'department',
+        label: 'Department',
+        placeholder: 'Select Department',
+        type: 'select',
+        isDepartment: true,
+        defaultValue: 'Kitchen',
+      },
       { key: 'location', label: 'Location / Room', placeholder: 'e.g. Main Kitchen' },
       { key: 'quantity', label: 'Quantity', placeholder: '1', type: 'number', defaultValue: '1' },
       { key: 'value', label: 'Unit Value (£)', placeholder: 'e.g. 8500', type: 'number' },
-      { key: 'status', label: 'Status', placeholder: 'Select Status', type: 'select', isStatus: true, defaultValue: 'active' },
+      {
+        key: 'status',
+        label: 'Status',
+        placeholder: 'Select Status',
+        type: 'select',
+        isStatus: true,
+        defaultValue: 'active',
+      },
     ],
     defaultGridColumns: [
       { key: 'name', label: 'Asset Name' },
@@ -294,14 +376,35 @@ const MODULES: ModuleConfig[] = [
     color: '#a78bfa',
     sidebarGroup: 'OPCO',
     quickFormFields: [
-      { key: 'name', label: 'Category Name', placeholder: 'e.g. Fire & Life Safety Systems', required: true },
-      { key: 'description', label: 'Description', placeholder: 'e.g. Fire detection, alarms, sprinkler networks' },
-      { key: 'type', label: 'Category Type', placeholder: 'Select Type', type: 'select', options: ['Fixed Assets', 'Non-Fixed Assets', 'Operations', 'Compliance', 'General'], defaultValue: 'Fixed Assets' },
+      {
+        key: 'name',
+        label: 'Category Name',
+        placeholder: 'e.g. Fire & Life Safety Systems',
+        required: true,
+      },
+      {
+        key: 'description',
+        label: 'Description',
+        placeholder: 'e.g. Fire detection, alarms, sprinkler networks',
+      },
+      {
+        key: 'type',
+        label: 'Category Type',
+        placeholder: 'Select Type',
+        type: 'select',
+        options: ['Fixed Assets', 'Non-Fixed Assets', 'Operations', 'Compliance', 'General'],
+        defaultValue: 'Fixed Assets',
+      },
     ],
     defaultGridColumns: [
       { key: 'name', label: 'Category Name' },
       { key: 'description', label: 'Description' },
-      { key: 'type', label: 'Type', type: 'select', options: ['Fixed Assets', 'Non-Fixed Assets', 'Operations', 'Compliance', 'General'] },
+      {
+        key: 'type',
+        label: 'Type',
+        type: 'select',
+        options: ['Fixed Assets', 'Non-Fixed Assets', 'Operations', 'Compliance', 'General'],
+      },
     ],
   },
   {
@@ -313,15 +416,65 @@ const MODULES: ModuleConfig[] = [
     color: '#3dd68c',
     sidebarGroup: 'OPCO',
     quickFormFields: [
-      { key: 'title', label: 'PPM / Task Title', placeholder: 'e.g. Monthly Chiller Inspection & Fluid Test', required: true },
+      {
+        key: 'title',
+        label: 'PPM / Task Title',
+        placeholder: 'e.g. Monthly Chiller Inspection & Fluid Test',
+        required: true,
+      },
       { key: 'assetName', label: 'Target Asset', placeholder: 'e.g. Main Chiller Unit 01' },
-      { key: 'category', label: 'Category', placeholder: 'Select Category', type: 'select', isCategory: true, defaultValue: 'HVAC Servicing' },
-      { key: 'department', label: 'Department', placeholder: 'Select Department', type: 'select', isDepartment: true, defaultValue: 'Maintenance' },
-      { key: 'frequency', label: 'Frequency', placeholder: 'Select Frequency', type: 'select', options: LIVE_FREQUENCIES, defaultValue: 'Monthly' },
-      { key: 'assignedTo', label: 'Assigned Engineer / Contractor', placeholder: 'e.g. Daikin UK Specialist' },
-      { key: 'priority', label: 'Priority', placeholder: 'Select Priority', type: 'select', options: LIVE_PRIORITIES, defaultValue: 'high' },
-      { key: 'nextDueDate', label: 'Next Due Date', placeholder: 'YYYY-MM-DD', type: 'date', defaultValue: '2026-12-15' },
-      { key: 'status', label: 'Status', placeholder: 'Select Status', type: 'select', isStatus: true, defaultValue: 'scheduled' },
+      {
+        key: 'category',
+        label: 'Category',
+        placeholder: 'Select Category',
+        type: 'select',
+        isCategory: true,
+        defaultValue: 'HVAC Servicing',
+      },
+      {
+        key: 'department',
+        label: 'Department',
+        placeholder: 'Select Department',
+        type: 'select',
+        isDepartment: true,
+        defaultValue: 'Maintenance',
+      },
+      {
+        key: 'frequency',
+        label: 'Frequency',
+        placeholder: 'Select Frequency',
+        type: 'select',
+        options: LIVE_FREQUENCIES,
+        defaultValue: 'Monthly',
+      },
+      {
+        key: 'assignedTo',
+        label: 'Assigned Engineer / Contractor',
+        placeholder: 'e.g. Daikin UK Specialist',
+      },
+      {
+        key: 'priority',
+        label: 'Priority',
+        placeholder: 'Select Priority',
+        type: 'select',
+        options: LIVE_PRIORITIES,
+        defaultValue: 'high',
+      },
+      {
+        key: 'nextDueDate',
+        label: 'Next Due Date',
+        placeholder: 'YYYY-MM-DD',
+        type: 'date',
+        defaultValue: '2026-12-15',
+      },
+      {
+        key: 'status',
+        label: 'Status',
+        placeholder: 'Select Status',
+        type: 'select',
+        isStatus: true,
+        defaultValue: 'scheduled',
+      },
     ],
     defaultGridColumns: [
       { key: 'title', label: 'PPM / Task Title' },
@@ -344,13 +497,56 @@ const MODULES: ModuleConfig[] = [
     color: '#f59e0b',
     sidebarGroup: 'OPCO',
     quickFormFields: [
-      { key: 'name', label: 'Requirement / Item', placeholder: 'e.g. Fire Risk Assessment (FRA)', required: true },
-      { key: 'category', label: 'Category', placeholder: 'Select Category', type: 'select', isCategory: true, defaultValue: 'Fire Safety' },
-      { key: 'department', label: 'Department', placeholder: 'Select Department', type: 'select', isDepartment: true, defaultValue: 'Maintenance' },
-      { key: 'frequency', label: 'Inspection Frequency', placeholder: 'Select Frequency', type: 'select', options: LIVE_FREQUENCIES, defaultValue: 'Annual' },
-      { key: 'responsiblePerson', label: 'Inspector / Officer', placeholder: 'e.g. Certified Fire Assessor' },
-      { key: 'expiryDate', label: 'Expiry / Certificate Date', placeholder: 'YYYY-MM-DD', type: 'date', defaultValue: '2027-01-31' },
-      { key: 'status', label: 'Status', placeholder: 'Select Status', type: 'select', isStatus: true, defaultValue: 'compliant' },
+      {
+        key: 'name',
+        label: 'Requirement / Item',
+        placeholder: 'e.g. Fire Risk Assessment (FRA)',
+        required: true,
+      },
+      {
+        key: 'category',
+        label: 'Category',
+        placeholder: 'Select Category',
+        type: 'select',
+        isCategory: true,
+        defaultValue: 'Fire Safety',
+      },
+      {
+        key: 'department',
+        label: 'Department',
+        placeholder: 'Select Department',
+        type: 'select',
+        isDepartment: true,
+        defaultValue: 'Maintenance',
+      },
+      {
+        key: 'frequency',
+        label: 'Inspection Frequency',
+        placeholder: 'Select Frequency',
+        type: 'select',
+        options: LIVE_FREQUENCIES,
+        defaultValue: 'Annual',
+      },
+      {
+        key: 'responsiblePerson',
+        label: 'Inspector / Officer',
+        placeholder: 'e.g. Certified Fire Assessor',
+      },
+      {
+        key: 'expiryDate',
+        label: 'Expiry / Certificate Date',
+        placeholder: 'YYYY-MM-DD',
+        type: 'date',
+        defaultValue: '2027-01-31',
+      },
+      {
+        key: 'status',
+        label: 'Status',
+        placeholder: 'Select Status',
+        type: 'select',
+        isStatus: true,
+        defaultValue: 'compliant',
+      },
     ],
     defaultGridColumns: [
       { key: 'name', label: 'Requirement / Item' },
@@ -371,14 +567,56 @@ const MODULES: ModuleConfig[] = [
     color: '#ec4899',
     sidebarGroup: 'PROPCO',
     quickFormFields: [
-      { key: 'policyNumber', label: 'Policy Number', placeholder: 'e.g. POL-2026-UK-089', required: true },
+      {
+        key: 'policyNumber',
+        label: 'Policy Number',
+        placeholder: 'e.g. POL-2026-UK-089',
+        required: true,
+      },
       { key: 'provider', label: 'Underwriter / Insurer', placeholder: 'e.g. Aviva Commercial UK' },
-      { key: 'type', label: 'Coverage Type', placeholder: 'Select Coverage Type', type: 'select', isCategory: true, defaultValue: 'Buildings & Plant' },
-      { key: 'department', label: 'Department', placeholder: 'Select Department', type: 'select', isDepartment: true, defaultValue: 'Finance' },
-      { key: 'coverageAmount', label: 'Total Coverage (£)', placeholder: 'e.g. 15000000', type: 'number' },
-      { key: 'annualPremium', label: 'Annual Premium (£)', placeholder: 'e.g. 18500', type: 'number' },
-      { key: 'expiryDate', label: 'Renewal Date', placeholder: 'YYYY-MM-DD', type: 'date', defaultValue: '2027-06-30' },
-      { key: 'status', label: 'Status', placeholder: 'Select Status', type: 'select', isStatus: true, defaultValue: 'active' },
+      {
+        key: 'type',
+        label: 'Coverage Type',
+        placeholder: 'Select Coverage Type',
+        type: 'select',
+        isCategory: true,
+        defaultValue: 'Buildings & Plant',
+      },
+      {
+        key: 'department',
+        label: 'Department',
+        placeholder: 'Select Department',
+        type: 'select',
+        isDepartment: true,
+        defaultValue: 'Finance',
+      },
+      {
+        key: 'coverageAmount',
+        label: 'Total Coverage (£)',
+        placeholder: 'e.g. 15000000',
+        type: 'number',
+      },
+      {
+        key: 'annualPremium',
+        label: 'Annual Premium (£)',
+        placeholder: 'e.g. 18500',
+        type: 'number',
+      },
+      {
+        key: 'expiryDate',
+        label: 'Renewal Date',
+        placeholder: 'YYYY-MM-DD',
+        type: 'date',
+        defaultValue: '2027-06-30',
+      },
+      {
+        key: 'status',
+        label: 'Status',
+        placeholder: 'Select Status',
+        type: 'select',
+        isStatus: true,
+        defaultValue: 'active',
+      },
     ],
     defaultGridColumns: [
       { key: 'policyNumber', label: 'Policy Number' },
@@ -400,14 +638,50 @@ const MODULES: ModuleConfig[] = [
     color: '#f43f5e',
     sidebarGroup: 'PROPCO',
     quickFormFields: [
-      { key: 'claimNumber', label: 'Claim Reference', placeholder: 'e.g. CLM-2026-004', required: true },
+      {
+        key: 'claimNumber',
+        label: 'Claim Reference',
+        placeholder: 'e.g. CLM-2026-004',
+        required: true,
+      },
       { key: 'policyNumber', label: 'Linked Policy Number', placeholder: 'e.g. POL-2026-UK-089' },
-      { key: 'category', label: 'Incident Type', placeholder: 'Select Incident Type', type: 'select', isCategory: true, defaultValue: 'Water Damage' },
-      { key: 'department', label: 'Department', placeholder: 'Select Department', type: 'select', isDepartment: true, defaultValue: 'Operations' },
-      { key: 'description', label: 'Damage / Incident Description', placeholder: 'e.g. Water damage to plant room boiler pipe' },
+      {
+        key: 'category',
+        label: 'Incident Type',
+        placeholder: 'Select Incident Type',
+        type: 'select',
+        isCategory: true,
+        defaultValue: 'Water Damage',
+      },
+      {
+        key: 'department',
+        label: 'Department',
+        placeholder: 'Select Department',
+        type: 'select',
+        isDepartment: true,
+        defaultValue: 'Operations',
+      },
+      {
+        key: 'description',
+        label: 'Damage / Incident Description',
+        placeholder: 'e.g. Water damage to plant room boiler pipe',
+      },
       { key: 'amount', label: 'Claim Amount (£)', placeholder: 'e.g. 12500', type: 'number' },
-      { key: 'incidentDate', label: 'Incident Date', placeholder: 'YYYY-MM-DD', type: 'date', defaultValue: '2026-10-14' },
-      { key: 'status', label: 'Claim Status', placeholder: 'Select Status', type: 'select', isStatus: true, defaultValue: 'in-progress' },
+      {
+        key: 'incidentDate',
+        label: 'Incident Date',
+        placeholder: 'YYYY-MM-DD',
+        type: 'date',
+        defaultValue: '2026-10-14',
+      },
+      {
+        key: 'status',
+        label: 'Claim Status',
+        placeholder: 'Select Status',
+        type: 'select',
+        isStatus: true,
+        defaultValue: 'in-progress',
+      },
     ],
     defaultGridColumns: [
       { key: 'claimNumber', label: 'Claim Ref' },
@@ -429,14 +703,52 @@ const MODULES: ModuleConfig[] = [
     color: '#38bdf8',
     sidebarGroup: 'PROPCO',
     quickFormFields: [
-      { key: 'title', label: 'Contract Title', placeholder: 'e.g. Comprehensive HVAC Maintenance Agreement', required: true },
+      {
+        key: 'title',
+        label: 'Contract Title',
+        placeholder: 'e.g. Comprehensive HVAC Maintenance Agreement',
+        required: true,
+      },
       { key: 'supplier', label: 'Supplier / Contractor', placeholder: 'e.g. Daikin UK Commercial' },
-      { key: 'category', label: 'Category', placeholder: 'Select Category', type: 'select', isCategory: true, defaultValue: 'HVAC Maintenance' },
-      { key: 'department', label: 'Department', placeholder: 'Select Department', type: 'select', isDepartment: true, defaultValue: 'Maintenance' },
+      {
+        key: 'category',
+        label: 'Category',
+        placeholder: 'Select Category',
+        type: 'select',
+        isCategory: true,
+        defaultValue: 'HVAC Maintenance',
+      },
+      {
+        key: 'department',
+        label: 'Department',
+        placeholder: 'Select Department',
+        type: 'select',
+        isDepartment: true,
+        defaultValue: 'Maintenance',
+      },
       { key: 'annualValue', label: 'Annual Value (£)', placeholder: 'e.g. 24000', type: 'number' },
-      { key: 'startDate', label: 'Start Date', placeholder: 'YYYY-MM-DD', type: 'date', defaultValue: '2026-01-01' },
-      { key: 'expiryDate', label: 'Expiry Date', placeholder: 'YYYY-MM-DD', type: 'date', defaultValue: '2027-12-31' },
-      { key: 'status', label: 'Status', placeholder: 'Select Status', type: 'select', isStatus: true, defaultValue: 'active' },
+      {
+        key: 'startDate',
+        label: 'Start Date',
+        placeholder: 'YYYY-MM-DD',
+        type: 'date',
+        defaultValue: '2026-01-01',
+      },
+      {
+        key: 'expiryDate',
+        label: 'Expiry Date',
+        placeholder: 'YYYY-MM-DD',
+        type: 'date',
+        defaultValue: '2027-12-31',
+      },
+      {
+        key: 'status',
+        label: 'Status',
+        placeholder: 'Select Status',
+        type: 'select',
+        isStatus: true,
+        defaultValue: 'active',
+      },
     ],
     defaultGridColumns: [
       { key: 'title', label: 'Contract Title' },
@@ -458,13 +770,48 @@ const MODULES: ModuleConfig[] = [
     color: '#fbbf24',
     sidebarGroup: 'OPCO',
     quickFormFields: [
-      { key: 'meterNumber', label: 'Meter Reference / Serial', placeholder: 'e.g. MPAN-220004928374', required: true },
-      { key: 'utilityType', label: 'Utility Type', placeholder: 'Select Utility Type', type: 'select', isCategory: true, defaultValue: 'Electricity' },
-      { key: 'supplier', label: 'Utility Supplier', placeholder: 'e.g. British Gas Commercial / E.ON' },
+      {
+        key: 'meterNumber',
+        label: 'Meter Reference / Serial',
+        placeholder: 'e.g. MPAN-220004928374',
+        required: true,
+      },
+      {
+        key: 'utilityType',
+        label: 'Utility Type',
+        placeholder: 'Select Utility Type',
+        type: 'select',
+        isCategory: true,
+        defaultValue: 'Electricity',
+      },
+      {
+        key: 'supplier',
+        label: 'Utility Supplier',
+        placeholder: 'e.g. British Gas Commercial / E.ON',
+      },
       { key: 'accountNumber', label: 'Account Number', placeholder: 'e.g. AC-984210' },
-      { key: 'department', label: 'Department', placeholder: 'Select Department', type: 'select', isDepartment: true, defaultValue: 'Engineering' },
-      { key: 'monthlyCost', label: 'Est. Monthly Cost (£)', placeholder: 'e.g. 4200', type: 'number' },
-      { key: 'status', label: 'Status', placeholder: 'Select Status', type: 'select', isStatus: true, defaultValue: 'active' },
+      {
+        key: 'department',
+        label: 'Department',
+        placeholder: 'Select Department',
+        type: 'select',
+        isDepartment: true,
+        defaultValue: 'Engineering',
+      },
+      {
+        key: 'monthlyCost',
+        label: 'Est. Monthly Cost (£)',
+        placeholder: 'e.g. 4200',
+        type: 'number',
+      },
+      {
+        key: 'status',
+        label: 'Status',
+        placeholder: 'Select Status',
+        type: 'select',
+        isStatus: true,
+        defaultValue: 'active',
+      },
     ],
     defaultGridColumns: [
       { key: 'meterNumber', label: 'Meter Number' },
@@ -485,11 +832,43 @@ const MODULES: ModuleConfig[] = [
     color: '#34d399',
     sidebarGroup: 'CORE',
     quickFormFields: [
-      { key: 'name', label: 'Document Title', placeholder: 'e.g. As-Built Plant Room Drawings & Schematics', required: true },
-      { key: 'category', label: 'Category', placeholder: 'Select Category', type: 'select', isCategory: true, defaultValue: 'O&M Manual' },
-      { key: 'department', label: 'Department', placeholder: 'Select Department', type: 'select', isDepartment: true, defaultValue: 'Maintenance' },
-      { key: 'status', label: 'Compliance Status', placeholder: 'Select Status', type: 'select', isStatus: true, defaultValue: 'compliant' },
-      { key: 'expiryDate', label: 'Expiry / Review Date', placeholder: 'YYYY-MM-DD', type: 'date', defaultValue: '2028-12-31' },
+      {
+        key: 'name',
+        label: 'Document Title',
+        placeholder: 'e.g. As-Built Plant Room Drawings & Schematics',
+        required: true,
+      },
+      {
+        key: 'category',
+        label: 'Category',
+        placeholder: 'Select Category',
+        type: 'select',
+        isCategory: true,
+        defaultValue: 'O&M Manual',
+      },
+      {
+        key: 'department',
+        label: 'Department',
+        placeholder: 'Select Department',
+        type: 'select',
+        isDepartment: true,
+        defaultValue: 'Maintenance',
+      },
+      {
+        key: 'status',
+        label: 'Compliance Status',
+        placeholder: 'Select Status',
+        type: 'select',
+        isStatus: true,
+        defaultValue: 'compliant',
+      },
+      {
+        key: 'expiryDate',
+        label: 'Expiry / Review Date',
+        placeholder: 'YYYY-MM-DD',
+        type: 'date',
+        defaultValue: '2028-12-31',
+      },
       { key: 'file', label: 'File Attachment', placeholder: 'Upload Document', type: 'file' },
     ],
     defaultGridColumns: [
@@ -510,13 +889,52 @@ const MODULES: ModuleConfig[] = [
     color: '#818cf8',
     sidebarGroup: 'CORE',
     quickFormFields: [
-      { key: 'title', label: 'Task Title', placeholder: 'e.g. Weekly Generator Fuel Level & Battery Test', required: true },
-      { key: 'category', label: 'Category', placeholder: 'Select Category', type: 'select', isCategory: true, defaultValue: 'Plant Inspection' },
-      { key: 'department', label: 'Department', placeholder: 'Select Department', type: 'select', isDepartment: true, defaultValue: 'Engineering' },
+      {
+        key: 'title',
+        label: 'Task Title',
+        placeholder: 'e.g. Weekly Generator Fuel Level & Battery Test',
+        required: true,
+      },
+      {
+        key: 'category',
+        label: 'Category',
+        placeholder: 'Select Category',
+        type: 'select',
+        isCategory: true,
+        defaultValue: 'Plant Inspection',
+      },
+      {
+        key: 'department',
+        label: 'Department',
+        placeholder: 'Select Department',
+        type: 'select',
+        isDepartment: true,
+        defaultValue: 'Engineering',
+      },
       { key: 'assignedTo', label: 'Assigned Engineer', placeholder: 'e.g. Duty Engineer' },
-      { key: 'priority', label: 'Priority', placeholder: 'Select Priority', type: 'select', options: LIVE_PRIORITIES, defaultValue: 'medium' },
-      { key: 'dueDate', label: 'Due Date', placeholder: 'YYYY-MM-DD', type: 'date', defaultValue: '2026-11-20' },
-      { key: 'status', label: 'Status', placeholder: 'Select Status', type: 'select', isStatus: true, defaultValue: 'open' },
+      {
+        key: 'priority',
+        label: 'Priority',
+        placeholder: 'Select Priority',
+        type: 'select',
+        options: LIVE_PRIORITIES,
+        defaultValue: 'medium',
+      },
+      {
+        key: 'dueDate',
+        label: 'Due Date',
+        placeholder: 'YYYY-MM-DD',
+        type: 'date',
+        defaultValue: '2026-11-20',
+      },
+      {
+        key: 'status',
+        label: 'Status',
+        placeholder: 'Select Status',
+        type: 'select',
+        isStatus: true,
+        defaultValue: 'open',
+      },
     ],
     defaultGridColumns: [
       { key: 'title', label: 'Task Title' },
@@ -558,7 +976,9 @@ export default function PropertyOnboardingHub() {
 
   // Bulk Selection State
   const [selectedRecordIds, setSelectedRecordIds] = useState<string[]>([]);
-  const [bulkDeleteTarget, setBulkDeleteTarget] = useState<{ ids: string[]; label: string } | null>(null);
+  const [bulkDeleteTarget, setBulkDeleteTarget] = useState<{ ids: string[]; label: string } | null>(
+    null
+  );
   const [isDeletingBulk, setIsDeletingBulk] = useState(false);
 
   // New Property Modal State
@@ -623,7 +1043,11 @@ export default function PropertyOnboardingHub() {
 
   // Active selected property (purely dynamic from DB)
   const selectedProperty = useMemo(() => {
-    return properties.find((p) => p.id === selectedPropertyId || p.name === selectedPropertyId) || properties[0] || null;
+    return (
+      properties.find((p) => p.id === selectedPropertyId || p.name === selectedPropertyId) ||
+      properties[0] ||
+      null
+    );
   }, [properties, selectedPropertyId]);
 
   // Load live categories from database
@@ -685,7 +1109,11 @@ export default function PropertyOnboardingHub() {
     loadProperties();
     loadCategories();
     const handleDataChanged = (e: any) => {
-      if (e?.detail?.type === 'properties' || e?.detail?.type === 'property-created' || e?.detail?.type === 'property-deleted') {
+      if (
+        e?.detail?.type === 'properties' ||
+        e?.detail?.type === 'property-created' ||
+        e?.detail?.type === 'property-deleted'
+      ) {
         loadProperties();
       }
     };
@@ -722,9 +1150,15 @@ export default function PropertyOnboardingHub() {
         // Strict fixed vs non-fixed check
         const isNonFixed =
           rec.isFixed === false ||
-          String(rec.type || rec.assetType || '').toLowerCase().includes('non-fixed') ||
-          String(rec.id || '').toUpperCase().startsWith('NON-') ||
-          String(rec.id || '').toUpperCase().startsWith('NFX-');
+          String(rec.type || rec.assetType || '')
+            .toLowerCase()
+            .includes('non-fixed') ||
+          String(rec.id || '')
+            .toUpperCase()
+            .startsWith('NON-') ||
+          String(rec.id || '')
+            .toUpperCase()
+            .startsWith('NFX-');
 
         if (activeModuleId === 'fixed-assets') {
           if (isNonFixed) return false;
@@ -736,21 +1170,29 @@ export default function PropertyOnboardingHub() {
           if (!rec.property && !rec.site && !rec.hotel) return true;
         }
 
-        const rProp = String(rec.property || rec.site || rec.hotel || rec.hotelName || '').toLowerCase().trim();
-        const rId = String(rec.hotelId || rec.propertyId || '').toLowerCase().trim();
+        const rProp = String(rec.property || rec.site || rec.hotel || rec.hotelName || '')
+          .toLowerCase()
+          .trim();
+        const rId = String(rec.hotelId || rec.propertyId || '')
+          .toLowerCase()
+          .trim();
 
         if (!rProp && !rId) return false;
         return (
-          rProp === pName ||
-          rProp.includes(pName) ||
-          pName.includes(rProp) ||
-          (pId && rId === pId)
+          rProp === pName || rProp.includes(pName) || pName.includes(rProp) || (pId && rId === pId)
         );
       });
 
       const normalizedRecords = filtered.map((rec: any) => ({
         ...rec,
-        title: rec.title || rec.contractName || rec.item || rec.assetName || rec.meterNumber || rec.name || '',
+        title:
+          rec.title ||
+          rec.contractName ||
+          rec.item ||
+          rec.assetName ||
+          rec.meterNumber ||
+          rec.name ||
+          '',
         name: rec.name || rec.title || rec.contractName || rec.item || rec.assetName || '',
         supplier: rec.supplier || rec.supplierName || rec.provider || '',
         supplierName: rec.supplierName || rec.supplier || rec.provider || '',
@@ -772,7 +1214,9 @@ export default function PropertyOnboardingHub() {
 
   // Helper to create an empty row for the spreadsheet grid
   const createEmptyRow = useCallback(() => {
-    const row: Record<string, any> = { _rowId: `row-${Date.now()}-${Math.random().toString(36).substring(2, 7)}` };
+    const row: Record<string, any> = {
+      _rowId: `row-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+    };
     currentModuleConfig.defaultGridColumns.forEach((col) => {
       if (col.isCategory) row[col.key] = activeModuleCategories[0] || '';
       else if (col.isDepartment) row[col.key] = LIVE_DEPARTMENTS[0] || 'Kitchen';
@@ -815,9 +1259,7 @@ export default function PropertyOnboardingHub() {
   };
 
   const handleUpdateGridCell = (rowId: string, colKey: string, val: any) => {
-    setGridRows((prev) =>
-      prev.map((r) => (r._rowId === rowId ? { ...r, [colKey]: val } : r))
-    );
+    setGridRows((prev) => prev.map((r) => (r._rowId === rowId ? { ...r, [colKey]: val } : r)));
   };
 
   const handleAddColumn = () => {
@@ -834,103 +1276,297 @@ export default function PropertyOnboardingHub() {
     toast.success(`Added column "${clean}" to spreadsheet`);
   };
 
+  const normalizeKey = (str: string): string => {
+    return String(str || '')
+      .toLowerCase()
+      .replace(/[\(\)£\$€_\-\/\\\.#]/g, '')
+      .replace(/\s+/g, '')
+      .trim();
+  };
+
+  const normalizeDateValue = (val: any): string => {
+    if (!val) return '';
+    if (val instanceof Date) {
+      const pad = (n: number) => String(n).padStart(2, '0');
+      return `${val.getFullYear()}-${pad(val.getMonth() + 1)}-${pad(val.getDate())}`;
+    }
+    // Handle Excel serial date numbers (e.g. 45838 -> 2025-06-30)
+    const numVal = Number(val);
+    if (
+      (!isNaN(numVal) && numVal > 20000 && numVal < 70000 && typeof val !== 'string') ||
+      (!isNaN(numVal) && /^\d{5}$/.test(String(val).trim()))
+    ) {
+      const excelEpoch = new Date(Date.UTC(1899, 11, 30));
+      const jsDate = new Date(excelEpoch.getTime() + numVal * 86400000);
+      const pad = (n: number) => String(n).padStart(2, '0');
+      return `${jsDate.getUTCFullYear()}-${pad(jsDate.getUTCMonth() + 1)}-${pad(jsDate.getUTCDate())}`;
+    }
+    const str = String(val).trim();
+    if (/^\d{4}-\d{2}-\d{2}$/.test(str)) return str;
+    if (/^\d{1,2}[\/\-\.]\d{1,2}[\/\-\.]\d{4}$/.test(str)) {
+      const parts = str.split(/[\/\-\.]/);
+      if (parts[0].length === 4) {
+        return `${parts[0]}-${parts[1].padStart(2, '0')}-${parts[2].padStart(2, '0')}`;
+      }
+      return `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
+    }
+    const parsed = new Date(str);
+    if (!isNaN(parsed.getTime()) && parsed.getFullYear() > 1900 && parsed.getFullYear() < 2100) {
+      const pad = (n: number) => String(n).padStart(2, '0');
+      return `${parsed.getFullYear()}-${pad(parsed.getMonth() + 1)}-${pad(parsed.getDate())}`;
+    }
+    return str;
+  };
+
   // Upload Excel (.xlsx, .xls) or CSV into Spreadsheet Grid
   const handleSpreadsheetFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    const isExcel = file.name.endsWith('.xlsx') || file.name.endsWith('.xls');
     const reader = new FileReader();
+    reader.onload = (evt) => {
+      try {
+        const data = new Uint8Array(evt.target?.result as ArrayBuffer);
+        const workbook = XLSX.read(data, { type: 'array', cellDates: true });
+        const firstSheetName = workbook.SheetNames[0];
+        if (!firstSheetName) {
+          toast.error('The selected spreadsheet has no sheets.');
+          return;
+        }
+        const sheet = workbook.Sheets[firstSheetName];
+        const json: any[] = XLSX.utils.sheet_to_json(sheet, { defval: '', raw: false });
 
-    if (isExcel) {
-      reader.onload = (evt) => {
-        try {
-          const data = new Uint8Array(evt.target?.result as ArrayBuffer);
-          const workbook = XLSX.read(data, { type: 'array' });
-          const firstSheetName = workbook.SheetNames[0];
-          const sheet = workbook.Sheets[firstSheetName];
-          const json: any[] = XLSX.utils.sheet_to_json(sheet, { defval: '' });
+        if (!json.length) {
+          toast.error('Spreadsheet is empty or has no data rows');
+          return;
+        }
 
-          if (!json.length) {
-            toast.error('Excel sheet is empty');
-            return;
+        const fileHeaders = Object.keys(json[0] || {});
+
+        // Build mapping from file headers to grid columns
+        const headerToColMap: Record<string, GridColumnDef> = {};
+        const matchedColKeys = new Set<string>();
+
+        fileHeaders.forEach((header) => {
+          const normHeader = normalizeKey(header);
+          const matchedCol = gridColumns.find((c) => {
+            const normKey = normalizeKey(c.key);
+            const normLabel = normalizeKey(c.label);
+            return (
+              normKey === normHeader ||
+              normLabel === normHeader ||
+              normHeader.includes(normKey) ||
+              normKey.includes(normHeader) ||
+              normHeader.includes(normLabel) ||
+              normLabel.includes(normHeader)
+            );
+          });
+
+          if (matchedCol) {
+            headerToColMap[header] = matchedCol;
+            matchedColKeys.add(matchedCol.key);
           }
+        });
 
-          // Auto-discover extra columns from file
-          const fileHeaders = Object.keys(json[0]);
-          const currentKeys = new Set(gridColumns.map((c) => c.key.toLowerCase()));
-          const extraCols = fileHeaders
-            .filter((h) => !currentKeys.has(h.toLowerCase()))
-            .map((h) => ({ key: h.toLowerCase().replace(/[^a-z0-9]/g, '_'), label: h, type: 'text' as const }));
-
-          if (extraCols.length > 0) {
-            setGridColumns((prev) => [...prev, ...extraCols]);
+        // Add any truly new custom columns from the file
+        const extraCols: GridColumnDef[] = [];
+        fileHeaders.forEach((header) => {
+          if (!headerToColMap[header]) {
+            const cleanKey = header.toLowerCase().replace(/[^a-z0-9]/g, '_');
+            const newCol: GridColumnDef = { key: cleanKey, label: header, type: 'text' };
+            extraCols.push(newCol);
+            headerToColMap[header] = newCol;
           }
+        });
 
-          const parsedRows = json.map((item, idx) => ({
-            ...item,
+        if (extraCols.length > 0) {
+          setGridColumns((prev) => [...prev, ...extraCols]);
+        }
+
+        // Map every row so `row[col.key]` is populated with correct format
+        const parsedRows = json.map((item, idx) => {
+          const mappedRow: Record<string, any> = {
             _rowId: `excel-row-${Date.now()}-${idx}`,
-          }));
+          };
 
-          setGridRows(parsedRows);
-          toast.success(`Loaded ${parsedRows.length} rows from Excel "${file.name}"!`);
-        } catch (err: any) {
-          console.error('Excel parse error:', err);
-          toast.error('Failed to read Excel file', { description: err?.message });
+          // 1. Map values using discovered header mappings
+          fileHeaders.forEach((header) => {
+            const col = headerToColMap[header];
+            const rawVal = item[header];
+            if (col) {
+              if (col.type === 'date') {
+                mappedRow[col.key] = normalizeDateValue(rawVal);
+              } else if (col.type === 'number') {
+                const cleanNum = String(rawVal).replace(/[^0-9.-]+/g, '');
+                mappedRow[col.key] =
+                  cleanNum !== '' && !isNaN(Number(cleanNum)) ? Number(cleanNum) : rawVal;
+              } else {
+                mappedRow[col.key] = rawVal !== undefined ? rawVal : '';
+              }
+              // Also store under label for cross-reference
+              mappedRow[col.label] = mappedRow[col.key];
+            } else {
+              mappedRow[header] = rawVal;
+            }
+          });
+
+          // 2. Ensure default column keys have a value
+          gridColumns.forEach((col) => {
+            if (mappedRow[col.key] === undefined || mappedRow[col.key] === '') {
+              // Check item directly for key or label
+              if (item[col.key] !== undefined && item[col.key] !== '') {
+                mappedRow[col.key] =
+                  col.type === 'date' ? normalizeDateValue(item[col.key]) : item[col.key];
+              } else if (item[col.label] !== undefined && item[col.label] !== '') {
+                mappedRow[col.key] =
+                  col.type === 'date' ? normalizeDateValue(item[col.label]) : item[col.label];
+              } else if (col.defaultValue) {
+                mappedRow[col.key] = col.defaultValue;
+              } else if (col.isCategory) {
+                mappedRow[col.key] = activeModuleCategories[0] || 'General';
+              } else if (col.isDepartment) {
+                mappedRow[col.key] = LIVE_DEPARTMENTS[0] || 'Kitchen';
+              } else if (col.isStatus) {
+                mappedRow[col.key] = activeModuleStatuses[0] || 'active';
+              } else {
+                mappedRow[col.key] = '';
+              }
+            }
+          });
+
+          // 3. Map standard aliases so title/name/policyNumber are never empty
+          const titleVal =
+            mappedRow.policyNumber ||
+            mappedRow.name ||
+            mappedRow.title ||
+            mappedRow.assetName ||
+            mappedRow.contractName ||
+            mappedRow.item ||
+            mappedRow.accountNo ||
+            mappedRow.meterNumber ||
+            mappedRow.claimNumber ||
+            '';
+          mappedRow.title = titleVal;
+          mappedRow.name = mappedRow.name || titleVal;
+          mappedRow.policyNumber = mappedRow.policyNumber || titleVal;
+
+          return mappedRow;
+        });
+
+        setGridRows(parsedRows);
+        toast.success(`Loaded ${parsedRows.length} records from Excel "${file.name}"!`, {
+          description: 'All columns mapped. Click "Save All Rows to Database" to insert.',
+        });
+      } catch (err: any) {
+        console.error('Excel parse error:', err);
+        toast.error('Failed to read spreadsheet file', { description: err?.message });
+      } finally {
+        if (e.target) {
+          e.target.value = '';
         }
-      };
-      reader.readAsArrayBuffer(file);
-    } else {
-      // CSV
-      reader.onload = (evt) => {
-        try {
-          const text = evt.target?.result as string;
-          const workbook = XLSX.read(text, { type: 'string' });
-          const sheet = workbook.Sheets[workbook.SheetNames[0]];
-          const json: any[] = XLSX.utils.sheet_to_json(sheet, { defval: '' });
+      }
+    };
 
-          if (!json.length) {
-            toast.error('CSV file is empty');
-            return;
-          }
-
-          const parsedRows = json.map((item, idx) => ({
-            ...item,
-            _rowId: `csv-row-${Date.now()}-${idx}`,
-          }));
-
-          setGridRows(parsedRows);
-          toast.success(`Loaded ${parsedRows.length} rows from CSV "${file.name}"!`);
-        } catch (err: any) {
-          console.error('CSV parse error:', err);
-          toast.error('Failed to read CSV file');
-        }
-      };
-      reader.readAsText(file);
-    }
+    reader.readAsArrayBuffer(file);
   };
 
-  // Download Excel Template for this module
+  // Download Excel Template with 3 sample reference rows
   const handleDownloadExcelTemplate = () => {
     try {
-      const sampleRow: Record<string, any> = {};
-      gridColumns.forEach((c) => {
-        if (c.isCategory) sampleRow[c.label] = activeModuleCategories[0] || 'General';
-        else if (c.isDepartment) sampleRow[c.label] = 'Kitchen';
-        else if (c.isStatus) sampleRow[c.label] = activeModuleStatuses[0] || 'active';
-        else if (c.type === 'number') sampleRow[c.label] = 100;
-        else sampleRow[c.label] = `Sample ${c.label}`;
+      const sampleRows: Record<string, any>[] = [1, 2, 3].map((num) => {
+        const row: Record<string, any> = {};
+        gridColumns.forEach((c) => {
+          if (c.isCategory) {
+            row[c.label] =
+              activeModuleCategories[num - 1] || activeModuleCategories[0] || 'Buildings & Plant';
+          } else if (c.isDepartment) {
+            row[c.label] = LIVE_DEPARTMENTS[num - 1] || 'Kitchen';
+          } else if (c.isStatus) {
+            row[c.label] = activeModuleStatuses[0] || 'active';
+          } else if (c.type === 'number') {
+            row[c.label] = 12500 * num;
+          } else if (c.type === 'date') {
+            row[c.label] = `2027-0${num + 5}-30`;
+          } else if (c.key === 'policyNumber') {
+            row[c.label] = `POL-2026-UK-00${num}`;
+          } else if (c.key === 'provider') {
+            const sampleProviders = [
+              'Aviva Commercial UK',
+              'AXA Insurance UK',
+              'Zurich Commercial',
+            ];
+            row[c.label] = sampleProviders[num - 1] || 'Aviva Commercial UK';
+          } else if (c.key === 'broker') {
+            const sampleBrokers = ['Marsh UK', 'Howden Brokers', 'Aon UK'];
+            row[c.label] = sampleBrokers[num - 1] || 'Marsh UK';
+          } else if (c.key === 'title' || c.key === 'name') {
+            row[c.label] = `Sample ${currentModuleConfig.label} ${num}`;
+          } else {
+            row[c.label] = `Sample ${c.label} ${num}`;
+          }
+        });
+        return row;
       });
 
-      const ws = XLSX.utils.json_to_sheet([sampleRow]);
+      const ws = XLSX.utils.json_to_sheet(sampleRows);
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, currentModuleConfig.label.substring(0, 31));
-      const filename = `${currentModuleConfig.id}_${(selectedProperty?.name || 'property').replace(/\s+/g, '_')}_template.xlsx`;
+      const filename = `SamkoCentral_${currentModuleConfig.id}_Template.xlsx`;
       XLSX.writeFile(wb, filename);
-      toast.success(`Downloaded Excel template: ${filename}`);
+      toast.success(`Downloaded Excel template: ${filename}`, {
+        description:
+          'Contains 3 sample reference rows. Add or modify as many rows as needed before uploading.',
+      });
     } catch (err: any) {
       console.error('Excel template download error:', err);
       toast.error('Failed to generate template');
+    }
+  };
+
+  // Export all live database records for the active property & module to Excel
+  const handleExportPropertyRecords = () => {
+    if (!moduleRecords.length) {
+      toast.info(`No records currently in ${selectedProperty?.name} to export.`);
+      return;
+    }
+    try {
+      const exportRows = moduleRecords.map((rec, idx) => {
+        const row: Record<string, any> = {
+          '#': idx + 1,
+          ID: rec.id || rec.assetId || '',
+        };
+        currentModuleConfig.defaultGridColumns.forEach((col) => {
+          const val =
+            rec[col.key] ??
+            (col.key === 'provider' ? rec.company || rec.insurer || rec.supplier : undefined) ??
+            (col.key === 'expiryDate' ? rec.renewalDate || rec.expiry : undefined) ??
+            (col.key === 'renewalDate' ? rec.expiryDate || rec.expiry : undefined) ??
+            (col.key === 'type' ? rec.insuranceType || rec.assetType || rec.category : undefined) ??
+            (col.key === 'coverageAmount' ? rec.coverage : undefined) ??
+            (col.key === 'annualPremium' ? rec.premium : undefined) ??
+            (col.key === 'policyNumber' ? rec.title || rec.name : undefined) ??
+            (col.key === 'title'
+              ? rec.name || rec.assetName || rec.contractName || rec.item
+              : undefined) ??
+            (col.key === 'name'
+              ? rec.title || rec.assetName || rec.contractName || rec.item
+              : undefined) ??
+            '';
+          row[col.label] = val;
+        });
+        row['Property'] = selectedProperty?.name;
+        return row;
+      });
+
+      const ws = XLSX.utils.json_to_sheet(exportRows);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, currentModuleConfig.label.substring(0, 31));
+      const filename = `${selectedProperty?.name || 'Property'}_${currentModuleConfig.id}_${exportRows.length}_records.xlsx`;
+      XLSX.writeFile(wb, filename);
+      toast.success(`Exported all ${exportRows.length} records to ${filename}`);
+    } catch (err: any) {
+      console.error('Export error:', err);
+      toast.error('Failed to export records', { description: err?.message });
     }
   };
 
@@ -942,12 +1578,25 @@ export default function PropertyOnboardingHub() {
     }
 
     const validRows = gridRows.filter((r) => {
-      const title = r.name || r.title || r.policyNumber || r.meterNumber || r.claimNumber;
-      return Boolean(title && String(title).trim().length > 0);
+      const title =
+        r.policyNumber ||
+        r.name ||
+        r.title ||
+        r.meterNumber ||
+        r.claimNumber ||
+        r.assetName ||
+        r.contractName ||
+        r.item ||
+        r.accountNo;
+      return Boolean(
+        title && String(title).trim().length > 0 && !String(title).startsWith('Enter ')
+      );
     });
 
     if (validRows.length === 0) {
-      toast.error('No valid records to save. Please fill in at least the Name / Title column.');
+      toast.error(
+        'No valid records to save. Please fill in the required fields or upload an Excel sheet.'
+      );
       return;
     }
 
@@ -961,51 +1610,126 @@ export default function PropertyOnboardingHub() {
         const { _rowId, ...rest } = raw;
         const payload: any = {
           ...rest,
-          id: raw.id || `${currentModuleConfig.id.slice(0, 3).toUpperCase()}-${Date.now()}-${idx + 1}`,
+          id:
+            raw.id ||
+            `${currentModuleConfig.id.slice(0, 3).toUpperCase()}-${Date.now()}-${idx + 1}`,
           property: p,
           site: p,
           hotel: p,
           hotelName: p,
           hotelId: pid,
-          createdAt: new Date().toISOString(),
+          createdAt: raw.createdAt || new Date().toISOString(),
           updatedAt: new Date().toISOString(),
         };
 
         if (currentModuleConfig.id === 'fixed-assets') {
+          payload.name = raw.name || raw.assetName || raw.title || 'Fixed Asset';
+          payload.title = payload.name;
           payload.type = 'fixed';
           payload.assetType = 'fixed';
           payload.isFixed = true;
-          payload.assetId = raw.assetId || `FIX-${Date.now().toString().slice(-6)}`;
+          payload.assetId = raw.assetId || `FIX-${Date.now().toString().slice(-6)}-${idx + 1}`;
+          payload.category = raw.category || activeModuleCategories[0] || 'HVAC & Refrigeration';
+          payload.department = raw.department || 'Engineering';
+          payload.location = raw.location || raw['Location / Room'] || 'Plant Room';
+          payload.manufacturer = raw.manufacturer || 'Carrier';
+          payload.serialNumber = raw.serialNumber || `SN-${Date.now().toString().slice(-4)}`;
+          payload.value = Number(raw.value || raw['Asset Value (£)']) || raw.value || 0;
+          payload.status = raw.status || 'active';
         } else if (currentModuleConfig.id === 'non-fixed-assets') {
+          payload.name = raw.name || raw.assetName || raw.title || 'Non-Fixed Asset';
+          payload.title = payload.name;
           payload.type = 'non-fixed';
           payload.assetType = 'non-fixed';
           payload.isFixed = false;
-          payload.assetId = raw.assetId || `NFX-${Date.now().toString().slice(-6)}`;
+          payload.assetId = raw.assetId || `NFX-${Date.now().toString().slice(-6)}-${idx + 1}`;
+          payload.category = raw.category || activeModuleCategories[0] || 'Kitchen Equipment';
+          payload.department = raw.department || 'Kitchen';
+          payload.location = raw.location || raw['Location / Room'] || 'General';
+          payload.value = Number(raw.value || raw['Asset Value (£)']) || raw.value || 0;
+          payload.status = raw.status || 'active';
         } else if (currentModuleConfig.id === 'contracts') {
-          const cName = raw.title || raw.contractName || raw.name || 'Commercial Agreement';
-          const sName = raw.supplier || raw.supplierName || 'Contractor';
+          const cName = raw.contractName || raw.title || raw.name || 'Commercial Agreement';
+          const sName = raw.supplierName || raw.supplier || raw.contractor || 'Contractor';
           payload.contractName = cName;
           payload.title = cName;
           payload.name = cName;
           payload.supplierName = sName;
           payload.supplier = sName;
-          payload.contractId = raw.contractId || `CON-${Date.now().toString().slice(-4)}-${idx + 1}`;
+          payload.category = raw.category || activeModuleCategories[0] || 'General';
+          payload.department = raw.department || 'Operations';
+          payload.contractValue =
+            Number(raw.contractValue || raw.value || raw['Annual Value (£)']) || 0;
+          payload.value = payload.contractValue;
+          payload.contractId =
+            raw.contractId || `CON-${Date.now().toString().slice(-4)}-${idx + 1}`;
+          payload.renewalDate = raw.renewalDate || raw.expiryDate || '2027-01-31';
+          payload.startDate = raw.startDate || '2026-01-01';
+          payload.status = raw.status || 'active';
         } else if (currentModuleConfig.id === 'insurance') {
-          payload.policyNumber = raw.policyNumber || raw.name || raw.title || `POL-${Date.now().toString().slice(-4)}-${idx + 1}`;
-          payload.insuranceType = raw.type || raw.insuranceType || 'Buildings & Plant';
-          payload.provider = raw.provider || 'Aviva Commercial UK';
+          payload.policyNumber =
+            raw.policyNumber ||
+            raw.name ||
+            raw.title ||
+            `POL-${Date.now().toString().slice(-4)}-${idx + 1}`;
+          payload.insuranceType =
+            raw.type || raw.insuranceType || raw.category || 'Buildings & Plant';
+          payload.type = payload.insuranceType;
+          payload.provider =
+            raw.provider ||
+            raw['Insurer / Provider'] ||
+            raw.company ||
+            raw.insurer ||
+            'Aviva Commercial UK';
+          payload.insuranceCompany = payload.provider;
+          payload.department = raw.department || 'Finance';
+          payload.coverageAmount =
+            Number(raw.coverageAmount || raw['Coverage (£)'] || raw.coverage) || 0;
+          payload.coverage = payload.coverageAmount
+            ? `£${payload.coverageAmount.toLocaleString()}`
+            : '£15,000,000';
+          payload.annualPremium =
+            Number(raw.annualPremium || raw['Annual Premium (£)'] || raw.premium) || 0;
+          payload.renewalDate =
+            raw.expiryDate || raw['Renewal Date'] || raw.renewalDate || '2027-06-30';
+          payload.expiryDate = payload.renewalDate;
+          payload.startDate = raw.startDate || raw['Effective Date'] || '2026-01-01';
+          payload.broker = raw.broker || raw['Broker'] || 'Marsh UK';
+          payload.status = raw.status || 'active';
         } else if (currentModuleConfig.id === 'compliance') {
-          payload.item = raw.title || raw.item || raw.name || 'Compliance Inspection';
+          payload.item = raw.item || raw.name || raw.title || 'Compliance Inspection';
           payload.name = payload.item;
+          payload.title = payload.item;
+          payload.category = raw.category || activeModuleCategories[0] || 'Fire Safety';
+          payload.department = raw.department || 'Maintenance';
+          payload.responsiblePerson =
+            raw.responsiblePerson || raw['Inspector / Officer'] || 'Certified Inspector';
+          payload.expiryDate = raw.expiryDate || raw['Expiry Date'] || '2027-01-31';
+          payload.status = raw.status || 'compliant';
         } else if (currentModuleConfig.id === 'maintenance') {
-          payload.assetName = raw.assetName || raw.title || raw.name || 'General Equipment';
-          payload.title = raw.title || payload.assetName;
+          payload.assetName = raw.assetName || raw.name || raw.title || 'General Equipment';
+          payload.title = payload.assetName;
+          payload.name = payload.assetName;
+          payload.category = raw.category || activeModuleCategories[0] || 'General Maintenance';
+          payload.department = raw.department || 'Engineering';
+          payload.assignedTo = raw.assignedTo || raw['Assigned Engineer'] || 'Lead Engineer';
+          payload.nextDueDate = raw.nextDueDate || raw['Next Due Date'] || '2026-12-31';
+          payload.frequency = raw.frequency || 'Monthly';
+          payload.priority = raw.priority || 'medium';
+          payload.status = raw.status || 'scheduled';
           payload.assetId = raw.assetId || `AST-${Date.now().toString().slice(-4)}-${idx + 1}`;
         } else if (currentModuleConfig.id === 'utilities') {
-          payload.accountNo = raw.accountNumber || raw.accountNo || raw.meterNumber || `ACC-${Date.now().toString().slice(-4)}`;
+          payload.accountNo =
+            raw.accountNo ||
+            raw.accountNumber ||
+            raw.meterNumber ||
+            `ACC-${Date.now().toString().slice(-4)}`;
           payload.accountNumber = payload.accountNo;
           payload.meterNumber = raw.meterNumber || payload.accountNo;
           payload.utilityType = raw.utilityType || raw.type || 'Electricity';
+          payload.supplier = raw.supplier || 'British Gas Business';
+          payload.annualCost = Number(raw.annualCost || raw.cost || raw['Annual Cost (£)']) || 0;
+          payload.status = raw.status || 'active';
         }
 
         return payload;
@@ -1014,10 +1738,35 @@ export default function PropertyOnboardingHub() {
       const res = await api.bulkImport(col, mapped);
       if (res.success) {
         toast.success(`Successfully saved ${mapped.length} records into ${p} in the database!`);
-        setModuleRecords((prev) => [...mapped, ...prev]);
         setShowSpreadsheetModal(false);
         setShowAddSection(false);
         setGridRows([createEmptyRow(), createEmptyRow(), createEmptyRow()]);
+
+        // Immediately update records state and reload from DB to refresh the main table
+        setModuleRecords((prev) => [...mapped, ...prev]);
+        await loadModuleRecords();
+
+        recordAuditLog({
+          action: 'CREATE',
+          actionLabel: 'Bulk Records Imported',
+          category: 'ASSET_REGISTER',
+          categoryLabel: 'Spreadsheet Import',
+          resource: `${currentModuleConfig?.label || col} (${mapped.length} records)`,
+          property: p,
+          details: `Bulk imported ${mapped.length} records into ${currentModuleConfig?.label || col} for property "${p}".`,
+          status: 'success',
+        });
+
+        addNotification({
+          type: 'info',
+          title: 'Bulk Spreadsheet Records Added',
+          message: `Imported ${mapped.length} new ${currentModuleConfig?.label || col} records for "${p}".`,
+          site: p,
+          source: 'system',
+          playSound: false,
+          showToast: false,
+        });
+
         if (typeof window !== 'undefined') {
           window.dispatchEvent(new CustomEvent('samko:data-changed', { detail: { type: col } }));
         }
@@ -1074,7 +1823,11 @@ export default function PropertyOnboardingHub() {
       payload.isFixed = false;
       payload.assetId = quickFormData.assetId || `NFX-${Date.now().toString().slice(-6)}`;
     } else if (currentModuleConfig.id === 'contracts') {
-      const cName = quickFormData.title || quickFormData.contractName || quickFormData.name || 'Commercial Agreement';
+      const cName =
+        quickFormData.title ||
+        quickFormData.contractName ||
+        quickFormData.name ||
+        'Commercial Agreement';
       const sName = quickFormData.supplier || quickFormData.supplierName || 'Contractor';
       payload.contractName = cName;
       payload.title = cName;
@@ -1083,18 +1836,29 @@ export default function PropertyOnboardingHub() {
       payload.supplier = sName;
       payload.contractId = quickFormData.contractId || `CON-${Date.now().toString().slice(-4)}`;
     } else if (currentModuleConfig.id === 'insurance') {
-      payload.policyNumber = quickFormData.policyNumber || quickFormData.name || quickFormData.title || `POL-${Date.now().toString().slice(-4)}`;
-      payload.insuranceType = quickFormData.type || quickFormData.insuranceType || 'Buildings & Plant';
+      payload.policyNumber =
+        quickFormData.policyNumber ||
+        quickFormData.name ||
+        quickFormData.title ||
+        `POL-${Date.now().toString().slice(-4)}`;
+      payload.insuranceType =
+        quickFormData.type || quickFormData.insuranceType || 'Buildings & Plant';
       payload.provider = quickFormData.provider || 'Aviva Commercial UK';
     } else if (currentModuleConfig.id === 'compliance') {
-      payload.item = quickFormData.title || quickFormData.item || quickFormData.name || 'Compliance Inspection';
+      payload.item =
+        quickFormData.title || quickFormData.item || quickFormData.name || 'Compliance Inspection';
       payload.name = payload.item;
     } else if (currentModuleConfig.id === 'maintenance') {
-      payload.assetName = quickFormData.assetName || quickFormData.title || quickFormData.name || 'General Equipment';
+      payload.assetName =
+        quickFormData.assetName || quickFormData.title || quickFormData.name || 'General Equipment';
       payload.title = quickFormData.title || payload.assetName;
       payload.assetId = quickFormData.assetId || `AST-${Date.now().toString().slice(-4)}`;
     } else if (currentModuleConfig.id === 'utilities') {
-      payload.accountNo = quickFormData.accountNumber || quickFormData.accountNo || quickFormData.meterNumber || `ACC-${Date.now().toString().slice(-4)}`;
+      payload.accountNo =
+        quickFormData.accountNumber ||
+        quickFormData.accountNo ||
+        quickFormData.meterNumber ||
+        `ACC-${Date.now().toString().slice(-4)}`;
       payload.accountNumber = payload.accountNo;
       payload.meterNumber = quickFormData.meterNumber || payload.accountNo;
       payload.utilityType = quickFormData.utilityType || quickFormData.type || 'Electricity';
@@ -1105,10 +1869,43 @@ export default function PropertyOnboardingHub() {
         const res = await (api as any)[col].create(payload);
         if (res.success) {
           toast.success(`Added ${currentModuleConfig.label} item to ${selectedProperty.name}`, {
-            description: payload.name || payload.title || payload.contractName || payload.policyNumber || payload.meterNumber || 'Record saved to DB',
+            description:
+              payload.name ||
+              payload.title ||
+              payload.contractName ||
+              payload.policyNumber ||
+              payload.meterNumber ||
+              'Record saved to DB',
           });
           setModuleRecords((prev) => [payload, ...prev]);
           setShowAddSection(false);
+          await loadModuleRecords();
+
+          recordAuditLog({
+            action: 'CREATE',
+            actionLabel: `Added ${currentModuleConfig.label} Record`,
+            category: 'ASSET_REGISTER',
+            categoryLabel: currentModuleConfig.label,
+            resource:
+              payload.name ||
+              payload.title ||
+              payload.contractName ||
+              payload.policyNumber ||
+              payload.id,
+            property: selectedProperty.name,
+            details: `Created new ${currentModuleConfig.label} item "${payload.name || payload.title || payload.contractName || payload.policyNumber || payload.id}" in property "${selectedProperty.name}".`,
+            status: 'success',
+          });
+
+          addNotification({
+            type: 'info',
+            title: `New ${currentModuleConfig.label} Item`,
+            message: `Added "${payload.name || payload.title || payload.contractName || payload.policyNumber || payload.id}" to ${selectedProperty.name}.`,
+            site: selectedProperty.name,
+            source: 'system',
+            playSound: false,
+            showToast: false,
+          });
 
           // Reset form to defaults
           const defaults: Record<string, any> = {};
@@ -1187,7 +1984,9 @@ export default function PropertyOnboardingHub() {
           status: 'active',
         });
         if (typeof window !== 'undefined') {
-          window.dispatchEvent(new CustomEvent('samko:data-changed', { detail: { type: 'properties' } }));
+          window.dispatchEvent(
+            new CustomEvent('samko:data-changed', { detail: { type: 'properties' } })
+          );
         }
       } else {
         toast.error((res as any)?.error || 'Failed to create property in DB');
@@ -1257,11 +2056,15 @@ export default function PropertyOnboardingHub() {
       const res = await api.properties.update(selectedProperty.id, editPropertyForm);
       if (res.success && res.data) {
         const updated = res.data;
-        setProperties((prev) => prev.map((p) => (p.id === selectedProperty.id ? { ...p, ...updated } : p)));
+        setProperties((prev) =>
+          prev.map((p) => (p.id === selectedProperty.id ? { ...p, ...updated } : p))
+        );
         toast.success(`Property "${updated.name}" updated successfully!`);
         setShowEditPropertyModal(false);
         if (typeof window !== 'undefined') {
-          window.dispatchEvent(new CustomEvent('samko:data-changed', { detail: { type: 'properties' } }));
+          window.dispatchEvent(
+            new CustomEvent('samko:data-changed', { detail: { type: 'properties' } })
+          );
         }
       } else {
         toast.error((res as any)?.error || 'Failed to update property');
@@ -1291,7 +2094,9 @@ export default function PropertyOnboardingHub() {
         }
         setPropertyToDelete(null);
         if (typeof window !== 'undefined') {
-          window.dispatchEvent(new CustomEvent('samko:data-changed', { detail: { type: 'properties' } }));
+          window.dispatchEvent(
+            new CustomEvent('samko:data-changed', { detail: { type: 'properties' } })
+          );
         }
       } else {
         toast.error('Failed to delete property from database');
@@ -1326,9 +2131,7 @@ export default function PropertyOnboardingHub() {
       const res = await updateRecordInDb(col, recId, payload);
       if (res.success || res.data) {
         toast.success(`Record updated successfully in database!`);
-        setModuleRecords((prev) =>
-          prev.map((r) => (r.id === recId ? { ...r, ...payload } : r))
-        );
+        setModuleRecords((prev) => prev.map((r) => (r.id === recId ? { ...r, ...payload } : r)));
         setEditingRecord(null);
         if (typeof window !== 'undefined') {
           window.dispatchEvent(new CustomEvent('samko:data-changed', { detail: { type: col } }));
@@ -1366,7 +2169,9 @@ export default function PropertyOnboardingHub() {
       const col = currentModuleConfig.collection;
       const res = await api.bulkDelete(col, bulkDeleteTarget.ids);
       if (res.success) {
-        toast.success(`Deleted ${bulkDeleteTarget.ids.length} records from ${selectedProperty?.name}`);
+        toast.success(
+          `Deleted ${bulkDeleteTarget.ids.length} records from ${selectedProperty?.name}`
+        );
         const deletedSet = new Set(bulkDeleteTarget.ids);
         setModuleRecords((prev) => prev.filter((r) => !deletedSet.has(r.id)));
         setSelectedRecordIds([]);
@@ -1387,8 +2192,22 @@ export default function PropertyOnboardingHub() {
 
   return (
     <div className="space-y-6 animate-in fade-in duration-200">
+      {/* Hidden Excel/CSV file input permanently mounted for inline and modal use */}
+      <input
+        type="file"
+        ref={fileInputRef}
+        accept=".xlsx,.xls,.csv"
+        onChange={handleSpreadsheetFileUpload}
+        className="hidden"
+      />
+
       {/* ── HEADER & PROPERTY SELECTOR ── */}
-      <div className="rounded-2xl border border-cyan-500/30 p-5 shadow-xl relative overflow-hidden" style={{ background: 'linear-gradient(135deg, rgba(6,182,212,0.08) 0%, rgba(15,23,42,0.9) 100%)' }}>
+      <div
+        className="rounded-2xl border border-cyan-500/30 p-5 shadow-xl relative overflow-hidden"
+        style={{
+          background: 'linear-gradient(135deg, rgba(6,182,212,0.08) 0%, rgba(15,23,42,0.9) 100%)',
+        }}
+      >
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="flex items-start gap-3">
             <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 flex-shrink-0 shadow-inner">
@@ -1396,13 +2215,16 @@ export default function PropertyOnboardingHub() {
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h2 className="font-head font-bold text-lg text-foreground tracking-tight">Property Data &amp; Setup CMS</h2>
+                <h2 className="font-head font-bold text-lg text-foreground tracking-tight">
+                  Property Data &amp; Setup CMS
+                </h2>
                 <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">
                   CMS Hub
                 </span>
               </div>
               <p className="text-xs text-muted-foreground mt-0.5">
-                Dynamic live database manager — assign records, departments, documents, Excel spreadsheets, and manage all 11 sidebar modules for any property.
+                Dynamic live database manager — assign records, departments, documents, Excel
+                spreadsheets, and manage all 11 sidebar modules for any property.
               </p>
             </div>
           </div>
@@ -1481,10 +2303,16 @@ export default function PropertyOnboardingHub() {
       </div>
 
       {/* ── SIDEBAR MODULES NAVIGATION (ALL 11 TABS FROM SIDEBAR) ── */}
-      <div className="rounded-2xl border border-border p-3" style={{ background: 'var(--surface)' }}>
+      <div
+        className="rounded-2xl border border-border p-3"
+        style={{ background: 'var(--surface)' }}
+      >
         <div className="flex items-center justify-between px-2 pb-2.5 mb-2 border-b border-border/60">
           <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
-            <Layers size={13} className="text-primary" /> Sidebar Modules for: <strong className="text-foreground">{selectedProperty?.name || 'Selected Property'}</strong>
+            <Layers size={13} className="text-primary" /> Sidebar Modules for:{' '}
+            <strong className="text-foreground">
+              {selectedProperty?.name || 'Selected Property'}
+            </strong>
           </div>
           <span className="text-[11px] text-muted-foreground">
             {MODULES.length} Sidebar Sections
@@ -1513,8 +2341,18 @@ export default function PropertyOnboardingHub() {
                 <span
                   className="text-[9px] px-1 py-0.2 rounded font-mono font-bold uppercase tracking-wider"
                   style={{
-                    background: mod.sidebarGroup === 'PROPCO' ? 'rgba(232,201,122,0.15)' : mod.sidebarGroup === 'OPCO' ? 'rgba(96,165,250,0.15)' : 'rgba(148,163,184,0.15)',
-                    color: mod.sidebarGroup === 'PROPCO' ? '#e8c97a' : mod.sidebarGroup === 'OPCO' ? '#60a5fa' : '#94a3b8',
+                    background:
+                      mod.sidebarGroup === 'PROPCO'
+                        ? 'rgba(232,201,122,0.15)'
+                        : mod.sidebarGroup === 'OPCO'
+                          ? 'rgba(96,165,250,0.15)'
+                          : 'rgba(148,163,184,0.15)',
+                    color:
+                      mod.sidebarGroup === 'PROPCO'
+                        ? '#e8c97a'
+                        : mod.sidebarGroup === 'OPCO'
+                          ? '#60a5fa'
+                          : '#94a3b8',
                   }}
                 >
                   {mod.sidebarGroup}
@@ -1526,7 +2364,10 @@ export default function PropertyOnboardingHub() {
       </div>
 
       {/* ── ACTIVE MODULE CONTENT & ACTIONS ── */}
-      <div className="rounded-2xl border border-border p-5 space-y-5" style={{ background: 'var(--surface)' }}>
+      <div
+        className="rounded-2xl border border-border p-5 space-y-5"
+        style={{ background: 'var(--surface)' }}
+      >
         {/* Module Header Bar */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-border">
           <div className="flex items-center gap-3">
@@ -1555,6 +2396,17 @@ export default function PropertyOnboardingHub() {
 
           {/* Action Buttons: Spreadsheet Table & Single Item */}
           <div className="flex flex-wrap items-center gap-2">
+            {moduleRecords.length > 0 && (
+              <button
+                type="button"
+                onClick={handleExportPropertyRecords}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border border-border text-foreground hover:bg-surface2 transition-colors cursor-pointer shadow-sm"
+                title={`Export all ${moduleRecords.length} records in ${selectedProperty?.name} to Excel`}
+              >
+                <Download size={13} /> Export ({moduleRecords.length})
+              </button>
+            )}
+
             <button
               type="button"
               onClick={() => setShowSpreadsheetModal(true)}
@@ -1598,7 +2450,9 @@ export default function PropertyOnboardingHub() {
                     type="button"
                     onClick={() => setEntryMode('single')}
                     className={`px-3 py-1 rounded-md font-semibold transition-all cursor-pointer ${
-                      entryMode === 'single' ? 'bg-cyan-400 text-black shadow-sm' : 'text-muted-foreground hover:text-foreground'
+                      entryMode === 'single'
+                        ? 'bg-cyan-400 text-black shadow-sm'
+                        : 'text-muted-foreground hover:text-foreground'
                     }`}
                   >
                     Single Record Form
@@ -1607,7 +2461,9 @@ export default function PropertyOnboardingHub() {
                     type="button"
                     onClick={() => setEntryMode('spreadsheet')}
                     className={`px-3 py-1 rounded-md font-semibold transition-all cursor-pointer ${
-                      entryMode === 'spreadsheet' ? 'bg-cyan-400 text-black shadow-sm' : 'text-muted-foreground hover:text-foreground'
+                      entryMode === 'spreadsheet'
+                        ? 'bg-cyan-400 text-black shadow-sm'
+                        : 'text-muted-foreground hover:text-foreground'
                     }`}
                   >
                     Multi-Row Spreadsheet Grid
@@ -1646,10 +2502,14 @@ export default function PropertyOnboardingHub() {
                               <FileUp size={18} className="text-cyan-400 flex-shrink-0" />
                               <div>
                                 <div className="text-xs font-bold text-foreground">
-                                  {quickFormData.fileName ? quickFormData.fileName : 'No file chosen from computer'}
+                                  {quickFormData.fileName
+                                    ? quickFormData.fileName
+                                    : 'No file chosen from computer'}
                                 </div>
                                 <div className="text-[10px] text-muted-foreground">
-                                  {quickFormData.fileSize ? `Size: ${quickFormData.fileSize}` : 'Supports PDF, Word (.docx), Excel (.xlsx), Images'}
+                                  {quickFormData.fileSize
+                                    ? `Size: ${quickFormData.fileSize}`
+                                    : 'Supports PDF, Word (.docx), Excel (.xlsx), Images'}
                                 </div>
                               </div>
                             </div>
@@ -1663,7 +2523,10 @@ export default function PropertyOnboardingHub() {
                                 onChange={(e) => {
                                   const file = e.target.files?.[0];
                                   if (!file) return;
-                                  const sizeStr = file.size > 1024 * 1024 ? `${(file.size / (1024 * 1024)).toFixed(1)} MB` : `${Math.round(file.size / 1024)} KB`;
+                                  const sizeStr =
+                                    file.size > 1024 * 1024
+                                      ? `${(file.size / (1024 * 1024)).toFixed(1)} MB`
+                                      : `${Math.round(file.size / 1024)} KB`;
                                   setQuickFormData({
                                     ...quickFormData,
                                     fileName: file.name,
@@ -1691,7 +2554,9 @@ export default function PropertyOnboardingHub() {
                           <select
                             required={f.required}
                             value={quickFormData[f.key] || selectOptions[0] || ''}
-                            onChange={(e) => setQuickFormData({ ...quickFormData, [f.key]: e.target.value })}
+                            onChange={(e) =>
+                              setQuickFormData({ ...quickFormData, [f.key]: e.target.value })
+                            }
                             className="samko-input w-full text-xs cursor-pointer py-1.5"
                           >
                             {selectOptions.map((opt) => (
@@ -1705,7 +2570,9 @@ export default function PropertyOnboardingHub() {
                             type={f.type || 'text'}
                             required={f.required}
                             value={quickFormData[f.key] || ''}
-                            onChange={(e) => setQuickFormData({ ...quickFormData, [f.key]: e.target.value })}
+                            onChange={(e) =>
+                              setQuickFormData({ ...quickFormData, [f.key]: e.target.value })
+                            }
                             placeholder={f.placeholder}
                             className="samko-input w-full text-xs"
                           />
@@ -1728,7 +2595,11 @@ export default function PropertyOnboardingHub() {
                     disabled={isSubmittingQuickForm}
                     className="samko-btn-primary flex items-center gap-1.5 text-xs font-semibold cursor-pointer"
                   >
-                    {isSubmittingQuickForm ? <Loader2 size={13} className="animate-spin" /> : <Check size={13} />}
+                    {isSubmittingQuickForm ? (
+                      <Loader2 size={13} className="animate-spin" />
+                    ) : (
+                      <Check size={13} />
+                    )}
                     Save to {selectedProperty?.name}
                   </button>
                 </div>
@@ -1796,9 +2667,14 @@ export default function PropertyOnboardingHub() {
                   <table className="w-full text-left text-xs border-collapse">
                     <thead className="sticky top-0 bg-[#0f172a] z-10 border-b border-border shadow-sm">
                       <tr>
-                        <th className="px-2 py-2 w-8 text-center text-muted-foreground font-mono">#</th>
+                        <th className="px-2 py-2 w-8 text-center text-muted-foreground font-mono">
+                          #
+                        </th>
                         {gridColumns.map((col) => (
-                          <th key={col.key} className="px-3 py-2 font-semibold text-foreground whitespace-nowrap">
+                          <th
+                            key={col.key}
+                            className="px-3 py-2 font-semibold text-foreground whitespace-nowrap"
+                          >
                             {col.label}
                           </th>
                         ))}
@@ -1822,7 +2698,9 @@ export default function PropertyOnboardingHub() {
                                 {col.type === 'select' ? (
                                   <select
                                     value={row[col.key] || selectOpts[0] || ''}
-                                    onChange={(e) => handleUpdateGridCell(row._rowId, col.key, e.target.value)}
+                                    onChange={(e) =>
+                                      handleUpdateGridCell(row._rowId, col.key, e.target.value)
+                                    }
                                     className="w-full px-2 py-1 rounded bg-[#1e293b] border border-border text-foreground text-xs outline-none focus:border-cyan-400 cursor-pointer"
                                   >
                                     {selectOpts.map((opt) => (
@@ -1835,7 +2713,9 @@ export default function PropertyOnboardingHub() {
                                   <input
                                     type={col.type || 'text'}
                                     value={row[col.key] ?? ''}
-                                    onChange={(e) => handleUpdateGridCell(row._rowId, col.key, e.target.value)}
+                                    onChange={(e) =>
+                                      handleUpdateGridCell(row._rowId, col.key, e.target.value)
+                                    }
                                     placeholder={`Enter ${col.label}...`}
                                     className="w-full px-2 py-1 rounded bg-[#1e293b]/60 border border-border/80 text-foreground text-xs outline-none focus:border-cyan-400"
                                   />
@@ -1872,7 +2752,11 @@ export default function PropertyOnboardingHub() {
                     disabled={isSavingGrid}
                     className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold text-black bg-cyan-400 hover:bg-cyan-300 disabled:opacity-40 transition-all cursor-pointer shadow-md"
                   >
-                    {isSavingGrid ? <Loader2 size={13} className="animate-spin" /> : <Check size={13} />}
+                    {isSavingGrid ? (
+                      <Loader2 size={13} className="animate-spin" />
+                    ) : (
+                      <Check size={13} />
+                    )}
                     Save All Rows to Database
                   </button>
                 </div>
@@ -1888,7 +2772,10 @@ export default function PropertyOnboardingHub() {
               <label className="flex items-center gap-2 cursor-pointer font-medium text-foreground select-none">
                 <input
                   type="checkbox"
-                  checked={selectedRecordIds.length > 0 && selectedRecordIds.length === moduleRecords.length}
+                  checked={
+                    selectedRecordIds.length > 0 &&
+                    selectedRecordIds.length === moduleRecords.length
+                  }
                   onChange={handleToggleSelectAll}
                   className="rounded border-border text-cyan-400 focus:ring-cyan-400"
                 />
@@ -1949,7 +2836,9 @@ export default function PropertyOnboardingHub() {
           {loadingRecords ? (
             <div className="py-12 flex flex-col items-center justify-center text-muted-foreground gap-2">
               <Loader2 size={24} className="animate-spin text-primary" />
-              <span className="text-xs font-medium">Loading {currentModuleConfig.label} records for {selectedProperty?.name}...</span>
+              <span className="text-xs font-medium">
+                Loading {currentModuleConfig.label} records for {selectedProperty?.name}...
+              </span>
             </div>
           ) : moduleRecords.length === 0 ? (
             <div className="py-12 px-4 rounded-xl border border-dashed border-border text-center flex flex-col items-center justify-center gap-3">
@@ -1968,7 +2857,9 @@ export default function PropertyOnboardingHub() {
                   No {currentModuleConfig.label} found for {selectedProperty?.name}
                 </h4>
                 <p className="text-xs text-muted-foreground max-w-md mx-auto mt-1 leading-relaxed">
-                  This property currently has 0 records in this module. Add single records with the form above, or open the Excel Spreadsheet Entry to add rows and upload an Excel workbook.
+                  This property currently has 0 records in this module. Add single records with the
+                  form above, or open the Excel Spreadsheet Entry to add rows and upload an Excel
+                  workbook.
                 </p>
               </div>
               <div className="flex items-center gap-2 mt-2">
@@ -1996,164 +2887,218 @@ export default function PropertyOnboardingHub() {
             <div className="rounded-xl border border-border overflow-hidden">
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs">
-                <thead>
-                  <tr className="border-b border-border bg-white/[0.02] text-muted-foreground">
-                    <th className="px-3 py-2.5 w-8">
-                      <input
-                        type="checkbox"
-                        checked={selectedRecordIds.length === moduleRecords.length}
-                        onChange={handleToggleSelectAll}
-                        className="rounded border-border text-cyan-400 focus:ring-cyan-400"
-                      />
-                    </th>
-                    <th className="px-3 py-2.5 font-semibold font-mono text-[11px]">ID</th>
-                    {/* Render every column dynamically */}
-                    {currentModuleConfig.defaultGridColumns.map((col) => (
-                      <th key={col.key} className="px-3 py-2.5 font-semibold whitespace-nowrap">
-                        {col.label}
+                  <thead>
+                    <tr className="border-b border-border bg-white/[0.02] text-muted-foreground">
+                      <th className="px-3 py-2.5 w-8">
+                        <input
+                          type="checkbox"
+                          checked={selectedRecordIds.length === moduleRecords.length}
+                          onChange={handleToggleSelectAll}
+                          className="rounded border-border text-cyan-400 focus:ring-cyan-400"
+                        />
                       </th>
-                    ))}
-                    <th className="px-3 py-2.5 font-semibold text-right">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border/60">
-                  {paginatedModuleRecords.map((rec) => {
-                    const title = rec.name || rec.title || rec.policyNumber || rec.meterNumber || rec.claimNumber || rec.id;
-                    const isChecked = selectedRecordIds.includes(rec.id);
+                      <th className="px-3 py-2.5 font-semibold font-mono text-[11px]">ID</th>
+                      {/* Render every column dynamically */}
+                      {currentModuleConfig.defaultGridColumns.map((col) => (
+                        <th key={col.key} className="px-3 py-2.5 font-semibold whitespace-nowrap">
+                          {col.label}
+                        </th>
+                      ))}
+                      <th className="px-3 py-2.5 font-semibold text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border/60">
+                    {paginatedModuleRecords.map((rec) => {
+                      const title =
+                        rec.name ||
+                        rec.title ||
+                        rec.policyNumber ||
+                        rec.meterNumber ||
+                        rec.claimNumber ||
+                        rec.id;
+                      const isChecked = selectedRecordIds.includes(rec.id);
 
-                    return (
-                      <tr
-                        key={rec.id}
-                        className={`transition-colors ${isChecked ? 'bg-cyan-500/10 hover:bg-cyan-500/15' : 'hover:bg-white/[0.02]'}`}
-                      >
-                        <td className="px-3 py-2.5">
-                          <input
-                            type="checkbox"
-                            checked={isChecked}
-                            onChange={() => handleToggleSelectRecord(rec.id)}
-                            className="rounded border-border text-cyan-400 focus:ring-cyan-400"
-                          />
-                        </td>
-                        <td className="px-3 py-2.5 font-mono text-[10px] text-muted-foreground whitespace-nowrap">
-                          {rec.assetId || rec.id}
-                        </td>
-                        {currentModuleConfig.defaultGridColumns.map((col) => {
-                          const val = rec[col.key];
+                      return (
+                        <tr
+                          key={rec.id}
+                          className={`transition-colors ${isChecked ? 'bg-cyan-500/10 hover:bg-cyan-500/15' : 'hover:bg-white/[0.02]'}`}
+                        >
+                          <td className="px-3 py-2.5">
+                            <input
+                              type="checkbox"
+                              checked={isChecked}
+                              onChange={() => handleToggleSelectRecord(rec.id)}
+                              className="rounded border-border text-cyan-400 focus:ring-cyan-400"
+                            />
+                          </td>
+                          <td className="px-3 py-2.5 font-mono text-[10px] text-muted-foreground whitespace-nowrap">
+                            {rec.assetId || rec.id}
+                          </td>
+                          {currentModuleConfig.defaultGridColumns.map((col) => {
+                            const val =
+                              rec[col.key] ??
+                              (col.key === 'provider'
+                                ? rec.company ||
+                                  rec.insurer ||
+                                  rec.insuranceCompany ||
+                                  rec.supplier ||
+                                  rec.supplierName
+                                : undefined) ??
+                              (col.key === 'expiryDate'
+                                ? rec.renewalDate || rec.expiry || rec.nextDueDate
+                                : undefined) ??
+                              (col.key === 'renewalDate'
+                                ? rec.expiryDate || rec.expiry || rec.nextDueDate
+                                : undefined) ??
+                              (col.key === 'type'
+                                ? rec.insuranceType || rec.assetType || rec.category
+                                : undefined) ??
+                              (col.key === 'coverageAmount' ? rec.coverage : undefined) ??
+                              (col.key === 'annualPremium' ? rec.premium : undefined) ??
+                              (col.key === 'policyNumber' ? rec.title || rec.name : undefined) ??
+                              (col.key === 'title'
+                                ? rec.name ||
+                                  rec.assetName ||
+                                  rec.contractName ||
+                                  rec.item ||
+                                  rec.policyNumber
+                                : undefined) ??
+                              (col.key === 'name'
+                                ? rec.title ||
+                                  rec.assetName ||
+                                  rec.contractName ||
+                                  rec.item ||
+                                  rec.policyNumber
+                                : undefined);
 
-                          if (col.isCategory) {
-                            return (
-                              <td key={col.key} className="px-3 py-2.5 whitespace-nowrap">
-                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-white/5 border border-white/10 text-foreground">
-                                  <Tag size={10} className="text-primary" /> {val || 'General'}
-                                </span>
-                              </td>
-                            );
-                          }
-
-                          if (col.isDepartment) {
-                            return (
-                              <td key={col.key} className="px-3 py-2.5 whitespace-nowrap">
-                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium bg-blue-500/10 text-blue-300 border border-blue-500/20">
-                                  {val || 'General'}
-                                </span>
-                              </td>
-                            );
-                          }
-
-                          if (col.isStatus) {
-                            const status = String(val || 'active');
-                            const isGood = status === 'active' || status === 'compliant' || status === 'done';
-                            const isBad = status === 'urgent' || status === 'overdue' || status === 'non-compliant';
-                            return (
-                              <td key={col.key} className="px-3 py-2.5 whitespace-nowrap">
-                                <span
-                                  className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold ${
-                                    isGood
-                                      ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
-                                      : isBad
-                                      ? 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
-                                      : 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
-                                  }`}
-                                >
-                                  {status}
-                                </span>
-                              </td>
-                            );
-                          }
-
-                          if (col.type === 'number') {
-                            const num = Number(val);
-                            const formatted = !isNaN(num) ? num.toLocaleString() : val;
-                            const isMoney = col.key.includes('value') || col.key.includes('cost') || col.key.includes('amount') || col.key.includes('premium');
-                            return (
-                              <td key={col.key} className="px-3 py-2.5 whitespace-nowrap font-mono text-[11px]">
-                                {val ? (isMoney ? `£${formatted}` : formatted) : '—'}
-                              </td>
-                            );
-                          }
-
-                          if (col.key === 'fileName' || col.key === 'url') {
-                            const fileName = rec.fileName || rec.url;
-                            return (
-                              <td key={col.key} className="px-3 py-2.5 whitespace-nowrap">
-                                {fileName ? (
-                                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-cyan-500/10 text-cyan-300 border border-cyan-500/20 text-[10px]">
-                                    <Paperclip size={10} /> {fileName}
+                            if (col.isCategory) {
+                              return (
+                                <td key={col.key} className="px-3 py-2.5 whitespace-nowrap">
+                                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-white/5 border border-white/10 text-foreground">
+                                    <Tag size={10} className="text-primary" /> {val || 'General'}
                                   </span>
-                                ) : (
-                                  <span className="text-muted-foreground">—</span>
-                                )}
+                                </td>
+                              );
+                            }
+
+                            if (col.isDepartment) {
+                              return (
+                                <td key={col.key} className="px-3 py-2.5 whitespace-nowrap">
+                                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium bg-blue-500/10 text-blue-300 border border-blue-500/20">
+                                    {val || 'General'}
+                                  </span>
+                                </td>
+                              );
+                            }
+
+                            if (col.isStatus) {
+                              const status = String(val || 'active');
+                              const isGood =
+                                status === 'active' || status === 'compliant' || status === 'done';
+                              const isBad =
+                                status === 'urgent' ||
+                                status === 'overdue' ||
+                                status === 'non-compliant';
+                              return (
+                                <td key={col.key} className="px-3 py-2.5 whitespace-nowrap">
+                                  <span
+                                    className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold ${
+                                      isGood
+                                        ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                                        : isBad
+                                          ? 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
+                                          : 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
+                                    }`}
+                                  >
+                                    {status}
+                                  </span>
+                                </td>
+                              );
+                            }
+
+                            if (col.type === 'number') {
+                              const num = Number(val);
+                              const formatted = !isNaN(num) ? num.toLocaleString() : val;
+                              const isMoney =
+                                col.key.includes('value') ||
+                                col.key.includes('cost') ||
+                                col.key.includes('amount') ||
+                                col.key.includes('premium');
+                              return (
+                                <td
+                                  key={col.key}
+                                  className="px-3 py-2.5 whitespace-nowrap font-mono text-[11px]"
+                                >
+                                  {val ? (isMoney ? `£${formatted}` : formatted) : '—'}
+                                </td>
+                              );
+                            }
+
+                            if (col.key === 'fileName' || col.key === 'url') {
+                              const fileName = rec.fileName || rec.url;
+                              return (
+                                <td key={col.key} className="px-3 py-2.5 whitespace-nowrap">
+                                  {fileName ? (
+                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-cyan-500/10 text-cyan-300 border border-cyan-500/20 text-[10px]">
+                                      <Paperclip size={10} /> {fileName}
+                                    </span>
+                                  ) : (
+                                    <span className="text-muted-foreground">—</span>
+                                  )}
+                                </td>
+                              );
+                            }
+
+                            return (
+                              <td
+                                key={col.key}
+                                className="px-3 py-2.5 text-foreground max-w-[200px] truncate"
+                              >
+                                {val ?? '—'}
                               </td>
                             );
-                          }
+                          })}
+                          <td className="px-3 py-2.5 text-right whitespace-nowrap">
+                            <button
+                              type="button"
+                              onClick={() => handleStartEditRecord(rec)}
+                              className="p-1 rounded text-muted-foreground hover:text-amber-400 hover:bg-amber-400/10 transition-colors mr-1 cursor-pointer"
+                              title="Edit this record"
+                            >
+                              <Edit2 size={13} />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setBulkDeleteTarget({
+                                  ids: [rec.id],
+                                  label: `"${title}"`,
+                                })
+                              }
+                              className="p-1 rounded text-muted-foreground hover:text-rose-400 hover:bg-rose-500/10 transition-colors cursor-pointer"
+                              title="Delete this record from property in DB"
+                            >
+                              <Trash2 size={13} />
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
 
-                          return (
-                            <td key={col.key} className="px-3 py-2.5 text-foreground max-w-[200px] truncate">
-                              {val ?? '—'}
-                            </td>
-                          );
-                        })}
-                        <td className="px-3 py-2.5 text-right whitespace-nowrap">
-                          <button
-                            type="button"
-                            onClick={() => handleStartEditRecord(rec)}
-                            className="p-1 rounded text-muted-foreground hover:text-amber-400 hover:bg-amber-400/10 transition-colors mr-1 cursor-pointer"
-                            title="Edit this record"
-                          >
-                            <Edit2 size={13} />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() =>
-                              setBulkDeleteTarget({
-                                ids: [rec.id],
-                                label: `"${title}"`,
-                              })
-                            }
-                            className="p-1 rounded text-muted-foreground hover:text-rose-400 hover:bg-rose-500/10 transition-colors cursor-pointer"
-                            title="Delete this record from property in DB"
-                          >
-                            <Trash2 size={13} />
-                          </button>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+              {/* Pagination Controls */}
+              <LoadingPagination
+                currentPage={recordsPage}
+                totalRecords={totalModuleRecords}
+                pageSize={recordsPageSize}
+                onPageChange={changeRecordsPage}
+                onPageSizeChange={changeRecordsPageSize}
+                isLoading={isRecordsPageLoading || loadingRecords}
+                recordName={`${currentModuleConfig.label.toLowerCase()} records`}
+              />
             </div>
-
-            {/* Pagination Controls */}
-            <LoadingPagination
-              currentPage={recordsPage}
-              totalRecords={totalModuleRecords}
-              pageSize={recordsPageSize}
-              onPageChange={changeRecordsPage}
-              onPageSizeChange={changeRecordsPageSize}
-              isLoading={isRecordsPageLoading || loadingRecords}
-              recordName={`${currentModuleConfig.label.toLowerCase()} records`}
-            />
-          </div>
           )}
         </div>
       </div>
@@ -2171,24 +3116,22 @@ export default function PropertyOnboardingHub() {
               <div>
                 <div className="text-xs font-bold text-foreground flex items-center gap-2">
                   <Table size={14} className="text-cyan-400" />
-                  <span>Module: <strong>{currentModuleConfig.label}</strong></span>
+                  <span>
+                    Module: <strong>{currentModuleConfig.label}</strong>
+                  </span>
                   <span className="text-muted-foreground font-normal">·</span>
-                  <span className="text-cyan-300 font-medium">Assigned to: {selectedProperty?.name}</span>
+                  <span className="text-cyan-300 font-medium">
+                    Assigned to: {selectedProperty?.name}
+                  </span>
                 </div>
                 <div className="text-[11px] text-muted-foreground mt-0.5">
-                  Directly edit rows, add/delete rows, add custom columns, or upload an Excel (.xlsx) workbook.
+                  Directly edit rows, add/delete rows, add custom columns, or upload an Excel
+                  (.xlsx) workbook.
                 </div>
               </div>
 
               {/* Excel Template & Upload Actions */}
               <div className="flex flex-wrap items-center gap-2">
-                <input
-                  type="file"
-                  ref={fileInputRef}
-                  accept=".xlsx,.xls,.csv"
-                  onChange={handleSpreadsheetFileUpload}
-                  className="hidden"
-                />
                 <button
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
@@ -2200,10 +3143,20 @@ export default function PropertyOnboardingHub() {
                   type="button"
                   onClick={handleDownloadExcelTemplate}
                   className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border border-border text-foreground hover:bg-surface2 cursor-pointer"
-                  title="Download pre-formatted Excel template"
+                  title="Download sample Excel starter template with 3 reference rows"
                 >
-                  <Download size={13} /> Download Template (.xlsx)
+                  <Download size={13} /> Sample Template (.xlsx)
                 </button>
+                {moduleRecords.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={handleExportPropertyRecords}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border border-cyan-500/40 text-cyan-300 bg-cyan-500/10 hover:bg-cyan-500/20 cursor-pointer"
+                    title={`Export all ${moduleRecords.length} records in ${selectedProperty?.name} to Excel`}
+                  >
+                    <Download size={13} /> Export All {moduleRecords.length} Records (.xlsx)
+                  </button>
+                )}
               </div>
             </div>
 
@@ -2276,7 +3229,10 @@ export default function PropertyOnboardingHub() {
                   <tr>
                     <th className="px-2 py-2 w-8 text-center text-muted-foreground font-mono">#</th>
                     {gridColumns.map((col) => (
-                      <th key={col.key} className="px-3 py-2 font-semibold text-foreground whitespace-nowrap">
+                      <th
+                        key={col.key}
+                        className="px-3 py-2 font-semibold text-foreground whitespace-nowrap"
+                      >
                         {col.label}
                       </th>
                     ))}
@@ -2300,7 +3256,9 @@ export default function PropertyOnboardingHub() {
                             {col.type === 'select' ? (
                               <select
                                 value={row[col.key] || selectOpts[0] || ''}
-                                onChange={(e) => handleUpdateGridCell(row._rowId, col.key, e.target.value)}
+                                onChange={(e) =>
+                                  handleUpdateGridCell(row._rowId, col.key, e.target.value)
+                                }
                                 className="w-full px-2 py-1 rounded bg-[#1e293b] border border-border text-foreground text-xs outline-none focus:border-cyan-400 cursor-pointer"
                               >
                                 {selectOpts.map((opt) => (
@@ -2313,7 +3271,9 @@ export default function PropertyOnboardingHub() {
                               <input
                                 type={col.type || 'text'}
                                 value={row[col.key] ?? ''}
-                                onChange={(e) => handleUpdateGridCell(row._rowId, col.key, e.target.value)}
+                                onChange={(e) =>
+                                  handleUpdateGridCell(row._rowId, col.key, e.target.value)
+                                }
                                 placeholder={`Enter ${col.label}...`}
                                 className="w-full px-2 py-1 rounded bg-[#1e293b]/60 border border-border/80 text-foreground text-xs outline-none focus:border-cyan-400"
                               />
@@ -2357,7 +3317,11 @@ export default function PropertyOnboardingHub() {
                   disabled={isSavingGrid}
                   className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold text-black bg-cyan-400 hover:bg-cyan-300 disabled:opacity-40 transition-all cursor-pointer shadow-md"
                 >
-                  {isSavingGrid ? <Loader2 size={13} className="animate-spin" /> : <Check size={13} />}
+                  {isSavingGrid ? (
+                    <Loader2 size={13} className="animate-spin" />
+                  ) : (
+                    <Check size={13} />
+                  )}
                   Save All Rows to Database
                 </button>
               </div>
@@ -2403,7 +3367,9 @@ export default function PropertyOnboardingHub() {
                 <input
                   type="number"
                   value={newPropForm.rooms}
-                  onChange={(e) => setNewPropForm({ ...newPropForm, rooms: Number(e.target.value) })}
+                  onChange={(e) =>
+                    setNewPropForm({ ...newPropForm, rooms: Number(e.target.value) })
+                  }
                   className="samko-input w-full text-xs"
                 />
               </div>
@@ -2456,7 +3422,11 @@ export default function PropertyOnboardingHub() {
                 disabled={creatingProperty}
                 className="samko-btn-primary flex items-center gap-1.5 text-xs font-semibold cursor-pointer"
               >
-                {creatingProperty ? <Loader2 size={13} className="animate-spin" /> : <Building2 size={13} />}
+                {creatingProperty ? (
+                  <Loader2 size={13} className="animate-spin" />
+                ) : (
+                  <Building2 size={13} />
+                )}
                 Create &amp; Open Property
               </button>
             </div>
@@ -2491,7 +3461,9 @@ export default function PropertyOnboardingHub() {
                 <input
                   type="text"
                   value={editPropertyForm.city}
-                  onChange={(e) => setEditPropertyForm({ ...editPropertyForm, city: e.target.value })}
+                  onChange={(e) =>
+                    setEditPropertyForm({ ...editPropertyForm, city: e.target.value })
+                  }
                   placeholder="e.g. Brighton / Sussex"
                   className="samko-input w-full text-xs"
                 />
@@ -2501,7 +3473,9 @@ export default function PropertyOnboardingHub() {
                 <input
                   type="number"
                   value={editPropertyForm.rooms}
-                  onChange={(e) => setEditPropertyForm({ ...editPropertyForm, rooms: Number(e.target.value) })}
+                  onChange={(e) =>
+                    setEditPropertyForm({ ...editPropertyForm, rooms: Number(e.target.value) })
+                  }
                   className="samko-input w-full text-xs"
                 />
               </div>
@@ -2512,7 +3486,9 @@ export default function PropertyOnboardingHub() {
               <input
                 type="text"
                 value={editPropertyForm.address}
-                onChange={(e) => setEditPropertyForm({ ...editPropertyForm, address: e.target.value })}
+                onChange={(e) =>
+                  setEditPropertyForm({ ...editPropertyForm, address: e.target.value })
+                }
                 placeholder="e.g. 97 Kings Road, Brighton BN1 2FW"
                 className="samko-input w-full text-xs"
               />
@@ -2524,7 +3500,9 @@ export default function PropertyOnboardingHub() {
                 <input
                   type="text"
                   value={editPropertyForm.manager}
-                  onChange={(e) => setEditPropertyForm({ ...editPropertyForm, manager: e.target.value })}
+                  onChange={(e) =>
+                    setEditPropertyForm({ ...editPropertyForm, manager: e.target.value })
+                  }
                   placeholder="e.g. David Thornton"
                   className="samko-input w-full text-xs"
                 />
@@ -2534,7 +3512,9 @@ export default function PropertyOnboardingHub() {
                 <input
                   type="text"
                   value={editPropertyForm.phone}
-                  onChange={(e) => setEditPropertyForm({ ...editPropertyForm, phone: e.target.value })}
+                  onChange={(e) =>
+                    setEditPropertyForm({ ...editPropertyForm, phone: e.target.value })
+                  }
                   placeholder="+44 20 ..."
                   className="samko-input w-full text-xs"
                 />
@@ -2582,7 +3562,11 @@ export default function PropertyOnboardingHub() {
                 disabled={isUpdatingProperty}
                 className="samko-btn-primary flex items-center gap-1.5 text-xs font-semibold cursor-pointer"
               >
-                {isUpdatingProperty ? <Loader2 size={13} className="animate-spin" /> : <Check size={13} />}
+                {isUpdatingProperty ? (
+                  <Loader2 size={13} className="animate-spin" />
+                ) : (
+                  <Check size={13} />
+                )}
                 Save Changes to DB
               </button>
             </div>
@@ -2645,7 +3629,14 @@ export default function PropertyOnboardingHub() {
                 }
 
                 return (
-                  <div key={f.key} className={f.key === 'title' || f.key === 'name' || f.key === 'description' ? 'sm:col-span-2' : ''}>
+                  <div
+                    key={f.key}
+                    className={
+                      f.key === 'title' || f.key === 'name' || f.key === 'description'
+                        ? 'sm:col-span-2'
+                        : ''
+                    }
+                  >
                     <label className="block text-[11px] font-semibold text-muted-foreground mb-1">
                       {f.label} {f.required && <span className="text-rose-400">*</span>}
                     </label>
@@ -2656,7 +3647,12 @@ export default function PropertyOnboardingHub() {
                       onChange={(e) =>
                         setEditRecordData({
                           ...editRecordData,
-                          [f.key]: f.type === 'number' ? (e.target.value === '' ? '' : Number(e.target.value)) : e.target.value,
+                          [f.key]:
+                            f.type === 'number'
+                              ? e.target.value === ''
+                                ? ''
+                                : Number(e.target.value)
+                              : e.target.value,
                         })
                       }
                       placeholder={f.placeholder}
@@ -2680,7 +3676,11 @@ export default function PropertyOnboardingHub() {
                 disabled={isUpdatingRecord}
                 className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold text-black bg-cyan-400 hover:bg-cyan-300 disabled:opacity-40 transition-all cursor-pointer shadow-md"
               >
-                {isUpdatingRecord ? <Loader2 size={13} className="animate-spin" /> : <Check size={13} />}
+                {isUpdatingRecord ? (
+                  <Loader2 size={13} className="animate-spin" />
+                ) : (
+                  <Check size={13} />
+                )}
                 Save Changes to DB
               </button>
             </div>

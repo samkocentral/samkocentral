@@ -61,14 +61,19 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     if (!body.name) {
-      return NextResponse.json({ success: false, error: 'Asset name is required' }, { status: 400 });
+      return NextResponse.json(
+        { success: false, error: 'Asset name is required' },
+        { status: 400 }
+      );
     }
 
     const assetId = body.assetId || `AST-${Date.now().toString().slice(-6)}`;
     const isFixed =
       body.isFixed !== undefined
         ? Boolean(body.isFixed)
-        : (body.type === 'non-fixed' || body.assetType === 'non-fixed' ? false : true);
+        : body.type === 'non-fixed' || body.assetType === 'non-fixed'
+          ? false
+          : true;
 
     const newAsset = await createDocument('assets', {
       ...body,
@@ -82,6 +87,9 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ success: true, data: newAsset }, { status: 201 });
   } catch (error: any) {
-    return NextResponse.json({ success: false, error: error?.message || 'Failed to create asset' }, { status: 500 });
+    return NextResponse.json(
+      { success: false, error: error?.message || 'Failed to create asset' },
+      { status: 500 }
+    );
   }
 }

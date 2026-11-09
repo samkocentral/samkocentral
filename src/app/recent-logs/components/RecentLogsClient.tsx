@@ -87,7 +87,9 @@ export default function RecentLogsClient() {
 
   const activeColumns = useMemo(() => {
     if (deepCms.columns && deepCms.columns.length > 0) {
-      return [...deepCms.columns].sort((a, b) => a.order - b.order).filter((c) => c.visible !== false);
+      return [...deepCms.columns]
+        .sort((a, b) => a.order - b.order)
+        .filter((c) => c.visible !== false);
     }
     return [
       { id: 'timestamp', label: 'Timestamp', visible: true, order: 1 },
@@ -133,10 +135,10 @@ export default function RecentLogsClient() {
       window.removeEventListener('storage', handleLogEvent);
     };
   }, [refreshLogs]);
-  
+
   // Requirement 2: Default view defaults to showing "Today's Logs"
   const [preset, setPreset] = useState<PresetType>('today');
-  
+
   // Custom date picker states
   const todayStr = useMemo(() => toDateInputValue(new Date()), []);
   const [fromDate, setFromDate] = useState<string>(todayStr);
@@ -164,7 +166,10 @@ export default function RecentLogsClient() {
       }
       // L4 Viewer can only filter by L4 or operational L3 assigned to their sites (NEVER L1 Super Admin or L2 Admin)
       if (currentRole === 'L4') {
-        return u.roleLevel === 'L4' || (u.roleLevel === 'L3' && isPropertyAllowed(user, (u as any).hotel));
+        return (
+          u.roleLevel === 'L4' ||
+          (u.roleLevel === 'L3' && isPropertyAllowed(user, (u as any).hotel))
+        );
       }
       // L3 Uploader can only filter by L3 and L4 (NEVER L1 or L2)
       if (currentRole === 'L3') {
@@ -342,7 +347,19 @@ export default function RecentLogsClient() {
 
       return true;
     });
-  }, [logs, preset, todayStr, fromDate, toDate, selectedUser, selectedCategory, selectedStatus, searchQuery, isStrictDigitalBot, botOnlyFilter]);
+  }, [
+    logs,
+    preset,
+    todayStr,
+    fromDate,
+    toDate,
+    selectedUser,
+    selectedCategory,
+    selectedStatus,
+    searchQuery,
+    isStrictDigitalBot,
+    botOnlyFilter,
+  ]);
 
   const {
     currentPage,
@@ -395,7 +412,10 @@ export default function RecentLogsClient() {
               )}
             </div>
             <div className="text-[11px] text-muted-foreground mt-0.5">
-              {deepCms.kpis?.[0]?.subtitle || (preset === 'today' ? 'Activity from today' : `Active preset: ${preset.toUpperCase()}`)}
+              {deepCms.kpis?.[0]?.subtitle ||
+                (preset === 'today'
+                  ? 'Activity from today'
+                  : `Active preset: ${preset.toUpperCase()}`)}
             </div>
           </div>
           <div
@@ -460,11 +480,15 @@ export default function RecentLogsClient() {
             <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
               {deepCms.kpis?.[3]?.label || 'Security & Alerts'}
             </div>
-            <div className="text-2xl font-bold mt-1" style={{ color: alertCount > 0 ? '#f43f5e' : '#fbbf24' }}>
-              {deepCms.kpis?.[3]?.value || (alertCount + warningCount)}
+            <div
+              className="text-2xl font-bold mt-1"
+              style={{ color: alertCount > 0 ? '#f43f5e' : '#fbbf24' }}
+            >
+              {deepCms.kpis?.[3]?.value || alertCount + warningCount}
             </div>
             <div className="text-[11px] text-muted-foreground mt-0.5">
-              {deepCms.kpis?.[3]?.subtitle || `${alertCount} security alerts, ${warningCount} warnings`}
+              {deepCms.kpis?.[3]?.subtitle ||
+                `${alertCount} security alerts, ${warningCount} warnings`}
             </div>
           </div>
           <div
@@ -486,7 +510,10 @@ export default function RecentLogsClient() {
         }}
       >
         {/* Row 1: Date Range Presets & Custom Pickers */}
-        <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-3.5 border-b pb-4" style={{ borderColor: 'var(--border)' }}>
+        <div
+          className="flex flex-col xl:flex-row xl:items-center justify-between gap-3.5 border-b pb-4"
+          style={{ borderColor: 'var(--border)' }}
+        >
           {/* Quick Preset Buttons */}
           <div className="flex items-center flex-wrap gap-1.5">
             <span className="text-xs font-semibold text-muted-foreground mr-1 flex items-center gap-1.5">
@@ -502,11 +529,16 @@ export default function RecentLogsClient() {
               style={{
                 background: preset === 'today' ? 'rgba(232,201,122,0.18)' : 'var(--surface2)',
                 color: preset === 'today' ? 'var(--primary)' : 'var(--text2)',
-                border: preset === 'today' ? '1px solid rgba(232,201,122,0.45)' : '1px solid var(--border)',
+                border:
+                  preset === 'today'
+                    ? '1px solid rgba(232,201,122,0.45)'
+                    : '1px solid var(--border)',
                 boxShadow: preset === 'today' ? '0 0 10px rgba(232,201,122,0.2)' : 'none',
               }}
             >
-              <span className={`w-1.5 h-1.5 rounded-full ${preset === 'today' ? 'bg-amber-400 animate-pulse' : 'bg-transparent'}`} />
+              <span
+                className={`w-1.5 h-1.5 rounded-full ${preset === 'today' ? 'bg-amber-400 animate-pulse' : 'bg-transparent'}`}
+              />
               Today
             </button>
 
@@ -518,7 +550,10 @@ export default function RecentLogsClient() {
               style={{
                 background: preset === '1week' ? 'rgba(232,201,122,0.18)' : 'var(--surface2)',
                 color: preset === '1week' ? 'var(--primary)' : 'var(--text2)',
-                border: preset === '1week' ? '1px solid rgba(232,201,122,0.45)' : '1px solid var(--border)',
+                border:
+                  preset === '1week'
+                    ? '1px solid rgba(232,201,122,0.45)'
+                    : '1px solid var(--border)',
                 boxShadow: preset === '1week' ? '0 0 10px rgba(232,201,122,0.2)' : 'none',
               }}
             >
@@ -533,7 +568,10 @@ export default function RecentLogsClient() {
               style={{
                 background: preset === '30days' ? 'rgba(232,201,122,0.18)' : 'var(--surface2)',
                 color: preset === '30days' ? 'var(--primary)' : 'var(--text2)',
-                border: preset === '30days' ? '1px solid rgba(232,201,122,0.45)' : '1px solid var(--border)',
+                border:
+                  preset === '30days'
+                    ? '1px solid rgba(232,201,122,0.45)'
+                    : '1px solid var(--border)',
                 boxShadow: preset === '30days' ? '0 0 10px rgba(232,201,122,0.2)' : 'none',
               }}
             >
@@ -548,7 +586,10 @@ export default function RecentLogsClient() {
               style={{
                 background: preset === '45days' ? 'rgba(232,201,122,0.18)' : 'var(--surface2)',
                 color: preset === '45days' ? 'var(--primary)' : 'var(--text2)',
-                border: preset === '45days' ? '1px solid rgba(232,201,122,0.45)' : '1px solid var(--border)',
+                border:
+                  preset === '45days'
+                    ? '1px solid rgba(232,201,122,0.45)'
+                    : '1px solid var(--border)',
                 boxShadow: preset === '45days' ? '0 0 10px rgba(232,201,122,0.2)' : 'none',
               }}
             >
@@ -563,7 +604,10 @@ export default function RecentLogsClient() {
               style={{
                 background: preset === '90days' ? 'rgba(232,201,122,0.18)' : 'var(--surface2)',
                 color: preset === '90days' ? 'var(--primary)' : 'var(--text2)',
-                border: preset === '90days' ? '1px solid rgba(232,201,122,0.45)' : '1px solid var(--border)',
+                border:
+                  preset === '90days'
+                    ? '1px solid rgba(232,201,122,0.45)'
+                    : '1px solid var(--border)',
                 boxShadow: preset === '90days' ? '0 0 10px rgba(232,201,122,0.2)' : 'none',
               }}
             >
@@ -578,7 +622,8 @@ export default function RecentLogsClient() {
               style={{
                 background: preset === 'all' ? 'rgba(232,201,122,0.18)' : 'var(--surface2)',
                 color: preset === 'all' ? 'var(--primary)' : 'var(--text2)',
-                border: preset === 'all' ? '1px solid rgba(232,201,122,0.45)' : '1px solid var(--border)',
+                border:
+                  preset === 'all' ? '1px solid rgba(232,201,122,0.45)' : '1px solid var(--border)',
                 boxShadow: preset === 'all' ? '0 0 10px rgba(232,201,122,0.2)' : 'none',
               }}
             >
@@ -681,7 +726,10 @@ export default function RecentLogsClient() {
               value={selectedUser}
               width="100%"
               options={[
-                { value: 'ALL', label: isStrictDigitalBot ? 'All Users & System Actors' : 'All Permitted Users' },
+                {
+                  value: 'ALL',
+                  label: isStrictDigitalBot ? 'All Users & System Actors' : 'All Permitted Users',
+                },
                 ...visibleAuditUsers.map((u) => ({
                   value: u.email,
                   label: `${u.name} (${u.roleTitle} · ${u.roleLevel})`,
@@ -749,7 +797,9 @@ export default function RecentLogsClient() {
                 <span>Search Logs:</span>
               </span>
               {searchQuery && (
-                <span className="text-[10px] text-amber-400 font-mono font-normal">Active query</span>
+                <span className="text-[10px] text-amber-400 font-mono font-normal">
+                  Active query
+                </span>
               )}
             </label>
             <div className="relative w-full">
@@ -784,14 +834,25 @@ export default function RecentLogsClient() {
         </div>
 
         {/* Active Filter Badges Bar */}
-        {(selectedUser !== 'ALL' || selectedCategory !== 'ALL' || selectedStatus !== 'ALL' || searchQuery || preset !== 'today') && (
-          <div className="flex items-center flex-wrap gap-2 pt-2 border-t text-xs" style={{ borderColor: 'var(--border)' }}>
+        {(selectedUser !== 'ALL' ||
+          selectedCategory !== 'ALL' ||
+          selectedStatus !== 'ALL' ||
+          searchQuery ||
+          preset !== 'today') && (
+          <div
+            className="flex items-center flex-wrap gap-2 pt-2 border-t text-xs"
+            style={{ borderColor: 'var(--border)' }}
+          >
             <span className="text-muted-foreground text-[11px] font-medium">Active Filters:</span>
-            
+
             {preset !== 'today' && (
               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] bg-amber-500/10 text-amber-400 border border-amber-500/30">
                 Range: {preset.toUpperCase()}
-                <button type="button" onClick={() => handlePresetChange('today')} className="hover:text-white">
+                <button
+                  type="button"
+                  onClick={() => handlePresetChange('today')}
+                  className="hover:text-white"
+                >
                   <X size={10} />
                 </button>
               </span>
@@ -800,7 +861,11 @@ export default function RecentLogsClient() {
             {selectedUser !== 'ALL' && (
               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] bg-blue-500/10 text-blue-400 border border-blue-500/30">
                 User: {AUDIT_USERS.find((u) => u.email === selectedUser)?.name || selectedUser}
-                <button type="button" onClick={() => setSelectedUser('ALL')} className="hover:text-white">
+                <button
+                  type="button"
+                  onClick={() => setSelectedUser('ALL')}
+                  className="hover:text-white"
+                >
                   <X size={10} />
                 </button>
               </span>
@@ -809,7 +874,11 @@ export default function RecentLogsClient() {
             {selectedCategory !== 'ALL' && (
               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] bg-purple-500/10 text-purple-400 border border-purple-500/30">
                 Module: {selectedCategory}
-                <button type="button" onClick={() => setSelectedCategory('ALL')} className="hover:text-white">
+                <button
+                  type="button"
+                  onClick={() => setSelectedCategory('ALL')}
+                  className="hover:text-white"
+                >
                   <X size={10} />
                 </button>
               </span>
@@ -818,7 +887,11 @@ export default function RecentLogsClient() {
             {selectedStatus !== 'ALL' && (
               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
                 Status: {selectedStatus}
-                <button type="button" onClick={() => setSelectedStatus('ALL')} className="hover:text-white">
+                <button
+                  type="button"
+                  onClick={() => setSelectedStatus('ALL')}
+                  className="hover:text-white"
+                >
                   <X size={10} />
                 </button>
               </span>
@@ -827,7 +900,11 @@ export default function RecentLogsClient() {
             {searchQuery && (
               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] bg-surface3 text-foreground border border-border">
                 Search: "{searchQuery}"
-                <button type="button" onClick={() => setSearchQuery('')} className="hover:text-white">
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery('')}
+                  className="hover:text-white"
+                >
                   <X size={10} />
                 </button>
               </span>
@@ -879,7 +956,10 @@ export default function RecentLogsClient() {
             <tbody className="divide-y divide-border">
               {filteredLogs.length === 0 ? (
                 <tr>
-                  <td colSpan={activeColumns.length} className="py-14 text-center text-muted-foreground">
+                  <td
+                    colSpan={activeColumns.length}
+                    className="py-14 text-center text-muted-foreground"
+                  >
                     {logs.length === 0 ? (
                       <div className="flex flex-col items-center justify-center space-y-2.5 max-w-md mx-auto px-4">
                         <div className="w-12 h-12 rounded-2xl bg-primary/10 border border-primary/25 flex items-center justify-center text-primary mb-1 shadow-inner">
@@ -889,7 +969,9 @@ export default function RecentLogsClient() {
                           Live Audit Trail Initialized
                         </div>
                         <div className="text-xs text-muted-foreground leading-relaxed">
-                          Platform audit logging is active and listening. Real user sign-ins, role switches, asset updates, and statutory compliance checks will appear here live as they occur.
+                          Platform audit logging is active and listening. Real user sign-ins, role
+                          switches, asset updates, and statutory compliance checks will appear here
+                          live as they occur.
                         </div>
                         <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-[11px] font-mono text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 mt-1">
                           <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
@@ -905,7 +987,8 @@ export default function RecentLogsClient() {
                           No logs match your filter criteria
                         </div>
                         <div className="text-xs text-muted-foreground max-w-sm">
-                          Try switching to a wider preset (e.g. 1 Week or 30 Days) or clearing the user filter.
+                          Try switching to a wider preset (e.g. 1 Week or 30 Days) or clearing the
+                          user filter.
                         </div>
                         <button
                           type="button"
@@ -933,10 +1016,7 @@ export default function RecentLogsClient() {
                   const avatarColor = userDef?.badgeColor || '#a78bfa';
 
                   return (
-                    <tr
-                      key={log.id}
-                      className="transition-colors hover:bg-surface2/60 group"
-                    >
+                    <tr key={log.id} className="transition-colors hover:bg-surface2/60 group">
                       {activeColumns.map((col) => {
                         const colKey = col.id.toLowerCase();
                         if (colKey === 'timestamp') {
@@ -971,7 +1051,9 @@ export default function RecentLogsClient() {
                                   <div className="flex items-center gap-1.5">
                                     <button
                                       type="button"
-                                      onClick={() => handleQuickUserFilter(log.actorEmail, log.actorName)}
+                                      onClick={() =>
+                                        handleQuickUserFilter(log.actorEmail, log.actorName)
+                                      }
                                       className="font-semibold text-foreground hover:text-primary transition-colors text-xs truncate text-left"
                                       title={`Click to filter logs by ${log.actorName}`}
                                     >
@@ -1027,7 +1109,10 @@ export default function RecentLogsClient() {
                                     <span className="truncate max-w-[190px]">{log.property}</span>
                                   </div>
                                 )}
-                                <div className="text-xs font-semibold text-foreground truncate max-w-[260px]" title={log.resource}>
+                                <div
+                                  className="text-xs font-semibold text-foreground truncate max-w-[260px]"
+                                  title={log.resource}
+                                >
                                   {log.resource}
                                 </div>
                               </div>
@@ -1075,7 +1160,10 @@ export default function RecentLogsClient() {
                         }
                         if (colKey === 'inspect') {
                           return (
-                            <td key={col.id} className="py-3.5 px-4 whitespace-nowrap text-right align-top">
+                            <td
+                              key={col.id}
+                              className="py-3.5 px-4 whitespace-nowrap text-right align-top"
+                            >
                               <button
                                 type="button"
                                 onClick={() => setSelectedLog(log)}
@@ -1091,8 +1179,13 @@ export default function RecentLogsClient() {
                         // Dynamic custom columns
                         const val = (log as any)[col.id] ?? (log as any)[colKey];
                         return (
-                          <td key={col.id} className="py-3.5 px-4 text-xs text-foreground whitespace-nowrap align-top">
-                            {val !== undefined && val !== null && String(val).trim() !== '' ? String(val) : '—'}
+                          <td
+                            key={col.id}
+                            className="py-3.5 px-4 text-xs text-foreground whitespace-nowrap align-top"
+                          >
+                            {val !== undefined && val !== null && String(val).trim() !== ''
+                              ? String(val)
+                              : '—'}
                           </td>
                         );
                       })}
@@ -1145,7 +1238,9 @@ export default function RecentLogsClient() {
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
-                    <span className="font-bold text-sm text-foreground">Audit Log Event: {selectedLog.id}</span>
+                    <span className="font-bold text-sm text-foreground">
+                      Audit Log Event: {selectedLog.id}
+                    </span>
                     <span
                       className="px-2 py-0.5 rounded text-[10px] font-bold uppercase"
                       style={{
@@ -1192,12 +1287,16 @@ export default function RecentLogsClient() {
                   </div>
                   <div>
                     <div className="flex items-center gap-2">
-                      <span className="font-bold text-foreground text-sm">{selectedLog.actorName}</span>
+                      <span className="font-bold text-foreground text-sm">
+                        {selectedLog.actorName}
+                      </span>
                       <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500/15 text-amber-300 border border-amber-500/30">
                         {selectedLog.roleLevel}
                       </span>
                     </div>
-                    <div className="text-xs text-muted-foreground font-mono">{selectedLog.actorEmail}</div>
+                    <div className="text-xs text-muted-foreground font-mono">
+                      {selectedLog.actorEmail}
+                    </div>
                   </div>
                 </div>
 
@@ -1251,9 +1350,7 @@ export default function RecentLogsClient() {
                 <div className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">
                   Event Description & Narrative
                 </div>
-                <div className="text-xs text-foreground leading-relaxed">
-                  {selectedLog.details}
-                </div>
+                <div className="text-xs text-foreground leading-relaxed">{selectedLog.details}</div>
               </div>
 
               {/* Diff Changes Table (if present) */}
@@ -1280,9 +1377,7 @@ export default function RecentLogsClient() {
                             <td className="py-2 px-3 text-rose-400 line-through opacity-85">
                               {d.previous}
                             </td>
-                            <td className="py-2 px-3 text-emerald-400 font-medium">
-                              {d.current}
-                            </td>
+                            <td className="py-2 px-3 text-emerald-400 font-medium">{d.current}</td>
                           </tr>
                         ))}
                       </tbody>

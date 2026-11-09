@@ -158,62 +158,131 @@ const ROLE_LEVEL_CONFIG = new Proxy(BASE_ROLE_LEVEL_CONFIG as any, {
     }
     return target[prop];
   },
-}) as Record<RoleLevel, { label: string; title: string; color: string; badgeBg: string; desc: string }>;
-
-const PERMISSION_MATRIX: Record<
+}) as Record<
   RoleLevel,
-  { label: string; allowed: boolean; detail: string }[]
-> = {
-  L1: [
-    { label: 'Propco Portal Access', allowed: true, detail: 'Full asset owner oversight & registers' },
-    { label: 'Opco Portal Access', allowed: true, detail: 'Full hotel operations & facilities' },
-    { label: 'System Configuration & Settings', allowed: true, detail: 'Access to /settings and platform controls' },
-    { label: 'Manage All Users (L1 to L4)', allowed: true, detail: 'Can add, edit, or delete any tier' },
-    { label: 'Upload & Update Records', allowed: true, detail: 'Assets, maintenance, compliance, bulk Excel' },
-    { label: 'Delete Records', allowed: true, detail: 'Permitted across all collections' },
-    { label: 'Export Reports & Data', allowed: true, detail: 'Excel, CSV, and summary exports' },
-  ],
-  L2: [
-    { label: 'Assigned Portal Access', allowed: true, detail: 'Propco or Opco depending on assignment' },
-    { label: 'Opposite Portal Access', allowed: false, detail: 'Restricted strictly to assigned portal' },
-    { label: 'System Configuration & Settings', allowed: false, detail: 'Global settings reserved for Super Admin' },
-    { label: 'Manage L3 Uploaders & L4 Viewers', allowed: true, detail: 'Can add/remove L3 and L4 within portal' },
-    { label: 'Upload & Update Records', allowed: true, detail: 'Full edit rights within assigned portal' },
-    { label: 'Delete Records', allowed: true, detail: 'Can delete operational records in portal' },
-    { label: 'Export Reports & Data', allowed: true, detail: 'Full reporting export rights' },
-  ],
-  L3: [
-    { label: 'Assigned Portal Access', allowed: true, detail: 'Limited to assigned properties' },
-    { label: 'Upload Documents & Excel Files', allowed: true, detail: 'Drag & drop Excel import, certificates' },
-    { label: 'Update Asset & Maintenance Records', allowed: true, detail: 'Record PPMs, update conditions' },
-    { label: 'Delete Records', allowed: false, detail: 'Record deletion strictly prohibited' },
-    { label: 'Manage Users & Roles', allowed: false, detail: 'No user administration rights' },
-    { label: 'System Settings Access', allowed: false, detail: 'Settings menu hidden' },
-    { label: 'Export Assigned Property Data', allowed: true, detail: 'Can download templates and exports' },
-  ],
-  L4: [
-    { label: 'Read-Only View of Assigned Properties', allowed: true, detail: 'View assets, contracts, compliance' },
-    { label: 'Upload Documents & Files', allowed: false, detail: 'Upload buttons hidden / restricted' },
-    { label: 'Create or Edit Records', allowed: false, detail: 'Action buttons disabled' },
-    { label: 'Delete Records', allowed: false, detail: 'No deletion privileges' },
-    { label: 'Manage Users & Roles', allowed: false, detail: 'No access to user administration' },
-    { label: 'System Settings Access', allowed: false, detail: 'Settings menu hidden' },
-    { label: 'View Audit Logs & Reports', allowed: true, detail: 'Auditor inspection rights' },
-  ],
-};
+  { label: string; title: string; color: string; badgeBg: string; desc: string }
+>;
+
+const PERMISSION_MATRIX: Record<RoleLevel, { label: string; allowed: boolean; detail: string }[]> =
+  {
+    L1: [
+      {
+        label: 'Propco Portal Access',
+        allowed: true,
+        detail: 'Full asset owner oversight & registers',
+      },
+      { label: 'Opco Portal Access', allowed: true, detail: 'Full hotel operations & facilities' },
+      {
+        label: 'System Configuration & Settings',
+        allowed: true,
+        detail: 'Access to /settings and platform controls',
+      },
+      {
+        label: 'Manage All Users (L1 to L4)',
+        allowed: true,
+        detail: 'Can add, edit, or delete any tier',
+      },
+      {
+        label: 'Upload & Update Records',
+        allowed: true,
+        detail: 'Assets, maintenance, compliance, bulk Excel',
+      },
+      { label: 'Delete Records', allowed: true, detail: 'Permitted across all collections' },
+      { label: 'Export Reports & Data', allowed: true, detail: 'Excel, CSV, and summary exports' },
+    ],
+    L2: [
+      {
+        label: 'Assigned Portal Access',
+        allowed: true,
+        detail: 'Propco or Opco depending on assignment',
+      },
+      {
+        label: 'Opposite Portal Access',
+        allowed: false,
+        detail: 'Restricted strictly to assigned portal',
+      },
+      {
+        label: 'System Configuration & Settings',
+        allowed: false,
+        detail: 'Global settings reserved for Super Admin',
+      },
+      {
+        label: 'Manage L3 Uploaders & L4 Viewers',
+        allowed: true,
+        detail: 'Can add/remove L3 and L4 within portal',
+      },
+      {
+        label: 'Upload & Update Records',
+        allowed: true,
+        detail: 'Full edit rights within assigned portal',
+      },
+      {
+        label: 'Delete Records',
+        allowed: true,
+        detail: 'Can delete operational records in portal',
+      },
+      { label: 'Export Reports & Data', allowed: true, detail: 'Full reporting export rights' },
+    ],
+    L3: [
+      { label: 'Assigned Portal Access', allowed: true, detail: 'Limited to assigned properties' },
+      {
+        label: 'Upload Documents & Excel Files',
+        allowed: true,
+        detail: 'Drag & drop Excel import, certificates',
+      },
+      {
+        label: 'Update Asset & Maintenance Records',
+        allowed: true,
+        detail: 'Record PPMs, update conditions',
+      },
+      { label: 'Delete Records', allowed: false, detail: 'Record deletion strictly prohibited' },
+      { label: 'Manage Users & Roles', allowed: false, detail: 'No user administration rights' },
+      { label: 'System Settings Access', allowed: false, detail: 'Settings menu hidden' },
+      {
+        label: 'Export Assigned Property Data',
+        allowed: true,
+        detail: 'Can download templates and exports',
+      },
+    ],
+    L4: [
+      {
+        label: 'Read-Only View of Assigned Properties',
+        allowed: true,
+        detail: 'View assets, contracts, compliance',
+      },
+      {
+        label: 'Upload Documents & Files',
+        allowed: false,
+        detail: 'Upload buttons hidden / restricted',
+      },
+      { label: 'Create or Edit Records', allowed: false, detail: 'Action buttons disabled' },
+      { label: 'Delete Records', allowed: false, detail: 'No deletion privileges' },
+      { label: 'Manage Users & Roles', allowed: false, detail: 'No access to user administration' },
+      { label: 'System Settings Access', allowed: false, detail: 'Settings menu hidden' },
+      { label: 'View Audit Logs & Reports', allowed: true, detail: 'Auditor inspection rights' },
+    ],
+  };
 
 export default function UsersClient() {
   const cms = useDeepPageCms('users');
-  const { user: currentAuthUser, isSuperAdmin, isAdmin, canManageUsers, updateUserTabPermissions, isDigitalBot, isViewer, switchUser } = useAuth();
+  const {
+    user: currentAuthUser,
+    isSuperAdmin,
+    isAdmin,
+    canManageUsers,
+    updateUserTabPermissions,
+    isDigitalBot,
+    isViewer,
+    switchUser,
+  } = useAuth();
 
   const isBotAccount = useCallback(
     (u: any) =>
       Boolean(
-        u && (
-          u.id === 'usr-bot-001' ||
+        u &&
+        (u.id === 'usr-bot-001' ||
           u.email?.toLowerCase() === 'digitalbot@samkocentral.com' ||
-          u.name?.toLowerCase().includes('digital bot')
-        )
+          u.name?.toLowerCase().includes('digital bot'))
       ),
     []
   );
@@ -249,7 +318,9 @@ export default function UsersClient() {
   const [newEditCustomPropertyInput, setNewEditCustomPropertyInput] = useState('');
   const [newAddCustomPropertyInput, setNewAddCustomPropertyInput] = useState('');
   const [savingUserProperties, setSavingUserProperties] = useState(false);
-  const recentlyUpdatedUsers = useRef<Map<string, { user: UserRecord; timestamp: number }>>(new Map());
+  const recentlyUpdatedUsers = useRef<Map<string, { user: UserRecord; timestamp: number }>>(
+    new Map()
+  );
   const [systemProperties, setSystemProperties] = useState<string[]>(() => getLivePropertyNames());
   const [customProperties, setCustomProperties] = useState<string[]>(() => {
     if (typeof window !== 'undefined') {
@@ -259,7 +330,7 @@ export default function UsersClient() {
           const parsed = JSON.parse(saved);
           if (Array.isArray(parsed)) return parsed;
         }
-      } catch { }
+      } catch {}
     }
     return [];
   });
@@ -285,7 +356,9 @@ export default function UsersClient() {
       );
     }
     if (typeof window !== 'undefined') {
-      window.dispatchEvent(new CustomEvent('samko:permissions-changed', { detail: { permissions: perms } }));
+      window.dispatchEvent(
+        new CustomEvent('samko:permissions-changed', { detail: { permissions: perms } })
+      );
     }
   };
 
@@ -300,7 +373,9 @@ export default function UsersClient() {
       })
     );
     if (currentAuthUser) {
-      const existing = currentAuthUser.tabPermissions || getDefaultTabPermissionsForRole(currentAuthUser.roleLevel);
+      const existing =
+        currentAuthUser.tabPermissions ||
+        getDefaultTabPermissionsForRole(currentAuthUser.roleLevel);
       updateUserTabPermissions({ ...existing, [tabId]: { enabled: true, accessLevel } });
     }
     await Promise.allSettled(
@@ -398,7 +473,7 @@ export default function UsersClient() {
       if (typeof window !== 'undefined') {
         try {
           localStorage.setItem('samko_custom_properties', JSON.stringify(updated));
-        } catch { }
+        } catch {}
       }
       return updated;
     });
@@ -433,15 +508,14 @@ export default function UsersClient() {
       });
     });
 
-    const items = Array.from(set).sort().map((name) => ({
-      value: name,
-      label: name,
-    }));
+    const items = Array.from(set)
+      .sort()
+      .map((name) => ({
+        value: name,
+        label: name,
+      }));
 
-    return [
-      { value: 'All Properties', label: 'All Properties (Portfolio-wide)' },
-      ...items,
-    ];
+    return [{ value: 'All Properties', label: 'All Properties (Portfolio-wide)' }, ...items];
   }, [systemProperties, customProperties, users]);
 
   const fetchUsers = useCallback(async () => {
@@ -452,12 +526,23 @@ export default function UsersClient() {
         api.properties.getAll(),
       ]);
 
-      if (propsRes.status === 'fulfilled' && propsRes.value.success && Array.isArray(propsRes.value.data)) {
-        const propNames = propsRes.value.data.map((p: any) => p.name || p.propertyName || p.hotelName).filter(Boolean);
+      if (
+        propsRes.status === 'fulfilled' &&
+        propsRes.value.success &&
+        Array.isArray(propsRes.value.data)
+      ) {
+        const propNames = propsRes.value.data
+          .map((p: any) => p.name || p.propertyName || p.hotelName)
+          .filter(Boolean);
         setSystemProperties(propNames);
       }
 
-      if (res.status === 'fulfilled' && res.value.success && res.value.data && res.value.data.length > 0) {
+      if (
+        res.status === 'fulfilled' &&
+        res.value.success &&
+        res.value.data &&
+        res.value.data.length > 0
+      ) {
         // Normalize role levels and tab permissions
         const normalized: UserRecord[] = res.value.data.map((u: any) => {
           let roleLevel: RoleLevel = u.roleLevel;
@@ -471,10 +556,15 @@ export default function UsersClient() {
 
           let assignedProps: string[] = [];
           if (Array.isArray(u.assignedProperties)) {
-            assignedProps = u.assignedProperties.filter((p: string) => p && p !== 'No Property Assigned');
+            assignedProps = u.assignedProperties.filter(
+              (p: string) => p && p !== 'No Property Assigned'
+            );
           } else if (u.hotel && u.hotel !== 'No Property Assigned') {
             assignedProps = u.hotel.includes(',')
-              ? u.hotel.split(',').map((s: string) => s.trim()).filter(Boolean)
+              ? u.hotel
+                  .split(',')
+                  .map((s: string) => s.trim())
+                  .filter(Boolean)
               : [u.hotel.trim()];
           } else {
             assignedProps = [];
@@ -488,7 +578,11 @@ export default function UsersClient() {
                 : assignedProps.join(', ');
 
           const rawUser: UserRecord = {
-            id: u.id || (u.email ? `usr-${u.email.split('@')[0]}` : `usr-${Math.random().toString(36).slice(2, 8)}`),
+            id:
+              u.id ||
+              (u.email
+                ? `usr-${u.email.split('@')[0]}`
+                : `usr-${Math.random().toString(36).slice(2, 8)}`),
             name: u.name || 'Unnamed User',
             email: u.email,
             password: u.password || `${roleTitle.replace(/\s+/g, '')}2026!`,
@@ -507,7 +601,9 @@ export default function UsersClient() {
           // Protect recent optimistic updates from being overwritten by stale re-fetches
           const recent =
             (rawUser.id ? recentlyUpdatedUsers.current.get(rawUser.id) : null) ||
-            (rawUser.email ? recentlyUpdatedUsers.current.get(rawUser.email.toLowerCase().trim()) : null);
+            (rawUser.email
+              ? recentlyUpdatedUsers.current.get(rawUser.email.toLowerCase().trim())
+              : null);
 
           if (recent && Date.now() - recent.timestamp < 20000) {
             return {
@@ -543,7 +639,9 @@ export default function UsersClient() {
 
   const handleToggleStatus = async (targetUser: UserRecord) => {
     if (isBotAccount(targetUser) && !isDigitalBot) {
-      toast.error('Permission denied', { description: 'Super Admin cannot modify the Digital Bot account' });
+      toast.error('Permission denied', {
+        description: 'Super Admin cannot modify the Digital Bot account',
+      });
       return;
     }
     // Permission check: L2 Admin cannot modify L1 Super Admin
@@ -553,9 +651,7 @@ export default function UsersClient() {
     }
 
     const newStatus = targetUser.status === 'active' ? 'inactive' : 'active';
-    setUsers((prev) =>
-      prev.map((u) => (u.id === targetUser.id ? { ...u, status: newStatus } : u))
-    );
+    setUsers((prev) => prev.map((u) => (u.id === targetUser.id ? { ...u, status: newStatus } : u)));
     toast.success(`User set to ${newStatus}`, { description: targetUser.name });
 
     try {
@@ -570,12 +666,16 @@ export default function UsersClient() {
 
   const openPropertyModal = (targetUser: UserRecord) => {
     const liveUser = users.find((u) => u.id === targetUser.id) || targetUser;
-    const current =
-      Array.isArray(liveUser.assignedProperties)
-        ? liveUser.assignedProperties.filter((p) => p && p !== 'No Property Assigned')
-        : liveUser.hotel && liveUser.hotel !== 'No Property Assigned'
-          ? (liveUser.hotel.includes(',') ? liveUser.hotel.split(',').map((s) => s.trim()).filter(Boolean) : [liveUser.hotel.trim()])
-          : [];
+    const current = Array.isArray(liveUser.assignedProperties)
+      ? liveUser.assignedProperties.filter((p) => p && p !== 'No Property Assigned')
+      : liveUser.hotel && liveUser.hotel !== 'No Property Assigned'
+        ? liveUser.hotel.includes(',')
+          ? liveUser.hotel
+              .split(',')
+              .map((s) => s.trim())
+              .filter(Boolean)
+          : [liveUser.hotel.trim()]
+        : [];
     setPropertyModalUser(liveUser);
     setTempAssignedProperties(current);
     setNewCustomPropertyInput('');
@@ -596,9 +696,7 @@ export default function UsersClient() {
     }
 
     setSavingUserProperties(true);
-    const finalAssigned = newProperties
-      .filter(Boolean)
-      .filter((p) => p !== 'No Property Assigned');
+    const finalAssigned = newProperties.filter(Boolean).filter((p) => p !== 'No Property Assigned');
     const finalHotel =
       finalAssigned.length === 0
         ? 'No Property Assigned'
@@ -617,12 +715,16 @@ export default function UsersClient() {
       recentlyUpdatedUsers.current.set(targetUser.id, { user: updatedUser, timestamp: Date.now() });
     }
     if (targetUser.email) {
-      recentlyUpdatedUsers.current.set(targetUser.email.toLowerCase().trim(), { user: updatedUser, timestamp: Date.now() });
+      recentlyUpdatedUsers.current.set(targetUser.email.toLowerCase().trim(), {
+        user: updatedUser,
+        timestamp: Date.now(),
+      });
     }
 
     setUsers((prev) =>
       prev.map((u) =>
-        u.id === targetUser.id || (u.email && targetUser.email && u.email.toLowerCase() === targetUser.email.toLowerCase())
+        u.id === targetUser.id ||
+        (u.email && targetUser.email && u.email.toLowerCase() === targetUser.email.toLowerCase())
           ? updatedUser
           : u
       )
@@ -636,7 +738,10 @@ export default function UsersClient() {
       const isCurrentSessionUser =
         targetUser.id === currentAuthUser.id ||
         targetUser.email?.toLowerCase().trim() === currentAuthUser.email?.toLowerCase().trim() ||
-        (stored && (JSON.parse(stored).id === targetUser.id || JSON.parse(stored).email?.toLowerCase().trim() === targetUser.email?.toLowerCase().trim()));
+        (stored &&
+          (JSON.parse(stored).id === targetUser.id ||
+            JSON.parse(stored).email?.toLowerCase().trim() ===
+              targetUser.email?.toLowerCase().trim()));
 
       if (isCurrentSessionUser) {
         const fullAuthUser = {
@@ -646,10 +751,12 @@ export default function UsersClient() {
           assignedProperties: finalAssigned,
         };
         localStorage.setItem('samko_auth_user', JSON.stringify(fullAuthUser));
-        window.dispatchEvent(new CustomEvent('samko:user-changed', { detail: { user: fullAuthUser } }));
+        window.dispatchEvent(
+          new CustomEvent('samko:user-changed', { detail: { user: fullAuthUser } })
+        );
       }
       localStorage.setItem('samko_last_user_update', String(Date.now()));
-    } catch { }
+    } catch {}
 
     // Append to live audit logs
     const auditEvent: AuditLogEntry = {
@@ -671,7 +778,9 @@ export default function UsersClient() {
       details: `Updated assigned properties for ${targetUser.name} to "${finalHotel}".`,
     };
     setAuditLogs((prev) => [auditEvent, ...prev]);
-    try { recordAuditLog(auditEvent); } catch { }
+    try {
+      recordAuditLog(auditEvent);
+    } catch {}
 
     try {
       await api.users.update(targetUser.id || targetUser.email, updatedUser);
@@ -687,14 +796,20 @@ export default function UsersClient() {
 
   const handleRemovePropertyFromUser = (targetUser: UserRecord, propertyToRemove: string) => {
     const liveUser = users.find((u) => u.id === targetUser.id) || targetUser;
-    const currentProps =
-      Array.isArray(liveUser.assignedProperties)
-        ? liveUser.assignedProperties.filter((p) => p && p !== 'No Property Assigned')
-        : liveUser.hotel && liveUser.hotel !== 'No Property Assigned'
-          ? (liveUser.hotel.includes(',') ? liveUser.hotel.split(',').map((s) => s.trim()).filter(Boolean) : [liveUser.hotel.trim()])
-          : [];
+    const currentProps = Array.isArray(liveUser.assignedProperties)
+      ? liveUser.assignedProperties.filter((p) => p && p !== 'No Property Assigned')
+      : liveUser.hotel && liveUser.hotel !== 'No Property Assigned'
+        ? liveUser.hotel.includes(',')
+          ? liveUser.hotel
+              .split(',')
+              .map((s) => s.trim())
+              .filter(Boolean)
+          : [liveUser.hotel.trim()]
+        : [];
 
-    const updatedProps = currentProps.filter((p) => p !== propertyToRemove && p.toLowerCase() !== propertyToRemove.toLowerCase());
+    const updatedProps = currentProps.filter(
+      (p) => p !== propertyToRemove && p.toLowerCase() !== propertyToRemove.toLowerCase()
+    );
     handleUpdateUserProperties(liveUser, updatedProps);
   };
 
@@ -704,17 +819,27 @@ export default function UsersClient() {
     saveCustomProperty(clean);
 
     const liveUser = users.find((u) => u.id === targetUser.id) || targetUser;
-    const currentProps =
-      Array.isArray(liveUser.assignedProperties)
-        ? liveUser.assignedProperties.filter((p) => p && p !== 'No Property Assigned')
-        : liveUser.hotel && liveUser.hotel !== 'No Property Assigned'
-          ? (liveUser.hotel.includes(',') ? liveUser.hotel.split(',').map((s) => s.trim()).filter(Boolean) : [liveUser.hotel.trim()])
-          : [];
-      targetUser.assignedProperties && targetUser.assignedProperties.length > 0
-        ? targetUser.assignedProperties.filter((p) => !p.toLowerCase().startsWith('all') && p !== 'No Property Assigned')
-        : targetUser.hotel && !targetUser.hotel.toLowerCase().startsWith('all') && targetUser.hotel !== 'No Property Assigned'
-          ? (targetUser.hotel.includes(',') ? targetUser.hotel.split(',').map((s) => s.trim()) : [targetUser.hotel])
-          : [];
+    const currentProps = Array.isArray(liveUser.assignedProperties)
+      ? liveUser.assignedProperties.filter((p) => p && p !== 'No Property Assigned')
+      : liveUser.hotel && liveUser.hotel !== 'No Property Assigned'
+        ? liveUser.hotel.includes(',')
+          ? liveUser.hotel
+              .split(',')
+              .map((s) => s.trim())
+              .filter(Boolean)
+          : [liveUser.hotel.trim()]
+        : [];
+    targetUser.assignedProperties && targetUser.assignedProperties.length > 0
+      ? targetUser.assignedProperties.filter(
+          (p) => !p.toLowerCase().startsWith('all') && p !== 'No Property Assigned'
+        )
+      : targetUser.hotel &&
+          !targetUser.hotel.toLowerCase().startsWith('all') &&
+          targetUser.hotel !== 'No Property Assigned'
+        ? targetUser.hotel.includes(',')
+          ? targetUser.hotel.split(',').map((s) => s.trim())
+          : [targetUser.hotel]
+        : [];
 
     if (currentProps.some((p) => p.toLowerCase() === clean.toLowerCase())) {
       toast.info(`"${clean}" is already assigned to ${targetUser.name}`);
@@ -727,7 +852,9 @@ export default function UsersClient() {
 
   const handleDeleteUser = async (targetUser: UserRecord) => {
     if (isBotAccount(targetUser)) {
-      toast.error('Permission denied', { description: 'The Digital Bot account is protected and cannot be deleted' });
+      toast.error('Permission denied', {
+        description: 'The Digital Bot account is protected and cannot be deleted',
+      });
       return;
     }
     // Permission check
@@ -764,7 +891,10 @@ export default function UsersClient() {
       status: 'warning',
       details: `Permanently removed account ${targetUser.name} (${targetUser.roleLevel} - ${targetUser.roleTitle}) from directory.`,
     };
-    setAuditLogs((prev) => [auditEvent, ...prev]); try { recordAuditLog(auditEvent); } catch { }
+    setAuditLogs((prev) => [auditEvent, ...prev]);
+    try {
+      recordAuditLog(auditEvent);
+    } catch {}
 
     try {
       await api.users.delete(targetUser.id);
@@ -778,7 +908,9 @@ export default function UsersClient() {
 
   const handleStartEdit = (user: UserRecord) => {
     if (isBotAccount(user) && !isDigitalBot) {
-      toast.error('Permission denied', { description: 'Super Admin cannot edit the Digital Bot account' });
+      toast.error('Permission denied', {
+        description: 'Super Admin cannot edit the Digital Bot account',
+      });
       return;
     }
     // Permission guard: L2 cannot edit L1
@@ -787,16 +919,22 @@ export default function UsersClient() {
       return;
     }
     if (user.roleLevel === 'L2' && !isSuperAdmin && !isDigitalBot) {
-      toast.error('Permission denied', { description: 'Only Super Admins can edit L2 Admin accounts' });
+      toast.error('Permission denied', {
+        description: 'Only Super Admins can edit L2 Admin accounts',
+      });
       return;
     }
 
-    const userAssigned =
-      Array.isArray(user.assignedProperties)
-        ? user.assignedProperties.filter((p) => p && p !== 'No Property Assigned')
-        : user.hotel && user.hotel !== 'No Property Assigned'
-          ? (user.hotel.includes(',') ? user.hotel.split(',').map((s) => s.trim()).filter(Boolean) : [user.hotel.trim()])
-          : [];
+    const userAssigned = Array.isArray(user.assignedProperties)
+      ? user.assignedProperties.filter((p) => p && p !== 'No Property Assigned')
+      : user.hotel && user.hotel !== 'No Property Assigned'
+        ? user.hotel.includes(',')
+          ? user.hotel
+              .split(',')
+              .map((s) => s.trim())
+              .filter(Boolean)
+          : [user.hotel.trim()]
+        : [];
 
     setEditingUser(user);
     setEditForm({
@@ -813,14 +951,15 @@ export default function UsersClient() {
   };
 
   const handleOpenPermissionsModal = (user: UserRecord) => {
-
     setPermissionsModalUser(user);
     setTempModalPermissions(user.tabPermissions || getDefaultTabPermissionsForRole(user.roleLevel));
   };
 
   const handleSaveModalPermissions = async () => {
     if (!isSuperAdmin && !isDigitalBot) {
-      toast.error('Permission Denied', { description: 'Only Super Admins (L1) or Digital Bot can modify tab permissions' });
+      toast.error('Permission Denied', {
+        description: 'Only Super Admins (L1) or Digital Bot can modify tab permissions',
+      });
       return;
     }
     if (!permissionsModalUser) return;
@@ -859,13 +998,20 @@ export default function UsersClient() {
       status: 'success',
       details: `Updated tab-level enable/disable switches and access levels (Read Only vs Edit & Write) for ${permissionsModalUser.name}.`,
     };
-    setAuditLogs((prev) => [auditEvent, ...prev]); try { recordAuditLog(auditEvent); } catch { }
+    setAuditLogs((prev) => [auditEvent, ...prev]);
+    try {
+      recordAuditLog(auditEvent);
+    } catch {}
 
     try {
       await api.users.update(permissionsModalUser.id, { tabPermissions: tempModalPermissions });
       if (typeof window !== 'undefined') {
         window.dispatchEvent(new CustomEvent('samko:data-changed', { detail: { type: 'users' } }));
-        window.dispatchEvent(new CustomEvent('samko:permissions-changed', { detail: { permissions: tempModalPermissions } }));
+        window.dispatchEvent(
+          new CustomEvent('samko:permissions-changed', {
+            detail: { permissions: tempModalPermissions },
+          })
+        );
       }
     } catch (e) {
       console.error('Failed to sync permissions:', e);
@@ -894,7 +1040,10 @@ export default function UsersClient() {
         .slice(0, 2)
         .toUpperCase() || 'US';
 
-    const tabPerms = editForm.tabPermissions || editingUser.tabPermissions || getDefaultTabPermissionsForRole(editForm.roleLevel);
+    const tabPerms =
+      editForm.tabPermissions ||
+      editingUser.tabPermissions ||
+      getDefaultTabPermissionsForRole(editForm.roleLevel);
 
     const finalAssigned =
       editForm.assignedProperties && editForm.assignedProperties.length > 0
@@ -935,7 +1084,10 @@ export default function UsersClient() {
       const isCurrentSessionUser =
         editingUser.id === currentAuthUser.id ||
         editingUser.email?.toLowerCase().trim() === currentAuthUser.email?.toLowerCase().trim() ||
-        (stored && (JSON.parse(stored).id === editingUser.id || JSON.parse(stored).email?.toLowerCase().trim() === editingUser.email?.toLowerCase().trim()));
+        (stored &&
+          (JSON.parse(stored).id === editingUser.id ||
+            JSON.parse(stored).email?.toLowerCase().trim() ===
+              editingUser.email?.toLowerCase().trim()));
 
       if (isCurrentSessionUser) {
         updateUserTabPermissions(tabPerms);
@@ -946,10 +1098,12 @@ export default function UsersClient() {
           tabPermissions: tabPerms,
         };
         localStorage.setItem('samko_auth_user', JSON.stringify(fullAuthUser));
-        window.dispatchEvent(new CustomEvent('samko:user-changed', { detail: { user: fullAuthUser } }));
+        window.dispatchEvent(
+          new CustomEvent('samko:user-changed', { detail: { user: fullAuthUser } })
+        );
       }
       localStorage.setItem('samko_last_user_update', String(Date.now()));
-    } catch { }
+    } catch {}
 
     // Append to live audit logs
     const auditEvent: AuditLogEntry = {
@@ -975,13 +1129,18 @@ export default function UsersClient() {
         { field: 'hotel', previous: editingUser.hotel, current: editForm.hotel },
       ],
     };
-    setAuditLogs((prev) => [auditEvent, ...prev]); try { recordAuditLog(auditEvent); } catch { }
+    setAuditLogs((prev) => [auditEvent, ...prev]);
+    try {
+      recordAuditLog(auditEvent);
+    } catch {}
 
     try {
       await api.users.update(editingUser.id, updatedUser);
       if (typeof window !== 'undefined') {
         window.dispatchEvent(new CustomEvent('samko:data-changed', { detail: { type: 'users' } }));
-        window.dispatchEvent(new CustomEvent('samko:permissions-changed', { detail: { permissions: tabPerms } }));
+        window.dispatchEvent(
+          new CustomEvent('samko:permissions-changed', { detail: { permissions: tabPerms } })
+        );
       }
     } catch (err) {
       console.error('Failed to sync updated user:', err);
@@ -998,7 +1157,9 @@ export default function UsersClient() {
       newUser.email.trim().toLowerCase() === 'digitalbot@samkocentral.com' ||
       newUser.name.trim().toLowerCase().includes('digital bot')
     ) {
-      toast.error('Reserved identifier', { description: 'Cannot create an account with Digital Bot credentials' });
+      toast.error('Reserved identifier', {
+        description: 'Cannot create an account with Digital Bot credentials',
+      });
       return;
     }
 
@@ -1008,7 +1169,9 @@ export default function UsersClient() {
       return;
     }
     if (newUser.roleLevel === 'L2' && !isSuperAdmin && !isDigitalBot) {
-      toast.error('Permission denied', { description: 'Only Super Admins can create L2 Admin accounts' });
+      toast.error('Permission denied', {
+        description: 'Only Super Admins can create L2 Admin accounts',
+      });
       return;
     }
 
@@ -1079,7 +1242,10 @@ export default function UsersClient() {
         status: 'success',
         details: `Provisioned dynamic user account for ${newUser.name} with ${newUser.roleLevel} privileges assigned to ${finalHotel}.`,
       };
-      setAuditLogs((prev) => [auditEvent, ...prev]); try { recordAuditLog(auditEvent); } catch { }
+      setAuditLogs((prev) => [auditEvent, ...prev]);
+      try {
+        recordAuditLog(auditEvent);
+      } catch {}
       setNewUser({
         name: '',
         email: '',
@@ -1185,7 +1351,11 @@ export default function UsersClient() {
       { label: 'Role: L3 Uploader', value: 'role:L3', count: counts['role:L3'] || 0 },
       { label: 'Role: L4 Viewer', value: 'role:L4', count: counts['role:L4'] || 0 },
       { label: 'Status: Active', value: 'status:active', count: counts['status:active'] || 0 },
-      { label: 'Status: Inactive', value: 'status:inactive', count: counts['status:inactive'] || 0 },
+      {
+        label: 'Status: Inactive',
+        value: 'status:inactive',
+        count: counts['status:inactive'] || 0,
+      },
       { label: 'Portal: PropCo', value: 'portal:propco', count: counts['portal:propco'] || 0 },
       { label: 'Portal: OpCo', value: 'portal:opco', count: counts['portal:opco'] || 0 },
     ];
@@ -1244,7 +1414,9 @@ export default function UsersClient() {
         details: `Bulk deleted ${count} user accounts from directory.`,
       };
       setAuditLogs((prev) => [auditEvent, ...prev]);
-      try { recordAuditLog(auditEvent); } catch { }
+      try {
+        recordAuditLog(auditEvent);
+      } catch {}
 
       if (typeof window !== 'undefined') {
         window.dispatchEvent(new CustomEvent('samko:data-changed', { detail: { type: 'users' } }));
@@ -1298,14 +1470,19 @@ export default function UsersClient() {
     return {
       total: auditLogs.length,
       auth: auditLogs.filter((l) => l.category === 'AUTH' || l.category === 'SECURITY').length,
-      ops: auditLogs.filter((l) => l.category === 'ASSET_REGISTER' || l.category === 'MAINTENANCE').length,
-      comp: auditLogs.filter((l) => l.category === 'COMPLIANCE' || l.category === 'USER_MANAGEMENT').length,
+      ops: auditLogs.filter((l) => l.category === 'ASSET_REGISTER' || l.category === 'MAINTENANCE')
+        .length,
+      comp: auditLogs.filter((l) => l.category === 'COMPLIANCE' || l.category === 'USER_MANAGEMENT')
+        .length,
     };
   }, [auditLogs]);
 
   if (!canManageUsers) {
     return (
-      <div className="flex flex-col items-center justify-center h-full p-8 text-center" style={{ minHeight: '65vh' }}>
+      <div
+        className="flex flex-col items-center justify-center h-full p-8 text-center"
+        style={{ minHeight: '65vh' }}
+      >
         <div
           className="w-16 h-16 rounded-2xl flex items-center justify-center mb-4"
           style={{ background: 'rgba(244,63,94,0.12)', color: 'var(--critical)' }}
@@ -1314,7 +1491,8 @@ export default function UsersClient() {
         </div>
         <h2 className="text-xl font-bold text-foreground mb-2">Access Restricted</h2>
         <p className="text-sm text-muted-foreground max-w-md mb-6 leading-relaxed">
-          User Management and Role Hierarchy controls are restricted to administrators. You do not have permission to access or view platform accounts.
+          User Management and Role Hierarchy controls are restricted to administrators. You do not
+          have permission to access or view platform accounts.
         </p>
       </div>
     );
@@ -1329,7 +1507,9 @@ export default function UsersClient() {
       >
         <div>
           <div className="flex items-center gap-2.5">
-            <h1 className="font-head text-lg font-bold">{cms.title || 'User Management & Role Hierarchy'}</h1>
+            <h1 className="font-head text-lg font-bold">
+              {cms.title || 'User Management & Role Hierarchy'}
+            </h1>
             <span
               className="px-2 py-0.5 rounded text-[10px] font-extrabold uppercase"
               style={{
@@ -1350,11 +1530,12 @@ export default function UsersClient() {
             </span>
           </div>
           <p className="text-xs text-muted-foreground mt-0.5">
-            {cms.subtitle || (isSuperAdmin
-              ? 'Full authority over Propco & Opco users, role permissions, audit trails, and platform credentials'
-              : isAdmin
-                ? 'Authorized to create, configure, and manage L3 Uploaders and L4 Viewers within your portal'
-                : 'Auditor inspection rights enabled — read-only access to users, permission matrix, and full system audit trails')}
+            {cms.subtitle ||
+              (isSuperAdmin
+                ? 'Full authority over Propco & Opco users, role permissions, audit trails, and platform credentials'
+                : isAdmin
+                  ? 'Authorized to create, configure, and manage L3 Uploaders and L4 Viewers within your portal'
+                  : 'Auditor inspection rights enabled — read-only access to users, permission matrix, and full system audit trails')}
           </p>
         </div>
 
@@ -1366,7 +1547,8 @@ export default function UsersClient() {
               className="flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold cursor-pointer shadow-md transition-transform active:scale-95"
               style={{ background: 'var(--primary)', color: '#000' }}
             >
-              <Plus size={14} /> {(cms.primaryActionLabel || 'Add User Account').replace(/^[\+\s]+/, '').trim()}
+              <Plus size={14} />{' '}
+              {(cms.primaryActionLabel || 'Add User Account').replace(/^[\+\s]+/, '').trim()}
             </button>
           )}
         </div>
@@ -1379,7 +1561,11 @@ export default function UsersClient() {
       >
         {[
           { id: 'users' as const, label: `Active Users (${users.length})`, icon: Users },
-          { id: 'permissions' as const, label: 'Tab Permissions & Access Matrix (Super Admin)', icon: SlidersHorizontal },
+          {
+            id: 'permissions' as const,
+            label: 'Tab Permissions & Access Matrix (Super Admin)',
+            icon: SlidersHorizontal,
+          },
           { id: 'roles' as const, label: 'Hierarchy & Permission Matrix (L1 – L4)', icon: Shield },
           { id: 'audit' as const, label: `Audit Logs (${auditLogs.length})`, icon: Activity },
         ].map((tab) => {
@@ -1416,7 +1602,10 @@ export default function UsersClient() {
                     className="rounded-xl border border-border p-3 relative overflow-hidden"
                     style={{ background: 'var(--surface)' }}
                   >
-                    <div className="absolute top-0 left-0 right-0 h-0.5" style={{ background: conf.color }} />
+                    <div
+                      className="absolute top-0 left-0 right-0 h-0.5"
+                      style={{ background: conf.color }}
+                    />
                     <div className="flex items-center justify-between mb-0.5">
                       <span
                         className="px-1.5 py-0.2 rounded text-[10px] font-extrabold uppercase"
@@ -1424,7 +1613,10 @@ export default function UsersClient() {
                       >
                         {level}
                       </span>
-                      <span className="font-head text-xl font-extrabold" style={{ color: conf.color }}>
+                      <span
+                        className="font-head text-xl font-extrabold"
+                        style={{ color: conf.color }}
+                      >
                         {countsByLevel[level]}
                       </span>
                     </div>
@@ -1440,7 +1632,10 @@ export default function UsersClient() {
             {/* Search and Quick Select by Type */}
             <div className="flex items-center justify-between gap-3 flex-wrap">
               <div className="relative flex-1 max-w-sm">
-                <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                <Search
+                  size={14}
+                  className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+                />
                 <input
                   className="w-full pl-9 pr-3 py-1.5 rounded-lg border border-border text-xs outline-none"
                   style={{ background: 'var(--surface)', color: 'var(--foreground)' }}
@@ -1467,7 +1662,10 @@ export default function UsersClient() {
             </div>
 
             {/* User Table */}
-            <div className="rounded-xl border border-border overflow-x-auto shadow-sm" style={{ background: 'var(--surface)' }}>
+            <div
+              className="rounded-xl border border-border overflow-x-auto shadow-sm"
+              style={{ background: 'var(--surface)' }}
+            >
               <table className="w-full text-left border-collapse" style={{ minWidth: 920 }}>
                 <thead style={{ background: 'var(--surface2)' }}>
                   <tr>
@@ -1506,10 +1704,11 @@ export default function UsersClient() {
                     return (
                       <tr
                         key={user.id}
-                        className={`border-b border-border transition-colors ${selectedUserIds.includes(user.id)
+                        className={`border-b border-border transition-colors ${
+                          selectedUserIds.includes(user.id)
                             ? 'bg-[#e8c97a]/10 hover:bg-[#e8c97a]/15'
                             : 'hover:bg-surface2'
-                          }`}
+                        }`}
                       >
                         {/* Checkbox Column */}
                         {canManageUsers && (
@@ -1518,7 +1717,11 @@ export default function UsersClient() {
                               checked={selectedUserIds.includes(user.id)}
                               disabled={user.roleLevel === 'L1' && !isDigitalBot}
                               onChange={() => handleToggleUserSelect(user.id)}
-                              title={user.roleLevel === 'L1' && !isDigitalBot ? 'Super Admin cannot be deleted' : `Select ${user.name}`}
+                              title={
+                                user.roleLevel === 'L1' && !isDigitalBot
+                                  ? 'Super Admin cannot be deleted'
+                                  : `Select ${user.name}`
+                              }
                             />
                           </td>
                         )}
@@ -1534,9 +1737,17 @@ export default function UsersClient() {
                             <div className="min-w-0">
                               <div className="font-semibold text-xs flex items-center gap-1 text-foreground">
                                 <span className="truncate max-w-[150px]">{user.name}</span>
-                                {user.roleLevel === 'L1' && <Crown size={11} className="flex-shrink-0" style={{ color: '#f43f5e' }} />}
+                                {user.roleLevel === 'L1' && (
+                                  <Crown
+                                    size={11}
+                                    className="flex-shrink-0"
+                                    style={{ color: '#f43f5e' }}
+                                  />
+                                )}
                               </div>
-                              <div className="text-[11px] text-muted-foreground font-mono truncate max-w-[160px]">{user.email}</div>
+                              <div className="text-[11px] text-muted-foreground font-mono truncate max-w-[160px]">
+                                {user.email}
+                              </div>
                             </div>
                           </div>
                         </td>
@@ -1547,7 +1758,10 @@ export default function UsersClient() {
                             className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold"
                             style={{ background: conf.badgeBg, color: conf.color }}
                           >
-                            <span className="w-1.5 h-1.5 rounded-full" style={{ background: conf.color }} />
+                            <span
+                              className="w-1.5 h-1.5 rounded-full"
+                              style={{ background: conf.color }}
+                            />
                             {user.roleLevel} · {user.roleTitle}
                           </span>
                         </td>
@@ -1581,7 +1795,10 @@ export default function UsersClient() {
                         </td>
 
                         {/* Assigned Property */}
-                        <td className="px-3 py-2.5 text-xs text-muted-foreground max-w-[220px]" title={user.hotel}>
+                        <td
+                          className="px-3 py-2.5 text-xs text-muted-foreground max-w-[220px]"
+                          title={user.hotel}
+                        >
                           {(() => {
                             const canEditUser =
                               (isSuperAdmin || isAdmin || isDigitalBot) &&
@@ -1589,15 +1806,23 @@ export default function UsersClient() {
                               !(user.roleLevel === 'L2' && !isSuperAdmin && !isDigitalBot) &&
                               !(isBotAccount(user) && !isDigitalBot);
 
-                            const assigned =
-                              Array.isArray(user.assignedProperties)
-                                ? user.assignedProperties.filter((p) => p && p !== 'No Property Assigned')
-                                : user.hotel && user.hotel !== 'No Property Assigned'
-                                  ? (user.hotel.includes(',') ? user.hotel.split(',').map((s) => s.trim()).filter(Boolean) : [user.hotel.trim()])
-                                  : [];
+                            const assigned = Array.isArray(user.assignedProperties)
+                              ? user.assignedProperties.filter(
+                                  (p) => p && p !== 'No Property Assigned'
+                                )
+                              : user.hotel && user.hotel !== 'No Property Assigned'
+                                ? user.hotel.includes(',')
+                                  ? user.hotel
+                                      .split(',')
+                                      .map((s) => s.trim())
+                                      .filter(Boolean)
+                                  : [user.hotel.trim()]
+                                : [];
 
-                            const isAll = assigned.includes('all') || assigned.includes('All Properties');
-                            const isNone = assigned.length === 0 || assigned.includes('No Property Assigned');
+                            const isAll =
+                              assigned.includes('all') || assigned.includes('All Properties');
+                            const isNone =
+                              assigned.length === 0 || assigned.includes('No Property Assigned');
 
                             return (
                               <div className="flex flex-wrap items-center gap-1.5 min-w-[200px]">
@@ -1666,10 +1891,15 @@ export default function UsersClient() {
                         {/* Tab Permissions Badge */}
                         <td className="px-3 py-2.5 whitespace-nowrap">
                           {(() => {
-                            const perms = user.tabPermissions || getDefaultTabPermissionsForRole(user.roleLevel);
+                            const perms =
+                              user.tabPermissions ||
+                              getDefaultTabPermissionsForRole(user.roleLevel);
                             const enabled = Object.values(perms).filter((p) => p.enabled).length;
-                            const writeCount = Object.values(perms).filter((p) => p.enabled && p.accessLevel === 'write').length;
-                            const isAllWrite = writeCount === enabled && enabled === ALL_SYSTEM_TABS.length;
+                            const writeCount = Object.values(perms).filter(
+                              (p) => p.enabled && p.accessLevel === 'write'
+                            ).length;
+                            const isAllWrite =
+                              writeCount === enabled && enabled === ALL_SYSTEM_TABS.length;
                             const isAllRead = writeCount === 0 && enabled > 0;
 
                             return (
@@ -1683,17 +1913,34 @@ export default function UsersClient() {
                                     : isAllRead
                                       ? 'rgba(96,165,250,0.08)'
                                       : 'var(--surface2)',
-                                  borderColor: isAllWrite ? 'rgba(61,214,140,0.3)' : isAllRead ? 'rgba(96,165,250,0.3)' : 'var(--border)',
-                                  color: isAllWrite ? '#3dd68c' : isAllRead ? '#60a5fa' : 'var(--foreground)',
+                                  borderColor: isAllWrite
+                                    ? 'rgba(61,214,140,0.3)'
+                                    : isAllRead
+                                      ? 'rgba(96,165,250,0.3)'
+                                      : 'var(--border)',
+                                  color: isAllWrite
+                                    ? '#3dd68c'
+                                    : isAllRead
+                                      ? '#60a5fa'
+                                      : 'var(--foreground)',
                                 }}
                                 title="Configure Tab-Level Permissions (Read-Only vs Edit & Write)"
                               >
-                                <SlidersHorizontal size={11} className="group-hover:text-primary transition-colors flex-shrink-0" />
+                                <SlidersHorizontal
+                                  size={11}
+                                  className="group-hover:text-primary transition-colors flex-shrink-0"
+                                />
                                 <span>
                                   {enabled}/{ALL_SYSTEM_TABS.length} Tabs
                                 </span>
                                 <span className="text-[10px] text-muted-foreground font-normal">
-                                  ({isAllWrite ? 'Edit/Write' : isAllRead ? 'Read-Only' : `${writeCount} Write`})
+                                  (
+                                  {isAllWrite
+                                    ? 'Edit/Write'
+                                    : isAllRead
+                                      ? 'Read-Only'
+                                      : `${writeCount} Write`}
+                                  )
                                 </span>
                               </button>
                             );
@@ -1737,7 +1984,9 @@ export default function UsersClient() {
                               type="button"
                               onClick={() => {
                                 if (isBotAccount(user) && !isDigitalBot) {
-                                  toast.error('Access Denied', { description: 'Super Admin cannot view the Digital Bot account' });
+                                  toast.error('Access Denied', {
+                                    description: 'Super Admin cannot view the Digital Bot account',
+                                  });
                                   return;
                                 }
                                 setViewingUser(user);
@@ -1754,7 +2003,9 @@ export default function UsersClient() {
                                     type="button"
                                     onClick={() => {
                                       if (isBotAccount(user) && !isDigitalBot) {
-                                        toast.error('Access Denied', { description: 'Cannot switch into Digital Bot account' });
+                                        toast.error('Access Denied', {
+                                          description: 'Cannot switch into Digital Bot account',
+                                        });
                                         return;
                                       }
                                       switchUser(user as any);
@@ -1848,7 +2099,8 @@ export default function UsersClient() {
                     Tab-Level Permissions & Access Matrix
                   </h3>
                   <p className="text-xs text-muted-foreground">
-                    Super Admin controls: Enable/disable tabs and assign Read Only vs Edit &amp; Write access for any user
+                    Super Admin controls: Enable/disable tabs and assign Read Only vs Edit &amp;
+                    Write access for any user
                   </p>
                 </div>
               </div>
@@ -1895,7 +2147,9 @@ export default function UsersClient() {
                         setSavingPermissions(true);
                         try {
                           await api.users.update(targetUser.id, {
-                            tabPermissions: targetUser.tabPermissions || getDefaultTabPermissionsForRole(targetUser.roleLevel),
+                            tabPermissions:
+                              targetUser.tabPermissions ||
+                              getDefaultTabPermissionsForRole(targetUser.roleLevel),
                           });
                           toast.success(`Tab permissions saved for ${targetUser.name}!`, {
                             description: 'All 18 tabs updated across the platform database',
@@ -1908,7 +2162,11 @@ export default function UsersClient() {
                       }}
                       className="samko-btn-primary flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold cursor-pointer"
                     >
-                      {savingPermissions ? <Loader2 size={13} className="animate-spin" /> : <Check size={13} />}
+                      {savingPermissions ? (
+                        <Loader2 size={13} className="animate-spin" />
+                      ) : (
+                        <Check size={13} />
+                      )}
                       Save Permissions for {targetUser.name.split(' ')[0]}
                     </button>
                   );
@@ -1928,7 +2186,10 @@ export default function UsersClient() {
               }
 
               return (
-                <div className="rounded-xl border border-border p-5" style={{ background: 'var(--surface)' }}>
+                <div
+                  className="rounded-xl border border-border p-5"
+                  style={{ background: 'var(--surface)' }}
+                >
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-border mb-4 gap-2">
                     <div className="flex items-center gap-3">
                       <div
@@ -1967,12 +2228,17 @@ export default function UsersClient() {
                   </div>
 
                   <TabPermissionsEditor
-                    permissions={targetUser.tabPermissions || getDefaultTabPermissionsForRole(targetUser.roleLevel)}
+                    permissions={
+                      targetUser.tabPermissions ||
+                      getDefaultTabPermissionsForRole(targetUser.roleLevel)
+                    }
                     readOnly={!isSuperAdmin}
                     onChange={async (newPerms) => {
                       if (!isSuperAdmin) return;
                       setUsers((prev) =>
-                        prev.map((u) => (u.id === targetUser.id ? { ...u, tabPermissions: newPerms } : u))
+                        prev.map((u) =>
+                          u.id === targetUser.id ? { ...u, tabPermissions: newPerms } : u
+                        )
                       );
                       if (targetUser.id === currentAuthUser.id) {
                         updateUserTabPermissions(newPerms);
@@ -1980,7 +2246,11 @@ export default function UsersClient() {
                       try {
                         await api.users.update(targetUser.id, { tabPermissions: newPerms });
                         if (typeof window !== 'undefined') {
-                          window.dispatchEvent(new CustomEvent('samko:permissions-changed', { detail: { permissions: newPerms } }));
+                          window.dispatchEvent(
+                            new CustomEvent('samko:permissions-changed', {
+                              detail: { permissions: newPerms },
+                            })
+                          );
                         }
                       } catch (err) {
                         console.error('Auto-save permissions error:', err);
@@ -2026,9 +2296,13 @@ export default function UsersClient() {
                     <div className="flex-1 min-w-0">
                       <div className="text-sm font-bold text-foreground flex items-center justify-between">
                         <span>{conf.title}</span>
-                        <span className="text-xs font-semibold text-muted-foreground">{count} users</span>
+                        <span className="text-xs font-semibold text-muted-foreground">
+                          {count} users
+                        </span>
                       </div>
-                      <div className="text-[11px] text-muted-foreground mt-1 leading-snug">{conf.desc}</div>
+                      <div className="text-[11px] text-muted-foreground mt-1 leading-snug">
+                        {conf.desc}
+                      </div>
                     </div>
                   </button>
                 );
@@ -2036,7 +2310,10 @@ export default function UsersClient() {
             </div>
 
             {/* Right permission detail panel */}
-            <div className="rounded-xl border border-border overflow-hidden" style={{ background: 'var(--surface)' }}>
+            <div
+              className="rounded-xl border border-border overflow-hidden"
+              style={{ background: 'var(--surface)' }}
+            >
               <div
                 className="px-5 py-4 border-b border-border flex items-center justify-between"
                 style={{ background: 'var(--surface2)' }}
@@ -2063,7 +2340,10 @@ export default function UsersClient() {
 
                 <div className="flex items-center gap-2.5">
                   {/* View Mode Toggle: Tab Permissions vs General Rights */}
-                  <div className="flex items-center gap-1 p-0.5 rounded-lg border border-border" style={{ background: 'var(--surface)' }}>
+                  <div
+                    className="flex items-center gap-1 p-0.5 rounded-lg border border-border"
+                    style={{ background: 'var(--surface)' }}
+                  >
                     <button
                       type="button"
                       onClick={() => setRoleViewMode('tabs')}
@@ -2081,7 +2361,8 @@ export default function UsersClient() {
                       onClick={() => setRoleViewMode('capabilities')}
                       className="flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-bold transition-all cursor-pointer"
                       style={{
-                        background: roleViewMode === 'capabilities' ? 'var(--primary)' : 'transparent',
+                        background:
+                          roleViewMode === 'capabilities' ? 'var(--primary)' : 'transparent',
                         color: roleViewMode === 'capabilities' ? '#000' : 'var(--muted-foreground)',
                       }}
                     >
@@ -2113,7 +2394,10 @@ export default function UsersClient() {
                     <div>
                       <div className="font-semibold text-xs text-foreground flex items-center gap-1.5">
                         <SlidersHorizontal size={13} className="text-primary" />
-                        <span>Role Tab Template · {ROLE_LEVEL_CONFIG[selectedRoleLevel].title} ({selectedRoleLevel})</span>
+                        <span>
+                          Role Tab Template · {ROLE_LEVEL_CONFIG[selectedRoleLevel].title} (
+                          {selectedRoleLevel})
+                        </span>
                       </div>
                       <p className="text-[11px] text-muted-foreground mt-0.5">
                         {isSuperAdmin
@@ -2132,9 +2416,13 @@ export default function UsersClient() {
                             try {
                               const perms = getRoleTabPermissions(selectedRoleLevel);
                               await handleSyncUsersInRole(selectedRoleLevel, perms);
-                              toast.success(`Applied ${selectedRoleLevel} tab permissions to all ${countsByLevel[selectedRoleLevel]} assigned users!`, {
-                                description: 'Database and active session permissions successfully synchronized.',
-                              });
+                              toast.success(
+                                `Applied ${selectedRoleLevel} tab permissions to all ${countsByLevel[selectedRoleLevel]} assigned users!`,
+                                {
+                                  description:
+                                    'Database and active session permissions successfully synchronized.',
+                                }
+                              );
                             } catch (e: any) {
                               toast.error('Failed to sync users', { description: e.message });
                             } finally {
@@ -2144,7 +2432,11 @@ export default function UsersClient() {
                           className="samko-btn-primary flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                           title={`Apply this role's configured tabs to all ${countsByLevel[selectedRoleLevel]} assigned users in database`}
                         >
-                          {applyingRoleToUsers ? <Loader2 size={12} className="animate-spin" /> : <Users size={12} />}
+                          {applyingRoleToUsers ? (
+                            <Loader2 size={12} className="animate-spin" />
+                          ) : (
+                            <Users size={12} />
+                          )}
                           <span>Apply to All {countsByLevel[selectedRoleLevel]} Users</span>
                         </button>
                       </div>
@@ -2171,7 +2463,8 @@ export default function UsersClient() {
                   {/* Assigned Users in this Role */}
                   <div className="pt-4 border-t border-border">
                     <div className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2.5">
-                      Users Currently Assigned to {ROLE_LEVEL_CONFIG[selectedRoleLevel].title} ({countsByLevel[selectedRoleLevel]})
+                      Users Currently Assigned to {ROLE_LEVEL_CONFIG[selectedRoleLevel].title} (
+                      {countsByLevel[selectedRoleLevel]})
                     </div>
                     <div className="flex flex-wrap gap-2">
                       {users
@@ -2196,7 +2489,9 @@ export default function UsersClient() {
                           </div>
                         ))}
                       {countsByLevel[selectedRoleLevel] === 0 && (
-                        <span className="text-xs text-muted-foreground italic">No users currently assigned</span>
+                        <span className="text-xs text-muted-foreground italic">
+                          No users currently assigned
+                        </span>
                       )}
                     </div>
                   </div>
@@ -2261,7 +2556,9 @@ export default function UsersClient() {
                           </div>
                         ))}
                       {countsByLevel[selectedRoleLevel] === 0 && (
-                        <span className="text-xs text-muted-foreground italic">No users currently assigned</span>
+                        <span className="text-xs text-muted-foreground italic">
+                          No users currently assigned
+                        </span>
                       )}
                     </div>
                   </div>
@@ -2289,7 +2586,9 @@ export default function UsersClient() {
                     {auditStats.total}
                   </span>
                 </div>
-                <div className="text-[11px] text-muted-foreground">Immutable platform system activity log</div>
+                <div className="text-[11px] text-muted-foreground">
+                  Immutable platform system activity log
+                </div>
               </div>
 
               <div
@@ -2305,7 +2604,9 @@ export default function UsersClient() {
                     {auditStats.auth}
                   </span>
                 </div>
-                <div className="text-[11px] text-muted-foreground">Logins, role switches & security alerts</div>
+                <div className="text-[11px] text-muted-foreground">
+                  Logins, role switches & security alerts
+                </div>
               </div>
 
               <div
@@ -2321,7 +2622,9 @@ export default function UsersClient() {
                     {auditStats.ops}
                   </span>
                 </div>
-                <div className="text-[11px] text-muted-foreground">Fixed assets, maintenance & work orders</div>
+                <div className="text-[11px] text-muted-foreground">
+                  Fixed assets, maintenance & work orders
+                </div>
               </div>
 
               <div
@@ -2337,7 +2640,9 @@ export default function UsersClient() {
                     {auditStats.comp}
                   </span>
                 </div>
-                <div className="text-[11px] text-muted-foreground">Statutory sign-offs & user administration</div>
+                <div className="text-[11px] text-muted-foreground">
+                  Statutory sign-offs & user administration
+                </div>
               </div>
             </div>
 
@@ -2424,7 +2729,9 @@ export default function UsersClient() {
                     setRefreshingAudit(true);
                     setTimeout(() => {
                       setRefreshingAudit(false);
-                      toast.success('Audit logs synchronized', { description: `${auditLogs.length} events up to date` });
+                      toast.success('Audit logs synchronized', {
+                        description: `${auditLogs.length} events up to date`,
+                      });
                     }, 400);
                   }}
                   className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border text-xs font-semibold text-muted-foreground hover:text-foreground hover:bg-surface2 transition-colors cursor-pointer"
@@ -2472,7 +2779,9 @@ export default function UsersClient() {
                     <tr>
                       <td colSpan={8} className="px-4 py-12 text-center text-muted-foreground">
                         <Activity size={24} className="mx-auto mb-2 opacity-30" />
-                        <div className="font-semibold text-foreground">No audit events match your filter</div>
+                        <div className="font-semibold text-foreground">
+                          No audit events match your filter
+                        </div>
                         <div className="text-xs text-muted-foreground mt-1">
                           Try adjusting search terms or resetting the module filters.
                         </div>
@@ -2486,7 +2795,8 @@ export default function UsersClient() {
                         border: 'var(--border)',
                       };
                       const statusStyle = STATUS_STYLES[log.status] || STATUS_STYLES.success;
-                      const roleConf = ROLE_LEVEL_CONFIG[log.roleLevel as RoleLevel] || ROLE_LEVEL_CONFIG.L1;
+                      const roleConf =
+                        ROLE_LEVEL_CONFIG[log.roleLevel as RoleLevel] || ROLE_LEVEL_CONFIG.L1;
 
                       return (
                         <tr
@@ -2562,10 +2872,16 @@ export default function UsersClient() {
 
                           {/* Target Resource */}
                           <td className="px-3.5 py-2.5">
-                            <div className="text-xs font-medium text-foreground truncate max-w-[220px]" title={log.resource}>
+                            <div
+                              className="text-xs font-medium text-foreground truncate max-w-[220px]"
+                              title={log.resource}
+                            >
                               {log.resource}
                             </div>
-                            <div className="text-[10px] text-muted-foreground truncate max-w-[220px]" title={log.details}>
+                            <div
+                              className="text-[10px] text-muted-foreground truncate max-w-[220px]"
+                              title={log.details}
+                            >
                               {log.details}
                             </div>
                           </td>
@@ -2709,9 +3025,7 @@ export default function UsersClient() {
                 variant="form"
                 width="100%"
                 value={newUser.portal}
-                onChange={(val) =>
-                  setNewUser({ ...newUser, portal: val as PortalType })
-                }
+                onChange={(val) => setNewUser({ ...newUser, portal: val as PortalType })}
                 options={[
                   ...(isSuperAdmin ? [{ value: 'both', label: 'Both (Propco & Opco)' }] : []),
                   { value: 'propco', label: 'Propco Portal' },
@@ -2724,7 +3038,10 @@ export default function UsersClient() {
           <div>
             <div className="flex items-center justify-between mb-1">
               <label className="samko-label mb-0" htmlFor="user-hotel">
-                Assigned Properties * <span className="text-[11px] font-normal text-muted-foreground">(Select 1 or multiple)</span>
+                Assigned Properties *{' '}
+                <span className="text-[11px] font-normal text-muted-foreground">
+                  (Select 1 or multiple)
+                </span>
               </label>
               <div className="flex items-center gap-2">
                 <button
@@ -2767,45 +3084,52 @@ export default function UsersClient() {
                 setNewUser({
                   ...newUser,
                   assignedProperties: vals,
-                  hotel: vals.length > 0 ? (vals.includes('all') || vals.includes('All Properties') ? 'All Properties' : vals.join(', ')) : 'No Property Assigned',
+                  hotel:
+                    vals.length > 0
+                      ? vals.includes('all') || vals.includes('All Properties')
+                        ? 'All Properties'
+                        : vals.join(', ')
+                      : 'No Property Assigned',
                 });
               }}
               options={dynamicPropertyOptions}
             />
 
             {/* Selected Property Tags with Remove X */}
-            {newUser.assignedProperties.length > 0 && !newUser.assignedProperties.includes('all') && !newUser.assignedProperties.includes('All Properties') && (
-              <div className="flex flex-wrap gap-1.5 mt-2">
-                {newUser.assignedProperties.map((prop) => (
-                  <span
-                    key={prop}
-                    className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[11px] font-semibold border"
-                    style={{
-                      background: 'rgba(232, 201, 122, 0.12)',
-                      borderColor: '#e8c97a',
-                      color: '#e8c97a',
-                    }}
-                  >
-                    <span>{prop}</span>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const next = newUser.assignedProperties.filter((p) => p !== prop);
-                        setNewUser({
-                          ...newUser,
-                          assignedProperties: next,
-                          hotel: next.length > 0 ? next.join(', ') : 'No Property Assigned',
-                        });
+            {newUser.assignedProperties.length > 0 &&
+              !newUser.assignedProperties.includes('all') &&
+              !newUser.assignedProperties.includes('All Properties') && (
+                <div className="flex flex-wrap gap-1.5 mt-2">
+                  {newUser.assignedProperties.map((prop) => (
+                    <span
+                      key={prop}
+                      className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[11px] font-semibold border"
+                      style={{
+                        background: 'rgba(232, 201, 122, 0.12)',
+                        borderColor: '#e8c97a',
+                        color: '#e8c97a',
                       }}
-                      className="hover:text-rose-400 p-0.5 transition-colors cursor-pointer"
-                      title={`Remove ${prop}`}
                     >
-                      <X size={11} />
-                    </button>
-                  </span>
-                ))}
-              </div>
-            )}
+                      <span>{prop}</span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const next = newUser.assignedProperties.filter((p) => p !== prop);
+                          setNewUser({
+                            ...newUser,
+                            assignedProperties: next,
+                            hotel: next.length > 0 ? next.join(', ') : 'No Property Assigned',
+                          });
+                        }}
+                        className="hover:text-rose-400 p-0.5 transition-colors cursor-pointer"
+                        title={`Remove ${prop}`}
+                      >
+                        <X size={11} />
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              )}
 
             {/* Direct Quick-Toggle Property Buttons */}
             <div className="flex flex-wrap gap-1.5 mt-2.5 max-h-36 overflow-y-auto pr-1">
@@ -2843,16 +3167,18 @@ export default function UsersClient() {
                         });
                       }
                     }}
-                    className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium border transition-all cursor-pointer ${isSelected
+                    className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium border transition-all cursor-pointer ${
+                      isSelected
                         ? 'bg-[#e8c97a]/20 border-[#e8c97a] text-[#e8c97a] shadow-sm font-semibold'
                         : 'bg-white/[0.04] border-white/10 text-muted-foreground hover:border-white/30 hover:text-foreground'
-                      }`}
+                    }`}
                   >
                     <div
-                      className={`w-3.5 h-3.5 rounded-[3px] flex items-center justify-center transition-all ${isSelected
+                      className={`w-3.5 h-3.5 rounded-[3px] flex items-center justify-center transition-all ${
+                        isSelected
                           ? 'bg-[#e8c97a] text-[#121316]'
                           : 'border border-white/30 bg-transparent'
-                        }`}
+                      }`}
                     >
                       {isSelected && <Check size={10} strokeWidth={3.5} />}
                     </div>
@@ -2875,7 +3201,9 @@ export default function UsersClient() {
                     const val = newAddCustomPropertyInput.trim();
                     if (val) {
                       saveCustomProperty(val);
-                      const withoutAll = newUser.assignedProperties.filter((p) => !p.toLowerCase().startsWith('all'));
+                      const withoutAll = newUser.assignedProperties.filter(
+                        (p) => !p.toLowerCase().startsWith('all')
+                      );
                       const next = withoutAll.includes(val) ? withoutAll : [...withoutAll, val];
                       setNewUser({ ...newUser, assignedProperties: next, hotel: next.join(', ') });
                       setNewAddCustomPropertyInput('');
@@ -2891,7 +3219,9 @@ export default function UsersClient() {
                   const val = newAddCustomPropertyInput.trim();
                   if (!val) return;
                   saveCustomProperty(val);
-                  const withoutAll = newUser.assignedProperties.filter((p) => !p.toLowerCase().startsWith('all'));
+                  const withoutAll = newUser.assignedProperties.filter(
+                    (p) => !p.toLowerCase().startsWith('all')
+                  );
                   const next = withoutAll.includes(val) ? withoutAll : [...withoutAll, val];
                   setNewUser({ ...newUser, assignedProperties: next, hotel: next.join(', ') });
                   setNewAddCustomPropertyInput('');
@@ -2905,17 +3235,23 @@ export default function UsersClient() {
           </div>
 
           {/* Tab-Level Permissions Configuration */}
-          <div className="rounded-xl border border-border p-3.5 mt-2" style={{ background: 'var(--surface2)' }}>
+          <div
+            className="rounded-xl border border-border p-3.5 mt-2"
+            style={{ background: 'var(--surface2)' }}
+          >
             <div className="flex items-center justify-between mb-2">
               <span className="font-head text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-                <SlidersHorizontal size={13} className="text-primary" /> Tab Permissions &amp; Access Controls
+                <SlidersHorizontal size={13} className="text-primary" /> Tab Permissions &amp;
+                Access Controls
               </span>
               <span className="text-[10px] text-muted-foreground">
                 Configured according to {newUser.roleLevel} role
               </span>
             </div>
             <TabPermissionsEditor
-              permissions={newUser.tabPermissions || getDefaultTabPermissionsForRole(newUser.roleLevel)}
+              permissions={
+                newUser.tabPermissions || getDefaultTabPermissionsForRole(newUser.roleLevel)
+              }
               onChange={(newPerms) => setNewUser({ ...newUser, tabPermissions: newPerms })}
               roleLevel={newUser.roleLevel}
               userName={newUser.name}
@@ -2971,7 +3307,9 @@ export default function UsersClient() {
                 <div>
                   <div className="font-bold text-base text-foreground flex items-center gap-1.5">
                     {viewingUser.name}
-                    {viewingUser.roleLevel === 'L1' && <Crown size={14} style={{ color: '#f43f5e' }} />}
+                    {viewingUser.roleLevel === 'L1' && (
+                      <Crown size={14} style={{ color: '#f43f5e' }} />
+                    )}
                   </div>
                   <div className="text-xs text-muted-foreground font-mono">{viewingUser.email}</div>
                 </div>
@@ -3004,7 +3342,10 @@ export default function UsersClient() {
 
             {/* Grid of Attributes */}
             <div className="grid grid-cols-2 gap-3 text-xs">
-              <div className="p-3 rounded-lg border border-border/60" style={{ background: 'var(--surface)' }}>
+              <div
+                className="p-3 rounded-lg border border-border/60"
+                style={{ background: 'var(--surface)' }}
+              >
                 <span className="text-muted-foreground font-medium block mb-1">Portal Access</span>
                 <span className="font-semibold text-foreground flex items-center gap-1.5">
                   <Building2 size={13} className="text-primary" />
@@ -3016,7 +3357,10 @@ export default function UsersClient() {
                 </span>
               </div>
 
-              <div className="p-3 rounded-lg border border-border/60" style={{ background: 'var(--surface)' }}>
+              <div
+                className="p-3 rounded-lg border border-border/60"
+                style={{ background: 'var(--surface)' }}
+              >
                 <div className="flex items-center justify-between mb-1">
                   <span className="text-muted-foreground font-medium">Assigned Properties</span>
                   <button
@@ -3032,7 +3376,10 @@ export default function UsersClient() {
                   </button>
                 </div>
                 <div className="flex flex-wrap gap-1">
-                  {viewingUser.assignedProperties && viewingUser.assignedProperties.length > 0 && !viewingUser.assignedProperties.includes('all') && !viewingUser.assignedProperties.includes('All Properties') ? (
+                  {viewingUser.assignedProperties &&
+                  viewingUser.assignedProperties.length > 0 &&
+                  !viewingUser.assignedProperties.includes('all') &&
+                  !viewingUser.assignedProperties.includes('All Properties') ? (
                     viewingUser.assignedProperties.map((p) => (
                       <span
                         key={p}
@@ -3047,17 +3394,29 @@ export default function UsersClient() {
                       </span>
                     ))
                   ) : (
-                    <span className="font-semibold text-foreground">{viewingUser.hotel || 'All Properties'}</span>
+                    <span className="font-semibold text-foreground">
+                      {viewingUser.hotel || 'All Properties'}
+                    </span>
                   )}
                 </div>
               </div>
 
-              <div className="p-3 rounded-lg border border-border/60" style={{ background: 'var(--surface)' }}>
-                <span className="text-muted-foreground font-medium block mb-1">Last Platform Sign-in</span>
-                <span className="font-mono text-foreground">{viewingUser.lastLogin || 'Never'}</span>
+              <div
+                className="p-3 rounded-lg border border-border/60"
+                style={{ background: 'var(--surface)' }}
+              >
+                <span className="text-muted-foreground font-medium block mb-1">
+                  Last Platform Sign-in
+                </span>
+                <span className="font-mono text-foreground">
+                  {viewingUser.lastLogin || 'Never'}
+                </span>
               </div>
 
-              <div className="p-3 rounded-lg border border-border/60" style={{ background: 'var(--surface)' }}>
+              <div
+                className="p-3 rounded-lg border border-border/60"
+                style={{ background: 'var(--surface)' }}
+              >
                 <span className="text-muted-foreground font-medium block mb-1">Account Status</span>
                 <span className="font-semibold text-xs capitalize text-emerald-400 flex items-center gap-1">
                   <CheckCircle2 size={12} /> {viewingUser.status}
@@ -3066,13 +3425,19 @@ export default function UsersClient() {
             </div>
 
             {/* Role Permissions Capability Checklist */}
-            <div className="rounded-lg border border-border/60 p-3" style={{ background: 'var(--surface)' }}>
+            <div
+              className="rounded-lg border border-border/60 p-3"
+              style={{ background: 'var(--surface)' }}
+            >
               <div className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-2">
                 Permission Rights ({viewingUser.roleLevel} · {viewingUser.roleTitle})
               </div>
               <div className="space-y-1.5 max-h-36 overflow-y-auto pr-1">
                 {PERMISSION_MATRIX[viewingUser.roleLevel]?.map((perm) => (
-                  <div key={perm.label} className="flex items-center justify-between text-xs py-1 border-b border-border/30 last:border-0">
+                  <div
+                    key={perm.label}
+                    className="flex items-center justify-between text-xs py-1 border-b border-border/30 last:border-0"
+                  >
                     <span className="text-foreground">{perm.label}</span>
                     {perm.allowed ? (
                       <span className="flex items-center gap-1 text-[11px] font-semibold text-emerald-400">
@@ -3089,17 +3454,24 @@ export default function UsersClient() {
             </div>
 
             {/* Tab-Level Permissions Summary (Read-Only) */}
-            <div className="rounded-xl border border-border p-3.5" style={{ background: 'var(--surface2)' }}>
+            <div
+              className="rounded-xl border border-border p-3.5"
+              style={{ background: 'var(--surface2)' }}
+            >
               <div className="flex items-center justify-between mb-2">
                 <span className="font-head text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-                  <SlidersHorizontal size={13} className="text-primary" /> Tab Permissions &amp; Access Controls
+                  <SlidersHorizontal size={13} className="text-primary" /> Tab Permissions &amp;
+                  Access Controls
                 </span>
                 <span className="text-[10px] text-muted-foreground">
                   Current configuration for {viewingUser.roleLevel}
                 </span>
               </div>
               <TabPermissionsEditor
-                permissions={viewingUser.tabPermissions || getDefaultTabPermissionsForRole(viewingUser.roleLevel)}
+                permissions={
+                  viewingUser.tabPermissions ||
+                  getDefaultTabPermissionsForRole(viewingUser.roleLevel)
+                }
                 roleLevel={viewingUser.roleLevel}
                 userName={viewingUser.name}
                 readOnly={true}
@@ -3136,7 +3508,11 @@ export default function UsersClient() {
         open={!!editingUser}
         onClose={() => setEditingUser(null)}
         title="Edit User Account"
-        subtitle={editingUser ? `Update credentials, role permissions, and portal for ${editingUser.name}` : ''}
+        subtitle={
+          editingUser
+            ? `Update credentials, role permissions, and portal for ${editingUser.name}`
+            : ''
+        }
         width={680}
       >
         {editingUser && (
@@ -3193,9 +3569,7 @@ export default function UsersClient() {
                   variant="form"
                   width="100%"
                   value={editForm.roleLevel}
-                  onChange={(val) =>
-                    setEditForm({ ...editForm, roleLevel: val as RoleLevel })
-                  }
+                  onChange={(val) => setEditForm({ ...editForm, roleLevel: val as RoleLevel })}
                   disabled={editingUser.roleLevel === 'L1' && !isSuperAdmin}
                   options={[
                     ...(isSuperAdmin ? [{ value: 'L1', label: 'L1 – Super Admin' }] : []),
@@ -3215,9 +3589,7 @@ export default function UsersClient() {
                   variant="form"
                   width="100%"
                   value={editForm.portal}
-                  onChange={(val) =>
-                    setEditForm({ ...editForm, portal: val as PortalType })
-                  }
+                  onChange={(val) => setEditForm({ ...editForm, portal: val as PortalType })}
                   options={[
                     ...(isSuperAdmin ? [{ value: 'both', label: 'Both (Propco & Opco)' }] : []),
                     { value: 'propco', label: 'Propco Portal' },
@@ -3249,7 +3621,10 @@ export default function UsersClient() {
             <div>
               <div className="flex items-center justify-between mb-1">
                 <label className="samko-label mb-0" htmlFor="edit-user-hotel">
-                  Assigned Properties * <span className="text-[11px] font-normal text-muted-foreground">(Select 1 or multiple)</span>
+                  Assigned Properties *{' '}
+                  <span className="text-[11px] font-normal text-muted-foreground">
+                    (Select 1 or multiple)
+                  </span>
                 </label>
                 <div className="flex items-center gap-2">
                   <button
@@ -3292,60 +3667,70 @@ export default function UsersClient() {
                   setEditForm({
                     ...editForm,
                     assignedProperties: vals,
-                    hotel: vals.length > 0 ? (vals.includes('all') || vals.includes('All Properties') ? 'All Properties' : vals.join(', ')) : 'No Property Assigned',
+                    hotel:
+                      vals.length > 0
+                        ? vals.includes('all') || vals.includes('All Properties')
+                          ? 'All Properties'
+                          : vals.join(', ')
+                        : 'No Property Assigned',
                   });
                 }}
                 options={dynamicPropertyOptions}
               />
 
               {/* Selected Property Tags with Remove X */}
-              {editForm.assignedProperties.length > 0 && !editForm.assignedProperties.includes('all') && !editForm.assignedProperties.includes('All Properties') && (
-                <div className="flex flex-wrap gap-1.5 mt-2">
-                  {editForm.assignedProperties.map((prop) => (
-                    <span
-                      key={prop}
-                      className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[11px] font-semibold border"
-                      style={{
-                        background: 'rgba(232, 201, 122, 0.12)',
-                        borderColor: '#e8c97a',
-                        color: '#e8c97a',
-                      }}
-                    >
-                      <span>{prop}</span>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          if (editingUser) {
-                            setPropertyRemovalConfirm({
-                              user: editingUser,
-                              property: prop,
-                              onConfirmOverride: () => {
-                                const next = editForm.assignedProperties.filter((p) => p !== prop);
-                                setEditForm({
-                                  ...editForm,
-                                  assignedProperties: next,
-                                  hotel: next.length > 0 ? next.join(', ') : 'No Property Assigned',
-                                });
-                              },
-                            });
-                          } else {
-                            const next = editForm.assignedProperties.filter((p) => p !== prop);
-                            setEditForm({
-                              ...editForm,
-                              assignedProperties: next,
-                              hotel: next.length > 0 ? next.join(', ') : 'No Property Assigned',
-                            });
-                          }
+              {editForm.assignedProperties.length > 0 &&
+                !editForm.assignedProperties.includes('all') &&
+                !editForm.assignedProperties.includes('All Properties') && (
+                  <div className="flex flex-wrap gap-1.5 mt-2">
+                    {editForm.assignedProperties.map((prop) => (
+                      <span
+                        key={prop}
+                        className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[11px] font-semibold border"
+                        style={{
+                          background: 'rgba(232, 201, 122, 0.12)',
+                          borderColor: '#e8c97a',
+                          color: '#e8c97a',
                         }}
-                        className="hover:text-rose-400 p-0.5 transition-colors cursor-pointer"
-                        title={`Remove ${prop}`}
                       >
-                        <X size={11} />
-                      </button>
-                    </span>
-                  ))}
-                </div>
-              )}
+                        <span>{prop}</span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (editingUser) {
+                              setPropertyRemovalConfirm({
+                                user: editingUser,
+                                property: prop,
+                                onConfirmOverride: () => {
+                                  const next = editForm.assignedProperties.filter(
+                                    (p) => p !== prop
+                                  );
+                                  setEditForm({
+                                    ...editForm,
+                                    assignedProperties: next,
+                                    hotel:
+                                      next.length > 0 ? next.join(', ') : 'No Property Assigned',
+                                  });
+                                },
+                              });
+                            } else {
+                              const next = editForm.assignedProperties.filter((p) => p !== prop);
+                              setEditForm({
+                                ...editForm,
+                                assignedProperties: next,
+                                hotel: next.length > 0 ? next.join(', ') : 'No Property Assigned',
+                              });
+                            }
+                          }}
+                          className="hover:text-rose-400 p-0.5 transition-colors cursor-pointer"
+                          title={`Remove ${prop}`}
+                        >
+                          <X size={11} />
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                )}
 
               {/* Direct Quick-Toggle Property Buttons */}
               <div className="flex flex-wrap gap-1.5 mt-2.5 max-h-36 overflow-y-auto pr-1">
@@ -3383,16 +3768,18 @@ export default function UsersClient() {
                           });
                         }
                       }}
-                      className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium border transition-all cursor-pointer ${isSelected
+                      className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium border transition-all cursor-pointer ${
+                        isSelected
                           ? 'bg-[#e8c97a]/20 border-[#e8c97a] text-[#e8c97a] shadow-sm font-semibold'
                           : 'bg-white/[0.04] border-white/10 text-muted-foreground hover:border-white/30 hover:text-foreground'
-                        }`}
+                      }`}
                     >
                       <div
-                        className={`w-3.5 h-3.5 rounded-[3px] flex items-center justify-center transition-all ${isSelected
+                        className={`w-3.5 h-3.5 rounded-[3px] flex items-center justify-center transition-all ${
+                          isSelected
                             ? 'bg-[#e8c97a] text-[#121316]'
                             : 'border border-white/30 bg-transparent'
-                          }`}
+                        }`}
                       >
                         {isSelected && <Check size={10} strokeWidth={3.5} />}
                       </div>
@@ -3415,9 +3802,15 @@ export default function UsersClient() {
                       const val = newEditCustomPropertyInput.trim();
                       if (val) {
                         saveCustomProperty(val);
-                        const withoutAll = editForm.assignedProperties.filter((p) => !p.toLowerCase().startsWith('all'));
+                        const withoutAll = editForm.assignedProperties.filter(
+                          (p) => !p.toLowerCase().startsWith('all')
+                        );
                         const next = withoutAll.includes(val) ? withoutAll : [...withoutAll, val];
-                        setEditForm({ ...editForm, assignedProperties: next, hotel: next.join(', ') });
+                        setEditForm({
+                          ...editForm,
+                          assignedProperties: next,
+                          hotel: next.join(', '),
+                        });
                         setNewEditCustomPropertyInput('');
                         toast.success(`Assigned "${val}" to ${editForm.name}`);
                       }
@@ -3431,7 +3824,9 @@ export default function UsersClient() {
                     const val = newEditCustomPropertyInput.trim();
                     if (!val) return;
                     saveCustomProperty(val);
-                    const withoutAll = editForm.assignedProperties.filter((p) => !p.toLowerCase().startsWith('all'));
+                    const withoutAll = editForm.assignedProperties.filter(
+                      (p) => !p.toLowerCase().startsWith('all')
+                    );
                     const next = withoutAll.includes(val) ? withoutAll : [...withoutAll, val];
                     setEditForm({ ...editForm, assignedProperties: next, hotel: next.join(', ') });
                     setNewEditCustomPropertyInput('');
@@ -3445,17 +3840,23 @@ export default function UsersClient() {
             </div>
 
             {/* Tab-Level Permissions Configuration */}
-            <div className="rounded-xl border border-border p-3.5 mt-2" style={{ background: 'var(--surface2)' }}>
+            <div
+              className="rounded-xl border border-border p-3.5 mt-2"
+              style={{ background: 'var(--surface2)' }}
+            >
               <div className="flex items-center justify-between mb-2">
                 <span className="font-head text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-                  <SlidersHorizontal size={13} className="text-primary" /> Tab Permissions &amp; Access Controls
+                  <SlidersHorizontal size={13} className="text-primary" /> Tab Permissions &amp;
+                  Access Controls
                 </span>
                 <span className="text-[10px] text-muted-foreground">
                   Configured according to {editForm.roleLevel} role
                 </span>
               </div>
               <TabPermissionsEditor
-                permissions={editForm.tabPermissions || getDefaultTabPermissionsForRole(editForm.roleLevel)}
+                permissions={
+                  editForm.tabPermissions || getDefaultTabPermissionsForRole(editForm.roleLevel)
+                }
                 onChange={(newPerms) => setEditForm({ ...editForm, tabPermissions: newPerms })}
                 roleLevel={editForm.roleLevel}
                 userName={editForm.name}
@@ -3487,7 +3888,11 @@ export default function UsersClient() {
       <Modal
         open={!!permissionsModalUser}
         onClose={() => setPermissionsModalUser(null)}
-        title={permissionsModalUser ? `Configure Tab Permissions · ${permissionsModalUser.name}` : 'Configure Tab Permissions'}
+        title={
+          permissionsModalUser
+            ? `Configure Tab Permissions · ${permissionsModalUser.name}`
+            : 'Configure Tab Permissions'
+        }
         subtitle={
           permissionsModalUser
             ? `Enable/Disable tabs and select Read Only (viewing) vs Edit & Write access levels for ${permissionsModalUser.email} (${permissionsModalUser.roleLevel})`
@@ -3497,7 +3902,10 @@ export default function UsersClient() {
       >
         {permissionsModalUser && (
           <div className="space-y-4">
-            <div className="p-3 rounded-lg border border-border flex items-center justify-between" style={{ background: 'var(--surface2)' }}>
+            <div
+              className="p-3 rounded-lg border border-border flex items-center justify-between"
+              style={{ background: 'var(--surface2)' }}
+            >
               <div className="flex items-center gap-2.5">
                 <div
                   className="w-9 h-9 rounded-full flex items-center justify-center font-bold text-xs"
@@ -3522,11 +3930,14 @@ export default function UsersClient() {
                       {permissionsModalUser.roleLevel} · {permissionsModalUser.roleTitle}
                     </span>
                   </div>
-                  <div className="text-[11px] text-muted-foreground font-mono">{permissionsModalUser.email}</div>
+                  <div className="text-[11px] text-muted-foreground font-mono">
+                    {permissionsModalUser.email}
+                  </div>
                 </div>
               </div>
               <div className="text-right text-[11px] text-muted-foreground">
-                Assigned: <span className="font-medium text-foreground">{permissionsModalUser.hotel}</span>
+                Assigned:{' '}
+                <span className="font-medium text-foreground">{permissionsModalUser.hotel}</span>
               </div>
             </div>
 
@@ -3555,7 +3966,11 @@ export default function UsersClient() {
                   onClick={handleSaveModalPermissions}
                   className="samko-btn-primary flex items-center gap-1.5 text-xs font-semibold"
                 >
-                  {savingPermissions ? <Loader2 size={13} className="animate-spin" /> : <Check size={13} />}
+                  {savingPermissions ? (
+                    <Loader2 size={13} className="animate-spin" />
+                  ) : (
+                    <Check size={13} />
+                  )}
                   Save &amp; Apply Permissions
                 </button>
               )}
@@ -3613,13 +4028,18 @@ export default function UsersClient() {
             </div>
 
             {/* Actor Card */}
-            <div className="rounded-xl border border-border p-3.5" style={{ background: 'var(--surface)' }}>
+            <div
+              className="rounded-xl border border-border p-3.5"
+              style={{ background: 'var(--surface)' }}
+            >
               <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-2 flex items-center gap-1">
                 <Users size={11} /> Actor Profile
               </div>
               <div className="flex items-center justify-between">
                 {(() => {
-                  const roleConf = ROLE_LEVEL_CONFIG[selectedAuditLog.roleLevel as RoleLevel] || ROLE_LEVEL_CONFIG.L1;
+                  const roleConf =
+                    ROLE_LEVEL_CONFIG[selectedAuditLog.roleLevel as RoleLevel] ||
+                    ROLE_LEVEL_CONFIG.L1;
                   return (
                     <>
                       <div className="flex items-center gap-3">
@@ -3645,7 +4065,9 @@ export default function UsersClient() {
                               {selectedAuditLog.roleLevel}
                             </span>
                           </div>
-                          <div className="text-xs text-muted-foreground">{selectedAuditLog.actorEmail}</div>
+                          <div className="text-xs text-muted-foreground">
+                            {selectedAuditLog.actorEmail}
+                          </div>
                         </div>
                       </div>
 
@@ -3653,7 +4075,9 @@ export default function UsersClient() {
                         <div className="text-xs font-semibold text-foreground">
                           {roleConf.title}
                         </div>
-                        <div className="text-[10px] text-muted-foreground">Certified Role Authority</div>
+                        <div className="text-[10px] text-muted-foreground">
+                          Certified Role Authority
+                        </div>
                       </div>
                     </>
                   );
@@ -3662,21 +4086,25 @@ export default function UsersClient() {
             </div>
 
             {/* Event Description & Resource */}
-            <div className="rounded-xl border border-border p-3.5" style={{ background: 'var(--surface)' }}>
+            <div
+              className="rounded-xl border border-border p-3.5"
+              style={{ background: 'var(--surface)' }}
+            >
               <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1.5 flex items-center gap-1">
                 <FileText size={11} /> Impact & Target Resource
               </div>
               <div className="text-xs font-semibold text-primary mb-1">
                 {selectedAuditLog.resource}
               </div>
-              <p className="text-xs text-foreground leading-relaxed">
-                {selectedAuditLog.details}
-              </p>
+              <p className="text-xs text-foreground leading-relaxed">{selectedAuditLog.details}</p>
             </div>
 
             {/* Metadata Diff (Previous vs Current) */}
             {selectedAuditLog.diff && selectedAuditLog.diff.length > 0 && (
-              <div className="rounded-xl border border-border p-3.5" style={{ background: 'var(--surface)' }}>
+              <div
+                className="rounded-xl border border-border p-3.5"
+                style={{ background: 'var(--surface)' }}
+              >
                 <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-2 flex items-center gap-1">
                   <Layers size={11} /> State Transition & Field Diffs
                 </div>
@@ -3715,23 +4143,38 @@ export default function UsersClient() {
               style={{ background: 'var(--surface2)' }}
             >
               <div>
-                <div className="text-[10px] font-bold uppercase text-muted-foreground">Client IP Address</div>
-                <div className="font-mono text-xs text-foreground mt-0.5">{selectedAuditLog.ipAddress}</div>
+                <div className="text-[10px] font-bold uppercase text-muted-foreground">
+                  Client IP Address
+                </div>
+                <div className="font-mono text-xs text-foreground mt-0.5">
+                  {selectedAuditLog.ipAddress}
+                </div>
               </div>
               <div>
-                <div className="text-[10px] font-bold uppercase text-muted-foreground">Geographic Origin</div>
+                <div className="text-[10px] font-bold uppercase text-muted-foreground">
+                  Geographic Origin
+                </div>
                 <div className="text-xs text-foreground mt-0.5 flex items-center gap-1">
                   <Globe size={11} className="text-muted-foreground" />
                   <span>{selectedAuditLog.location}</span>
                 </div>
               </div>
               <div>
-                <div className="text-[10px] font-bold uppercase text-muted-foreground">Timestamp (UTC)</div>
-                <div className="text-xs text-foreground mt-0.5 font-mono">{selectedAuditLog.timestamp}</div>
+                <div className="text-[10px] font-bold uppercase text-muted-foreground">
+                  Timestamp (UTC)
+                </div>
+                <div className="text-xs text-foreground mt-0.5 font-mono">
+                  {selectedAuditLog.timestamp}
+                </div>
               </div>
               <div>
-                <div className="text-[10px] font-bold uppercase text-muted-foreground">Device & User Agent</div>
-                <div className="text-[10px] text-muted-foreground mt-0.5 truncate" title={selectedAuditLog.userAgent || 'Web Browser'}>
+                <div className="text-[10px] font-bold uppercase text-muted-foreground">
+                  Device & User Agent
+                </div>
+                <div
+                  className="text-[10px] text-muted-foreground mt-0.5 truncate"
+                  title={selectedAuditLog.userAgent || 'Web Browser'}
+                >
                   {selectedAuditLog.userAgent || 'Enterprise Browser Client'}
                 </div>
               </div>
@@ -3755,16 +4198,27 @@ export default function UsersClient() {
         open={Boolean(propertyModalUser)}
         onClose={() => setPropertyModalUser(null)}
         title="Manage Assigned Properties"
-        subtitle={propertyModalUser ? `Assign or remove property access for ${propertyModalUser.name} (${propertyModalUser.roleLevel} · ${propertyModalUser.roleTitle})` : ''}
+        subtitle={
+          propertyModalUser
+            ? `Assign or remove property access for ${propertyModalUser.name} (${propertyModalUser.roleLevel} · ${propertyModalUser.roleTitle})`
+            : ''
+        }
         width={580}
       >
         {propertyModalUser && (
           <div className="space-y-4">
             {/* User Profile Summary */}
-            <div className="flex items-center justify-between p-3 rounded-xl border border-border" style={{ background: 'var(--surface2)' }}>
+            <div
+              className="flex items-center justify-between p-3 rounded-xl border border-border"
+              style={{ background: 'var(--surface2)' }}
+            >
               <div>
-                <div className="font-semibold text-sm text-foreground">{propertyModalUser.name}</div>
-                <div className="text-xs text-muted-foreground">{propertyModalUser.email} · {propertyModalUser.roleTitle}</div>
+                <div className="font-semibold text-sm text-foreground">
+                  {propertyModalUser.name}
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  {propertyModalUser.email} · {propertyModalUser.roleTitle}
+                </div>
               </div>
               <span
                 className="px-2 py-0.5 rounded text-[11px] font-bold"
@@ -3780,7 +4234,10 @@ export default function UsersClient() {
             {/* Currently Assigned Properties Header & Chips */}
             <div>
               <div className="flex items-center justify-between mb-1.5">
-                <label className="samko-label mb-0">Currently Assigned Properties ({tempAssignedProperties.filter((p) => !p.toLowerCase().startsWith('all')).length})</label>
+                <label className="samko-label mb-0">
+                  Currently Assigned Properties (
+                  {tempAssignedProperties.filter((p) => !p.toLowerCase().startsWith('all')).length})
+                </label>
                 <div className="flex items-center gap-2">
                   <button
                     type="button"
@@ -3800,10 +4257,12 @@ export default function UsersClient() {
                 </div>
               </div>
 
-              {tempAssignedProperties.includes('all') || tempAssignedProperties.includes('All Properties') ? (
+              {tempAssignedProperties.includes('all') ||
+              tempAssignedProperties.includes('All Properties') ? (
                 <div className="p-3 rounded-lg border border-border/60 bg-white/[0.02] flex items-center justify-between">
                   <span className="text-xs text-muted-foreground font-medium flex items-center gap-1.5">
-                    <Globe size={13} className="text-primary" /> Full Portfolio Oversight (All Properties Assigned)
+                    <Globe size={13} className="text-primary" /> Full Portfolio Oversight (All
+                    Properties Assigned)
                   </span>
                   <button
                     type="button"
@@ -3816,7 +4275,10 @@ export default function UsersClient() {
               ) : tempAssignedProperties.length === 0 ? (
                 <div className="p-3 rounded-lg border border-amber-500/20 bg-amber-500/5 text-amber-300 text-xs flex items-center gap-2">
                   <AlertCircle size={14} />
-                  <span>No properties assigned. This user will have restricted access until a property is assigned.</span>
+                  <span>
+                    No properties assigned. This user will have restricted access until a property
+                    is assigned.
+                  </span>
                 </div>
               ) : (
                 <div className="flex flex-wrap gap-1.5 p-2.5 rounded-lg border border-border/60 bg-white/[0.02] min-h-[46px] items-center">
@@ -3861,7 +4323,10 @@ export default function UsersClient() {
             {/* Quick Toggle Available Properties */}
             <div>
               <label className="samko-label mb-1.5">Select Properties to Assign or Remove</label>
-              <div className="flex flex-wrap gap-1.5 max-h-44 overflow-y-auto pr-1 p-2 rounded-xl border border-border" style={{ background: 'var(--surface)' }}>
+              <div
+                className="flex flex-wrap gap-1.5 max-h-44 overflow-y-auto pr-1 p-2 rounded-xl border border-border"
+                style={{ background: 'var(--surface)' }}
+              >
                 {dynamicPropertyOptions.map((opt) => {
                   const isAllOpt = opt.value.toLowerCase().startsWith('all');
                   const isSelected = isAllOpt
@@ -3876,7 +4341,9 @@ export default function UsersClient() {
                         if (isAllOpt) {
                           setTempAssignedProperties(['All Properties']);
                         } else {
-                          const withoutAll = tempAssignedProperties.filter((p) => !p.toLowerCase().startsWith('all'));
+                          const withoutAll = tempAssignedProperties.filter(
+                            (p) => !p.toLowerCase().startsWith('all')
+                          );
                           if (withoutAll.includes(opt.value)) {
                             setTempAssignedProperties(withoutAll.filter((p) => p !== opt.value));
                           } else {
@@ -3884,14 +4351,18 @@ export default function UsersClient() {
                           }
                         }
                       }}
-                      className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium border transition-all cursor-pointer ${isSelected
+                      className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium border transition-all cursor-pointer ${
+                        isSelected
                           ? 'bg-[#e8c97a]/20 border-[#e8c97a] text-[#e8c97a] font-semibold'
                           : 'bg-white/[0.04] border-white/10 text-muted-foreground hover:border-white/30 hover:text-foreground'
-                        }`}
+                      }`}
                     >
                       <div
-                        className={`w-3.5 h-3.5 rounded-[3px] flex items-center justify-center transition-all ${isSelected ? 'bg-[#e8c97a] text-black font-bold' : 'border border-white/30'
-                          }`}
+                        className={`w-3.5 h-3.5 rounded-[3px] flex items-center justify-center transition-all ${
+                          isSelected
+                            ? 'bg-[#e8c97a] text-black font-bold'
+                            : 'border border-white/30'
+                        }`}
                       >
                         {isSelected && <Check size={10} className="stroke-[3]" />}
                       </div>
@@ -3917,7 +4388,9 @@ export default function UsersClient() {
                       const val = newCustomPropertyInput.trim();
                       if (val) {
                         saveCustomProperty(val);
-                        const withoutAll = tempAssignedProperties.filter((p) => !p.toLowerCase().startsWith('all'));
+                        const withoutAll = tempAssignedProperties.filter(
+                          (p) => !p.toLowerCase().startsWith('all')
+                        );
                         if (!withoutAll.includes(val)) {
                           setTempAssignedProperties([...withoutAll, val]);
                         }
@@ -3934,7 +4407,9 @@ export default function UsersClient() {
                     const val = newCustomPropertyInput.trim();
                     if (!val) return;
                     saveCustomProperty(val);
-                    const withoutAll = tempAssignedProperties.filter((p) => !p.toLowerCase().startsWith('all'));
+                    const withoutAll = tempAssignedProperties.filter(
+                      (p) => !p.toLowerCase().startsWith('all')
+                    );
                     if (!withoutAll.includes(val)) {
                       setTempAssignedProperties([...withoutAll, val]);
                     }
@@ -3969,7 +4444,11 @@ export default function UsersClient() {
                 }}
                 className="samko-btn-primary flex items-center gap-1.5 text-xs font-semibold cursor-pointer"
               >
-                {savingUserProperties ? <Loader2 size={13} className="animate-spin" /> : <Check size={13} />}
+                {savingUserProperties ? (
+                  <Loader2 size={13} className="animate-spin" />
+                ) : (
+                  <Check size={13} />
+                )}
                 Save Property Assignments
               </button>
             </div>
@@ -4020,7 +4499,10 @@ export default function UsersClient() {
           if (propertyRemovalConfirm.onConfirmOverride) {
             propertyRemovalConfirm.onConfirmOverride();
           } else {
-            handleRemovePropertyFromUser(propertyRemovalConfirm.user, propertyRemovalConfirm.property);
+            handleRemovePropertyFromUser(
+              propertyRemovalConfirm.user,
+              propertyRemovalConfirm.property
+            );
           }
           setPropertyRemovalConfirm(null);
         }}

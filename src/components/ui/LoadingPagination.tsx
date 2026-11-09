@@ -1,13 +1,7 @@
 'use client';
 
 import React from 'react';
-import {
-  ChevronLeft,
-  ChevronRight,
-  ChevronsLeft,
-  ChevronsRight,
-  Loader2,
-} from 'lucide-react';
+import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Loader2 } from 'lucide-react';
 import CustomDropdown from '@/components/ui/CustomDropdown';
 
 export interface LoadingPaginationProps {
@@ -61,21 +55,24 @@ export default function LoadingPagination({
       {/* Left Area: Record range info and conditional Page Size Dropdown */}
       <div className="flex items-center gap-3 sm:gap-5 flex-wrap">
         <div className="flex items-center gap-2 text-xs text-muted-foreground select-none">
-          {isLoading && (
-            <Loader2 size={13} className="animate-spin text-[#e8c97a] flex-shrink-0" />
-          )}
+          {isLoading && <Loader2 size={13} className="animate-spin text-[#e8c97a] flex-shrink-0" />}
           <span>
             {totalRecords === 0 ? (
               <>Showing 0 of 0 {recordName}</>
             ) : totalRecords <= pageSize ? (
               <>
                 Showing <strong className="text-foreground font-semibold">{totalRecords}</strong> of{' '}
-                <strong className="text-foreground font-semibold">{totalRecords}</strong> {recordName}
+                <strong className="text-foreground font-semibold">{totalRecords}</strong>{' '}
+                {recordName}
               </>
             ) : (
               <>
-                Showing <strong className="text-foreground font-semibold">{startItem}–{endItem}</strong> of{' '}
-                <strong className="text-foreground font-semibold">{totalRecords}</strong> {recordName}
+                Showing{' '}
+                <strong className="text-foreground font-semibold">
+                  {startItem}–{endItem}
+                </strong>{' '}
+                of <strong className="text-foreground font-semibold">{totalRecords}</strong>{' '}
+                {recordName}
               </>
             )}
           </span>
@@ -167,9 +164,7 @@ export default function LoadingPagination({
         </div>
       ) : (
         /* Subtle single-page indicator when <= 1 page */
-        <span className="text-xs text-muted-foreground/60 select-none">
-          Page 1 of 1
-        </span>
+        <span className="text-xs text-muted-foreground/60 select-none">Page 1 of 1</span>
       )}
     </div>
   );

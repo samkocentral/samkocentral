@@ -19,7 +19,7 @@ function ExecutiveDashboardInner() {
   const searchParams = useSearchParams();
   const { userAssignedProperties } = useAuth();
   const queryStr = searchParams?.toString();
-  const fullPath = queryStr ? `${pathname}?${queryStr}` : (pathname || '/');
+  const fullPath = queryStr ? `${pathname}?${queryStr}` : pathname || '/';
 
   const isRestricted = !userAssignedProperties.includes('all') && userAssignedProperties.length > 0;
   const subtitle = isRestricted
@@ -53,7 +53,13 @@ function ExecutiveDashboardInner() {
 
 export default function ExecutiveDashboardPage() {
   return (
-    <Suspense fallback={<div className="flex items-center justify-center h-screen text-muted-foreground text-sm">Loading dashboard…</div>}>
+    <Suspense
+      fallback={
+        <div className="flex items-center justify-center h-screen text-muted-foreground text-sm">
+          Loading dashboard…
+        </div>
+      }
+    >
       <ExecutiveDashboardInner />
     </Suspense>
   );
