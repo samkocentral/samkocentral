@@ -104,7 +104,7 @@ const CONTRACT_CATEGORIES = [
   'Housekeeping',
 ];
 
-const HOTELS = ['Gow', 'Crowne Plaza Kingston-south', 'Stanhill Court'];
+const HOTELS = ['Crowne Plaza Kingston-south', 'Stanhill Court'];
 
 // ─── REAL DATA — Seeded from Samko_Holdings_Master_Contracts_Register ─────────
 const MOCK_CONTRACTS: Contract[] = [
@@ -114,7 +114,7 @@ const MOCK_CONTRACTS: Contract[] = [
     supplierName: 'Otis Elevators UK',
     contractName: 'Lift Maintenance & LOLER Inspection',
     category: 'Lift Maintenance',
-    hotel: 'Gow',
+    hotel: 'Stanhill Court',
     department: 'Facilities',
     startDate: '2025-01-01',
     endDate: '2027-12-31',

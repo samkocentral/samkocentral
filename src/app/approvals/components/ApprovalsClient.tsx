@@ -59,7 +59,7 @@ function getSeedSubmissions(): DocumentSubmission[] {
     {
       id: 'doc-001',
       name: 'Building & Plant Insurance Policy',
-      site: 'Gow',
+      site: 'Stanhill Court',
       category: 'Insurance',
       department: 'Finance',
       expiry: '2027-06-30',

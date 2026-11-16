@@ -173,16 +173,7 @@ export interface MaintenanceRecord {
 // ─── HOTELS ──────────────────────────────────────────────────────────────────
 
 export const HOTELS: Hotel[] = [
-  {
-    id: 'hotel-2657',
-    name: 'Gow',
-    address: 'Gowtham Avenue, London',
-    city: 'London',
-    status: 'active',
-    totalAssets: 1,
-    manager: 'Marcus Webb',
-    phone: '+44 20 8576 9679',
-  },
+  
   {
     id: 'hotel-001',
     name: 'Crowne Plaza Kingston-south',
@@ -241,8 +232,8 @@ export const ASSETS: Asset[] = [
     name: 'Otis Passenger Lift 8-Person',
     category: 'Plant Equipment',
     department: 'Engineering',
-    hotelId: 'hotel-2657',
-    hotelName: 'Gow',
+    hotelId: 'hotel-002',
+    hotelName: 'Stanhill Court',
     location: 'Main Lobby',
     floor: 'All Floors',
     quantity: 1,
@@ -357,8 +348,8 @@ export const ASSETS: Asset[] = [
     name: 'Commercial Winterhalter Pass-Through Dishwasher',
     category: 'Kitchen Equipment',
     department: 'Kitchen',
-    hotelId: 'hotel-2657',
-    hotelName: 'Gow',
+    hotelId: 'hotel-002',
+    hotelName: 'Stanhill Court',
     location: 'Main Kitchen',
     floor: 'Ground',
     quantity: 2,
@@ -418,8 +409,8 @@ export const MAINTENANCE_RECORDS: MaintenanceRecord[] = [
     id: 'mai-001',
     assetId: 'FIX-1794221173240-3',
     assetName: 'Otis Passenger Lift 8-Person',
-    hotelId: 'hotel-2657',
-    hotelName: 'Gow',
+    hotelId: 'hotel-002',
+    hotelName: 'Stanhill Court',
     type: 'LOLER Thorough Examination & Lift Servicing',
     status: 'scheduled',
     frequency: '6-monthly',

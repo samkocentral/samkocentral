@@ -285,6 +285,7 @@ export default function Sidebar({ currentPath }: SidebarProps) {
   }, []);
 
   const [criticalCount, setCriticalCount] = useState(0);
+  const [propcoCriticalCount, setPropcoCriticalCount] = useState(0);
   const [openTaskCount, setOpenTaskCount] = useState(0);
   const [warningCount, setWarningCount] = useState(0);
   const [overdueCount, setOverdueCount] = useState(0);
@@ -437,8 +438,9 @@ export default function Sidebar({ currentPath }: SidebarProps) {
     if (
       p.includes('type=non-fixed') ||
       p.startsWith('/asset-management/maintenance') ||
-      p.startsWith('/compliance-register') ||
-      p.startsWith('/compliance-tracker') ||
+      ((p.startsWith('/compliance-register') || p.startsWith('/compliance-tracker')) &&
+        !p.includes('portal=propco') &&
+        !p.includes('tab=propco')) ||
       p.startsWith('/tasks') ||
       p.startsWith('/task-manager') ||
       p.startsWith('/utilities-register') ||
@@ -452,7 +454,9 @@ export default function Sidebar({ currentPath }: SidebarProps) {
       (p.startsWith('/asset-management/assets') && !p.includes('type=non-fixed')) ||
       p.startsWith('/insurance-register') ||
       p.startsWith('/contracts-register') ||
-      p.includes('type=contracts')
+      p.includes('type=contracts') ||
+      ((p.startsWith('/compliance-register') || p.startsWith('/compliance-tracker')) &&
+        (p.includes('portal=propco') || p.includes('tab=propco')))
     ) {
       saved.propco = true;
     }
@@ -465,6 +469,7 @@ export default function Sidebar({ currentPath }: SidebarProps) {
       contracts: false,
       maintenance: false,
       compliance: false,
+      'propco-compliance': false,
       utilities: false,
     };
     const p =
@@ -475,8 +480,13 @@ export default function Sidebar({ currentPath }: SidebarProps) {
     if (p.startsWith('/insurance-register')) saved.insurance = true;
     if (p.startsWith('/contracts-register')) saved.contracts = true;
     if (p.startsWith('/asset-management/maintenance')) saved.maintenance = true;
-    if (p.startsWith('/compliance-register') || p.startsWith('/compliance-tracker'))
-      saved.compliance = true;
+    if (p.startsWith('/compliance-register') || p.startsWith('/compliance-tracker')) {
+      if (p.includes('portal=propco') || p.includes('tab=propco')) {
+        saved['propco-compliance'] = true;
+      } else {
+        saved.compliance = true;
+      }
+    }
     if (p.startsWith('/utilities-register')) saved.utilities = true;
     return saved;
   };
@@ -494,14 +504,18 @@ export default function Sidebar({ currentPath }: SidebarProps) {
     const isNonFixed = p.includes('type=non-fixed');
     const isMaintenance =
       p.startsWith('/asset-management/maintenance') || p.includes('type=maintenance');
-    const isCompliance =
-      p.startsWith('/compliance-register') || p.startsWith('/compliance-tracker');
+    const isPropcoCompliance =
+      (p.startsWith('/compliance-register') || p.startsWith('/compliance-tracker')) &&
+      (p.includes('portal=propco') || p.includes('tab=propco'));
+    const isOpcoCompliance =
+      (p.startsWith('/compliance-register') || p.startsWith('/compliance-tracker')) &&
+      !isPropcoCompliance;
     const isOpcoTasks = p.startsWith('/tasks') || p.startsWith('/task-manager');
     const isUtilities = p.startsWith('/utilities-register');
     const isOpcoDashboard = p.includes('portal=opco');
 
     const isOpCoRoute =
-      isNonFixed || isMaintenance || isCompliance || isOpcoTasks || isUtilities || isOpcoDashboard;
+      isNonFixed || isMaintenance || isOpcoCompliance || isOpcoTasks || isUtilities || isOpcoDashboard;
 
     const isProperties =
       p.startsWith('/asset-management/properties') || p.startsWith('/asset-management/hotels');
@@ -511,11 +525,14 @@ export default function Sidebar({ currentPath }: SidebarProps) {
     const isPropcoDashboard = p.includes('portal=propco');
 
     const isPropCoRoute =
-      isProperties || isFixedAssets || isInsurance || isContracts || isPropcoDashboard;
+      isProperties || isFixedAssets || isInsurance || isContracts || isPropcoDashboard || isPropcoCompliance;
 
     if (isOpCoRoute) {
       // In OpCo route: keep OpCo open and collapse PropCo so OpCo stays at the top and never scrolls off-screen
-      setOpenPortals({ propco: false, opco: true });
+      setOpenPortals((prev) => {
+        if (!prev.propco && prev.opco) return prev;
+        return { propco: false, opco: true };
+      });
       try {
         localStorage.setItem(
           'samko:sidebar_open_portals',
@@ -527,7 +544,10 @@ export default function Sidebar({ currentPath }: SidebarProps) {
       }
     } else if (isPropCoRoute) {
       // In PropCo route: keep PropCo open and collapse OpCo
-      setOpenPortals({ propco: true, opco: false });
+      setOpenPortals((prev) => {
+        if (prev.propco && !prev.opco) return prev;
+        return { propco: true, opco: false };
+      });
       try {
         localStorage.setItem(
           'samko:sidebar_open_portals',
@@ -543,12 +563,25 @@ export default function Sidebar({ currentPath }: SidebarProps) {
     if (p.startsWith('/insurance-register')) openSub.insurance = true;
     if (p.startsWith('/contracts-register')) openSub.contracts = true;
     if (p.startsWith('/asset-management/maintenance')) openSub.maintenance = true;
-    if (p.startsWith('/compliance-register') || p.startsWith('/compliance-tracker'))
-      openSub.compliance = true;
+    if (p.startsWith('/compliance-register') || p.startsWith('/compliance-tracker')) {
+      if (p.includes('portal=propco') || p.includes('tab=propco')) {
+        openSub['propco-compliance'] = true;
+      } else {
+        openSub.compliance = true;
+      }
+    }
     if (p.startsWith('/utilities-register')) openSub.utilities = true;
 
     if (Object.keys(openSub).length > 0) {
       setOpenSubDropdowns((prev) => {
+        let changed = false;
+        for (const [k, v] of Object.entries(openSub)) {
+          if (prev[k] !== v) {
+            changed = true;
+            break;
+          }
+        }
+        if (!changed) return prev;
         const next = { ...prev, ...openSub };
         try {
           localStorage.setItem('samko:sidebar_open_subdropdowns', JSON.stringify(next));
@@ -556,7 +589,7 @@ export default function Sidebar({ currentPath }: SidebarProps) {
         return next;
       });
     }
-  }, [activeRoutePath, activePortal, setActivePortal]);
+  }, [activeRoutePath]);
 
   const fetchDynamicCounts = useCallback(async () => {
     try {
@@ -578,8 +611,27 @@ export default function Sidebar({ currentPath }: SidebarProps) {
         const comp = compRes.value.data.filter((c: any) =>
           isPropertyAccessible(c.property || c.hotelName || c.hotel || c.propertyName || c.site)
         );
+        const propcoComp = comp.filter(
+          (c: any) => (c.complianceType || c.section || '').toLowerCase() === 'propco'
+        );
+        const opcoComp = comp.filter(
+          (c: any) => (c.complianceType || c.section || '').toLowerCase() === 'opco'
+        );
+        setPropcoCriticalCount(
+          propcoComp.filter(
+            (c: any) =>
+              c.status === 'overdue' || c.status === 'Expired' || c.status === 'Action Required'
+          ).length
+        );
         setCriticalCount(
-          comp.filter((c: any) => c.status === 'Expired' || c.status === 'Action Required').length
+          opcoComp.length > 0
+            ? opcoComp.filter(
+                (c: any) =>
+                  c.status === 'overdue' || c.status === 'Expired' || c.status === 'Action Required'
+              ).length
+            : comp.filter(
+                (c: any) => c.status === 'Expired' || c.status === 'Action Required'
+              ).length
         );
       }
 
@@ -807,7 +859,18 @@ export default function Sidebar({ currentPath }: SidebarProps) {
       const hTab = hParams.get('tab') || 'register';
       const cParams = new URLSearchParams(cQuery || '');
       const cTab = cParams.get('tab') || 'register';
+      const cPortal = cParams.get('portal');
+      if (portalContext === 'propco' && cPortal !== 'propco') return false;
+      if (portalContext === 'opco' && cPortal === 'propco') return false;
       return hTab === cTab;
+    }
+
+    if (cPath === '/compliance-tracker' && hPath === '/compliance-tracker') {
+      const cParams = new URLSearchParams(cQuery || '');
+      const cPortal = cParams.get('portal');
+      if (portalContext === 'propco' && cPortal !== 'propco') return false;
+      if (portalContext === 'opco' && cPortal === 'propco') return false;
+      return true;
     }
 
     // Utilities Register types (strictly single active tab: 'all' vs specific type)
@@ -1600,43 +1663,42 @@ export default function Sidebar({ currentPath }: SidebarProps) {
                     overdueCount > 0 ? 'critical' : 'warning'
                   )}
 
-                {/* Compliance (when moved to PropCo) */}
-                {isInPropCo('compliance') &&
-                  renderPropCoSubDropdown(
-                    'compliance',
-                    getTabLabel('opco', 'compliance', 'Compliance'),
-                    <ShieldCheck size={15} />,
-                    [
-                      {
-                        id: 'compliance-register',
-                        label: getTabLabel('opco', 'compliance-register', 'Compliance Register'),
-                        href: '/compliance-register',
-                        icon: <ShieldCheck size={13} />,
-                        badgeCount: criticalCount,
-                        badgeVariant: 'critical',
-                      },
-                      {
-                        id: 'certifications',
-                        label: getTabLabel('opco', 'certifications', 'Certifications'),
-                        href: '/compliance-register?tab=certifications',
-                        icon: <FileCheck size={13} />,
-                      },
-                      {
-                        id: 'statutory',
-                        label: getTabLabel('opco', 'statutory', 'Statutory Inspections'),
-                        href: '/compliance-register?tab=statutory',
-                        icon: <Flame size={13} />,
-                      },
-                      {
-                        id: 'expiry-dashboard',
-                        label: getTabLabel('opco', 'expiry-dashboard', 'Expiry Dashboard'),
-                        href: '/compliance-tracker',
-                        icon: <AlertTriangle size={13} />,
-                      },
-                    ],
-                    criticalCount > 0 ? criticalCount : undefined,
-                    'critical'
-                  )}
+                {/* Compliance in PropCo */}
+                {renderPropCoSubDropdown(
+                  'propco-compliance',
+                  getTabLabel('propco', 'compliance', 'Compliance'),
+                  <ShieldCheck size={15} />,
+                  [
+                    {
+                      id: 'propco-compliance-register',
+                      label: 'Compliance Register',
+                      href: '/compliance-register?portal=propco',
+                      icon: <ShieldCheck size={13} />,
+                      badgeCount: propcoCriticalCount > 0 ? propcoCriticalCount : undefined,
+                      badgeVariant: 'critical',
+                    },
+                    {
+                      id: 'propco-certifications',
+                      label: 'Certifications',
+                      href: '/compliance-register?tab=certifications&portal=propco',
+                      icon: <FileCheck size={13} />,
+                    },
+                    {
+                      id: 'propco-statutory',
+                      label: 'Statutory Inspections',
+                      href: '/compliance-register?tab=statutory&portal=propco',
+                      icon: <Flame size={13} />,
+                    },
+                    {
+                      id: 'propco-expiry-dashboard',
+                      label: 'Expiry Dashboard',
+                      href: '/compliance-tracker?portal=propco',
+                      icon: <AlertTriangle size={13} />,
+                    },
+                  ],
+                  propcoCriticalCount > 0 ? propcoCriticalCount : undefined,
+                  'critical'
+                )}
 
                 {/* Insurance Tab / Dropdown */}
                 {isInPropCo('insurance') &&
@@ -1928,7 +1990,7 @@ export default function Sidebar({ currentPath }: SidebarProps) {
                       {
                         id: 'compliance-register',
                         label: 'Compliance Register',
-                        href: '/compliance-register',
+                        href: '/compliance-register?portal=opco',
                         icon: <ShieldCheck size={13} />,
                         badgeCount: criticalCount,
                         badgeVariant: 'critical',
@@ -1936,19 +1998,19 @@ export default function Sidebar({ currentPath }: SidebarProps) {
                       {
                         id: 'certifications',
                         label: 'Certifications',
-                        href: '/compliance-register?tab=certifications',
+                        href: '/compliance-register?tab=certifications&portal=opco',
                         icon: <FileCheck size={13} />,
                       },
                       {
                         id: 'statutory',
                         label: 'Statutory Inspections',
-                        href: '/compliance-register?tab=statutory',
+                        href: '/compliance-register?tab=statutory&portal=opco',
                         icon: <Flame size={13} />,
                       },
                       {
                         id: 'expiry-dashboard',
                         label: 'Expiry Dashboard',
-                        href: '/compliance-tracker',
+                        href: '/compliance-tracker?portal=opco',
                         icon: <AlertTriangle size={13} />,
                       },
                     ]),

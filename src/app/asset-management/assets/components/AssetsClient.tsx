@@ -196,20 +196,20 @@ export default function AssetsClient() {
     let raw: any[] = ASSETS;
     if (typeof window !== 'undefined') {
       try {
+        localStorage.removeItem('samko_all_assets');
+        sessionStorage.removeItem('samko_all_assets');
+        localStorage.removeItem('samko_all_assets_v2');
+        sessionStorage.removeItem('samko_all_assets_v2');
+
         const cached =
-          localStorage.getItem('samko_all_assets') || sessionStorage.getItem('samko_all_assets');
+          localStorage.getItem('samko_all_assets_v5') || sessionStorage.getItem('samko_all_assets_v5');
         if (cached) {
           const parsed = JSON.parse(cached);
-          if (
-            Array.isArray(parsed) &&
-            parsed.length > 0 &&
-            parsed.length <= 6 &&
-            parsed.length <= 6
-          ) {
-            raw = parsed;
-          } else {
-            localStorage.removeItem('samko_all_assets');
-            sessionStorage.removeItem('samko_all_assets');
+          if (Array.isArray(parsed) && parsed.length > 0 && parsed.length <= 6) {
+            raw = parsed.filter((a: any) => {
+              const h = String(a.hotel || a.hotelName || a.property || a.site || '').toLowerCase();
+              return h !== 'gow' && !h.includes('gow');
+            });
           }
         }
       } catch {}
@@ -232,19 +232,15 @@ export default function AssetsClient() {
     });
   });
 
-  // Purge legacy unpruned browser caches (> 10 items) immediately on mount
+  // Purge legacy unpruned browser caches immediately on mount
   useEffect(() => {
     if (typeof window !== 'undefined') {
       try {
-        const cached = localStorage.getItem('samko_all_assets');
-        if (cached) {
-          const parsed = JSON.parse(cached);
-          if (Array.isArray(parsed) && parsed.length > 6) {
-            localStorage.removeItem('samko_all_assets');
-            sessionStorage.removeItem('samko_all_assets');
-            localStorage.removeItem('samko_deep_cms_store');
-          }
-        }
+        localStorage.removeItem('samko_all_assets');
+        sessionStorage.removeItem('samko_all_assets');
+        localStorage.removeItem('samko_all_assets_v2');
+        sessionStorage.removeItem('samko_all_assets_v2');
+        localStorage.removeItem('samko_deep_cms_store');
       } catch {}
     }
   }, []);
@@ -252,13 +248,17 @@ export default function AssetsClient() {
   const saveAssetsToStorage = (updatedAssets: Asset[]) => {
     if (typeof window !== 'undefined') {
       try {
-        localStorage.setItem('samko_all_assets', JSON.stringify(updatedAssets));
-        sessionStorage.setItem('samko_all_assets', JSON.stringify(updatedAssets));
+        const cleaned = updatedAssets.filter((a: any) => {
+          const h = String(a.hotel || a.hotelName || a.property || a.site || '').toLowerCase();
+          return h !== 'gow' && !h.includes('gow');
+        });
+        localStorage.setItem('samko_all_assets_v5', JSON.stringify(cleaned));
+        sessionStorage.setItem('samko_all_assets_v5', JSON.stringify(cleaned));
         window.dispatchEvent(
-          new CustomEvent('samko:assets-changed', { detail: { assets: updatedAssets } })
+          new CustomEvent('samko:assets-changed', { detail: { assets: cleaned } })
         );
         window.dispatchEvent(
-          new CustomEvent('samko:approvals-changed', { detail: { submissions: updatedAssets } })
+          new CustomEvent('samko:approvals-changed', { detail: { submissions: cleaned } })
         );
         window.dispatchEvent(new CustomEvent('samko:data-changed', { detail: { type: 'assets' } }));
       } catch (e) {}
@@ -451,8 +451,8 @@ export default function AssetsClient() {
         if (typeof window !== 'undefined') {
           try {
             const cached =
-              localStorage.getItem('samko_all_assets') ||
-              sessionStorage.getItem('samko_all_assets');
+              localStorage.getItem('samko_all_assets_v5') ||
+              sessionStorage.getItem('samko_all_assets_v5');
             if (cached) {
               const parsed = JSON.parse(cached);
               if (Array.isArray(parsed) && parsed.length <= 6) {
@@ -468,30 +468,34 @@ export default function AssetsClient() {
           } catch {}
         }
 
-        const normalizedAssets = assetsRes.value.data.map((item: any) => {
-          const k = item.id || item.assetId;
-          const localItem = localMap[k];
-          const approvalStatus =
-            localItem?.approvalStatus === 'approved' || item.approvalStatus === 'approved'
-              ? 'approved'
-              : localItem?.approvalStatus ||
-                item.approvalStatus ||
-                (item.status === 'under-maintenance' ? 'pending' : 'approved');
+        const normalizedAssets = assetsRes.value.data
+          .filter((item: any) => {
+            const h = String(item.hotel || item.hotelName || item.property || item.site || '').toLowerCase();
+            return h !== 'gow' && !h.includes('gow');
+          })
+          .map((item: any) => {
+            const k = item.id || item.assetId;
+            const localItem = localMap[k];
+            const approvalStatus =
+              localItem?.approvalStatus === 'approved' || item.approvalStatus === 'approved'
+                ? 'approved'
+                : localItem?.approvalStatus ||
+                  item.approvalStatus ||
+                  (item.status === 'under-maintenance' ? 'pending' : 'approved');
 
-          const status =
-            approvalStatus === 'approved'
-              ? 'active'
-              : approvalStatus === 'pending' || approvalStatus === 'hold'
-                ? 'under-maintenance'
-                : localItem?.status || item.status || 'active';
+            const status =
+              approvalStatus === 'approved'
+                ? 'active'
+                : approvalStatus === 'pending' || approvalStatus === 'hold'
+                  ? 'under-maintenance'
+                  : localItem?.status || item.status || 'active';
 
-          return {
-            ...item,
-            ...(localItem || {}),
-            approvalStatus,
-            status,
-          };
-        });
+            return {
+              ...item,
+              approvalStatus,
+              status,
+            };
+          });
 
         setAssets(normalizedAssets);
         saveAssetsToStorage(normalizedAssets);
@@ -524,11 +528,16 @@ export default function AssetsClient() {
     const handleSync = () => {
       try {
         const cached =
-          localStorage.getItem('samko_all_assets') || sessionStorage.getItem('samko_all_assets');
+          localStorage.getItem('samko_all_assets_v5') || sessionStorage.getItem('samko_all_assets_v5');
         if (cached) {
           const parsed = JSON.parse(cached);
           if (Array.isArray(parsed) && parsed.length > 0) {
-            const synced = parsed.map((a: any) => {
+            const synced = parsed
+              .filter((a: any) => {
+                const h = String(a.hotel || a.hotelName || a.property || a.site || '').toLowerCase();
+                return h !== 'gow' && !h.includes('gow');
+              })
+              .map((a: any) => {
               const appStatus = a.approvalStatus || 'approved';
               const st =
                 appStatus === 'approved'

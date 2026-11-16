@@ -19,7 +19,7 @@ export interface TaskItem {
   createdAt: string;
 }
 
-export const TASK_PROPERTIES = ['Gow', 'Crowne Plaza Kingston-South', 'Stanhill Court'] as const;
+export const TASK_PROPERTIES = ['Crowne Plaza Kingston-South', 'Stanhill Court'] as const;
 
 export const TASK_ASSIGNEES = [
   { name: 'Jamie Clarke', role: 'Maintenance Lead', initials: 'JC', color: '#38bdf8' },
@@ -86,7 +86,7 @@ export function getInitialTasks(): TaskItem[] {
       id: 'TSK-103',
       title: 'Passenger lift LOLER 6-monthly statutory thorough examination',
       type: 'Inspection',
-      property: 'Gow',
+      property: 'Stanhill Court',
       priority: 'medium',
       dueInDays: 7,
       dueDate: getDateWithOffset(7).formatted,

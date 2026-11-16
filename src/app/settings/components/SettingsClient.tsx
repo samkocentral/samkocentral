@@ -252,6 +252,67 @@ export default function SettingsClient() {
     }
   };
 
+  const handleExportCompliance = async () => {
+    try {
+      const res = await fetch('/api/compliance');
+      const data = await res.json();
+      const items = data.data || [];
+      const headers = [
+        'Compliance ID',
+        'Regulation Title',
+        'Section',
+        'Category',
+        'Check Type',
+        'Standard / Authority',
+        'Contractor',
+        'Responsible Person',
+        'Frequency',
+        'Last Inspection',
+        'Expiry Date',
+        'Status',
+        'Risk Rating',
+        'Property',
+        'Department',
+        'Area',
+        'Certificate Ref',
+        'Notes',
+      ];
+      const rows = items.map((c: any) => [
+        `"${c.complianceId || c.id || ''}"`,
+        `"${(c.name || c.title || c.item || '').replace(/"/g, '""')}"`,
+        `"${c.complianceType || c.section || 'OpCo'}"`,
+        `"${c.category || ''}"`,
+        `"${c.type || 'Statutory'}"`,
+        `"${(c.standard || c.regulatoryAuthority || '').replace(/"/g, '""')}"`,
+        `"${(c.contractor || '').replace(/"/g, '""')}"`,
+        `"${(c.responsiblePerson || c.assignee || '').replace(/"/g, '""')}"`,
+        `"${c.frequency || c.inspectionFrequency || ''}"`,
+        `"${c.lastInspection || c.issueDate || ''}"`,
+        `"${c.expiryDate || c.dueDate || ''}"`,
+        `"${c.status || ''}"`,
+        `"${c.riskRating || ''}"`,
+        `"${c.hotel || c.property || ''}"`,
+        `"${c.department || ''}"`,
+        `"${c.area || ''}"`,
+        `"${c.certificateNumber || c.certificateRef || ''}"`,
+        `"${(c.notes || '').replace(/"/g, '""')}"`,
+      ]);
+      const csvContent = [headers.join(','), ...rows.map((r: string[]) => r.join(','))].join('\n');
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.setAttribute('href', url);
+      link.setAttribute('download', 'compliance_register.csv');
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      toast.success(`Exported ${items.length} compliance records!`);
+    } catch (err: any) {
+      toast.error('Failed to export compliance register', { description: err?.message });
+    }
+  };
+
   const handleRestoreFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -1039,7 +1100,9 @@ export default function SettingsClient() {
                   desc="Download all compliance records"
                 >
                   <button
-                    className="text-xs font-semibold px-3 py-1.5 rounded-lg"
+                    type="button"
+                    onClick={handleExportCompliance}
+                    className="text-xs font-semibold px-3 py-1.5 rounded-lg cursor-pointer hover:opacity-90 active:scale-95 transition-all"
                     style={{ background: 'var(--primary)', color: '#000' }}
                   >
                     Export Excel

@@ -49,24 +49,40 @@ interface ComplianceItem {
   id: string;
   complianceId: string;
   name: string;
+  item?: string;
+  title?: string;
   type: string;
   category: string;
   description: string;
   hotel: string;
+  property?: string;
+  site?: string;
+  hotelName?: string;
+  hotelId?: string;
+  propertyId?: string;
   department: string;
   area: string;
   relatedAsset?: string;
   regulatoryAuthority: string;
+  standard?: string;
   certificateNumber?: string;
+  certificateRef?: string;
   issueDate: string;
+  lastInspection?: string;
+  lastReviewed?: string;
   expiryDate: string;
+  dueDate?: string;
   renewalDate: string;
   inspectionFrequency: string;
+  frequency?: string;
   responsiblePerson: string;
+  assignee?: string;
   contractor?: string;
   status: ComplianceStatus;
   riskRating: RiskRating;
   notes?: string;
+  complianceType?: string;
+  section?: string;
 }
 
 const COMPLIANCE_CATEGORIES = [
@@ -92,75 +108,1377 @@ const COMPLIANCE_CATEGORIES = [
   'Local Authority Requirements',
 ];
 
-const DEFAULT_HOTELS = ['Gow', 'Crowne Plaza Kingston-south', 'Stanhill Court'];
+const DEFAULT_HOTELS = ['Crowne Plaza Kingston-south', 'Stanhill Court'];
 
 const MOCK_COMPLIANCE: ComplianceItem[] = [
   {
-    id: '1',
-    complianceId: 'COMP-001',
-    name: 'Fire Risk Assessment',
-    type: 'Statutory',
-    category: 'Fire Risk Assessment',
-    description: 'Annual fire risk assessment for the entire property',
-    hotel: 'Gow',
-    department: 'Engineering',
-    area: 'Whole Building',
-    regulatoryAuthority: 'Fire & Rescue Service',
-    certificateNumber: 'FRA-2025-001',
-    issueDate: '2025-06-01',
-    expiryDate: '2026-06-01',
-    renewalDate: '2026-05-15',
-    inspectionFrequency: 'Yearly',
-    responsiblePerson: 'Marcus Webb',
-    contractor: 'FireGuard Systems',
-    status: 'compliant',
-    riskRating: 'critical',
-    notes: 'Valid certificate on file',
+    "id": "comp-cp-1",
+    "complianceId": "FRA-2026-CPS",
+    "name": "Fire Risk Assessment (FRA)",
+    "item": "Fire Risk Assessment (FRA)",
+    "title": "Fire Risk Assessment (FRA)",
+    "type": "Statutory",
+    "category": "Fire Safety",
+    "complianceType": "OpCo",
+    "section": "OpCo",
+    "description": "Fire Risk Assessment (FRA) under Regulatory Reform (Fire Safety) Order 2005",
+    "property": "Crowne Plaza Kingston-south",
+    "hotel": "Crowne Plaza Kingston-south",
+    "site": "Crowne Plaza Kingston-south",
+    "hotelName": "Crowne Plaza Kingston-south",
+    "hotelId": "hotel-001",
+    "propertyId": "hotel-001",
+    "department": "Engineering",
+    "area": "Whole Building",
+    "regulatoryAuthority": "Regulatory Reform (Fire Safety) Order 2005",
+    "standard": "Regulatory Reform (Fire Safety) Order 2005",
+    "certificateNumber": "FRA-2026-CPS",
+    "certificateRef": "FRA-2026-CPS",
+    "issueDate": "2026-04-27",
+    "lastInspection": "2026-04-27",
+    "lastReviewed": "2026-04-27",
+    "expiryDate": "2027-04-27",
+    "dueDate": "2027-04-27",
+    "renewalDate": "2027-04-27",
+    "inspectionFrequency": "Yearly",
+    "frequency": "Yearly",
+    "responsiblePerson": "Nathan Coote",
+    "assignee": "Nathan Coote",
+    "contractor": "Peninsula",
+    "status": "compliant",
+    "riskRating": "high",
+    "notes": "Standard: Regulatory Reform (Fire Safety) Order 2005. Contractor: Peninsula. Frequency: Yearly."
   },
   {
-    id: '2',
-    complianceId: 'COMP-002',
-    name: 'Fire Alarm Certificate',
-    type: 'Statutory',
-    category: 'Fire Alarm Certificate',
-    description: 'Annual fire alarm system inspection and certification',
-    hotel: 'Crowne Plaza Kingston-south',
-    department: 'Engineering',
-    area: 'All Floors',
-    regulatoryAuthority: 'BS 5839',
-    certificateNumber: 'FAC-2025-002',
-    issueDate: '2025-01-10',
-    expiryDate: '2026-01-10',
-    renewalDate: '2025-12-20',
-    inspectionFrequency: 'Yearly',
-    responsiblePerson: 'Marcus Webb',
-    contractor: 'Chubb Fire & Security',
-    status: 'compliant',
-    riskRating: 'high',
-    notes: 'BS 5839 certification complete',
+    "id": "comp-cp-2",
+    "complianceId": "COMP-CP-002",
+    "name": "Fire Alarm Service",
+    "item": "Fire Alarm Service",
+    "title": "Fire Alarm Service",
+    "type": "Statutory",
+    "category": "Fire Safety",
+    "complianceType": "OpCo",
+    "section": "OpCo",
+    "description": "Fire Alarm Service under BS 5839",
+    "property": "Crowne Plaza Kingston-south",
+    "hotel": "Crowne Plaza Kingston-south",
+    "site": "Crowne Plaza Kingston-south",
+    "hotelName": "Crowne Plaza Kingston-south",
+    "hotelId": "hotel-001",
+    "propertyId": "hotel-001",
+    "department": "Engineering",
+    "area": "Whole Building",
+    "regulatoryAuthority": "BS 5839",
+    "standard": "BS 5839",
+    "certificateNumber": "",
+    "certificateRef": "",
+    "issueDate": "2026-04-14",
+    "lastInspection": "2026-04-14",
+    "lastReviewed": "2026-04-14",
+    "expiryDate": "2026-10-14",
+    "dueDate": "2026-10-14",
+    "renewalDate": "2026-10-14",
+    "inspectionFrequency": "6 Months",
+    "frequency": "6 Months",
+    "responsiblePerson": "Nathan Coote",
+    "assignee": "Nathan Coote",
+    "contractor": "City Fire",
+    "status": "overdue",
+    "riskRating": "critical",
+    "notes": "Standard: BS 5839. Contractor: City Fire. Frequency: 6 Months."
   },
   {
-    id: '3',
-    complianceId: 'COMP-003',
-    name: 'Gas Safety Certificate CP12',
-    type: 'Statutory',
-    category: 'Gas Safety',
-    description: 'Annual gas safety inspection for all commercial boilers and appliances',
-    hotel: 'Stanhill Court',
-    department: 'Kitchen',
-    area: 'Kitchen & Plant Room',
-    regulatoryAuthority: 'Gas Safe Register',
-    certificateNumber: 'GSC-2025-003',
-    issueDate: '2025-03-01',
-    expiryDate: '2026-03-01',
-    renewalDate: '2026-02-15',
-    inspectionFrequency: 'Yearly',
-    responsiblePerson: 'Sarah Chen',
-    contractor: 'City Gas Engineers',
-    status: 'compliant',
-    riskRating: 'high',
-    notes: 'All burners and interlocks passed',
+    "id": "comp-cp-3",
+    "complianceId": "COMP-CP-003",
+    "name": "Emergency Lighting Service",
+    "item": "Emergency Lighting Service",
+    "title": "Emergency Lighting Service",
+    "type": "Statutory",
+    "category": "Fire Safety",
+    "complianceType": "OpCo",
+    "section": "OpCo",
+    "description": "Emergency Lighting Service under BS 5266-1:2025 / BS EN 50172 / BS EN 1838",
+    "property": "Crowne Plaza Kingston-south",
+    "hotel": "Crowne Plaza Kingston-south",
+    "site": "Crowne Plaza Kingston-south",
+    "hotelName": "Crowne Plaza Kingston-south",
+    "hotelId": "hotel-001",
+    "propertyId": "hotel-001",
+    "department": "Engineering",
+    "area": "Whole Building",
+    "regulatoryAuthority": "BS 5266-1:2025 / BS EN 50172 / BS EN 1838",
+    "standard": "BS 5266-1:2025 / BS EN 50172 / BS EN 1838",
+    "certificateNumber": "",
+    "certificateRef": "",
+    "issueDate": "2026-04-14",
+    "lastInspection": "2026-04-14",
+    "lastReviewed": "2026-04-14",
+    "expiryDate": "2027-04-14",
+    "dueDate": "2027-04-14",
+    "renewalDate": "2027-04-14",
+    "inspectionFrequency": "Yearly",
+    "frequency": "Yearly",
+    "responsiblePerson": "Nathan Coote",
+    "assignee": "Nathan Coote",
+    "contractor": "City Fire",
+    "status": "compliant",
+    "riskRating": "high",
+    "notes": "Standard: BS 5266-1:2025 / BS EN 50172 / BS EN 1838. Contractor: City Fire. Frequency: Yearly."
   },
+  {
+    "id": "comp-cp-4",
+    "complianceId": "COMP-CP-004",
+    "name": "Dry Riser Test",
+    "item": "Dry Riser Test",
+    "title": "Dry Riser Test",
+    "type": "Statutory",
+    "category": "Fire Safety",
+    "complianceType": "OpCo",
+    "section": "OpCo",
+    "description": "Dry Riser Test under BS 9990:2015",
+    "property": "Crowne Plaza Kingston-south",
+    "hotel": "Crowne Plaza Kingston-south",
+    "site": "Crowne Plaza Kingston-south",
+    "hotelName": "Crowne Plaza Kingston-south",
+    "hotelId": "hotel-001",
+    "propertyId": "hotel-001",
+    "department": "Engineering",
+    "area": "Whole Building",
+    "regulatoryAuthority": "BS 9990:2015",
+    "standard": "BS 9990:2015",
+    "certificateNumber": "",
+    "certificateRef": "",
+    "issueDate": "2026-01-30",
+    "lastInspection": "2026-01-30",
+    "lastReviewed": "2026-01-30",
+    "expiryDate": "2027-01-30",
+    "dueDate": "2027-01-30",
+    "renewalDate": "2027-01-30",
+    "inspectionFrequency": "Yearly",
+    "frequency": "Yearly",
+    "responsiblePerson": "Nathan Coote",
+    "assignee": "Nathan Coote",
+    "contractor": "Dry Risers Direct",
+    "status": "compliant",
+    "riskRating": "high",
+    "notes": "Standard: BS 9990:2015. Contractor: Dry Risers Direct. Frequency: Yearly."
+  },
+  {
+    "id": "comp-cp-5",
+    "complianceId": "COMP-CP-005",
+    "name": "Fire Door Inspectation",
+    "item": "Fire Door Inspectation",
+    "title": "Fire Door Inspectation",
+    "type": "Statutory",
+    "category": "Fire Safety",
+    "complianceType": "OpCo",
+    "section": "OpCo",
+    "description": "Fire Door Inspectation under Regulatory Reform (Fire Safety) Order 2005",
+    "property": "Crowne Plaza Kingston-south",
+    "hotel": "Crowne Plaza Kingston-south",
+    "site": "Crowne Plaza Kingston-south",
+    "hotelName": "Crowne Plaza Kingston-south",
+    "hotelId": "hotel-001",
+    "propertyId": "hotel-001",
+    "department": "Engineering",
+    "area": "Whole Building",
+    "regulatoryAuthority": "Regulatory Reform (Fire Safety) Order 2005",
+    "standard": "Regulatory Reform (Fire Safety) Order 2005",
+    "certificateNumber": "",
+    "certificateRef": "",
+    "issueDate": "2026-02-27",
+    "lastInspection": "2026-02-27",
+    "lastReviewed": "2026-02-27",
+    "expiryDate": "2026-08-29",
+    "dueDate": "2026-08-29",
+    "renewalDate": "2026-08-29",
+    "inspectionFrequency": "6 Months",
+    "frequency": "6 Months",
+    "responsiblePerson": "Nathan Coote",
+    "assignee": "Nathan Coote",
+    "contractor": "Internal team",
+    "status": "overdue",
+    "riskRating": "high",
+    "notes": "Standard: Regulatory Reform (Fire Safety) Order 2005. Contractor: Internal team. Frequency: 6 Months."
+  },
+  {
+    "id": "comp-cp-6",
+    "complianceId": "COMP-CP-006",
+    "name": "Fire Extinguisher",
+    "item": "Fire Extinguisher",
+    "title": "Fire Extinguisher",
+    "type": "Statutory",
+    "category": "Fire Safety",
+    "complianceType": "OpCo",
+    "section": "OpCo",
+    "description": "Fire Extinguisher under Regulatory Reform (Fire Safety) Order 2005",
+    "property": "Crowne Plaza Kingston-south",
+    "hotel": "Crowne Plaza Kingston-south",
+    "site": "Crowne Plaza Kingston-south",
+    "hotelName": "Crowne Plaza Kingston-south",
+    "hotelId": "hotel-001",
+    "propertyId": "hotel-001",
+    "department": "Engineering",
+    "area": "Whole Building",
+    "regulatoryAuthority": "Regulatory Reform (Fire Safety) Order 2005",
+    "standard": "Regulatory Reform (Fire Safety) Order 2005",
+    "certificateNumber": "",
+    "certificateRef": "",
+    "issueDate": "2026-03-13",
+    "lastInspection": "2026-03-13",
+    "lastReviewed": "2026-03-13",
+    "expiryDate": "2027-03-13",
+    "dueDate": "2027-03-13",
+    "renewalDate": "2027-03-13",
+    "inspectionFrequency": "Yearly",
+    "frequency": "Yearly",
+    "responsiblePerson": "Nathan Coote",
+    "assignee": "Nathan Coote",
+    "contractor": "City Fire",
+    "status": "compliant",
+    "riskRating": "high",
+    "notes": "Standard: Regulatory Reform (Fire Safety) Order 2005. Contractor: City Fire. Frequency: Yearly."
+  },
+  {
+    "id": "comp-cp-7",
+    "complianceId": "COMP-CP-007",
+    "name": "Fire Drill Evacuation",
+    "item": "Fire Drill Evacuation",
+    "title": "Fire Drill Evacuation",
+    "type": "Statutory",
+    "category": "Fire Safety",
+    "complianceType": "OpCo",
+    "section": "OpCo",
+    "description": "Fire Drill Evacuation under Regulatory Reform (Fire Safety) Order 2005",
+    "property": "Crowne Plaza Kingston-south",
+    "hotel": "Crowne Plaza Kingston-south",
+    "site": "Crowne Plaza Kingston-south",
+    "hotelName": "Crowne Plaza Kingston-south",
+    "hotelId": "hotel-001",
+    "propertyId": "hotel-001",
+    "department": "Engineering",
+    "area": "Whole Building",
+    "regulatoryAuthority": "Regulatory Reform (Fire Safety) Order 2005",
+    "standard": "Regulatory Reform (Fire Safety) Order 2005",
+    "certificateNumber": "",
+    "certificateRef": "",
+    "issueDate": "2026-04-14",
+    "lastInspection": "2026-04-14",
+    "lastReviewed": "2026-04-14",
+    "expiryDate": "2026-10-14",
+    "dueDate": "2026-10-14",
+    "renewalDate": "2026-10-14",
+    "inspectionFrequency": "6 Months",
+    "frequency": "6 Months",
+    "responsiblePerson": "Nathan Coote",
+    "assignee": "Nathan Coote",
+    "contractor": "Internal team",
+    "status": "overdue",
+    "riskRating": "high",
+    "notes": "Standard: Regulatory Reform (Fire Safety) Order 2005. Contractor: Internal team. Frequency: 6 Months."
+  },
+  {
+    "id": "comp-cp-8",
+    "complianceId": "COMP-CP-008",
+    "name": "Kitchen Fire Supression System Inspections",
+    "item": "Kitchen Fire Supression System Inspections",
+    "title": "Kitchen Fire Supression System Inspections",
+    "type": "Statutory",
+    "category": "Fire Safety",
+    "complianceType": "OpCo",
+    "section": "OpCo",
+    "description": "Kitchen Fire Supression System Inspections under Regulatory Reform (Fire Safety) Order 2005",
+    "property": "Crowne Plaza Kingston-south",
+    "hotel": "Crowne Plaza Kingston-south",
+    "site": "Crowne Plaza Kingston-south",
+    "hotelName": "Crowne Plaza Kingston-south",
+    "hotelId": "hotel-001",
+    "propertyId": "hotel-001",
+    "department": "Kitchen",
+    "area": "Commercial Kitchen & Extraction",
+    "regulatoryAuthority": "Regulatory Reform (Fire Safety) Order 2005",
+    "standard": "Regulatory Reform (Fire Safety) Order 2005",
+    "certificateNumber": "",
+    "certificateRef": "",
+    "issueDate": "2026-03-12",
+    "lastInspection": "2026-03-12",
+    "lastReviewed": "2026-03-12",
+    "expiryDate": "2026-09-11",
+    "dueDate": "2026-09-11",
+    "renewalDate": "2026-09-11",
+    "inspectionFrequency": "6 Months",
+    "frequency": "6 Months",
+    "responsiblePerson": "Nathan Coote",
+    "assignee": "Nathan Coote",
+    "contractor": "Ansul",
+    "status": "overdue",
+    "riskRating": "high",
+    "notes": "Standard: Regulatory Reform (Fire Safety) Order 2005. Contractor: Ansul. Frequency: 6 Months."
+  },
+  {
+    "id": "comp-cp-9",
+    "complianceId": "COMP-CP-009",
+    "name": "Duct Cleaning",
+    "item": "Duct Cleaning",
+    "title": "Duct Cleaning",
+    "type": "Statutory",
+    "category": "Fire Safety",
+    "complianceType": "OpCo",
+    "section": "OpCo",
+    "description": "Duct Cleaning under BESA TR19 Grease",
+    "property": "Crowne Plaza Kingston-south",
+    "hotel": "Crowne Plaza Kingston-south",
+    "site": "Crowne Plaza Kingston-south",
+    "hotelName": "Crowne Plaza Kingston-south",
+    "hotelId": "hotel-001",
+    "propertyId": "hotel-001",
+    "department": "Kitchen",
+    "area": "Commercial Kitchen & Extraction",
+    "regulatoryAuthority": "BESA TR19 Grease",
+    "standard": "BESA TR19 Grease",
+    "certificateNumber": "",
+    "certificateRef": "",
+    "issueDate": "2026-03-11",
+    "lastInspection": "2026-03-11",
+    "lastReviewed": "2026-03-11",
+    "expiryDate": "2026-09-10",
+    "dueDate": "2026-09-10",
+    "renewalDate": "2026-09-10",
+    "inspectionFrequency": "6 Months",
+    "frequency": "6 Months",
+    "responsiblePerson": "Nathan Coote",
+    "assignee": "Nathan Coote",
+    "contractor": "Approved Contractor",
+    "status": "overdue",
+    "riskRating": "high",
+    "notes": "Standard: BESA TR19 Grease. Contractor: Internal. Frequency: 6 Months."
+  },
+  {
+    "id": "comp-cp-10",
+    "complianceId": "COMP-CP-010",
+    "name": "Linen Chute Inspectation",
+    "item": "Linen Chute Inspectation",
+    "title": "Linen Chute Inspectation",
+    "type": "Statutory",
+    "category": "Fire Safety",
+    "complianceType": "OpCo",
+    "section": "OpCo",
+    "description": "Linen Chute Inspectation under Regulatory Reform (Fire Safety) Order 2005",
+    "property": "Crowne Plaza Kingston-south",
+    "hotel": "Crowne Plaza Kingston-south",
+    "site": "Crowne Plaza Kingston-south",
+    "hotelName": "Crowne Plaza Kingston-south",
+    "hotelId": "hotel-001",
+    "propertyId": "hotel-001",
+    "department": "Engineering",
+    "area": "Whole Building",
+    "regulatoryAuthority": "Regulatory Reform (Fire Safety) Order 2005",
+    "standard": "Regulatory Reform (Fire Safety) Order 2005",
+    "certificateNumber": "",
+    "certificateRef": "",
+    "issueDate": "2025-12-10",
+    "lastInspection": "2025-12-10",
+    "lastReviewed": "2025-12-10",
+    "expiryDate": "2026-12-10",
+    "dueDate": "2026-12-10",
+    "renewalDate": "2026-12-10",
+    "inspectionFrequency": "Yearly",
+    "frequency": "Yearly",
+    "responsiblePerson": "Nathan Coote",
+    "assignee": "Nathan Coote",
+    "contractor": "Hardall International Limited",
+    "status": "overdue",
+    "riskRating": "high",
+    "notes": "Standard: Regulatory Reform (Fire Safety) Order 2005. Contractor: Hardall International Limited. Frequency: Yearly."
+  },
+  {
+    "id": "comp-cp-11",
+    "complianceId": "COMP-CP-011",
+    "name": "Boiler Service",
+    "item": "Boiler Service",
+    "title": "Boiler Service",
+    "type": "Statutory",
+    "category": "Gas Safety",
+    "complianceType": "OpCo",
+    "section": "OpCo",
+    "description": "Boiler Service under Gas Safety (Installation and Use) Regulations 1998",
+    "property": "Crowne Plaza Kingston-south",
+    "hotel": "Crowne Plaza Kingston-south",
+    "site": "Crowne Plaza Kingston-south",
+    "hotelName": "Crowne Plaza Kingston-south",
+    "hotelId": "hotel-001",
+    "propertyId": "hotel-001",
+    "department": "Engineering",
+    "area": "Basement Boiler Plant Room",
+    "regulatoryAuthority": "Gas Safety (Installation and Use) Regulations 1998",
+    "standard": "Gas Safety (Installation and Use) Regulations 1998",
+    "certificateNumber": "",
+    "certificateRef": "",
+    "issueDate": "2025-10-02",
+    "lastInspection": "2025-10-02",
+    "lastReviewed": "2025-10-02",
+    "expiryDate": "2026-10-02",
+    "dueDate": "2026-10-02",
+    "renewalDate": "2026-10-02",
+    "inspectionFrequency": "Yearly",
+    "frequency": "Yearly",
+    "responsiblePerson": "Nathan Coote",
+    "assignee": "Nathan Coote",
+    "contractor": "Industraheat",
+    "status": "overdue",
+    "riskRating": "high",
+    "notes": "Standard: Gas Safety (Installation and Use) Regulations 1998. Contractor: Industraheat. Frequency: Yearly."
+  },
+  {
+    "id": "comp-cp-12",
+    "complianceId": "COMP-CP-012",
+    "name": "Boiler Service",
+    "item": "Boiler Service",
+    "title": "Boiler Service",
+    "type": "Statutory",
+    "category": "Gas Safety",
+    "complianceType": "OpCo",
+    "section": "OpCo",
+    "description": "Boiler Service under Gas Safety (Installation and Use) Regulations 1998",
+    "property": "Crowne Plaza Kingston-south",
+    "hotel": "Crowne Plaza Kingston-south",
+    "site": "Crowne Plaza Kingston-south",
+    "hotelName": "Crowne Plaza Kingston-south",
+    "hotelId": "hotel-001",
+    "propertyId": "hotel-001",
+    "department": "Engineering",
+    "area": "Basement Boiler Plant Room",
+    "regulatoryAuthority": "Gas Safety (Installation and Use) Regulations 1998",
+    "standard": "Gas Safety (Installation and Use) Regulations 1998",
+    "certificateNumber": "",
+    "certificateRef": "",
+    "issueDate": "2025-10-02",
+    "lastInspection": "2025-10-02",
+    "lastReviewed": "2025-10-02",
+    "expiryDate": "2026-10-02",
+    "dueDate": "2026-10-02",
+    "renewalDate": "2026-10-02",
+    "inspectionFrequency": "Yearly",
+    "frequency": "Yearly",
+    "responsiblePerson": "Nathan Coote",
+    "assignee": "Nathan Coote",
+    "contractor": "Industraheat",
+    "status": "overdue",
+    "riskRating": "high",
+    "notes": "Standard: Gas Safety (Installation and Use) Regulations 1998. Contractor: Industraheat. Frequency: Yearly."
+  },
+  {
+    "id": "comp-cp-13",
+    "complianceId": "COMP-CP-013",
+    "name": "Commercial Gas Safety Certificate – Boilers (CP15)",
+    "item": "Commercial Gas Safety Certificate – Boilers (CP15)",
+    "title": "Commercial Gas Safety Certificate – Boilers (CP15)",
+    "type": "Statutory",
+    "category": "Gas Safety",
+    "complianceType": "OpCo",
+    "section": "OpCo",
+    "description": "Commercial Gas Safety Certificate – Boilers (CP15) under Gas Safety (Installation and Use) Regulations 1998",
+    "property": "Crowne Plaza Kingston-south",
+    "hotel": "Crowne Plaza Kingston-south",
+    "site": "Crowne Plaza Kingston-south",
+    "hotelName": "Crowne Plaza Kingston-south",
+    "hotelId": "hotel-001",
+    "propertyId": "hotel-001",
+    "department": "Engineering",
+    "area": "Basement Boiler Plant Room",
+    "regulatoryAuthority": "Gas Safety (Installation and Use) Regulations 1998",
+    "standard": "Gas Safety (Installation and Use) Regulations 1998",
+    "certificateNumber": "",
+    "certificateRef": "",
+    "issueDate": "2025-04-15",
+    "lastInspection": "2025-04-15",
+    "lastReviewed": "2025-04-15",
+    "expiryDate": "2026-04-15",
+    "dueDate": "2026-04-15",
+    "renewalDate": "2026-04-15",
+    "inspectionFrequency": "Yearly",
+    "frequency": "Yearly",
+    "responsiblePerson": "Nathan Coote",
+    "assignee": "Nathan Coote",
+    "contractor": "First Call Limited",
+    "status": "overdue",
+    "riskRating": "high",
+    "notes": "Standard: Gas Safety (Installation and Use) Regulations 1998. Contractor: First Call Limited. Frequency: Yearly."
+  },
+  {
+    "id": "comp-cp-14",
+    "complianceId": "COMP-CP-014",
+    "name": "Commercial Catering Gas Safety Certificate – Kitchen (CP42)",
+    "item": "Commercial Catering Gas Safety Certificate – Kitchen (CP42)",
+    "title": "Commercial Catering Gas Safety Certificate – Kitchen (CP42)",
+    "type": "Statutory",
+    "category": "Gas Safety",
+    "complianceType": "OpCo",
+    "section": "OpCo",
+    "description": "Commercial Catering Gas Safety Certificate – Kitchen (CP42) under Gas Safety (Installation and Use) Regulations 1998",
+    "property": "Crowne Plaza Kingston-south",
+    "hotel": "Crowne Plaza Kingston-south",
+    "site": "Crowne Plaza Kingston-south",
+    "hotelName": "Crowne Plaza Kingston-south",
+    "hotelId": "hotel-001",
+    "propertyId": "hotel-001",
+    "department": "Kitchen",
+    "area": "Commercial Kitchen & Extraction",
+    "regulatoryAuthority": "Gas Safety (Installation and Use) Regulations 1998",
+    "standard": "Gas Safety (Installation and Use) Regulations 1998",
+    "certificateNumber": "",
+    "certificateRef": "",
+    "issueDate": "2025-04-15",
+    "lastInspection": "2025-04-15",
+    "lastReviewed": "2025-04-15",
+    "expiryDate": "2026-04-15",
+    "dueDate": "2026-04-15",
+    "renewalDate": "2026-04-15",
+    "inspectionFrequency": "Yearly",
+    "frequency": "Yearly",
+    "responsiblePerson": "Nathan Coote",
+    "assignee": "Nathan Coote",
+    "contractor": "First Call Limited",
+    "status": "overdue",
+    "riskRating": "high",
+    "notes": "Standard: Gas Safety (Installation and Use) Regulations 1998. Contractor: First Call Limited. Frequency: Yearly."
+  },
+  {
+    "id": "comp-cp-15",
+    "complianceId": "COMP-CP-015",
+    "name": "Lift Service",
+    "item": "Lift Service",
+    "title": "Lift Service",
+    "type": "Statutory",
+    "category": "Lifting Equipment",
+    "complianceType": "OpCo",
+    "section": "OpCo",
+    "description": "Lift Service under LOLER 1998",
+    "property": "Crowne Plaza Kingston-south",
+    "hotel": "Crowne Plaza Kingston-south",
+    "site": "Crowne Plaza Kingston-south",
+    "hotelName": "Crowne Plaza Kingston-south",
+    "hotelId": "hotel-001",
+    "propertyId": "hotel-001",
+    "department": "Engineering",
+    "area": "Lifts & Escalators",
+    "regulatoryAuthority": "LOLER 1998",
+    "standard": "LOLER 1998",
+    "certificateNumber": "",
+    "certificateRef": "",
+    "issueDate": "2026-04-02",
+    "lastInspection": "2026-04-02",
+    "lastReviewed": "2026-04-02",
+    "expiryDate": "2026-10-02",
+    "dueDate": "2026-10-02",
+    "renewalDate": "2026-10-02",
+    "inspectionFrequency": "6 months",
+    "frequency": "6 months",
+    "responsiblePerson": "Nathan Coote",
+    "assignee": "Nathan Coote",
+    "contractor": "Schindler",
+    "status": "overdue",
+    "riskRating": "high",
+    "notes": "Standard: LOLER 1998. Contractor: Schindler. Frequency: 6 months."
+  },
+  {
+    "id": "comp-cp-16",
+    "complianceId": "COMP-CP-016",
+    "name": "Lift Service",
+    "item": "Lift Service",
+    "title": "Lift Service",
+    "type": "Statutory",
+    "category": "Lifting Equipment",
+    "complianceType": "OpCo",
+    "section": "OpCo",
+    "description": "Lift Service under LOLER 1998",
+    "property": "Crowne Plaza Kingston-south",
+    "hotel": "Crowne Plaza Kingston-south",
+    "site": "Crowne Plaza Kingston-south",
+    "hotelName": "Crowne Plaza Kingston-south",
+    "hotelId": "hotel-001",
+    "propertyId": "hotel-001",
+    "department": "Engineering",
+    "area": "Lifts & Escalators",
+    "regulatoryAuthority": "LOLER 1998",
+    "standard": "LOLER 1998",
+    "certificateNumber": "",
+    "certificateRef": "",
+    "issueDate": "2026-04-02",
+    "lastInspection": "2026-04-02",
+    "lastReviewed": "2026-04-02",
+    "expiryDate": "2026-10-02",
+    "dueDate": "2026-10-02",
+    "renewalDate": "2026-10-02",
+    "inspectionFrequency": "6 months",
+    "frequency": "6 months",
+    "responsiblePerson": "Nathan Coote",
+    "assignee": "Nathan Coote",
+    "contractor": "Schindler",
+    "status": "overdue",
+    "riskRating": "high",
+    "notes": "Standard: LOLER 1998. Contractor: Schindler. Frequency: 6 months."
+  },
+  {
+    "id": "comp-cp-17",
+    "complianceId": "COMP-CP-017",
+    "name": "Lift Service",
+    "item": "Lift Service",
+    "title": "Lift Service",
+    "type": "Statutory",
+    "category": "Lifting Equipment",
+    "complianceType": "OpCo",
+    "section": "OpCo",
+    "description": "Lift Service under LOLER 1998",
+    "property": "Crowne Plaza Kingston-south",
+    "hotel": "Crowne Plaza Kingston-south",
+    "site": "Crowne Plaza Kingston-south",
+    "hotelName": "Crowne Plaza Kingston-south",
+    "hotelId": "hotel-001",
+    "propertyId": "hotel-001",
+    "department": "Engineering",
+    "area": "Lifts & Escalators",
+    "regulatoryAuthority": "LOLER 1998",
+    "standard": "LOLER 1998",
+    "certificateNumber": "",
+    "certificateRef": "",
+    "issueDate": "2026-04-02",
+    "lastInspection": "2026-04-02",
+    "lastReviewed": "2026-04-02",
+    "expiryDate": "2026-10-02",
+    "dueDate": "2026-10-02",
+    "renewalDate": "2026-10-02",
+    "inspectionFrequency": "6 months",
+    "frequency": "6 months",
+    "responsiblePerson": "Nathan Coote",
+    "assignee": "Nathan Coote",
+    "contractor": "Schindler",
+    "status": "overdue",
+    "riskRating": "high",
+    "notes": "Standard: LOLER 1998. Contractor: Schindler. Frequency: 6 months."
+  },
+  {
+    "id": "comp-cp-18",
+    "complianceId": "COMP-CP-018",
+    "name": "Health & Safety Visit",
+    "item": "Health & Safety Visit",
+    "title": "Health & Safety Visit",
+    "type": "Non-Statutory",
+    "category": "Health & Safety",
+    "complianceType": "OpCo",
+    "section": "OpCo",
+    "description": "Health & Safety Visit under Health & Safety Visit Act 1974",
+    "property": "Crowne Plaza Kingston-south",
+    "hotel": "Crowne Plaza Kingston-south",
+    "site": "Crowne Plaza Kingston-south",
+    "hotelName": "Crowne Plaza Kingston-south",
+    "hotelId": "hotel-001",
+    "propertyId": "hotel-001",
+    "department": "Engineering",
+    "area": "Whole Building",
+    "regulatoryAuthority": "Health & Safety Visit Act 1974",
+    "standard": "Health & Safety Visit Act 1974",
+    "certificateNumber": "",
+    "certificateRef": "",
+    "issueDate": "2026-01-27",
+    "lastInspection": "2026-01-27",
+    "lastReviewed": "2026-01-27",
+    "expiryDate": "2027-01-27",
+    "dueDate": "2027-01-27",
+    "renewalDate": "2027-01-27",
+    "inspectionFrequency": "Yearly",
+    "frequency": "Yearly",
+    "responsiblePerson": "Nathan Coote",
+    "assignee": "Nathan Coote",
+    "contractor": "Peninsula",
+    "status": "compliant",
+    "riskRating": "medium",
+    "notes": "Standard: Health & Safety Visit Act 1974. Contractor: Peninsula. Frequency: Yearly."
+  },
+  {
+    "id": "comp-cp-19",
+    "complianceId": "COMP-CP-019",
+    "name": "PAT Test",
+    "item": "PAT Test",
+    "title": "PAT Test",
+    "type": "Statutory",
+    "category": "Electrical Safety",
+    "complianceType": "OpCo",
+    "section": "OpCo",
+    "description": "PAT Test under Electricity at Work Regulations 1989",
+    "property": "Crowne Plaza Kingston-south",
+    "hotel": "Crowne Plaza Kingston-south",
+    "site": "Crowne Plaza Kingston-south",
+    "hotelName": "Crowne Plaza Kingston-south",
+    "hotelId": "hotel-001",
+    "propertyId": "hotel-001",
+    "department": "Engineering",
+    "area": "Plant Rooms & Distribution Boards",
+    "regulatoryAuthority": "Electricity at Work Regulations 1989",
+    "standard": "Electricity at Work Regulations 1989",
+    "certificateNumber": "",
+    "certificateRef": "",
+    "issueDate": "2026-05-21",
+    "lastInspection": "2026-05-21",
+    "lastReviewed": "2026-05-21",
+    "expiryDate": "2027-05-21",
+    "dueDate": "2027-05-21",
+    "renewalDate": "2027-05-21",
+    "inspectionFrequency": "Yearly",
+    "frequency": "Yearly",
+    "responsiblePerson": "Nathan Coote",
+    "assignee": "Nathan Coote",
+    "contractor": "Blacksure Services",
+    "status": "compliant",
+    "riskRating": "high",
+    "notes": "Standard: Electricity at Work Regulations 1989. Contractor: Blacksure Services. Frequency: Yearly."
+  },
+  {
+    "id": "comp-cp-20",
+    "complianceId": "COMP-CP-020",
+    "name": "Food Hygiene Rating",
+    "item": "Food Hygiene Rating",
+    "title": "Food Hygiene Rating",
+    "type": "Statutory",
+    "category": "Food Safety",
+    "complianceType": "OpCo",
+    "section": "OpCo",
+    "description": "Food Hygiene Rating under Food Safety Act 1990",
+    "property": "Crowne Plaza Kingston-south",
+    "hotel": "Crowne Plaza Kingston-south",
+    "site": "Crowne Plaza Kingston-south",
+    "hotelName": "Crowne Plaza Kingston-south",
+    "hotelId": "hotel-001",
+    "propertyId": "hotel-001",
+    "department": "Kitchen",
+    "area": "Commercial Kitchen & Extraction",
+    "regulatoryAuthority": "Food Safety Act 1990",
+    "standard": "Food Safety Act 1990",
+    "certificateNumber": "",
+    "certificateRef": "",
+    "issueDate": "2024-06-04",
+    "lastInspection": "2024-06-04",
+    "lastReviewed": "2024-06-04",
+    "expiryDate": "2027-12-31",
+    "dueDate": "2027-12-31",
+    "renewalDate": "2027-12-01",
+    "inspectionFrequency": "N/A",
+    "frequency": "N/A",
+    "responsiblePerson": "Nathan Coote",
+    "assignee": "Nathan Coote",
+    "contractor": "Elmbridge Council",
+    "status": "compliant",
+    "riskRating": "high",
+    "notes": "Standard: Food Safety Act 1990. Contractor: Elmbridge Council. Frequency: N/A."
+  },
+  {
+    "id": "comp-cp-21",
+    "complianceId": "COMP-CP-021",
+    "name": "Air Conditioning Service",
+    "item": "Air Conditioning Service",
+    "title": "Air Conditioning Service",
+    "type": "Statutory",
+    "category": "HVAC",
+    "complianceType": "OpCo",
+    "section": "OpCo",
+    "description": "Air Conditioning Service under Gas Regulations 2015",
+    "property": "Crowne Plaza Kingston-south",
+    "hotel": "Crowne Plaza Kingston-south",
+    "site": "Crowne Plaza Kingston-south",
+    "hotelName": "Crowne Plaza Kingston-south",
+    "hotelId": "hotel-001",
+    "propertyId": "hotel-001",
+    "department": "Engineering",
+    "area": "Whole Building",
+    "regulatoryAuthority": "Gas Regulations 2015",
+    "standard": "Gas Regulations 2015",
+    "certificateNumber": "",
+    "certificateRef": "",
+    "issueDate": "2025-01-01",
+    "lastInspection": "2025-01-01",
+    "lastReviewed": "2025-01-01",
+    "expiryDate": "2026-01-01",
+    "dueDate": "2026-01-01",
+    "renewalDate": "2026-01-01",
+    "inspectionFrequency": "Yearly",
+    "frequency": "Yearly",
+    "responsiblePerson": "Nathan Coote",
+    "assignee": "Nathan Coote",
+    "contractor": "Baseline",
+    "status": "overdue",
+    "riskRating": "high",
+    "notes": "Standard: Gas Regulations 2015. Contractor: Baseline. Frequency: Yearly."
+  },
+  {
+    "id": "comp-cp-22",
+    "complianceId": "COMP-CP-022",
+    "name": "PPL PRS Licence",
+    "item": "PPL PRS Licence",
+    "title": "PPL PRS Licence",
+    "type": "Statutory",
+    "category": "Licensing",
+    "complianceType": "OpCo",
+    "section": "OpCo",
+    "description": "PPL PRS Licence under Copyright, Designs and Patents Act 1988",
+    "property": "Crowne Plaza Kingston-south",
+    "hotel": "Crowne Plaza Kingston-south",
+    "site": "Crowne Plaza Kingston-south",
+    "hotelName": "Crowne Plaza Kingston-south",
+    "hotelId": "hotel-001",
+    "propertyId": "hotel-001",
+    "department": "Front Office",
+    "area": "Whole Building",
+    "regulatoryAuthority": "Copyright, Designs and Patents Act 1988",
+    "standard": "Copyright, Designs and Patents Act 1988",
+    "certificateNumber": "",
+    "certificateRef": "",
+    "issueDate": "2026-01-21",
+    "lastInspection": "2026-01-21",
+    "lastReviewed": "2026-01-21",
+    "expiryDate": "2027-01-20",
+    "dueDate": "2027-01-20",
+    "renewalDate": "2027-01-20",
+    "inspectionFrequency": "Yearly",
+    "frequency": "Yearly",
+    "responsiblePerson": "Nathan Coote",
+    "assignee": "Nathan Coote",
+    "contractor": "PPL PRS",
+    "status": "compliant",
+    "riskRating": "medium",
+    "notes": "Standard: Copyright, Designs and Patents Act 1988. Contractor: PPL PRS. Frequency: Yearly."
+  },
+  {
+    "id": "comp-cp-23",
+    "complianceId": "COMP-CP-023",
+    "name": "MPLC",
+    "item": "MPLC",
+    "title": "MPLC",
+    "type": "Statutory",
+    "category": "Licensing",
+    "complianceType": "OpCo",
+    "section": "OpCo",
+    "description": "MPLC under Copyright, Designs and Patents Act 1988",
+    "property": "Crowne Plaza Kingston-south",
+    "hotel": "Crowne Plaza Kingston-south",
+    "site": "Crowne Plaza Kingston-south",
+    "hotelName": "Crowne Plaza Kingston-south",
+    "hotelId": "hotel-001",
+    "propertyId": "hotel-001",
+    "department": "Front Office",
+    "area": "Whole Building",
+    "regulatoryAuthority": "Copyright, Designs and Patents Act 1988",
+    "standard": "Copyright, Designs and Patents Act 1988",
+    "certificateNumber": "",
+    "certificateRef": "",
+    "issueDate": "2025-09-21",
+    "lastInspection": "2025-09-21",
+    "lastReviewed": "2025-09-21",
+    "expiryDate": "2026-09-21",
+    "dueDate": "2026-09-21",
+    "renewalDate": "2026-09-21",
+    "inspectionFrequency": "Yearly",
+    "frequency": "Yearly",
+    "responsiblePerson": "Nathan Coote",
+    "assignee": "Nathan Coote",
+    "contractor": "MPLC",
+    "status": "overdue",
+    "riskRating": "medium",
+    "notes": "Standard: Copyright, Designs and Patents Act 1988. Contractor: MPLC. Frequency: Yearly."
+  },
+  {
+    "id": "comp-cp-24",
+    "complianceId": "COMP-CP-024",
+    "name": "Wedding License",
+    "item": "Wedding License",
+    "title": "Wedding License",
+    "type": "Statutory",
+    "category": "Licensing",
+    "complianceType": "OpCo",
+    "section": "OpCo",
+    "description": "Wedding License under Marriages and Civil Partnerships (Approved Premises) Regulations 200",
+    "property": "Crowne Plaza Kingston-south",
+    "hotel": "Crowne Plaza Kingston-south",
+    "site": "Crowne Plaza Kingston-south",
+    "hotelName": "Crowne Plaza Kingston-south",
+    "hotelId": "hotel-001",
+    "propertyId": "hotel-001",
+    "department": "Front Office",
+    "area": "Whole Building",
+    "regulatoryAuthority": "Marriages and Civil Partnerships (Approved Premises) Regulations 200",
+    "standard": "Marriages and Civil Partnerships (Approved Premises) Regulations 200",
+    "certificateNumber": "",
+    "certificateRef": "",
+    "issueDate": "2025-12-13",
+    "lastInspection": "2025-12-13",
+    "lastReviewed": "2025-12-13",
+    "expiryDate": "2026-12-13",
+    "dueDate": "2026-12-13",
+    "renewalDate": "2026-12-13",
+    "inspectionFrequency": "Yearly",
+    "frequency": "Yearly",
+    "responsiblePerson": "Nathan Coote",
+    "assignee": "Nathan Coote",
+    "contractor": "Elmbridge Council",
+    "status": "compliant",
+    "riskRating": "medium",
+    "notes": "Standard: Marriages and Civil Partnerships (Approved Premises) Regulations 200. Contractor: Elmbridge Council. Frequency: Yearly."
+  },
+  {
+    "id": "comp-cp-25",
+    "complianceId": "COMP-CP-025",
+    "name": "TV License",
+    "item": "TV License",
+    "title": "TV License",
+    "type": "Statutory",
+    "category": "Licensing",
+    "complianceType": "OpCo",
+    "section": "OpCo",
+    "description": "TV License under Communications Act 2003",
+    "property": "Crowne Plaza Kingston-south",
+    "hotel": "Crowne Plaza Kingston-south",
+    "site": "Crowne Plaza Kingston-south",
+    "hotelName": "Crowne Plaza Kingston-south",
+    "hotelId": "hotel-001",
+    "propertyId": "hotel-001",
+    "department": "Front Office",
+    "area": "Whole Building",
+    "regulatoryAuthority": "Communications Act 2003",
+    "standard": "Communications Act 2003",
+    "certificateNumber": "",
+    "certificateRef": "",
+    "issueDate": "2025-01-01",
+    "lastInspection": "2025-01-01",
+    "lastReviewed": "2025-01-01",
+    "expiryDate": "2026-01-01",
+    "dueDate": "2026-01-01",
+    "renewalDate": "2026-01-01",
+    "inspectionFrequency": "Yearly",
+    "frequency": "Yearly",
+    "responsiblePerson": "Nathan Coote",
+    "assignee": "Nathan Coote",
+    "contractor": "Tv Licensing",
+    "status": "overdue",
+    "riskRating": "medium",
+    "notes": "Standard: Communications Act 2003. Contractor: Tv Licensing. Frequency: Yearly."
+  },
+  {
+    "id": "comp-cp-26",
+    "complianceId": "COMP-CP-026",
+    "name": "Data Protection Registration  Certificate",
+    "item": "Data Protection Registration  Certificate",
+    "title": "Data Protection Registration  Certificate",
+    "type": "Statutory",
+    "category": "Licensing",
+    "complianceType": "OpCo",
+    "section": "OpCo",
+    "description": "Data Protection Registration  Certificate under Data Protection (Charges and Information) Regulations 2018",
+    "property": "Crowne Plaza Kingston-south",
+    "hotel": "Crowne Plaza Kingston-south",
+    "site": "Crowne Plaza Kingston-south",
+    "hotelName": "Crowne Plaza Kingston-south",
+    "hotelId": "hotel-001",
+    "propertyId": "hotel-001",
+    "department": "Front Office",
+    "area": "Whole Building",
+    "regulatoryAuthority": "Data Protection (Charges and Information) Regulations 2018",
+    "standard": "Data Protection (Charges and Information) Regulations 2018",
+    "certificateNumber": "",
+    "certificateRef": "",
+    "issueDate": "2025-01-01",
+    "lastInspection": "2025-01-01",
+    "lastReviewed": "2025-01-01",
+    "expiryDate": "2026-01-01",
+    "dueDate": "2026-01-01",
+    "renewalDate": "2026-01-01",
+    "inspectionFrequency": "Yearly",
+    "frequency": "Yearly",
+    "responsiblePerson": "Nathan Coote",
+    "assignee": "Nathan Coote",
+    "contractor": "DPRC",
+    "status": "overdue",
+    "riskRating": "medium",
+    "notes": "Standard: Data Protection (Charges and Information) Regulations 2018. Contractor: DPRC. Frequency: Yearly."
+  },
+  {
+    "id": "comp-cp-27",
+    "complianceId": "COMP-CP-027",
+    "name": "Pest Control",
+    "item": "Pest Control",
+    "title": "Pest Control",
+    "type": "Statutory",
+    "category": "Food Safety",
+    "complianceType": "OpCo",
+    "section": "OpCo",
+    "description": "Pest Control under Food Safety Act 1990",
+    "property": "Crowne Plaza Kingston-south",
+    "hotel": "Crowne Plaza Kingston-south",
+    "site": "Crowne Plaza Kingston-south",
+    "hotelName": "Crowne Plaza Kingston-south",
+    "hotelId": "hotel-001",
+    "propertyId": "hotel-001",
+    "department": "Kitchen",
+    "area": "Commercial Kitchen & Extraction",
+    "regulatoryAuthority": "Food Safety Act 1990",
+    "standard": "Food Safety Act 1990",
+    "certificateNumber": "",
+    "certificateRef": "",
+    "issueDate": "2026-01-26",
+    "lastInspection": "2026-01-26",
+    "lastReviewed": "2026-01-26",
+    "expiryDate": "2026-04-26",
+    "dueDate": "2026-04-26",
+    "renewalDate": "2026-04-26",
+    "inspectionFrequency": "3 Months",
+    "frequency": "3 Months",
+    "responsiblePerson": "Nathan Coote",
+    "assignee": "Nathan Coote",
+    "contractor": "Nuture",
+    "status": "overdue",
+    "riskRating": "medium",
+    "notes": "Standard: Food Safety Act 1990. Contractor: Nuture. Frequency: 3 Months."
+  },
+  {
+    "id": "comp-cp-28",
+    "complianceId": "COMP-CP-028",
+    "name": "Legionella Bacteria Water Risk Assessment",
+    "item": "Legionella Bacteria Water Risk Assessment",
+    "title": "Legionella Bacteria Water Risk Assessment",
+    "type": "Statutory",
+    "category": "Water Safety",
+    "complianceType": "PropCo",
+    "section": "PropCo",
+    "description": "Legionella Bacteria Water Risk Assessment under HSE ACOP L8 / HSG274",
+    "property": "Crowne Plaza Kingston-south",
+    "hotel": "Crowne Plaza Kingston-south",
+    "site": "Crowne Plaza Kingston-south",
+    "hotelName": "Crowne Plaza Kingston-south",
+    "hotelId": "hotel-001",
+    "propertyId": "hotel-001",
+    "department": "Facilities",
+    "area": "Calorifiers & Water Storage",
+    "regulatoryAuthority": "HSE ACOP L8 / HSG274",
+    "standard": "HSE ACOP L8 / HSG274",
+    "certificateNumber": "",
+    "certificateRef": "",
+    "issueDate": "2025-01-22",
+    "lastInspection": "2025-01-22",
+    "lastReviewed": "2025-01-22",
+    "expiryDate": "2027-01-22",
+    "dueDate": "2027-01-22",
+    "renewalDate": "2027-01-22",
+    "inspectionFrequency": "2 Years",
+    "frequency": "2 Years",
+    "responsiblePerson": "Kevin Davis",
+    "assignee": "Kevin Davis",
+    "contractor": "Guardian",
+    "status": "compliant",
+    "riskRating": "high",
+    "notes": "Standard: HSE ACOP L8 / HSG274. Contractor: Guardian. Frequency: 2 Years."
+  },
+  {
+    "id": "comp-cp-29",
+    "complianceId": "COMP-CP-029",
+    "name": "Asbestos",
+    "item": "Asbestos",
+    "title": "Asbestos",
+    "type": "Statutory",
+    "category": "Asbestos Managenment",
+    "complianceType": "PropCo",
+    "section": "PropCo",
+    "description": "Asbestos under Control of Asbestos Regulations 2012",
+    "property": "Crowne Plaza Kingston-south",
+    "hotel": "Crowne Plaza Kingston-south",
+    "site": "Crowne Plaza Kingston-south",
+    "hotelName": "Crowne Plaza Kingston-south",
+    "hotelId": "hotel-001",
+    "propertyId": "hotel-001",
+    "department": "Engineering",
+    "area": "Whole Building",
+    "regulatoryAuthority": "Control of Asbestos Regulations 2012",
+    "standard": "Control of Asbestos Regulations 2012",
+    "certificateNumber": "",
+    "certificateRef": "",
+    "issueDate": "2025-09-18",
+    "lastInspection": "2025-09-18",
+    "lastReviewed": "2025-09-18",
+    "expiryDate": "2027-12-31",
+    "dueDate": "2027-12-31",
+    "renewalDate": "2027-12-01",
+    "inspectionFrequency": "N/A",
+    "frequency": "N/A",
+    "responsiblePerson": "Kevin Davis",
+    "assignee": "Kevin Davis",
+    "contractor": "PCA",
+    "status": "compliant",
+    "riskRating": "high",
+    "notes": "Standard: Control of Asbestos Regulations 2012. Contractor: PCA. Frequency: N/A."
+  },
+  {
+    "id": "comp-cp-30",
+    "complianceId": "COMP-CP-030",
+    "name": "LOLER",
+    "item": "LOLER",
+    "title": "LOLER",
+    "type": "Statutory",
+    "category": "Lifting Equipment",
+    "complianceType": "PropCo",
+    "section": "PropCo",
+    "description": "LOLER under LOLER 1998",
+    "property": "Crowne Plaza Kingston-south",
+    "hotel": "Crowne Plaza Kingston-south",
+    "site": "Crowne Plaza Kingston-south",
+    "hotelName": "Crowne Plaza Kingston-south",
+    "hotelId": "hotel-001",
+    "propertyId": "hotel-001",
+    "department": "Engineering",
+    "area": "Lifts & Escalators",
+    "regulatoryAuthority": "LOLER 1998",
+    "standard": "LOLER 1998",
+    "certificateNumber": "",
+    "certificateRef": "",
+    "issueDate": "2026-08-18",
+    "lastInspection": "2026-08-18",
+    "lastReviewed": "2026-08-18",
+    "expiryDate": "2027-02-17",
+    "dueDate": "2027-02-17",
+    "renewalDate": "2027-02-17",
+    "inspectionFrequency": "6 Months",
+    "frequency": "6 Months",
+    "responsiblePerson": "Kevin Davis",
+    "assignee": "Kevin Davis",
+    "contractor": "Allianz",
+    "status": "compliant",
+    "riskRating": "high",
+    "notes": "Standard: LOLER 1998. Contractor: Allianz. Frequency: 6 Months."
+  },
+  {
+    "id": "comp-cp-31",
+    "complianceId": "COMP-CP-031",
+    "name": "LOLER",
+    "item": "LOLER",
+    "title": "LOLER",
+    "type": "Statutory",
+    "category": "Lifting Equipment",
+    "complianceType": "PropCo",
+    "section": "PropCo",
+    "description": "LOLER under LOLER 1998",
+    "property": "Crowne Plaza Kingston-south",
+    "hotel": "Crowne Plaza Kingston-south",
+    "site": "Crowne Plaza Kingston-south",
+    "hotelName": "Crowne Plaza Kingston-south",
+    "hotelId": "hotel-001",
+    "propertyId": "hotel-001",
+    "department": "Engineering",
+    "area": "Lifts & Escalators",
+    "regulatoryAuthority": "LOLER 1998",
+    "standard": "LOLER 1998",
+    "certificateNumber": "",
+    "certificateRef": "",
+    "issueDate": "2026-08-18",
+    "lastInspection": "2026-08-18",
+    "lastReviewed": "2026-08-18",
+    "expiryDate": "2027-02-17",
+    "dueDate": "2027-02-17",
+    "renewalDate": "2027-02-17",
+    "inspectionFrequency": "6 Months",
+    "frequency": "6 Months",
+    "responsiblePerson": "Kevin Davis",
+    "assignee": "Kevin Davis",
+    "contractor": "Allianz",
+    "status": "compliant",
+    "riskRating": "high",
+    "notes": "Standard: LOLER 1998. Contractor: Allianz. Frequency: 6 Months."
+  },
+  {
+    "id": "comp-cp-32",
+    "complianceId": "COMP-CP-032",
+    "name": "LOLER",
+    "item": "LOLER",
+    "title": "LOLER",
+    "type": "Statutory",
+    "category": "Lifting Equipment",
+    "complianceType": "PropCo",
+    "section": "PropCo",
+    "description": "LOLER under LOLER 1998",
+    "property": "Crowne Plaza Kingston-south",
+    "hotel": "Crowne Plaza Kingston-south",
+    "site": "Crowne Plaza Kingston-south",
+    "hotelName": "Crowne Plaza Kingston-south",
+    "hotelId": "hotel-001",
+    "propertyId": "hotel-001",
+    "department": "Engineering",
+    "area": "Lifts & Escalators",
+    "regulatoryAuthority": "LOLER 1998",
+    "standard": "LOLER 1998",
+    "certificateNumber": "",
+    "certificateRef": "",
+    "issueDate": "2026-08-18",
+    "lastInspection": "2026-08-18",
+    "lastReviewed": "2026-08-18",
+    "expiryDate": "2027-02-17",
+    "dueDate": "2027-02-17",
+    "renewalDate": "2027-02-17",
+    "inspectionFrequency": "6 Months",
+    "frequency": "6 Months",
+    "responsiblePerson": "Kevin Davis",
+    "assignee": "Kevin Davis",
+    "contractor": "Allianz",
+    "status": "compliant",
+    "riskRating": "high",
+    "notes": "Standard: LOLER 1998. Contractor: Allianz. Frequency: 6 Months."
+  },
+  {
+    "id": "comp-cp-33",
+    "complianceId": "COMP-CP-033",
+    "name": "Lightning Protection",
+    "item": "Lightning Protection",
+    "title": "Lightning Protection",
+    "type": "Statutory",
+    "category": "Electrical Safety",
+    "complianceType": "PropCo",
+    "section": "PropCo",
+    "description": "Lightning Protection under BS EN 62305",
+    "property": "Crowne Plaza Kingston-south",
+    "hotel": "Crowne Plaza Kingston-south",
+    "site": "Crowne Plaza Kingston-south",
+    "hotelName": "Crowne Plaza Kingston-south",
+    "hotelId": "hotel-001",
+    "propertyId": "hotel-001",
+    "department": "Engineering",
+    "area": "Plant Rooms & Distribution Boards",
+    "regulatoryAuthority": "BS EN 62305",
+    "standard": "BS EN 62305",
+    "certificateNumber": "",
+    "certificateRef": "",
+    "issueDate": "2025-08-05",
+    "lastInspection": "2025-08-05",
+    "lastReviewed": "2025-08-05",
+    "expiryDate": "2026-08-05",
+    "dueDate": "2026-08-05",
+    "renewalDate": "2026-08-05",
+    "inspectionFrequency": "Yearly",
+    "frequency": "Yearly",
+    "responsiblePerson": "Kevin Davis",
+    "assignee": "Kevin Davis",
+    "contractor": "Strike Control",
+    "status": "compliant",
+    "riskRating": "high",
+    "notes": "Standard: BS EN 62305. Contractor: Strike Control. Frequency: Yearly."
+  },
+  {
+    "id": "comp-cp-34",
+    "complianceId": "COMP-CP-034",
+    "name": "External Wall Assessment FRAEW",
+    "item": "External Wall Assessment FRAEW",
+    "title": "External Wall Assessment FRAEW",
+    "type": "Statutory",
+    "category": "Fire Safety",
+    "complianceType": "PropCo",
+    "section": "PropCo",
+    "description": "External Wall Assessment FRAEW under Regulatory Reform (Fire Safety) Order 2005",
+    "property": "Crowne Plaza Kingston-south",
+    "hotel": "Crowne Plaza Kingston-south",
+    "site": "Crowne Plaza Kingston-south",
+    "hotelName": "Crowne Plaza Kingston-south",
+    "hotelId": "hotel-001",
+    "propertyId": "hotel-001",
+    "department": "Engineering",
+    "area": "Whole Building",
+    "regulatoryAuthority": "Regulatory Reform (Fire Safety) Order 2005",
+    "standard": "Regulatory Reform (Fire Safety) Order 2005",
+    "certificateNumber": "",
+    "certificateRef": "",
+    "issueDate": "2025-08-19",
+    "lastInspection": "2025-08-19",
+    "lastReviewed": "2025-08-19",
+    "expiryDate": "2027-12-31",
+    "dueDate": "2027-12-31",
+    "renewalDate": "2027-12-01",
+    "inspectionFrequency": "N/A",
+    "frequency": "N/A",
+    "responsiblePerson": "Kevin Davis",
+    "assignee": "Kevin Davis",
+    "contractor": "City Fire",
+    "status": "compliant",
+    "riskRating": "high",
+    "notes": "Standard: Regulatory Reform (Fire Safety) Order 2005. Contractor: City Fire. Frequency: N/A."
+  },
+  {
+    "id": "comp-cp-35",
+    "complianceId": "COMP-CP-035",
+    "name": "Energy Performance Certificate",
+    "item": "Energy Performance Certificate",
+    "title": "Energy Performance Certificate",
+    "type": "Statutory",
+    "category": "Electrical Safety",
+    "complianceType": "PropCo",
+    "section": "PropCo",
+    "description": "Energy Performance Certificate under BS EN 62305",
+    "property": "Crowne Plaza Kingston-south",
+    "hotel": "Crowne Plaza Kingston-south",
+    "site": "Crowne Plaza Kingston-south",
+    "hotelName": "Crowne Plaza Kingston-south",
+    "hotelId": "hotel-001",
+    "propertyId": "hotel-001",
+    "department": "Engineering",
+    "area": "Plant Rooms & Distribution Boards",
+    "regulatoryAuthority": "BS EN 62305",
+    "standard": "BS EN 62305",
+    "certificateNumber": "",
+    "certificateRef": "",
+    "issueDate": "2018-04-16",
+    "lastInspection": "2018-04-16",
+    "lastReviewed": "2018-04-16",
+    "expiryDate": "2028-04-13",
+    "dueDate": "2028-04-13",
+    "renewalDate": "2028-04-13",
+    "inspectionFrequency": "10 years",
+    "frequency": "10 years",
+    "responsiblePerson": "Kevin Davis",
+    "assignee": "Kevin Davis",
+    "contractor": "Elmbridge Conuncil",
+    "status": "compliant",
+    "riskRating": "high",
+    "notes": "Standard: BS EN 62305. Contractor: Elmbridge Conuncil. Frequency: 10 years."
+  },
+  {
+    "id": "comp-cp-36",
+    "complianceId": "COMP-CP-036",
+    "name": "Electrical Installation Condition Report",
+    "item": "Electrical Installation Condition Report",
+    "title": "Electrical Installation Condition Report",
+    "type": "Statutory",
+    "category": "Electrical Safety",
+    "complianceType": "PropCo",
+    "section": "PropCo",
+    "description": "Electrical Installation Condition Report under BS EN 62305",
+    "property": "Crowne Plaza Kingston-south",
+    "hotel": "Crowne Plaza Kingston-south",
+    "site": "Crowne Plaza Kingston-south",
+    "hotelName": "Crowne Plaza Kingston-south",
+    "hotelId": "hotel-001",
+    "propertyId": "hotel-001",
+    "department": "Engineering",
+    "area": "Plant Rooms & Distribution Boards",
+    "regulatoryAuthority": "BS EN 62305",
+    "standard": "BS EN 62305",
+    "certificateNumber": "",
+    "certificateRef": "",
+    "issueDate": "2024-09-16",
+    "lastInspection": "2024-09-16",
+    "lastReviewed": "2024-09-16",
+    "expiryDate": "2029-09-15",
+    "dueDate": "2029-09-15",
+    "renewalDate": "2029-09-15",
+    "inspectionFrequency": "5 Years",
+    "frequency": "5 Years",
+    "responsiblePerson": "Kevin Davis",
+    "assignee": "Kevin Davis",
+    "contractor": "NICEIC",
+    "status": "compliant",
+    "riskRating": "high",
+    "notes": "Standard: BS EN 62305. Contractor: NICEIC. Frequency: 5 Years."
+  }
 ];
 
 const STATUS_CONFIG: Record<
@@ -243,7 +1561,15 @@ function KPICard({
 }
 
 export default function ComplianceRegisterClient() {
-  const { isViewer, canEdit, canDelete, canWriteTab, isPropertyAccessible } = useAuth();
+  const {
+    isViewer,
+    canEdit,
+    canDelete,
+    canWriteTab,
+    isPropertyAccessible,
+    activePortal,
+    setActivePortal,
+  } = useAuth();
   const hasWriteAccess = !isViewer && canEdit && canWriteTab('compliance');
   const hasDeleteAccess = !isViewer && canDelete && canWriteTab('compliance');
   const {
@@ -402,47 +1728,90 @@ export default function ComplianceRegisterClient() {
     setCatToDelete(null);
   };
 
+  const DEFAULT_COMPLIANCE_COLUMNS = useMemo(
+    () => [
+      { id: 'name', label: 'Compliance Item', originalLabel: 'Name', visible: true, order: 1 },
+      { id: 'category', label: 'Category', originalLabel: 'Category', visible: true, order: 2 },
+      { id: 'property', label: 'Property', originalLabel: 'Property', visible: true, order: 3 },
+      { id: 'standard', label: 'Standard', originalLabel: 'Standard', visible: true, order: 4 },
+      { id: 'contractor', label: 'Contractor', originalLabel: 'Contractor', visible: true, order: 5 },
+      { id: 'frequency', label: 'Frequency', originalLabel: 'Frequency', visible: true, order: 6 },
+      {
+        id: 'lastInspection',
+        label: 'Last Inspection',
+        originalLabel: 'Last Inspection',
+        visible: true,
+        order: 7,
+      },
+      {
+        id: 'expiryDate',
+        label: 'Expiry Date',
+        originalLabel: 'Expiry Date',
+        visible: true,
+        order: 8,
+      },
+      {
+        id: 'certificateRef',
+        label: 'Certificate Ref',
+        originalLabel: 'Certificate Ref',
+        visible: true,
+        order: 9,
+      },
+      {
+        id: 'responsiblePerson',
+        label: 'Responsible',
+        originalLabel: 'Responsible',
+        visible: true,
+        order: 10,
+      },
+      { id: 'riskRating', label: 'Risk Rating', originalLabel: 'Risk', visible: true, order: 11 },
+      { id: 'status', label: 'Status', originalLabel: 'Status', visible: true, order: 12 },
+      { id: 'actions', label: 'Actions', originalLabel: 'Actions', visible: true, order: 13 },
+    ],
+    []
+  );
+
   const activeColumns = useMemo(() => {
+    let cols: any[] = [];
     if (cmsColumns && cmsColumns.length > 0) {
-      return [...cmsColumns].sort((a, b) => a.order - b.order).filter((c) => c.visible !== false);
+      const existingIds = new Set(cmsColumns.map((c: any) => c.id.toLowerCase()));
+      const missingDefaults = DEFAULT_COMPLIANCE_COLUMNS.filter(
+        (dc) => !existingIds.has(dc.id.toLowerCase())
+      );
+      cols = [...cmsColumns, ...missingDefaults].filter(
+        (c) => c.visible !== false && c.id.toLowerCase() !== 'id'
+      );
+    } else {
+      cols = DEFAULT_COMPLIANCE_COLUMNS.filter((c) => c.visible !== false);
     }
-    return [
-      { id: 'id', label: 'ID', visible: true, order: 1 },
-      { id: 'name', label: 'Compliance Item', visible: true, order: 2 },
-      { id: 'category', label: 'Category', visible: true, order: 3 },
-      { id: 'property', label: 'Property', visible: true, order: 4 },
-      { id: 'department', label: 'Department', visible: true, order: 5 },
-      { id: 'expiryDate', label: 'Expiry Date', visible: true, order: 6 },
-      { id: 'responsiblePerson', label: 'Responsible', visible: true, order: 7 },
-      { id: 'riskRating', label: 'Risk', visible: true, order: 8 },
-      { id: 'status', label: 'Status', visible: true, order: 9 },
-      { id: 'actions', label: 'Actions', visible: true, order: 10 },
-    ];
-  }, [cmsColumns]);
+
+    // Separate actions column to GUARANTEE it is ALWAYS the last column!
+    const nonActions = cols
+      .filter((c) => c.id.toLowerCase() !== 'actions')
+      .sort((a, b) => (a.order ?? 99) - (b.order ?? 99));
+    const actionsCol = cols.find((c) => c.id.toLowerCase() === 'actions') || {
+      id: 'actions',
+      label: 'Actions',
+      originalLabel: 'Actions',
+      visible: true,
+      order: 999,
+    };
+
+    return [...nonActions, actionsCol];
+  }, [cmsColumns, DEFAULT_COMPLIANCE_COLUMNS]);
 
   const [items, setItems] = useState<ComplianceItem[]>(() => {
     if (typeof window !== 'undefined') {
       try {
-        const cached = sessionStorage.getItem('samko_cache_compliance');
+        const cached = sessionStorage.getItem('samko_cache_compliance_v3');
         if (cached) {
           const parsed = JSON.parse(cached);
-          if (Array.isArray(parsed) && parsed.length > 0 && parsed.length <= 3) return parsed;
-          else {
-            sessionStorage.removeItem('samko_cache_compliance');
-            localStorage.removeItem('samko_compliance_items');
-          }
+          if (Array.isArray(parsed) && parsed.length >= 30) return parsed;
         }
       } catch {}
     }
-    if (cmsItems && cmsItems.length > 0) return cmsItems as any;
     return MOCK_COMPLIANCE;
   });
-
-  useEffect(() => {
-    if (cmsItems && cmsItems.length > 0) {
-      setItems(cmsItems as any);
-    }
-  }, [cmsItems]);
   const [propertyList, setPropertyList] = useState<string[]>(() => getLivePropertyNames());
   const [loading, setLoading] = useState(false);
 
@@ -450,14 +1819,23 @@ export default function ComplianceRegisterClient() {
   const router = useRouter();
 
   const tabParam = searchParams?.get('tab');
+  const portalParam = searchParams?.get('portal');
+
+  // Determine portal: PropCo vs OpCo (keep strictly separate)
+  const isPropcoPortal =
+    portalParam === 'propco' ||
+    tabParam === 'propco' ||
+    (!portalParam && !tabParam && activePortal === 'propco');
+
+  const currentPortal: 'propco' | 'opco' = isPropcoPortal ? 'propco' : 'opco';
+
   const initialTab: 'register' | 'certifications' | 'statutory' | 'expiry' =
     tabParam === 'certifications' || tabParam === 'statutory' || tabParam === 'expiry'
       ? tabParam
       : 'register';
 
-  const [activeTab, setActiveTab] = useState<
-    'register' | 'certifications' | 'statutory' | 'expiry'
-  >(initialTab);
+  const [activeTab, setActiveTab] =
+    useState<'register' | 'certifications' | 'statutory' | 'expiry'>(initialTab);
 
   useEffect(() => {
     const t = searchParams?.get('tab');
@@ -470,8 +1848,10 @@ export default function ComplianceRegisterClient() {
 
   const handleTabChange = (t: 'register' | 'certifications' | 'statutory' | 'expiry') => {
     setActiveTab(t);
-    const url = t === 'register' ? '/compliance-register' : `/compliance-register?tab=${t}`;
-    router.push(url, { scroll: false });
+    const params = new URLSearchParams();
+    if (t !== 'register') params.set('tab', t);
+    params.set('portal', currentPortal);
+    router.push(`/compliance-register?${params.toString()}`, { scroll: false });
   };
   const [search, setSearch] = useState('');
   const [filterStatus, setFilterStatus] = useState<string[]>([]);
@@ -481,6 +1861,8 @@ export default function ComplianceRegisterClient() {
 
   const allTypes = useMemo(() => {
     const types = new Set<string>([
+      'OpCo',
+      'PropCo',
       'Statutory',
       'Internal',
       'Mandatory',
@@ -488,16 +1870,15 @@ export default function ComplianceRegisterClient() {
       'Brand Standard',
     ]);
     items.forEach((i) => {
+      if (i.complianceType) types.add(i.complianceType.trim());
+      if (i.section) types.add(i.section.trim());
       if (i.type) types.add(i.type.trim());
     });
     return Array.from(types).sort();
   }, [items]);
 
   const propertyOptions = useMemo(() => {
-    return Array.from(
-      new Set([...propertyList, ...items.map((i) => i.hotel).filter(Boolean), ...DEFAULT_HOTELS])
-    )
-      .filter((p) => isPropertyAccessible(p))
+    return Array.from(new Set([...propertyList, ...items.map((i) => i.hotel).filter(Boolean), ...DEFAULT_HOTELS])).filter((p) => p && p.toLowerCase() !== 'gow' && isPropertyAccessible(p))
       .sort();
   }, [propertyList, items, isPropertyAccessible]);
 
@@ -584,7 +1965,7 @@ export default function ComplianceRegisterClient() {
       ) {
         setItems(compRes.value.data);
         try {
-          sessionStorage.setItem('samko_cache_compliance', JSON.stringify(compRes.value.data));
+          sessionStorage.setItem('samko_cache_compliance_v3', JSON.stringify(compRes.value.data));
         } catch {}
       }
       if (
@@ -603,15 +1984,7 @@ export default function ComplianceRegisterClient() {
   }, []);
 
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      try {
-        const cached = sessionStorage.getItem('samko_cache_compliance');
-        if (cached && JSON.parse(cached).length > 3) {
-          sessionStorage.removeItem('samko_cache_compliance');
-          localStorage.removeItem('samko_compliance_items');
-        }
-      } catch {}
-    }
+    // Cache validation check passed
     fetchCompliance();
     const handleDataChanged = () => {
       fetchCompliance();
@@ -646,8 +2019,12 @@ export default function ComplianceRegisterClient() {
   const handleAddSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const complianceId = `COMP-${String(items.length + 1).padStart(3, '0')}`;
+    const compType = isPropcoPortal ? 'PropCo' : 'OpCo';
     const payload = {
       ...addForm,
+      complianceType: compType,
+      section: compType,
+      responsiblePerson: addForm.responsiblePerson || (isPropcoPortal ? 'Kevin Davis' : 'Nathan Coote'),
       complianceId,
       description: `${addForm.name} for ${addForm.hotel}`,
     };
@@ -728,10 +2105,14 @@ export default function ComplianceRegisterClient() {
   };
 
   const accessibleItems = useMemo(() => {
-    return items.filter((c) =>
-      isPropertyAccessible(c.hotel || (c as any).property || (c as any).site)
-    );
-  }, [items, isPropertyAccessible]);
+    return items.filter((c) => {
+      const isAccessible = isPropertyAccessible(c.hotel || (c as any).property || (c as any).site);
+      if (!isAccessible) return false;
+      const type = (c.complianceType || c.section || (c as any).portal || '').toLowerCase();
+      if (isPropcoPortal) return type === 'propco';
+      return type !== 'propco';
+    });
+  }, [items, isPropertyAccessible, isPropcoPortal]);
 
   const totalItems = accessibleItems.length;
   const expiringIn30 = accessibleItems.filter((c) => {
@@ -751,21 +2132,62 @@ export default function ComplianceRegisterClient() {
       (c.hotel || '').toLowerCase().includes(search.toLowerCase()) ||
       (c.category || '').toLowerCase().includes(search.toLowerCase()) ||
       (c.type || '').toLowerCase().includes(search.toLowerCase()) ||
+      (c.complianceType || '').toLowerCase().includes(search.toLowerCase()) ||
+      (c.section || '').toLowerCase().includes(search.toLowerCase()) ||
+      (c.responsiblePerson || '').toLowerCase().includes(search.toLowerCase()) ||
+      (c.assignee || '').toLowerCase().includes(search.toLowerCase()) ||
+      (c.contractor || '').toLowerCase().includes(search.toLowerCase()) ||
+      (c.standard || '').toLowerCase().includes(search.toLowerCase()) ||
       (c.complianceId || '').toLowerCase().includes(search.toLowerCase());
     const matchStatus =
       filterStatus.length === 0 ||
-      filterStatus.some((s) => s.trim().toLowerCase() === (c.status || '').trim().toLowerCase());
+      filterStatus.some((s) => {
+        const val = s.trim().toLowerCase();
+        return (
+          val === '' ||
+          val === 'all' ||
+          val.startsWith('all ') ||
+          val === (c.status || '').trim().toLowerCase()
+        );
+      });
     const matchHotel =
       filterHotel.length === 0 ||
-      filterHotel.some((h) => h.trim().toLowerCase() === (c.hotel || '').trim().toLowerCase());
+      filterHotel.some((h) => {
+        const val = h.trim().toLowerCase();
+        return (
+          val === '' ||
+          val === 'all' ||
+          val.startsWith('all ') ||
+          val === (c.hotel || '').trim().toLowerCase()
+        );
+      });
     const matchCat =
       filterCategory.length === 0 ||
-      filterCategory.some(
-        (cat) => cat.trim().toLowerCase() === (c.category || '').trim().toLowerCase()
-      );
+      filterCategory.some((cat) => {
+        const val = cat.trim().toLowerCase();
+        return (
+          val === '' ||
+          val === 'all' ||
+          val.startsWith('all ') ||
+          val === (c.category || '').trim().toLowerCase()
+        );
+      });
     const matchType =
       filterType.length === 0 ||
-      filterType.some((t) => t.trim().toLowerCase() === (c.type || '').trim().toLowerCase());
+      filterType.some((t) => {
+        const tLower = t.trim().toLowerCase();
+        if (tLower === '' || tLower === 'all' || tLower.startsWith('all ')) return true;
+        const itemType = (c.type || '').trim().toLowerCase();
+        const itemCompType = (c.complianceType || '').trim().toLowerCase();
+        const itemSection = (c.section || '').trim().toLowerCase();
+        return (
+          tLower === itemType ||
+          tLower === itemCompType ||
+          tLower === itemSection ||
+          (tLower.includes('opco') && (itemCompType === 'opco' || itemSection === 'opco')) ||
+          (tLower.includes('propco') && (itemCompType === 'propco' || itemSection === 'propco'))
+        );
+      });
     return matchSearch && matchStatus && matchHotel && matchCat && matchType;
   });
 
@@ -778,9 +2200,9 @@ export default function ComplianceRegisterClient() {
 
   const displayItems =
     activeTab === 'certifications'
-      ? filtered.filter((c) => c.certificateNumber)
+      ? filtered.filter((c) => c.certificateNumber || c.certificateRef)
       : activeTab === 'statutory'
-        ? filtered.filter((c) => c.type === 'Statutory')
+        ? filtered.filter((c) => (c.type || '').toLowerCase() === 'statutory')
         : activeTab === 'expiry'
           ? [...filtered].sort((a, b) => daysUntil(a.expiryDate) - daysUntil(b.expiryDate))
           : filtered;
@@ -936,27 +2358,43 @@ export default function ComplianceRegisterClient() {
   const handleExport = () => {
     const headers = [
       'Compliance ID',
-      'Name',
+      'Regulation Title',
+      'Section',
       'Category',
-      'Type',
-      'Property',
-      'Authority',
-      'Certificate Number',
+      'Check Type',
+      'Standard / Authority',
+      'Contractor',
+      'Responsible Person',
+      'Frequency',
+      'Last Inspection',
       'Expiry Date',
       'Status',
       'Risk Rating',
+      'Property',
+      'Department',
+      'Area',
+      'Certificate Ref',
+      'Notes',
     ];
     const rows = displayItems.map((c: any) => [
-      `"${c.complianceId || c.id}"`,
-      `"${(c.name || '').replace(/"/g, '""')}"`,
+      `"${c.complianceId || c.id || ''}"`,
+      `"${(c.name || c.title || c.item || '').replace(/"/g, '""')}"`,
+      `"${c.complianceType || c.section || 'OpCo'}"`,
       `"${c.category || ''}"`,
-      `"${c.type || ''}"`,
-      `"${c.hotel || ''}"`,
-      `"${c.regulatoryAuthority || ''}"`,
-      `"${c.certificateNumber || ''}"`,
-      `"${c.expiryDate || ''}"`,
+      `"${c.type || 'Statutory'}"`,
+      `"${(c.standard || c.regulatoryAuthority || '').replace(/"/g, '""')}"`,
+      `"${(c.contractor || '').replace(/"/g, '""')}"`,
+      `"${(c.responsiblePerson || c.assignee || '').replace(/"/g, '""')}"`,
+      `"${c.frequency || c.inspectionFrequency || ''}"`,
+      `"${c.lastInspection || c.issueDate || ''}"`,
+      `"${c.expiryDate || c.dueDate || ''}"`,
       `"${c.status || ''}"`,
       `"${c.riskRating || ''}"`,
+      `"${c.hotel || c.property || ''}"`,
+      `"${c.department || ''}"`,
+      `"${c.area || ''}"`,
+      `"${c.certificateNumber || c.certificateRef || ''}"`,
+      `"${(c.notes || '').replace(/"/g, '""')}"`,
     ]);
     const csvContent = [headers.join(','), ...rows.map((r: string[]) => r.join(','))].join('\n');
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -979,14 +2417,27 @@ export default function ComplianceRegisterClient() {
         style={{ background: 'var(--surface)' }}
       >
         <div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2.5">
             <h1 className="font-head font-bold text-xl">
-              {cmsTitle || 'Compliance & Certification Register'}
+              {isPropcoPortal
+                ? 'PropCo Compliance & Certification Register'
+                : 'OpCo Compliance & Certification Register'}
             </h1>
+            {isPropcoPortal ? (
+              <span className="px-2 py-0.5 rounded text-[10px] font-bold tracking-wider border border-[#e8c97a]/40 bg-[#e8c97a]/15 text-[#e8c97a] uppercase">
+                PropCo Asset Co
+              </span>
+            ) : (
+              <span className="px-2 py-0.5 rounded text-[10px] font-bold tracking-wider border border-[#60a5fa]/40 bg-[#60a5fa]/15 text-[#60a5fa] uppercase">
+                OpCo Operations
+              </span>
+            )}
             {loading && <Loader2 size={14} className="animate-spin text-muted-foreground" />}
           </div>
           <p className="text-xs text-muted-foreground mt-0.5">
-            {cmsSubtitle || 'Manage statutory and internal compliance requirements'}
+            {isPropcoPortal
+              ? 'Manage statutory and property asset compliance requirements across properties'
+              : 'Manage statutory and operational compliance requirements across properties'}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -1155,10 +2606,11 @@ export default function ComplianceRegisterClient() {
       {/* Table */}
       <div className="flex-1 overflow-auto px-6 py-4">
         <div
-          className="rounded-xl border border-border overflow-x-auto shadow-sm"
+          className="rounded-xl border border-border shadow-sm flex flex-col"
           style={{ background: 'var(--surface)' }}
         >
-          <table className="w-full text-left border-collapse" style={{ minWidth: 900 }}>
+          <div className="overflow-x-auto w-full">
+            <table className="w-full text-left border-collapse" style={{ minWidth: 900 }}>
             <thead>
               <tr style={{ background: 'var(--surface2)' }}>
                 {hasDeleteAccess && (
@@ -1261,6 +2713,103 @@ export default function ComplianceRegisterClient() {
                         return (
                           <td key={col.id} className="px-4 py-3 text-sm text-muted-foreground">
                             {item.department}
+                          </td>
+                        );
+                      }
+                      if (
+                        colKey === 'standard' ||
+                        colKey === 'regulatoryauthority' ||
+                        colKey === 'authority'
+                      ) {
+                        const std = item.standard || item.regulatoryAuthority;
+                        return (
+                          <td
+                            key={col.id}
+                            className="px-4 py-3 text-xs text-muted-foreground whitespace-nowrap max-w-[220px] truncate"
+                            title={std}
+                          >
+                            {std || '—'}
+                          </td>
+                        );
+                      }
+                      if (colKey === 'contractor') {
+                        return (
+                          <td key={col.id} className="px-4 py-3 text-sm whitespace-nowrap">
+                            {item.contractor ? (
+                              <span
+                                className="inline-flex items-center px-2.5 py-0.5 rounded text-xs font-medium border border-border"
+                                style={{ background: 'var(--surface2)', color: 'var(--text)' }}
+                              >
+                                {item.contractor}
+                              </span>
+                            ) : (
+                              <span className="text-muted-foreground text-xs">—</span>
+                            )}
+                          </td>
+                        );
+                      }
+                      if (colKey === 'frequency' || colKey === 'inspectionfrequency') {
+                        const freq = item.frequency || item.inspectionFrequency || 'Yearly';
+                        return (
+                          <td key={col.id} className="px-4 py-3 text-xs whitespace-nowrap">
+                            <span
+                              className="inline-flex items-center px-2 py-0.5 rounded font-medium border border-border text-xs"
+                              style={{ background: 'var(--surface3)', color: 'var(--text2)' }}
+                            >
+                              {freq}
+                            </span>
+                          </td>
+                        );
+                      }
+                      if (
+                        colKey === 'lastinspection' ||
+                        colKey === 'issuedate' ||
+                        colKey === 'lastreviewed'
+                      ) {
+                        const dateStr = item.lastInspection || item.issueDate || item.lastReviewed;
+                        return (
+                          <td
+                            key={col.id}
+                            className="px-4 py-3 text-sm text-muted-foreground whitespace-nowrap"
+                          >
+                            {dateStr && dateStr !== 'N/A'
+                              ? new Date(dateStr).toLocaleDateString('en-GB', {
+                                  day: 'numeric',
+                                  month: 'short',
+                                  year: 'numeric',
+                                })
+                              : '—'}
+                          </td>
+                        );
+                      }
+                      if (
+                        colKey === 'certificateref' ||
+                        colKey === 'certificatenumber' ||
+                        colKey === 'certref'
+                      ) {
+                        const rawRef = item.certificateRef || item.certificateNumber;
+                        const ref =
+                          rawRef &&
+                          rawRef !== 'N/A' &&
+                          !rawRef.startsWith('COMP-CP-') &&
+                          !rawRef.startsWith('comp-cp-')
+                            ? rawRef
+                            : null;
+                        return (
+                          <td
+                            key={col.id}
+                            className="px-4 py-3 text-xs font-mono text-muted-foreground whitespace-nowrap"
+                          >
+                            {ref ? (
+                              <span
+                                className="px-2 py-0.5 rounded border border-border text-xs"
+                                style={{ background: 'var(--surface2)', color: 'var(--text)' }}
+                              >
+                                {ref}
+                              </span>
+                            ) : (
+                              <span className="text-muted-foreground text-xs">—</span>
+                            )}
                           </td>
                         );
                       }
@@ -1423,6 +2972,7 @@ export default function ComplianceRegisterClient() {
               <p className="text-sm">No compliance items found</p>
             </div>
           )}
+          </div>
           <LoadingPagination
             currentPage={currentPage}
             totalRecords={totalRecords}

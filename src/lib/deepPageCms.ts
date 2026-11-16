@@ -140,12 +140,12 @@ export interface DeepAppCMSStore {
   maintenancecompleted: DeepPageConfig;
 }
 
-const STORAGE_KEY = 'samko:deep_page_cms_v14';
+const STORAGE_KEY = 'samko:deep_page_cms_v15';
 const EVENT_KEY = 'samko:deep-page-cms-updated';
 
 // Automatically purge legacy cache keys once in browser
 if (typeof window !== 'undefined') {
-  for (let i = 1; i <= 13; i++) {
+  for (let i = 1; i <= 14; i++) {
     try {
       localStorage.removeItem(`samko:deep_page_cms_v${i}`);
     } catch {}
@@ -891,46 +891,48 @@ export const DEFAULT_DEEP_CMS: DeepAppCMSStore = {
       },
     ],
     columns: [
-      { id: 'id', label: 'Compliance ID', originalLabel: 'ID', visible: true, order: 1 },
-      { id: 'name', label: 'Compliance Item', originalLabel: 'Name', visible: true, order: 2 },
-      { id: 'category', label: 'Category', originalLabel: 'Category', visible: true, order: 3 },
-      { id: 'property', label: 'Property', originalLabel: 'Property', visible: true, order: 4 },
-      {
-        id: 'department',
-        label: 'Department',
-        originalLabel: 'Department',
-        visible: true,
-        order: 5,
-      },
-      {
-        id: 'expiryDate',
-        label: 'Expiry Date',
-        originalLabel: 'Expiry Date',
-        visible: true,
-        order: 6,
-      },
-      {
-        id: 'responsiblePerson',
-        label: 'Responsible',
-        originalLabel: 'Responsible',
-        visible: true,
-        order: 7,
-      },
-      { id: 'riskRating', label: 'Risk Rating', originalLabel: 'Risk', visible: true, order: 8 },
-      { id: 'status', label: 'Status', originalLabel: 'Status', visible: true, order: 9 },
-      { id: 'actions', label: 'Actions', originalLabel: 'Actions', visible: true, order: 10 },
+      { id: 'name', label: 'Compliance Item', originalLabel: 'Name', visible: true, order: 1 },
+      { id: 'category', label: 'Category', originalLabel: 'Category', visible: true, order: 2 },
+      { id: 'property', label: 'Property', originalLabel: 'Property', visible: true, order: 3 },
+      { id: 'standard', label: 'Standard', originalLabel: 'Standard', visible: true, order: 4 },
+      { id: 'contractor', label: 'Contractor', originalLabel: 'Contractor', visible: true, order: 5 },
+      { id: 'frequency', label: 'Frequency', originalLabel: 'Frequency', visible: true, order: 6 },
+      { id: 'lastInspection', label: 'Last Inspection', originalLabel: 'Last Inspection', visible: true, order: 7 },
+      { id: 'expiryDate', label: 'Expiry Date', originalLabel: 'Expiry Date', visible: true, order: 8 },
+      { id: 'certificateRef', label: 'Certificate Ref', originalLabel: 'Certificate Ref', visible: true, order: 9 },
+      { id: 'responsiblePerson', label: 'Responsible', originalLabel: 'Responsible', visible: true, order: 10 },
+      { id: 'riskRating', label: 'Risk Rating', originalLabel: 'Risk', visible: true, order: 11 },
+      { id: 'status', label: 'Status', originalLabel: 'Status', visible: true, order: 12 },
+      { id: 'actions', label: 'Actions', originalLabel: 'Actions', visible: true, order: 13 },
     ],
     items: (db.compliance || []).map((c: any) => ({
+      ...c,
       id: c.id,
       complianceId: c.complianceId || c.id,
-      name: c.name || c.item,
+      name: c.name || c.item || c.title,
       category: c.category,
-      property: c.property || c.hotel,
+      property: c.property || c.hotel || c.site,
+      hotel: c.hotel || c.property,
       department: c.department || 'Engineering',
-      expiryDate: c.expiryDate || c.dueDate,
-      responsiblePerson: c.responsiblePerson || c.assignee,
+      standard: c.standard || c.regulatoryAuthority || '',
+      regulatoryAuthority: c.regulatoryAuthority || c.standard || '',
+      contractor: c.contractor || '',
+      frequency: c.frequency || c.inspectionFrequency || 'Yearly',
+      inspectionFrequency: c.inspectionFrequency || c.frequency || 'Yearly',
+      lastInspection: c.lastInspection || c.issueDate || '',
+      issueDate: c.issueDate || c.lastInspection || '',
+      expiryDate: c.expiryDate || c.dueDate || '',
+      dueDate: c.dueDate || c.expiryDate || '',
+      certificateNumber: c.certificateNumber || c.certificateRef || '',
+      certificateRef: c.certificateRef || c.certificateNumber || '',
+      responsiblePerson: c.responsiblePerson || c.assignee || '',
+      assignee: c.assignee || c.responsiblePerson || '',
       riskRating: c.riskRating || 'medium',
       status: c.status,
+      type: c.type || 'Statutory',
+      section: c.section || c.complianceType || 'OpCo',
+      complianceType: c.complianceType || c.section || 'OpCo',
+      notes: c.notes || '',
     })),
   },
   contracts: {
@@ -3971,8 +3973,10 @@ export function getDeepCMSStore(): DeepAppCMSStore {
               it?.id === 'ffe-1' ||
               it?.assetId === 'FFE-101'
           );
-        const shouldResetItems =
-          hasLegacyMockItems || (Array.isArray(saved.items) && saved.items.length > 3) || false;
+        const isComplianceModule = key === 'compliance' || key === 'compliancetracker';
+        const shouldResetItems = isComplianceModule
+          ? false
+          : hasLegacyMockItems || (Array.isArray(saved.items) && saved.items.length > 3) || false;
 
         const rawSavedColumns = Array.isArray(saved.columns)
           ? saved.columns.filter(
@@ -4101,12 +4105,21 @@ export function getDeepCMSStore(): DeepAppCMSStore {
                       visible: c.visible !== false,
                     })
                   );
-                  savedCols.sort((a, b) => a.order - b.order);
+                  const nonActionSaved = savedCols.filter(
+                    (sc) => sc.id.toLowerCase() !== 'actions'
+                  );
+                  const actionCol =
+                    savedCols.find((sc) => sc.id.toLowerCase() === 'actions') ||
+                    def.columns?.find((dc) => dc.id.toLowerCase() === 'actions');
                   const missingDefCols = (def.columns || []).filter(
                     (defCol) =>
+                      defCol.id.toLowerCase() !== 'actions' &&
                       !savedCols.some((sc) => sc.id.toLowerCase() === defCol.id.toLowerCase())
                   );
-                  return [...savedCols, ...missingDefCols].map((c, idx) => ({
+                  const merged = [...nonActionSaved, ...missingDefCols];
+                  merged.sort((a, b) => a.order - b.order);
+                  const finalCols = actionCol ? [...merged, actionCol] : merged;
+                  return finalCols.map((c, idx) => ({
                     ...c,
                     order: idx + 1,
                   }));
@@ -4116,8 +4129,11 @@ export function getDeepCMSStore(): DeepAppCMSStore {
                 : undefined,
           sections: undefined,
           customLabels: { ...def.customLabels, ...(saved.customLabels || {}) },
-          items:
-            !shouldResetItems && Array.isArray(saved.items) && saved.items.length > 0
+          items: isComplianceModule
+            ? Array.isArray(saved.items) && saved.items.length >= 35
+              ? saved.items
+              : def.items
+            : !shouldResetItems && Array.isArray(saved.items) && saved.items.length > 0
               ? saved.items.slice(0, 3)
               : def.items
                 ? def.items.slice(0, 3)

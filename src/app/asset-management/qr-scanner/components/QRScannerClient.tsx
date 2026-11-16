@@ -240,7 +240,7 @@ export default function QRScannerClient() {
   const [manualId, setManualId] = useState('');
   const [searchedId, setSearchedId] = useState('');
   const [recentScans] = useState([
-    { id: 'AST-001', name: 'Otis 8-Person Passenger Lift', hotel: 'Gow', time: '10 min ago' },
+    { id: 'AST-001', name: 'Otis 8-Person Passenger Lift', hotel: 'Stanhill Court', time: '10 min ago' },
     {
       id: 'AST-002',
       name: 'Carrier Rooftop Air Handler 20kW',

@@ -752,7 +752,7 @@ interface UtilityAccount {
 const UTILITIES_DATA: UtilityAccount[] = [
   {
     id: 'u-001',
-    property: 'Gow',
+    property: 'Stanhill Court',
     utilityType: 'Electricity',
     supplier: 'British Gas Business',
     accountNumber: 'BG-GOW-001',

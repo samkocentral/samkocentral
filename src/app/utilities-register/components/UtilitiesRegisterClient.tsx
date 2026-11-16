@@ -67,7 +67,7 @@ interface UtilityAccount {
 const UTILITIES: UtilityAccount[] = [
   {
     id: 'u-001',
-    property: 'Gow',
+    property: 'Stanhill Court',
     utilityType: 'Electricity',
     supplier: 'British Gas Business',
     accountNumber: 'BG-GOW-001',
@@ -81,7 +81,7 @@ const UTILITIES: UtilityAccount[] = [
     supplierPhone: '+44 800 048 0202',
     supplierEmail: 'business@britishgas.co.uk',
     status: 'active',
-    notes: 'Main 3-phase electricity supply for Gow site.',
+    notes: 'Main 3-phase electricity supply for Stanhill Court site.',
   },
   {
     id: 'u-002',

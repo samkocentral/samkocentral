@@ -1663,10 +1663,11 @@ export default function UsersClient() {
 
             {/* User Table */}
             <div
-              className="rounded-xl border border-border overflow-x-auto shadow-sm"
+              className="rounded-xl border border-border shadow-sm flex flex-col"
               style={{ background: 'var(--surface)' }}
             >
-              <table className="w-full text-left border-collapse" style={{ minWidth: 920 }}>
+              <div className="overflow-x-auto w-full">
+                <table className="w-full text-left border-collapse" style={{ minWidth: 920 }}>
                 <thead style={{ background: 'var(--surface2)' }}>
                   <tr>
                     {canManageUsers && (
@@ -1806,7 +1807,7 @@ export default function UsersClient() {
                               !(user.roleLevel === 'L2' && !isSuperAdmin && !isDigitalBot) &&
                               !(isBotAccount(user) && !isDigitalBot);
 
-                            const assigned = Array.isArray(user.assignedProperties)
+                            const assignedRaw = Array.isArray(user.assignedProperties)
                               ? user.assignedProperties.filter(
                                   (p) => p && p !== 'No Property Assigned'
                                 )
@@ -1818,6 +1819,7 @@ export default function UsersClient() {
                                       .filter(Boolean)
                                   : [user.hotel.trim()]
                                 : [];
+                            const assigned = Array.from(new Set(assignedRaw));
 
                             const isAll =
                               assigned.includes('all') || assigned.includes('All Properties');
@@ -1842,9 +1844,9 @@ export default function UsersClient() {
                                     No Property Assigned
                                   </span>
                                 ) : (
-                                  assigned.map((p) => (
+                                  assigned.map((p, pIdx) => (
                                     <span
-                                      key={p}
+                                      key={`${user.id}-${p}-${pIdx}`}
                                       className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium border transition-colors"
                                       style={{
                                         background: 'rgba(232, 201, 122, 0.08)',
@@ -2048,6 +2050,7 @@ export default function UsersClient() {
                   })}
                 </tbody>
               </table>
+              </div>
               <LoadingPagination
                 currentPage={currentPage}
                 totalRecords={totalRecords}
@@ -3100,9 +3103,9 @@ export default function UsersClient() {
               !newUser.assignedProperties.includes('all') &&
               !newUser.assignedProperties.includes('All Properties') && (
                 <div className="flex flex-wrap gap-1.5 mt-2">
-                  {newUser.assignedProperties.map((prop) => (
+                  {Array.from(new Set(newUser.assignedProperties)).map((prop, propIdx) => (
                     <span
-                      key={prop}
+                      key={`${prop}-${propIdx}`}
                       className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[11px] font-semibold border"
                       style={{
                         background: 'rgba(232, 201, 122, 0.12)',
@@ -3380,9 +3383,9 @@ export default function UsersClient() {
                   viewingUser.assignedProperties.length > 0 &&
                   !viewingUser.assignedProperties.includes('all') &&
                   !viewingUser.assignedProperties.includes('All Properties') ? (
-                    viewingUser.assignedProperties.map((p) => (
+                    Array.from(new Set(viewingUser.assignedProperties)).map((p, pIdx) => (
                       <span
-                        key={p}
+                        key={`${p}-${pIdx}`}
                         className="px-1.5 py-0.5 rounded text-[11px] font-medium border"
                         style={{
                           background: 'rgba(232, 201, 122, 0.1)',
@@ -3683,9 +3686,9 @@ export default function UsersClient() {
                 !editForm.assignedProperties.includes('all') &&
                 !editForm.assignedProperties.includes('All Properties') && (
                   <div className="flex flex-wrap gap-1.5 mt-2">
-                    {editForm.assignedProperties.map((prop) => (
+                    {Array.from(new Set(editForm.assignedProperties)).map((prop, propIdx) => (
                       <span
-                        key={prop}
+                        key={`${prop}-${propIdx}`}
                         className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[11px] font-semibold border"
                         style={{
                           background: 'rgba(232, 201, 122, 0.12)',
@@ -4282,9 +4285,9 @@ export default function UsersClient() {
                 </div>
               ) : (
                 <div className="flex flex-wrap gap-1.5 p-2.5 rounded-lg border border-border/60 bg-white/[0.02] min-h-[46px] items-center">
-                  {tempAssignedProperties.map((prop) => (
+                  {Array.from(new Set(tempAssignedProperties)).map((prop, propIdx) => (
                     <span
-                      key={prop}
+                      key={`${prop}-${propIdx}`}
                       className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold border transition-all"
                       style={{
                         background: 'rgba(232, 201, 122, 0.15)',

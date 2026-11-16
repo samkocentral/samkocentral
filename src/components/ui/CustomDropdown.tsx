@@ -190,8 +190,9 @@ export default function CustomDropdown({
       );
       displayText = match ? match.label : selectedValues[0];
     } else {
-      displayText = label
-        ? `${label} (${selectedValues.length})`
+      const baseLabel = label ? label.replace(/^All\s+/i, '') : '';
+      displayText = baseLabel
+        ? `${baseLabel} (${selectedValues.length})`
         : `${selectedValues.length} Selected`;
     }
   } else {
@@ -247,7 +248,7 @@ export default function CustomDropdown({
     if (isMulti) {
       const isValAll = isAllValue(val);
       if (isValAll) {
-        onChange([val || 'all']);
+        onChange([]);
         return;
       }
 

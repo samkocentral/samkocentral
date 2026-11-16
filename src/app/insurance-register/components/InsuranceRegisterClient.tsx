@@ -92,7 +92,7 @@ const INSURANCE_TYPES = [
   'Engineering Insurance',
 ];
 
-const DEFAULT_HOTELS = ['Gow', 'Crowne Plaza Kingston-south', 'Stanhill Court'];
+const DEFAULT_HOTELS = ['Crowne Plaza Kingston-south', 'Stanhill Court'];
 
 const MOCK_POLICIES: InsurancePolicy[] = [
   {
@@ -101,7 +101,7 @@ const MOCK_POLICIES: InsurancePolicy[] = [
     insuranceType: 'Buildings & Plant Cover',
     insuranceCompany: 'Aviva Commercial',
     broker: 'Marsh UK',
-    hotel: 'Gow',
+    hotel: 'Stanhill Court',
     coverageAmount: 25000000,
     annualPremium: 59335,
     startDate: '2025-07-01',
@@ -156,7 +156,7 @@ const MOCK_CLAIMS: Claim[] = [
     id: 'c1',
     policyId: '1',
     policyNumber: 'INS-008547',
-    hotel: 'Gow',
+    hotel: 'Stanhill Court',
     claimDate: '2025-03-15',
     description: 'Water damage to ground floor lobby ceiling',
     amount: 12500,
@@ -428,7 +428,7 @@ export default function InsuranceRegisterClient() {
     return Array.from(
       new Set([...propertyList, ...policies.map((p) => p.hotel).filter(Boolean), ...DEFAULT_HOTELS])
     )
-      .filter((p) => isPropertyAccessible(p))
+      .filter((p) => p && p.toLowerCase() !== 'gow' && isPropertyAccessible(p))
       .sort();
   }, [propertyList, policies, isPropertyAccessible]);
 

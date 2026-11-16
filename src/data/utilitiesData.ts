@@ -60,7 +60,7 @@ export const UTILITIES: UtilityAccount[] = [
   },
   {
     id: 'util-003',
-    property: 'Gow',
+    property: 'Stanhill Court',
     utilityType: 'Water',
     supplier: 'Thames Water Commercial',
     accountNumber: 'TW-WT-109283',
