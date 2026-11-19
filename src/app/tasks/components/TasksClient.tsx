@@ -8,6 +8,7 @@ import UploadDocumentModal from './UploadDocumentModal';
 import PageCMSEditButton from '@/components/cms/PageCMSEditButton';
 import LoadingPagination from '@/components/ui/LoadingPagination';
 import { useLoadingPagination } from '@/hooks/useLoadingPagination';
+import DocumentTableCell from '@/components/ui/DocumentTableCell';
 import {
   CheckSquare,
   Square,
@@ -33,6 +34,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/lib/authContext';
+import { useSearchParams } from 'next/navigation';
 import CustomDropdown from '@/components/ui/CustomDropdown';
 import { api } from '@/lib/api';
 import { useDeepPageCms } from '@/lib/deepPageCms';
@@ -62,7 +64,10 @@ function normalizeTaskItem(t: any): TaskItem {
 
 export default function TasksClient() {
   const cms = useDeepPageCms('tasks');
-  const { canWriteTab, isPropertyAccessible, canDelete, isViewer } = useAuth();
+  const { canWriteTab, isPropertyAccessible, canDelete, isViewer, activePortal } = useAuth();
+  const searchParams = useSearchParams();
+  const portalParam = searchParams?.get('portal');
+  const isPropco = portalParam === 'propco' || (!portalParam && activePortal === 'propco');
   const canWrite = !isViewer && canWriteTab('tasks');
   const hasDeleteAccess = !isViewer && canDelete && canWriteTab('tasks');
   const { properties: liveProperties } = useLiveProperties();
@@ -188,24 +193,31 @@ export default function TasksClient() {
 
   // Add new task from AddItemModal
   const handleTaskCreated = async (newTask: TaskItem) => {
-    setTasks((prev) => [newTask, ...prev]);
+    const taskWithPortal = {
+      ...newTask,
+      portal: isPropco ? 'propco' : 'opco',
+    };
+    setTasks((prev) => [taskWithPortal, ...prev]);
 
     if (typeof window !== 'undefined') {
       window.dispatchEvent(new CustomEvent('samko:data-changed', { detail: { type: 'tasks' } }));
     }
 
     try {
-      await api.tasks.create(newTask);
+      await api.tasks.create(taskWithPortal);
     } catch (e) {
       console.error('Failed to persist new task to database:', e);
     }
   };
 
   const accessibleTasks = useMemo(() => {
-    return tasks.filter((t) =>
-      isPropertyAccessible(t.property || (t as any).hotel || (t as any).site)
-    );
-  }, [tasks, isPropertyAccessible]);
+    return tasks.filter((t) => {
+      const itemPortal = (t as any).portal || 'opco';
+      if (isPropco && itemPortal !== 'propco') return false;
+      if (!isPropco && itemPortal === 'propco') return false;
+      return isPropertyAccessible(t.property || (t as any).hotel || (t as any).site);
+    });
+  }, [tasks, isPropertyAccessible, isPropco]);
 
   const accessibleTaskProperties = useMemo(() => {
     const liveNames = liveProperties.map((p) => p.name).filter(Boolean);
@@ -1251,6 +1263,17 @@ function TaskCardRow({
 
           {/* Due date indicator */}
           <div className="flex items-center gap-1.5">{renderDueIndicator()}</div>
+
+          <span className="text-border text-xs hidden sm:inline">•</span>
+
+          {/* Document indicator */}
+          <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
+            <span className="text-[11px] text-muted-foreground">Document:</span>
+            <DocumentTableCell
+              documentName={(task as any).documentName || (task as any).document || (task as any).proofDocument}
+              documentUrl={(task as any).documentUrl}
+            />
+          </div>
         </div>
       </div>
 

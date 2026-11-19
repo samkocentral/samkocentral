@@ -40,6 +40,7 @@ module.exports = {
         warning: 'var(--warning)',
         critical: 'var(--critical)',
         info: 'var(--info)',
+        surface: 'var(--surface)',
         surface2: 'var(--surface2)',
         surface3: 'var(--surface3)',
       },

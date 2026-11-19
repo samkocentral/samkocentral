@@ -43,6 +43,8 @@ import TableCheckbox from '@/components/ui/TableCheckbox';
 import BulkActionBar from '@/components/ui/BulkActionBar';
 import ConfirmDeleteModal from '@/components/modals/ConfirmDeleteModal';
 import { getLivePropertyNames } from '@/hooks/useLiveProperties';
+import DocumentUploadField from '@/components/ui/DocumentUploadField';
+import DocumentTableCell from '@/components/ui/DocumentTableCell';
 
 type PolicyStatus = 'active' | 'expiring-soon' | 'expired' | 'pending-renewal';
 
@@ -64,6 +66,7 @@ interface InsurancePolicy {
   emergencyPhone: string;
   status: PolicyStatus;
   notes?: string;
+  portal?: 'propco' | 'opco';
 }
 
 interface Claim {
@@ -75,6 +78,7 @@ interface Claim {
   description: string;
   amount: number;
   status: 'open' | 'in-progress' | 'settled' | 'rejected';
+  portal?: 'propco' | 'opco';
 }
 
 const INSURANCE_TYPES = [
@@ -293,7 +297,8 @@ function normalizePolicy(item: any): InsurancePolicy {
 }
 
 export default function InsuranceRegisterClient() {
-  const { user, isViewer, canEdit, canDelete, canWriteTab, isPropertyAccessible } = useAuth();
+  const { user, isViewer, canEdit, canDelete, canWriteTab, isPropertyAccessible, activePortal } =
+    useAuth();
   const hasWriteAccess = !isViewer && canEdit && canWriteTab('insurance');
   const hasDeleteAccess = !isViewer && canDelete && canWriteTab('insurance');
   const {
@@ -343,9 +348,14 @@ export default function InsuranceRegisterClient() {
     }
   }, [searchParams]);
 
+  const portalParam = searchParams?.get('portal');
+  const isOpCo = portalParam === 'opco' || (!portalParam && activePortal === 'opco');
+
   const handleTabChange = (t: 'register' | 'claims' | 'renewals') => {
     setActiveTab(t);
-    const url = t === 'register' ? '/insurance-register' : `/insurance-register?tab=${t}`;
+    const portalQuery = portalParam ? `portal=${portalParam}` : '';
+    const base = t === 'register' ? '/insurance-register' : `/insurance-register?tab=${t}`;
+    const url = portalQuery ? (t === 'register' ? `${base}?${portalQuery}` : `${base}&${portalQuery}`) : base;
     router.push(url, { scroll: false });
   };
   const [search, setSearch] = useState('');
@@ -684,6 +694,9 @@ export default function InsuranceRegisterClient() {
     emergencyPhone: '',
     status: 'active' as PolicyStatus,
     notes: '',
+    documentName: '',
+    documentUrl: '',
+    documentSize: '',
   });
 
   const fetchInsurance = useCallback(async () => {
@@ -765,6 +778,7 @@ export default function InsuranceRegisterClient() {
       coverageAmount: Number(addForm.coverageAmount),
       annualPremium: Number(addForm.annualPremium),
       excessAmount: Number(addForm.excessAmount),
+      portal: isOpCo ? 'opco' : 'propco',
     };
 
     try {
@@ -954,6 +968,7 @@ export default function InsuranceRegisterClient() {
       property:
         claimForm.hotel || matchingPol?.hotel || propertyList[0] || 'Crowne Plaza Kingston-south',
       amount: Number(claimForm.amount) || 0,
+      portal: isOpCo ? 'opco' : 'propco',
     };
     try {
       const res = await api.claims.create(payload);
@@ -1052,16 +1067,22 @@ export default function InsuranceRegisterClient() {
   };
 
   const accessiblePolicies = React.useMemo(() => {
-    return policies.filter((p) =>
-      isPropertyAccessible(p.hotel || (p as any).property || (p as any).site)
-    );
-  }, [policies, isPropertyAccessible]);
+    return policies.filter((p) => {
+      const itemPortal = (p as any).portal || 'propco';
+      if (isOpCo && itemPortal !== 'opco') return false;
+      if (!isOpCo && itemPortal === 'opco') return false;
+      return isPropertyAccessible(p.hotel || (p as any).property || (p as any).site);
+    });
+  }, [policies, isPropertyAccessible, isOpCo]);
 
   const accessibleClaims = React.useMemo(() => {
-    return claims.filter((c) =>
-      isPropertyAccessible(c.hotel || (c as any).property || (c as any).site)
-    );
-  }, [claims, isPropertyAccessible]);
+    return claims.filter((c) => {
+      const itemPortal = (c as any).portal || 'propco';
+      if (isOpCo && itemPortal !== 'opco') return false;
+      if (!isOpCo && itemPortal === 'opco') return false;
+      return isPropertyAccessible(c.hotel || (c as any).property || (c as any).site);
+    });
+  }, [claims, isPropertyAccessible, isOpCo]);
 
   const totalCoverage = accessiblePolicies.reduce((s, p) => s + (p.coverageAmount || 0), 0);
   const totalPremium = accessiblePolicies.reduce((s, p) => s + (p.annualPremium || 0), 0);
@@ -1294,11 +1315,26 @@ export default function InsuranceRegisterClient() {
       >
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="font-head font-bold text-xl">{cmsTitle || 'Insurance Management'}</h1>
+            <h1 className="font-head font-bold text-xl">
+              {cmsTitle || (isOpCo ? 'OpCo Insurance Management' : 'PropCo Insurance Management')}
+            </h1>
+            <span
+              className="px-2 py-0.5 rounded text-[10px] font-extrabold uppercase border"
+              style={{
+                background: isOpCo ? 'rgba(96,165,250,0.15)' : 'rgba(232,201,122,0.15)',
+                color: isOpCo ? '#60a5fa' : '#e8c97a',
+                borderColor: isOpCo ? 'rgba(96,165,250,0.35)' : 'rgba(232,201,122,0.35)',
+              }}
+            >
+              {isOpCo ? 'OpCo Operations' : 'PropCo Asset Co'}
+            </span>
             {loading && <Loader2 size={14} className="animate-spin text-muted-foreground" />}
           </div>
           <p className="text-xs text-muted-foreground mt-0.5">
-            {cmsSubtitle || 'Manage insurance policies, coverage, premiums, claims, and renewals'}
+            {cmsSubtitle ||
+              (isOpCo
+                ? `Operational insurance policies & incident claims — ${accessiblePolicies.length} OpCo policies`
+                : `Manage capital asset insurance policies, coverage, premiums, claims, and renewals — ${accessiblePolicies.length} policies across properties`)}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -1571,6 +1607,7 @@ export default function InsuranceRegisterClient() {
                       'Days Left',
                       'Manager',
                       'Status',
+                      'Document',
                       '',
                     ].map((h) => (
                       <th
@@ -1695,6 +1732,12 @@ export default function InsuranceRegisterClient() {
                           )}
                         </td>
                         <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
+                          <DocumentTableCell
+                            documentName={(policy as any).documentName || (policy as any).document || (policy as any).policyDocument}
+                            documentUrl={(policy as any).documentUrl}
+                          />
+                        </td>
+                        <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
                           <div className="flex items-center gap-1.5 whitespace-nowrap">
                             <button
                               className="p-1.5 rounded-lg border border-border hover:bg-surface2 transition-colors cursor-pointer"
@@ -1803,6 +1846,7 @@ export default function InsuranceRegisterClient() {
                       'Description',
                       'Amount',
                       'Status',
+                      'Document',
                       '',
                     ].map((h) => (
                       <th
@@ -1817,7 +1861,7 @@ export default function InsuranceRegisterClient() {
                 <tbody>
                   {accessibleClaims.length === 0 ? (
                     <tr>
-                      <td colSpan={8} className="text-center py-12 text-muted-foreground">
+                      <td colSpan={9} className="text-center py-12 text-muted-foreground">
                         <div className="flex flex-col items-center justify-center gap-2">
                           <CheckCircle2 size={32} className="opacity-30" />
                           <p className="text-sm font-medium">
@@ -1880,6 +1924,12 @@ export default function InsuranceRegisterClient() {
                                 color: cs.color,
                                 border: `1px solid ${cs.color}33`,
                               }}
+                            />
+                          </td>
+                          <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
+                            <DocumentTableCell
+                              documentName={(claim as any).documentName || (claim as any).document}
+                              documentUrl={(claim as any).documentUrl}
                             />
                           </td>
                           <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
@@ -2301,6 +2351,30 @@ export default function InsuranceRegisterClient() {
                     ]}
                   />
                 </div>
+                <div className="col-span-2">
+                  <DocumentUploadField
+                    label="Policy Document / Schedule / Certificate (Optional)"
+                    documentName={addForm.documentName}
+                    documentUrl={addForm.documentUrl}
+                    documentSize={addForm.documentSize}
+                    onUpload={({ name, url, size }) =>
+                      setAddForm({
+                        ...addForm,
+                        documentName: name,
+                        documentUrl: url,
+                        documentSize: size || '',
+                      })
+                    }
+                    onRemove={() =>
+                      setAddForm({
+                        ...addForm,
+                        documentName: '',
+                        documentUrl: '',
+                        documentSize: '',
+                      })
+                    }
+                  />
+                </div>
               </div>
               <div className="flex gap-2 p-6 pt-0 border-t border-border mt-2">
                 <button
@@ -2552,6 +2626,30 @@ export default function InsuranceRegisterClient() {
                     onChange={(e) => setEditingPolicy({ ...editingPolicy, notes: e.target.value })}
                     className="rounded-lg border border-border px-3 py-2 text-sm outline-none resize-none"
                     style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
+                  />
+                </div>
+                <div className="col-span-2">
+                  <DocumentUploadField
+                    label="Policy Document / Schedule / Certificate (Optional)"
+                    documentName={(editingPolicy as any).documentName || (editingPolicy as any).document || (editingPolicy as any).policyDocument || ''}
+                    documentUrl={(editingPolicy as any).documentUrl || (editingPolicy as any).policyDocumentUrl}
+                    documentSize={(editingPolicy as any).documentSize}
+                    onUpload={({ name, url, size }) =>
+                      setEditingPolicy({
+                        ...editingPolicy,
+                        documentName: name,
+                        documentUrl: url,
+                        documentSize: size || '',
+                      } as any)
+                    }
+                    onRemove={() =>
+                      setEditingPolicy({
+                        ...editingPolicy,
+                        documentName: '',
+                        documentUrl: '',
+                        documentSize: '',
+                      } as any)
+                    }
                   />
                 </div>
               </div>
@@ -2921,6 +3019,30 @@ export default function InsuranceRegisterClient() {
                     }
                     className="rounded-lg border border-border px-3 py-2 text-sm outline-none resize-none"
                     style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
+                  />
+                </div>
+                <div className="col-span-2">
+                  <DocumentUploadField
+                    label="Claim Document / Evidence / Report (Optional)"
+                    documentName={(editingClaim as any).documentName || (editingClaim as any).document || ''}
+                    documentUrl={(editingClaim as any).documentUrl}
+                    documentSize={(editingClaim as any).documentSize}
+                    onUpload={({ name, url, size }) =>
+                      setEditingClaim({
+                        ...editingClaim,
+                        documentName: name,
+                        documentUrl: url,
+                        documentSize: size || '',
+                      } as any)
+                    }
+                    onRemove={() =>
+                      setEditingClaim({
+                        ...editingClaim,
+                        documentName: '',
+                        documentUrl: '',
+                        documentSize: '',
+                      } as any)
+                    }
                   />
                 </div>
               </div>

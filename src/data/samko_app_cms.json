@@ -1,0 +1,490 @@
+{
+  "version": "2.2",
+  "propco": {
+    "id": "propco",
+    "title": "PROPCO",
+    "badgeText": "ASSET CO",
+    "badgeColor": "#e8c97a",
+    "iconName": "Building2",
+    "enabled": true,
+    "description": "Capital infrastructure, real estate properties, fixed plant machinery, statutory compliance & long-term supplier contracts",
+    "tabs": [
+      {
+        "enabled": true,
+        "group": "Asset Management",
+        "id": "propco-dashboard",
+        "name": "PropCo Dashboard",
+        "order": 0,
+        "section": "propco",
+        "iconName": "LayoutDashboard",
+        "path": "/?portal=propco",
+        "description": "Asset Co portfolio overview, fixed plant infrastructure & contract values"
+      },
+      {
+        "path": "/asset-management/properties",
+        "iconName": "Building2",
+        "name": "Properties",
+        "description": "Hotel profiles, site locations, building specs & management contacts",
+        "group": "Asset Management",
+        "enabled": true,
+        "id": "properties",
+        "order": 1,
+        "section": "propco"
+      },
+      {
+        "iconName": "Package",
+        "name": "Fixed Assets",
+        "section": "propco",
+        "id": "all-assets",
+        "description": "HVAC, lifts, boilers, generators, plant & machinery infrastructure",
+        "path": "/asset-management/assets",
+        "enabled": true,
+        "group": "Asset Management",
+        "order": 2
+      },
+      {
+        "group": "Governance & Legal",
+        "name": "Insurance",
+        "order": 3,
+        "path": "/insurance-register",
+        "id": "insurance",
+        "enabled": true,
+        "description": "Property damage, public liability, employers liability & renewal policies",
+        "subtabs": [
+          {
+            "path": "/insurance-register?tab=claims",
+            "label": "Claims",
+            "id": "claims"
+          },
+          {
+            "path": "/insurance-register",
+            "label": "Insurance Register",
+            "id": "register"
+          },
+          {
+            "id": "renewals",
+            "label": "Renewals",
+            "path": "/insurance-register?tab=renewals"
+          }
+        ],
+        "section": "propco",
+        "iconName": "FileCheck"
+      },
+      {
+        "name": "Contracts",
+        "subtabs": [
+          {
+            "path": "/contracts-register",
+            "label": "Contracts Register",
+            "id": "register"
+          },
+          {
+            "path": "/contracts-register?tab=suppliers",
+            "id": "suppliers",
+            "label": "Suppliers"
+          },
+          {
+            "path": "/contracts-register?tab=renewals",
+            "label": "Renewals",
+            "id": "renewals"
+          },
+          {
+            "id": "slas",
+            "path": "/contracts-register?tab=slas",
+            "label": "SLAs"
+          }
+        ],
+        "enabled": true,
+        "path": "/contracts-register",
+        "description": "Vendor maintenance contracts, SLAs, notice periods & renewal dates",
+        "section": "propco",
+        "group": "Governance & Legal",
+        "iconName": "ScrollText",
+        "order": 4,
+        "id": "contracts"
+      },
+      {
+        "description": "Portfolio valuation, lifecycle replacement forecasting & contract analysis",
+        "id": "reports",
+        "iconName": "BarChart3",
+        "order": 5,
+        "path": "/asset-management/reports?type=contracts",
+        "enabled": true,
+        "section": "propco",
+        "name": "Reports",
+        "group": "Analytics & Tools"
+      },
+      {
+        "id": "acquisition",
+        "order": 5,
+        "iconName": "FolderOpen",
+        "name": "Acquisition",
+        "enabled": true,
+        "group": "Governance & Legal",
+        "section": "both",
+        "description": "M&A due diligence repository, title deeds, legal contracts, surveys, and financial valuation models",
+        "path": "/acquisition?portal=propco"
+      }
+    ]
+  },
+  "opco": {
+    "id": "opco",
+    "title": "OPCO",
+    "badgeText": "OPERATIONS",
+    "badgeColor": "#60a5fa",
+    "iconName": "Shield",
+    "enabled": true,
+    "description": "Daily operations, preventative maintenance tasks, reactive work orders, routine checklists & hotel site actions",
+    "tabs": [
+      {
+        "id": "opco-dashboard",
+        "iconName": "LayoutDashboard",
+        "order": 0,
+        "description": "Operations pulse, loose FF&E, maintenance PPM, statutory compliance & energy utilities",
+        "section": "opco",
+        "name": "OpCo Dashboard",
+        "group": "Overview",
+        "path": "/?portal=opco",
+        "enabled": true
+      },
+      {
+        "enabled": true,
+        "order": 1,
+        "section": "opco",
+        "id": "non-fixed",
+        "group": "Asset Management",
+        "path": "/asset-management/assets?type=non-fixed",
+        "iconName": "Package",
+        "description": "Operational and non-fixed movable equipment register & loose fixtures",
+        "name": "Non-Fixed Assets"
+      },
+      {
+        "order": 2,
+        "section": "opco",
+        "id": "maintenance",
+        "group": "Maintenance",
+        "enabled": true,
+        "subtabs": [
+          {
+            "id": "scheduled",
+            "path": "/asset-management/maintenance?filter=scheduled",
+            "label": "Scheduled"
+          },
+          {
+            "label": "Due Today",
+            "id": "due-today",
+            "path": "/asset-management/maintenance?filter=due-today"
+          },
+          {
+            "path": "/asset-management/maintenance?filter=overdue",
+            "id": "overdue",
+            "label": "Overdue"
+          },
+          {
+            "id": "completed",
+            "path": "/asset-management/maintenance?filter=completed",
+            "label": "Completed"
+          }
+        ],
+        "iconName": "Calendar",
+        "description": "Planned preventative maintenance, contractor work orders & servicing",
+        "name": "Maintenance",
+        "path": "/asset-management/maintenance"
+      },
+      {
+        "name": "Compliance",
+        "description": "Fire safety, Legionella, EICR electrical, LOLER lifts & gas CP12 certificates",
+        "group": "Compliance",
+        "enabled": true,
+        "subtabs": [
+          {
+            "path": "/compliance-register",
+            "id": "register",
+            "label": "Compliance Register"
+          },
+          {
+            "label": "Certifications",
+            "id": "certifications",
+            "path": "/compliance-register?tab=certifications"
+          },
+          {
+            "label": "Statutory Inspections",
+            "path": "/compliance-register?tab=statutory",
+            "id": "statutory"
+          },
+          {
+            "label": "Expiry Dashboard",
+            "path": "/compliance-tracker",
+            "id": "expiry"
+          }
+        ],
+        "iconName": "ShieldCheck",
+        "path": "/compliance-register",
+        "order": 3,
+        "section": "opco",
+        "id": "compliance"
+      },
+      {
+        "id": "tasks",
+        "iconName": "CheckSquare",
+        "name": "Tasks and Alerts",
+        "description": "Operational action items, assignees, priorities, due dates & tickets",
+        "path": "/tasks",
+        "group": "Core & Portfolio",
+        "enabled": true,
+        "order": 4,
+        "section": "opco"
+      },
+      {
+        "name": "Reports",
+        "path": "/asset-management/reports?type=maintenance",
+        "description": "Operational KPIs, maintenance uptime metrics, compliance summaries & exports",
+        "group": "Analytics & Tools",
+        "id": "maintenance-reports",
+        "enabled": true,
+        "order": 5,
+        "iconName": "BarChart3",
+        "section": "opco"
+      },
+      {
+        "iconName": "ClipboardList",
+        "enabled": true,
+        "description": "Agile Kanban board for operational workflow tracking & ticket sprints",
+        "section": "opco",
+        "id": "task-manager",
+        "order": 6,
+        "name": "Task Module",
+        "group": "Core & Portfolio",
+        "path": "/task-manager"
+      },
+      {
+        "path": "/utilities-register",
+        "group": "Governance & Legal",
+        "name": "Utility",
+        "description": "Half-hourly electricity, commercial gas, water meters & supplier tariffs",
+        "order": 7,
+        "enabled": true,
+        "subtabs": [
+          {
+            "path": "/utilities-register",
+            "id": "register",
+            "label": "Utilities Register"
+          },
+          {
+            "path": "/utilities-register?type=electricity",
+            "id": "energy",
+            "label": "Energy & Water Accounts"
+          }
+        ],
+        "iconName": "Zap",
+        "id": "utilities",
+        "section": "opco"
+      },
+      {
+        "section": "both",
+        "order": 8,
+        "description": "M&A due diligence repository, title deeds, legal contracts, surveys, and financial valuation models",
+        "enabled": true,
+        "group": "Governance & Legal",
+        "id": "acquisition",
+        "name": "Acquisition",
+        "iconName": "FolderOpen",
+        "path": "/acquisition?portal=opco"
+      }
+    ]
+  },
+  "dashboard": {
+    "pageTitle": "Operational Overview",
+    "pageSubtitle": "Real-time portfolio intelligence, statutory compliance status & cross-property operations",
+    "welcomeGreeting": "Good afternoon, Marcus. Operational pulse across all UK properties.",
+    "kpis": [
+      {
+        "enabled": true,
+        "sub": "Across England & South East",
+        "value": "8 Sites",
+        "id": "kpi-sites",
+        "color": "#e8c97a",
+        "label": "Active Properties",
+        "iconName": "Building2"
+      },
+      {
+        "sub": "Fixed Plant & Machinery",
+        "id": "kpi-asset-val",
+        "color": "#60a5fa",
+        "label": "Total Asset Value",
+        "value": "£48.2M",
+        "iconName": "Package",
+        "enabled": true
+      },
+      {
+        "label": "Statutory Compliance",
+        "color": "#3dd68c",
+        "iconName": "ShieldCheck",
+        "id": "kpi-compliance",
+        "value": "94.2%",
+        "enabled": true,
+        "sub": "2 certificates expiring < 30d"
+      },
+      {
+        "id": "kpi-ppm",
+        "enabled": true,
+        "label": "PPM Work Orders",
+        "color": "#f59e0b",
+        "iconName": "Wrench",
+        "sub": "3 scheduled this week",
+        "value": "14 Active"
+      },
+      {
+        "value": "27 SLAs",
+        "sub": "£218k annual committed",
+        "color": "#a78bfa",
+        "label": "Active Contracts",
+        "enabled": true,
+        "iconName": "ScrollText",
+        "id": "kpi-contracts"
+      }
+    ]
+  },
+  "recentLogs": {
+    "moduleTitle": "Audit Logs",
+    "retentionDays": "180",
+    "categories": [
+      "Security & Authentication",
+      "Asset Management Updates",
+      "Compliance Inspections",
+      "Contract & Renewal Terms",
+      "User Permissions & Role Changes",
+      "Work Order Sign-offs"
+    ],
+    "columns": [
+      "Timestamp",
+      "Event Type",
+      "User Account",
+      "Target Entity",
+      "IP Address",
+      "Status"
+    ],
+    "allowExport": true
+  },
+  "importExport": {
+    "moduleTitle": "Import & Export Central Hub",
+    "maxUploadMb": 25,
+    "supportedModules": [
+      "Fixed Assets (Plant & Machinery)",
+      "Non-Fixed FF&E Equipment",
+      "Contracts & SLAs Register",
+      "Compliance Items & Expiries",
+      "Planned Maintenance Schedules",
+      "Utilities & Energy Meters"
+    ],
+    "allowBatchDelete": true
+  },
+  "roles": [
+    {
+      "title": "Super Admin",
+      "description": "Complete unrestricted platform governance, CMS control & security",
+      "roleLevel": "L1",
+      "badgeColor": "#e8c97a"
+    },
+    {
+      "description": "Site-wide asset oversight, budget approvals & high-level operations",
+      "roleLevel": "L2",
+      "badgeColor": "#60a5fa",
+      "title": "Property Director / GM"
+    },
+    {
+      "badgeColor": "#3dd68c",
+      "title": "Operations Manager",
+      "description": "Daily operational tasks, compliance monitoring & contractor tickets",
+      "roleLevel": "L3"
+    },
+    {
+      "description": "On-site PPM servicing, machinery inspections & condition audits",
+      "badgeColor": "#f59e0b",
+      "title": "Maintenance Engineer",
+      "roleLevel": "L4"
+    },
+    {
+      "badgeColor": "#a78bfa",
+      "description": "Read-only access to statutory compliance records & audit trails",
+      "title": "Auditor / Viewer",
+      "roleLevel": "L5"
+    }
+  ],
+  "navigationItems": [
+    {
+      "label": "Dashboard",
+      "order": 1,
+      "enabled": true,
+      "href": "/",
+      "iconName": "LayoutDashboard",
+      "id": "dashboard"
+    },
+    {
+      "id": "propco",
+      "enabled": true,
+      "badgeText": "ASSET CO",
+      "iconName": "Building2",
+      "href": "#propco",
+      "label": "PROPCO",
+      "order": 2
+    },
+    {
+      "label": "OPCO",
+      "order": 3,
+      "href": "#opco",
+      "badgeText": "OPERATIONS",
+      "id": "opco",
+      "iconName": "Shield",
+      "enabled": true
+    },
+    {
+      "label": "Audit Logs",
+      "order": 4,
+      "iconName": "History",
+      "href": "/recent-logs",
+      "enabled": true,
+      "id": "recent-logs"
+    },
+    {
+      "iconName": "Upload",
+      "href": "/asset-management/import",
+      "label": "Import / Export",
+      "order": 5,
+      "id": "import",
+      "enabled": true
+    },
+    {
+      "href": "/users",
+      "enabled": true,
+      "id": "users",
+      "label": "Users & Roles",
+      "order": 6,
+      "iconName": "Users"
+    },
+    {
+      "order": 7,
+      "label": "Settings",
+      "href": "/settings",
+      "iconName": "Settings",
+      "id": "settings",
+      "enabled": true
+    },
+    {
+      "id": "approvals",
+      "enabled": true,
+      "href": "/approvals",
+      "order": 4,
+      "label": "Approvals",
+      "iconName": "ClipboardCheck"
+    },
+    {
+      "label": "Docs Upload",
+      "order": 5,
+      "href": "/document-repository",
+      "id": "docs-upload",
+      "iconName": "CloudUpload",
+      "enabled": true
+    }
+  ]
+}

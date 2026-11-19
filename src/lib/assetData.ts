@@ -68,6 +68,7 @@ export interface Asset {
   approvalStatus?: 'approved' | 'pending' | 'hold';
   submittedBy?: string;
   submittedDate?: string;
+  portal?: 'propco' | 'opco';
   createdAt: string;
   updatedAt: string;
 }
@@ -166,6 +167,7 @@ export interface MaintenanceRecord {
   notes?: string;
   result?: InspectionResult;
   nextDueDate: string;
+  portal?: 'propco' | 'opco';
   createdAt?: string;
   updatedAt?: string;
 }
@@ -173,14 +175,13 @@ export interface MaintenanceRecord {
 // ─── HOTELS ──────────────────────────────────────────────────────────────────
 
 export const HOTELS: Hotel[] = [
-  
   {
     id: 'hotel-001',
     name: 'Crowne Plaza Kingston-south',
     address: 'Holiday Inn, Kingston House Estate, Portsmouth Rd, Thames Ditton, Surbiton KT6 5QG',
     city: 'London',
     status: 'active',
-    totalAssets: 1,
+    totalAssets: 35,
     manager: 'Marcus Webb',
     phone: '+44 20 8546 0100',
   },
@@ -190,9 +191,89 @@ export const HOTELS: Hotel[] = [
     address: 'Stanhill Road, Charlwood, Horley, Surrey RH6 0EP',
     city: 'Surrey',
     status: 'active',
-    totalAssets: 1,
+    totalAssets: 15,
     manager: 'Sarah Chen',
     phone: '+44 1293 862 166',
+  },
+  {
+    id: 'hotel-003',
+    name: 'Warren House',
+    address: 'Warren Rd, Kingston upon Thames KT2 7HY',
+    city: 'London',
+    status: 'active',
+    totalAssets: 12,
+    manager: 'Nathan Coote',
+    phone: '+44 20 8547 1777',
+  },
+  {
+    id: 'hotel-004',
+    name: 'The River Club',
+    address: 'Old Bridge Way, Claygate, Esher KT10 0EH',
+    city: 'Surrey',
+    status: 'active',
+    totalAssets: 16,
+    manager: 'Priya Sharma',
+    phone: '+44 1372 463 388',
+  },
+  {
+    id: 'hotel-005',
+    name: 'Hampton 1',
+    address: 'Kingston House Estate, Portsmouth Rd, Long Ditton, Surbiton KT6 5QQ',
+    city: 'Surrey',
+    status: 'active',
+    totalAssets: 15,
+    manager: 'James Okafor',
+    phone: '+44 20 8941 0200',
+  },
+  {
+    id: 'hotel-006',
+    name: 'Hampton 2',
+    address: 'Kingston House Estate, Portsmouth Rd, Long Ditton, Surbiton KT6 5QQ',
+    city: 'Surrey',
+    status: 'active',
+    totalAssets: 14,
+    manager: 'James Okafor',
+    phone: '+44 20 8941 0201',
+  },
+  {
+    id: 'hotel-007',
+    name: 'Ravens Ait',
+    address: 'Ravens Ait, Portsmouth Rd, Surbiton KT6 4HN',
+    city: 'London',
+    status: 'active',
+    totalAssets: 17,
+    manager: 'Priya Sharma',
+    phone: '+44 20 8399 0300',
+  },
+  {
+    id: 'hotel-008',
+    name: 'Sharnbrook',
+    address: 'Park Lane, Sharnbrook, Bedford MK44 1LX',
+    city: 'Bedfordshire',
+    status: 'active',
+    totalAssets: 10,
+    manager: 'Jamie Clarke',
+    phone: '+44 1234 783 188',
+  },
+  {
+    id: 'hotel-009',
+    name: 'Clapham Common 1',
+    address: 'Clapham Common South Side, London SW4 9DE',
+    city: 'London',
+    status: 'active',
+    totalAssets: 8,
+    manager: 'Nathan Coote',
+    phone: '+44 20 7622 1234',
+  },
+  {
+    id: 'hotel-010',
+    name: 'Clapham Common 2',
+    address: 'Clapham Common North Side, London SW4 0AB',
+    city: 'London',
+    status: 'active',
+    totalAssets: 8,
+    manager: 'Nathan Coote',
+    phone: '+44 20 7622 5678',
   },
 ];
 
@@ -251,6 +332,7 @@ export const ASSETS: Asset[] = [
     nextInspectionDate: '2026-09-30',
     riskLevel: 'high',
     isFixed: true,
+    portal: 'propco',
     notes: 'Statutory LOLER 6-monthly thorough exam',
     createdAt: '2026-11-09T10:46:13.240Z',
     updatedAt: '2026-11-09T10:46:18.504Z',
@@ -280,6 +362,7 @@ export const ASSETS: Asset[] = [
     nextInspectionDate: '2026-11-01',
     riskLevel: 'medium',
     isFixed: true,
+    portal: 'propco',
     notes: 'Primary heating and cooling AHU for public areas',
     createdAt: '2024-01-01T00:00:00.000Z',
     updatedAt: '2026-10-21T00:00:00.000Z',
@@ -309,6 +392,7 @@ export const ASSETS: Asset[] = [
     nextInspectionDate: '2026-12-15',
     riskLevel: 'critical',
     isFixed: true,
+    portal: 'propco',
     notes: 'Auto-transfer switch standby generator for critical life safety systems',
     createdAt: '2024-01-01T00:00:00.000Z',
     updatedAt: '2026-07-01T00:00:00.000Z',
@@ -338,6 +422,7 @@ export const ASSETS: Asset[] = [
     nextInspectionDate: '2026-10-01',
     riskLevel: 'low',
     isFixed: false,
+    portal: 'opco',
     notes: 'Full hotel room FF&E inventory',
     createdAt: '2024-01-01T00:00:00.000Z',
     updatedAt: '2026-07-01T00:00:00.000Z',
@@ -367,6 +452,7 @@ export const ASSETS: Asset[] = [
     nextInspectionDate: '2026-11-15',
     riskLevel: 'medium',
     isFixed: false,
+    portal: 'opco',
     notes: 'Commercial kitchen wash-station equipment',
     createdAt: '2026-11-09T00:00:00.000Z',
     updatedAt: '2026-11-09T00:00:00.000Z',
@@ -396,6 +482,7 @@ export const ASSETS: Asset[] = [
     nextInspectionDate: '2026-12-01',
     riskLevel: 'low',
     isFixed: false,
+    portal: 'opco',
     notes: 'High-traffic lobby lounge furniture',
     createdAt: '2024-01-01T00:00:00.000Z',
     updatedAt: '2026-07-01T00:00:00.000Z',

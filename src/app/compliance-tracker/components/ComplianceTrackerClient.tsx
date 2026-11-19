@@ -33,10 +33,16 @@ import {
 import LoadingPagination from '@/components/ui/LoadingPagination';
 import { useLoadingPagination } from '@/hooks/useLoadingPagination';
 import CustomDropdown from '@/components/ui/CustomDropdown';
+import DocumentUploadField from '@/components/ui/DocumentUploadField';
+import DocumentTableCell from '@/components/ui/DocumentTableCell';
 import { useLiveProperties } from '@/hooks/useLiveProperties';
+import { useSearchParams } from 'next/navigation';
 
 export default function ComplianceTrackerClient() {
-  const { isViewer, canEdit, isPropertyAccessible } = useAuth();
+  const { isViewer, canEdit, isPropertyAccessible, activePortal } = useAuth();
+  const searchParams = useSearchParams();
+  const portalParam = searchParams?.get('portal');
+  const isPropco = portalParam === 'propco' || (!portalParam && activePortal === 'propco');
   const { properties: liveProperties } = useLiveProperties();
   const {
     title: cmsTitle,
@@ -182,6 +188,9 @@ export default function ComplianceTrackerClient() {
     status: 'ok' as 'ok' | 'warning' | 'critical',
     riskRating: 'medium',
     notes: '',
+    documentName: '',
+    documentUrl: '',
+    documentSize: '',
   });
 
   const fetchCompliance = useCallback(async () => {
@@ -203,7 +212,7 @@ export default function ComplianceTrackerClient() {
             dueDate: c.expiryDate || c.dueDate || new Date().toISOString().split('T')[0],
             lastReviewed: c.issueDate || c.lastReviewed || '2025-01-01',
             status: s,
-            assignee: c.responsiblePerson || c.assignee || 'Marcus Webb',
+            assignee: c.responsiblePerson || c.assignee || '',
             notes: c.notes || c.description || 'Statutory compliance obligation',
           };
         });
@@ -232,13 +241,21 @@ export default function ComplianceTrackerClient() {
     return Array.from(set);
   }, [allCategories, complianceList]);
   const accessibleComplianceList = useMemo(() => {
-    return complianceList.filter((c) =>
-      isPropertyAccessible(c.site || (c as any).hotel || (c as any).property)
-    );
-  }, [complianceList, isPropertyAccessible]);
+    return complianceList.filter((c) => {
+      const isAccessible = isPropertyAccessible(c.site || (c as any).hotel || (c as any).property);
+      if (!isAccessible) return false;
+      const type = ((c as any).complianceType || (c as any).section || (c as any).portal || '').toLowerCase();
+      const isPropcoItem =
+        type === 'propco' ||
+        ((c as any).section || '').toLowerCase() === 'propco' ||
+        ((c as any).complianceType || '').toLowerCase() === 'propco';
+      if (isPropco) return isPropcoItem;
+      return !isPropcoItem;
+    });
+  }, [complianceList, isPropertyAccessible, isPropco]);
 
   const sitesList = useMemo(() => {
-    const liveNames = liveProperties.map((p) => p.name).filter(Boolean);
+    const liveNames = (liveProperties || []).map((p: any) => p.name).filter(Boolean);
     const existingSites = accessibleComplianceList
       .map((c) => c.site || (c as any).hotel || (c as any).property)
       .filter(Boolean);
@@ -319,7 +336,10 @@ export default function ComplianceTrackerClient() {
       status: addForm.status,
       assignee: addForm.assignee,
       notes: addForm.notes,
-    };
+      documentName: addForm.documentName,
+      documentUrl: addForm.documentUrl,
+      documentSize: addForm.documentSize,
+    } as any;
 
     setComplianceList((prev) => [newItem, ...prev]);
     setShowAddModal(false);
@@ -657,6 +677,7 @@ export default function ComplianceTrackerClient() {
                     'Days Left',
                     'Assignee',
                     'Last Reviewed',
+                    'Document',
                   ].map((h) => (
                     <th key={`comp-th-${h}`} className="table-header-cell">
                       {h}
@@ -750,36 +771,47 @@ export default function ComplianceTrackerClient() {
                           </span>
                         </td>
                         <td className="table-cell">
-                          <div className="flex items-center gap-2">
-                            <div
-                              className="rounded-full flex items-center justify-center flex-shrink-0"
-                              style={{
-                                width: 22,
-                                height: 22,
-                                background: 'var(--surface3)',
-                                color: 'var(--text2)',
-                                fontSize: 9,
-                                fontWeight: 700,
-                              }}
-                            >
-                              {item.assignee
-                                .split(' ')
-                                .map((n) => n[0])
-                                .join('')}
+                          {item.assignee ? (
+                            <div className="flex items-center gap-2">
+                              <div
+                                className="rounded-full flex items-center justify-center flex-shrink-0"
+                                style={{
+                                  width: 22,
+                                  height: 22,
+                                  background: 'var(--surface3)',
+                                  color: 'var(--text2)',
+                                  fontSize: 9,
+                                  fontWeight: 700,
+                                }}
+                              >
+                                {item.assignee
+                                  .split(' ')
+                                  .filter(Boolean)
+                                  .map((n) => n[0])
+                                  .join('')}
+                              </div>
+                              <span className="text-muted2" style={{ fontSize: 12 }}>
+                                {item.assignee}
+                              </span>
                             </div>
-                            <span className="text-muted2" style={{ fontSize: 12 }}>
-                              {item.assignee}
-                            </span>
-                          </div>
+                          ) : (
+                            <span className="text-muted3 text-xs">—</span>
+                          )}
                         </td>
                         <td className="table-cell text-muted3" style={{ fontSize: 11 }}>
                           {formatDateGB(item.lastReviewed)}
+                        </td>
+                        <td className="table-cell" onClick={(e) => e.stopPropagation()}>
+                          <DocumentTableCell
+                            documentName={(item as any).documentName || (item as any).document || (item as any).certificateUrl || (item as any).certificateName}
+                            documentUrl={(item as any).documentUrl || (item as any).certificateUrl}
+                          />
                         </td>
                       </tr>
                       {isExpanded && (
                         <tr key={`${item.id}-expanded`}>
                           <td
-                            colSpan={8}
+                            colSpan={9}
                             style={{
                               padding: '12px 20px 14px',
                               background: 'var(--surface2)',
@@ -1062,6 +1094,29 @@ export default function ComplianceTrackerClient() {
                   placeholder="Observations, certificate details, or investigation steps…"
                   className="w-full px-3 py-2 rounded-lg border border-border text-xs outline-none"
                   style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
+                />
+              </div>
+
+              <div>
+                <DocumentUploadField
+                  label="Compliance Evidence / Certificate / Document (Optional)"
+                  documentName={addForm.documentName}
+                  onUpload={({ name, url, size }) =>
+                    setAddForm({
+                      ...addForm,
+                      documentName: name,
+                      documentUrl: url,
+                      documentSize: size || '',
+                    })
+                  }
+                  onRemove={() =>
+                    setAddForm({
+                      ...addForm,
+                      documentName: '',
+                      documentUrl: '',
+                      documentSize: '',
+                    })
+                  }
                 />
               </div>
 

@@ -10,6 +10,8 @@ interface ModalProps {
   subtitle?: string;
   children: React.ReactNode;
   width?: number;
+  stickyHeader?: React.ReactNode;
+  footer?: React.ReactNode;
 }
 
 export default function Modal({
@@ -19,6 +21,8 @@ export default function Modal({
   subtitle,
   children,
   width = 560,
+  stickyHeader,
+  footer,
 }: ModalProps) {
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -33,7 +37,11 @@ export default function Modal({
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4 fade-in"
-      style={{ background: 'rgba(0,0,0,0.7)' }}
+      style={{
+        background: 'rgba(0,0,0,0.8)',
+        backdropFilter: 'blur(8px)',
+        WebkitBackdropFilter: 'blur(8px)',
+      }}
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
@@ -49,6 +57,8 @@ export default function Modal({
           maxHeight: '90vh',
           boxShadow: '0 20px 60px rgba(0,0,0,0.6)',
           border: '1px solid var(--border-strong)',
+          backgroundColor: '#11141a',
+          background: 'var(--surface, #11141a)',
         }}
       >
         {/* Header */}
@@ -88,10 +98,24 @@ export default function Modal({
           </button>
         </div>
 
+        {/* Sticky Sub-Header Bar (Fixed below title, stays visible while scrolling) */}
+        {stickyHeader && (
+          <div className="flex-shrink-0 border-b border-border bg-surface px-5 py-3.5 z-20 shadow-sm">
+            {stickyHeader}
+          </div>
+        )}
+
         {/* Body */}
-        <div className="flex-1 overflow-y-auto" style={{ padding: '20px 22px' }}>
+        <div className="flex-1 overflow-y-auto" style={{ padding: '18px 22px' }}>
           {children}
         </div>
+
+        {/* Sticky Footer Bar (Fixed at bottom, stays visible while scrolling) */}
+        {footer && (
+          <div className="flex-shrink-0 border-t border-border bg-surface px-5 py-3 z-20 shadow-lg">
+            {footer}
+          </div>
+        )}
       </div>
     </div>
   );

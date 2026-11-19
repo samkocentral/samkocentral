@@ -38,7 +38,7 @@ export default function ConfirmDeleteModal({
     >
       <div
         className="w-full max-w-md rounded-2xl border border-rose-500/30 p-6 shadow-2xl animate-in zoom-in-95 duration-200 text-foreground"
-        style={{ background: 'var(--surface)' }}
+        style={{ background: 'var(--surface, #11141a)', backgroundColor: '#11141a' }}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header with warning icon and title */}

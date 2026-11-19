@@ -17,6 +17,7 @@ import {
   AlertTriangle,
   Check,
   Eye,
+  Package,
 } from 'lucide-react';
 import {
   ASSETS,
@@ -32,6 +33,8 @@ import { useAuth } from '@/lib/authContext';
 import { toast } from 'sonner';
 import CustomDropdown from '@/components/ui/CustomDropdown';
 import StatusDropdown from '@/components/ui/StatusDropdown';
+import DocumentUploadField from '@/components/ui/DocumentUploadField';
+import DocumentTableCell from '@/components/ui/DocumentTableCell';
 import { useDeepPageCms, updatePageItem, addPageItem, deletePageItem } from '@/lib/deepPageCms';
 import PageCMSEditButton from '@/components/cms/PageCMSEditButton';
 import LoadingPagination from '@/components/ui/LoadingPagination';
@@ -106,15 +109,17 @@ function FilterSelect({
 }
 
 export default function AssetsClient() {
-  const { isViewer, canEdit, canUpload, canDelete, canWriteTab, isPropertyAccessible } = useAuth();
+  const { isViewer, isUploader, canEdit, canUpload, canDelete, canWriteTab, isPropertyAccessible, activePortal } = useAuth();
   const searchParams = useSearchParams();
   const router = useRouter();
   const initialHotel = searchParams?.get('hotel') || '';
   const isNonFixed = searchParams?.get('type') === 'non-fixed';
+  const portalParam = searchParams?.get('portal');
+  const isOpCo = portalParam === 'opco' || (!portalParam && activePortal === 'opco');
   const pageKey = isNonFixed ? 'nonfixed' : 'assets';
   const tabId = isNonFixed ? 'non-fixed-assets' : 'fixed-assets';
-  const hasWriteAccess = !isViewer && canEdit && canWriteTab(tabId);
-  const hasDeleteAccess = !isViewer && canDelete && canWriteTab(tabId);
+  const hasWriteAccess = !isViewer && !isUploader && canEdit && canWriteTab(tabId);
+  const hasDeleteAccess = !isViewer && !isUploader && canDelete && canWriteTab(tabId);
 
   const {
     title: cmsTitle,
@@ -128,11 +133,11 @@ export default function AssetsClient() {
   } = useDeepPageCms(pageKey);
 
   const activeColumns = useMemo(() => {
-    if (cmsColumns && cmsColumns.length > 0) {
-      return [...cmsColumns].sort((a, b) => a.order - b.order).filter((c) => c.visible !== false);
-    }
-    if (isNonFixed) {
-      return [
+    let cols: any[] = [];
+    if (cmsColumns && cmsColumns.length > 0 && !isNonFixed) {
+      cols = [...cmsColumns].sort((a, b) => a.order - b.order).filter((c) => c.visible !== false);
+    } else if (isNonFixed) {
+      cols = [
         { id: 'assetId', label: 'Asset ID', visible: true, order: 1 },
         { id: 'name', label: 'Item Name / Description', visible: true, order: 2 },
         { id: 'property', label: 'Property', visible: true, order: 3 },
@@ -142,23 +147,50 @@ export default function AssetsClient() {
         { id: 'quantity', label: 'Quantity', visible: true, order: 7 },
         { id: 'condition', label: 'Condition', visible: true, order: 8 },
         { id: 'status', label: 'Status', visible: true, order: 9 },
-        { id: 'actions', label: 'Actions', visible: true, order: 10 },
+        { id: 'document', label: 'Document', visible: true, order: 10 },
+        { id: 'actions', label: 'Actions', visible: true, order: 11 },
+      ];
+    } else {
+      cols = [
+        { id: 'assetId', label: 'Asset ID', visible: true, order: 1 },
+        { id: 'name', label: 'Asset Name', visible: true, order: 2 },
+        { id: 'category', label: 'Category', visible: true, order: 3 },
+        { id: 'property', label: 'Property', visible: true, order: 4 },
+        { id: 'department', label: 'Department', visible: true, order: 5 },
+        { id: 'location', label: 'Location', visible: true, order: 6 },
+        { id: 'qty', label: 'Qty', visible: true, order: 7 },
+        { id: 'condition', label: 'Condition', visible: true, order: 8 },
+        { id: 'risk', label: 'Risk', visible: true, order: 9 },
+        { id: 'nextInspection', label: 'Next Inspection', visible: true, order: 10 },
+        { id: 'status', label: 'Status', visible: true, order: 11 },
+        { id: 'document', label: 'Document', visible: true, order: 12 },
+        { id: 'actions', label: 'Actions', visible: true, order: 13 },
       ];
     }
-    return [
-      { id: 'assetId', label: 'Asset ID', visible: true, order: 1 },
-      { id: 'name', label: 'Asset Name', visible: true, order: 2 },
-      { id: 'category', label: 'Category', visible: true, order: 3 },
-      { id: 'property', label: 'Property', visible: true, order: 4 },
-      { id: 'department', label: 'Department', visible: true, order: 5 },
-      { id: 'location', label: 'Location', visible: true, order: 6 },
-      { id: 'qty', label: 'Qty', visible: true, order: 7 },
-      { id: 'condition', label: 'Condition', visible: true, order: 8 },
-      { id: 'risk', label: 'Risk', visible: true, order: 9 },
-      { id: 'nextInspection', label: 'Next Inspection', visible: true, order: 10 },
-      { id: 'status', label: 'Status', visible: true, order: 11 },
-      { id: 'actions', label: 'Actions', visible: true, order: 12 },
-    ];
+
+    // Separate columns: all standard data columns first, then Document, then Actions as absolute last!
+    const nonActions = cols.filter(
+      (c) =>
+        c.id.toLowerCase() !== 'actions' &&
+        c.id.toLowerCase() !== 'document' &&
+        c.id.toLowerCase() !== 'attachment'
+    );
+    const docCol = cols.find(
+      (c) => c.id.toLowerCase() === 'document' || c.id.toLowerCase() === 'attachment'
+    ) || {
+      id: 'document',
+      label: 'Document',
+      visible: true,
+      order: 9998,
+    };
+    const actionsCol = cols.find((c) => c.id.toLowerCase() === 'actions') || {
+      id: 'actions',
+      label: 'Actions',
+      visible: true,
+      order: 9999,
+    };
+
+    return [...nonActions, docCol, actionsCol];
   }, [cmsColumns, isNonFixed]);
 
   const customColumns = useMemo(() => {
@@ -175,6 +207,8 @@ export default function AssetsClient() {
       'risk',
       'nextinspection',
       'status',
+      'document',
+      'attachment',
       'actions',
     ]);
     return (cmsColumns || []).filter((c) => !standardKeys.has(c.id.toLowerCase()));
@@ -212,7 +246,7 @@ export default function AssetsClient() {
             });
           }
         }
-      } catch {}
+      } catch { }
     }
     return raw.map((a) => {
       const explicit = (a as any).approvalStatus;
@@ -241,7 +275,7 @@ export default function AssetsClient() {
         localStorage.removeItem('samko_all_assets_v2');
         sessionStorage.removeItem('samko_all_assets_v2');
         localStorage.removeItem('samko_deep_cms_store');
-      } catch {}
+      } catch { }
     }
   }, []);
 
@@ -261,7 +295,7 @@ export default function AssetsClient() {
           new CustomEvent('samko:approvals-changed', { detail: { submissions: cleaned } })
         );
         window.dispatchEvent(new CustomEvent('samko:data-changed', { detail: { type: 'assets' } }));
-      } catch (e) {}
+      } catch (e) { }
     }
   };
 
@@ -305,12 +339,17 @@ export default function AssetsClient() {
   }, [isNonFixed]);
 
   const accessibleAssets = useMemo(() => {
-    return assets.filter((a) =>
-      isPropertyAccessible(
+    return assets.filter((a) => {
+      const isFixed = isAssetFixed(a);
+      const defaultPortal = isFixed ? 'propco' : 'opco';
+      const itemPortal = (a as any).portal || defaultPortal;
+      if (isOpCo && itemPortal !== 'opco') return false;
+      if (!isOpCo && itemPortal === 'opco') return false;
+      return isPropertyAccessible(
         a.hotelName || a.hotelId || (a as any).property || (a as any).propertyName
-      )
-    );
-  }, [assets, isPropertyAccessible]);
+      );
+    });
+  }, [assets, isPropertyAccessible, isOpCo]);
 
   const scopedAssets = useMemo(() => {
     return accessibleAssets.filter((a) => (isNonFixed ? !isAssetFixed(a) : isAssetFixed(a)));
@@ -430,6 +469,9 @@ export default function AssetsClient() {
     serialNumber: '',
     purchaseCost: 0,
     notes: '',
+    documentName: '',
+    documentUrl: '',
+    documentSize: '',
   });
 
   const fetchAssets = useCallback(async () => {
@@ -465,7 +507,7 @@ export default function AssetsClient() {
                 sessionStorage.removeItem('samko_all_assets');
               }
             }
-          } catch {}
+          } catch { }
         }
 
         const normalizedAssets = assetsRes.value.data
@@ -480,8 +522,8 @@ export default function AssetsClient() {
               localItem?.approvalStatus === 'approved' || item.approvalStatus === 'approved'
                 ? 'approved'
                 : localItem?.approvalStatus ||
-                  item.approvalStatus ||
-                  (item.status === 'under-maintenance' ? 'pending' : 'approved');
+                item.approvalStatus ||
+                (item.status === 'under-maintenance' ? 'pending' : 'approved');
 
             const status =
               approvalStatus === 'approved'
@@ -538,20 +580,20 @@ export default function AssetsClient() {
                 return h !== 'gow' && !h.includes('gow');
               })
               .map((a: any) => {
-              const appStatus = a.approvalStatus || 'approved';
-              const st =
-                appStatus === 'approved'
-                  ? a.status === 'under-maintenance'
-                    ? 'active'
-                    : a.status || 'active'
-                  : a.status || 'under-maintenance';
-              return { ...a, approvalStatus: appStatus, status: st };
-            });
+                const appStatus = a.approvalStatus || 'approved';
+                const st =
+                  appStatus === 'approved'
+                    ? a.status === 'under-maintenance'
+                      ? 'active'
+                      : a.status || 'active'
+                    : a.status || 'under-maintenance';
+                return { ...a, approvalStatus: appStatus, status: st };
+              });
             setAssets(synced);
             return;
           }
         }
-      } catch {}
+      } catch { }
       fetchAssets();
     };
     window.addEventListener('samko:data-changed', handleSync);
@@ -638,6 +680,7 @@ export default function AssetsClient() {
       id: newId,
       assetId: newId,
       isFixed: !isNonFixed,
+      portal: isOpCo ? 'opco' : 'propco',
       nextInspection: new Date(Date.now() + 180 * 86400000).toISOString().slice(0, 10),
       createdAt: new Date().toISOString(),
     };
@@ -767,10 +810,10 @@ export default function AssetsClient() {
         if (vals.some((v) => v.toLowerCase().startsWith('all '))) return true;
         const assetVal = String(
           (a as any)[key] ||
-            (a as any).metadata?.[key] ||
-            (a as any).condition ||
-            (a as any).riskLevel ||
-            ''
+          (a as any).metadata?.[key] ||
+          (a as any).condition ||
+          (a as any).riskLevel ||
+          ''
         ).toLowerCase();
         return vals.some((v) => v.toLowerCase() === assetVal || assetVal.includes(v.toLowerCase()));
       });
@@ -982,10 +1025,11 @@ export default function AssetsClient() {
 
   const handleTabClick = (tabId: 'fixed' | 'non-fixed') => {
     setActiveTab(tabId);
+    const portalQuery = portalParam ? `&portal=${portalParam}` : '';
     if (tabId === 'non-fixed') {
-      router.push('/asset-management/assets?type=non-fixed');
+      router.push(`/asset-management/assets?type=non-fixed${portalQuery}`);
     } else {
-      router.push('/asset-management/assets');
+      router.push(portalParam ? `/asset-management/assets?portal=${portalParam}` : '/asset-management/assets');
     }
   };
 
@@ -996,7 +1040,7 @@ export default function AssetsClient() {
       if (a.assetId) {
         sessionStorage.setItem(`samko_asset_${a.assetId}`, JSON.stringify(a));
       }
-    } catch {}
+    } catch { }
   };
 
   return (
@@ -1015,6 +1059,15 @@ export default function AssetsClient() {
                   ? 'Non-Fixed Assets (FF&E Register)'
                   : 'Fixed Assets Register'}
             </h1>
+            {isOpCo ? (
+              <span className="px-2 py-0.5 rounded text-[10px] font-bold tracking-wider border border-[#60a5fa]/40 bg-[#60a5fa]/15 text-[#93c5fd] uppercase">
+                OpCo Operations
+              </span>
+            ) : (
+              <span className="px-2 py-0.5 rounded text-[10px] font-bold tracking-wider border border-[#e8c97a]/40 bg-[#e8c97a]/15 text-[#e8c97a] uppercase">
+                PropCo Asset Co
+              </span>
+            )}
             {loading && <Loader2 size={14} className="animate-spin text-muted-foreground" />}
           </div>
           <p className="text-xs text-muted-foreground mt-0.5">
@@ -1200,9 +1253,8 @@ export default function AssetsClient() {
               {activeColumns.map((col) => (
                 <th
                   key={col.id}
-                  className={`text-left text-xs font-bold uppercase tracking-wide text-muted-foreground px-3.5 py-3 border-b border-border whitespace-nowrap ${
-                    col.id.toLowerCase() === 'actions' ? 'text-right' : ''
-                  }`}
+                  className={`text-left text-xs font-bold uppercase tracking-wide text-muted-foreground px-3.5 py-3 border-b border-border whitespace-nowrap ${col.id.toLowerCase() === 'actions' ? 'text-right' : ''
+                    }`}
                 >
                   {col.label}
                 </th>
@@ -1214,9 +1266,32 @@ export default function AssetsClient() {
               <tr>
                 <td
                   colSpan={visibleColCount + 1}
-                  className="text-center py-16 text-muted-foreground text-sm"
+                  className="text-center py-20 text-muted-foreground text-sm"
                 >
-                  No assets found matching your filters.
+                  <div className="flex flex-col items-center justify-center gap-2 max-w-sm mx-auto">
+                    <div
+                      className="w-12 h-12 rounded-2xl flex items-center justify-center mb-1"
+                      style={{
+                        background: isOpCo ? 'rgba(96, 165, 250, 0.12)' : 'rgba(232, 201, 122, 0.12)',
+                        border: isOpCo
+                          ? '1px solid rgba(96, 165, 250, 0.25)'
+                          : '1px solid rgba(232, 201, 122, 0.25)',
+                        color: isOpCo ? '#60a5fa' : '#e8c97a',
+                      }}
+                    >
+                      <Package size={24} />
+                    </div>
+                    <p className="font-semibold text-foreground text-sm">
+                      {hasFilters
+                        ? 'No assets found matching filters'
+                        : `No ${isNonFixed ? 'Non-Fixed' : 'Fixed'} Assets in ${isOpCo ? 'OpCo' : 'PropCo'}`}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {hasFilters
+                        ? 'Try adjusting your search criteria or clearing active filters.'
+                        : `There are currently no ${isNonFixed ? 'non-fixed' : 'fixed'} assets recorded under ${isOpCo ? 'OpCo (Operations)' : 'PropCo (Asset Co)'}. Click "+ Add Asset" above to record a new asset.`}
+                    </p>
+                  </div>
                 </td>
               </tr>
             ) : (
@@ -1228,24 +1303,23 @@ export default function AssetsClient() {
                 return (
                   <tr
                     key={asset.id}
-                    className={`border-b border-border transition-colors cursor-pointer ${
-                      selectedAssetIds.includes(asset.id) ? 'bg-[#e8c97a]/5' : ''
-                    }`}
+                    className={`border-b border-border transition-colors cursor-pointer ${selectedAssetIds.includes(asset.id) ? 'bg-[#e8c97a]/5' : ''
+                      }`}
                     onClick={() => {
                       cacheAssetForDetail(asset);
                       router.push(`/asset-management/assets/${asset.id}`);
                     }}
                     onMouseEnter={(e) =>
-                      ((e.currentTarget as HTMLElement).style.background =
-                        selectedAssetIds.includes(asset.id)
-                          ? 'rgba(232,201,122,0.08)'
-                          : 'var(--surface2)')
+                    ((e.currentTarget as HTMLElement).style.background =
+                      selectedAssetIds.includes(asset.id)
+                        ? 'rgba(232,201,122,0.08)'
+                        : 'var(--surface2)')
                     }
                     onMouseLeave={(e) =>
-                      ((e.currentTarget as HTMLElement).style.background =
-                        selectedAssetIds.includes(asset.id)
-                          ? 'rgba(232,201,122,0.05)'
-                          : 'transparent')
+                    ((e.currentTarget as HTMLElement).style.background =
+                      selectedAssetIds.includes(asset.id)
+                        ? 'rgba(232,201,122,0.05)'
+                        : 'transparent')
                     }
                   >
                     {hasDeleteAccess && (
@@ -1354,10 +1428,10 @@ export default function AssetsClient() {
                           >
                             {asset.nextInspectionDate
                               ? new Date(asset.nextInspectionDate).toLocaleDateString('en-GB', {
-                                  day: 'numeric',
-                                  month: 'short',
-                                  year: '2-digit',
-                                })
+                                day: 'numeric',
+                                month: 'short',
+                                year: '2-digit',
+                              })
                               : '—'}
                           </td>
                         );
@@ -1417,6 +1491,29 @@ export default function AssetsClient() {
                                 onChange={(val) => handleStatusChange(asset.id, val)}
                               />
                             )}
+                          </td>
+                        );
+                      }
+                      if (colKey === 'document' || colKey === 'attachment') {
+                        return (
+                          <td
+                            key={col.id}
+                            className="px-3 py-2.5 text-xs"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <DocumentTableCell
+                              documentName={
+                                (asset as any).documentName ||
+                                (asset as any).attachmentName ||
+                                (asset as any).document ||
+                                (asset as any).docName
+                              }
+                              documentUrl={
+                                (asset as any).documentUrl ||
+                                (asset as any).attachmentUrl ||
+                                (asset as any).fileUrl
+                              }
+                            />
                           </td>
                         );
                       }
@@ -1517,11 +1614,11 @@ export default function AssetsClient() {
                           className="px-3 py-2.5 text-xs whitespace-nowrap cursor-pointer hover:bg-white/[0.04] transition-colors group"
                           onClick={(e) => {
                             e.stopPropagation();
-                            if (isViewer || !canEdit) return;
+                            if (isViewer || isUploader || !canEdit) return;
                             setInlineEditingCell({ id: asset.id, colId: col.id });
                             setInlineVal(String(val !== undefined && val !== null ? val : ''));
                           }}
-                          title={`Click to edit ${col.label}`}
+                          title={!isViewer && !isUploader && canEdit ? `Click to edit ${col.label}` : undefined}
                         >
                           <div className="flex items-center gap-1.5">
                             <span
@@ -1535,7 +1632,7 @@ export default function AssetsClient() {
                                 ? String(val)
                                 : '—'}
                             </span>
-                            {!isViewer && canEdit && (
+                            {!isViewer && !isUploader && canEdit && (
                               <Edit2
                                 size={10}
                                 className="opacity-0 group-hover:opacity-60 text-primary transition-opacity shrink-0"
@@ -1921,6 +2018,30 @@ export default function AssetsClient() {
                 </label>
               </div>
 
+              {/* Optional Document Upload */}
+              <DocumentUploadField
+                label="Attach Document / Specification / Invoice (Optional)"
+                documentName={(newAssetForm as any).documentName}
+                documentUrl={(newAssetForm as any).documentUrl}
+                documentSize={(newAssetForm as any).documentSize}
+                onUpload={({ name, url, size }) =>
+                  setNewAssetForm({
+                    ...newAssetForm,
+                    documentName: name,
+                    documentUrl: url,
+                    documentSize: size || '',
+                  })
+                }
+                onRemove={() =>
+                  setNewAssetForm({
+                    ...newAssetForm,
+                    documentName: '',
+                    documentUrl: '',
+                    documentSize: '',
+                  })
+                }
+              />
+
               {/* Dynamic Custom Columns */}
               {customColumns && customColumns.length > 0 && (
                 <div className="pt-3 border-t border-border space-y-3">
@@ -2239,6 +2360,38 @@ export default function AssetsClient() {
                   Fixed Asset (affects balance sheet & fixed asset register)
                 </label>
               </div>
+
+              {/* Optional Document Upload */}
+              <DocumentUploadField
+                label="Attach Document / Specification / Invoice (Optional)"
+                documentName={(editingAsset as any)?.documentName}
+                documentUrl={(editingAsset as any)?.documentUrl || (editingAsset as any)?.attachmentUrl || (editingAsset as any)?.fileUrl}
+                documentSize={(editingAsset as any)?.documentSize}
+                onUpload={({ name, url, size }) =>
+                  setEditingAsset((prev: any) =>
+                    prev
+                      ? ({
+                        ...prev,
+                        documentName: name,
+                        documentUrl: url,
+                        documentSize: size || '',
+                      } as any)
+                      : null
+                  )
+                }
+                onRemove={() =>
+                  setEditingAsset((prev: any) =>
+                    prev
+                      ? ({
+                        ...prev,
+                        documentName: '',
+                        documentUrl: '',
+                        documentSize: '',
+                      } as any)
+                      : null
+                  )
+                }
+              />
 
               {/* Dynamic Custom Columns */}
               {customColumns && customColumns.length > 0 && (

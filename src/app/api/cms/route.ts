@@ -8,6 +8,8 @@ import { DEFAULT_DEEP_CMS, DeepAppCMSStore } from '@/lib/deepPageCms';
 
 const CMS_FILE_PATH = path.join(process.cwd(), 'src', 'data', 'samko_cms.json');
 const APP_CMS_FILE_PATH = path.join(process.cwd(), 'src', 'data', 'samko_app_cms.json');
+const TAB_SECTIONS_FILE_PATH = path.join(process.cwd(), 'src', 'data', 'samko_tab_sections.json');
+const TAB_ORDER_FILE_PATH = path.join(process.cwd(), 'src', 'data', 'samko_tab_order.json');
 
 function ensureDir(filePath: string) {
   const dir = path.dirname(filePath);
@@ -19,6 +21,67 @@ function ensureDir(filePath: string) {
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const type = searchParams.get('type') || 'deep_cms';
+
+  // Handle Tab Section Mapping (PropCo vs OpCo vs Both vs Bottom)
+  if (type === 'tab_section_mapping') {
+    const adminDb = getAdminDb();
+    if (adminDb) {
+      try {
+        const snap = await adminDb.collection('cms').doc('tab_sections').get();
+        if (snap.exists) {
+          return NextResponse.json({ success: true, data: snap.data(), source: 'firestore-admin' });
+        }
+      } catch (e) {
+        console.warn('[api/cms] Admin get tab_sections failed:', e);
+      }
+    }
+
+    const clientDb = getDb();
+    if (clientDb) {
+      try {
+        const snap = await getDoc(doc(clientDb, 'cms', 'tab_sections'));
+        if (snap.exists()) {
+          return NextResponse.json({
+            success: true,
+            data: snap.data(),
+            source: 'firestore-client',
+          });
+        }
+      } catch (e) {
+        console.warn('[api/cms] Client get tab_sections failed:', e);
+      }
+    }
+
+    if (fs.existsSync(TAB_SECTIONS_FILE_PATH)) {
+      try {
+        const raw = fs.readFileSync(TAB_SECTIONS_FILE_PATH, 'utf-8');
+        const parsed = JSON.parse(raw);
+        return NextResponse.json({ success: true, data: parsed, source: 'file-database' });
+      } catch (e) {
+        console.warn('[api/cms] Failed to read tab_sections from disk:', e);
+      }
+    }
+
+    return NextResponse.json({ success: true, data: null, source: 'default' });
+  }
+
+  // Handle Tab Order (Reordering & Swapping)
+  if (type === 'tab_order') {
+    const portal = searchParams.get('portal');
+    if (fs.existsSync(TAB_ORDER_FILE_PATH)) {
+      try {
+        const raw = fs.readFileSync(TAB_ORDER_FILE_PATH, 'utf-8');
+        const parsed = JSON.parse(raw);
+        if (portal && parsed && typeof parsed === 'object' && !Array.isArray(parsed) && parsed[portal]) {
+          return NextResponse.json({ success: true, data: parsed[portal], source: 'file-database' });
+        }
+        return NextResponse.json({ success: true, data: parsed, source: 'file-database' });
+      } catch (e) {
+        console.warn('[api/cms] Failed to read tab_order from disk:', e);
+      }
+    }
+    return NextResponse.json({ success: true, data: null, source: 'default' });
+  }
 
   // Handle Application Navigation / Portal CMS
   if (type === 'app_cms') {
@@ -110,6 +173,49 @@ export async function POST(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const type = searchParams.get('type') || 'deep_cms';
     const body = await req.json();
+
+    if (type === 'tab_section_mapping') {
+      ensureDir(TAB_SECTIONS_FILE_PATH);
+      fs.writeFileSync(TAB_SECTIONS_FILE_PATH, JSON.stringify(body, null, 2), 'utf-8');
+
+      const adminDb = getAdminDb();
+      if (adminDb) {
+        await adminDb.collection('cms').doc('tab_sections').set(body, { merge: true });
+      } else {
+        const clientDb = getDb();
+        if (clientDb) {
+          await setDoc(doc(clientDb, 'cms', 'tab_sections'), body, { merge: true });
+        }
+      }
+
+      return NextResponse.json({
+        success: true,
+        message: 'Saved tab section mapping directly to database',
+        source: 'database',
+      });
+    }
+
+    if (type === 'tab_order') {
+      ensureDir(TAB_ORDER_FILE_PATH);
+      let currentData: any = {};
+      if (fs.existsSync(TAB_ORDER_FILE_PATH)) {
+        try {
+          currentData = JSON.parse(fs.readFileSync(TAB_ORDER_FILE_PATH, 'utf-8'));
+        } catch (e) {}
+      }
+      if (body?.portal && Array.isArray(body?.order)) {
+        if (typeof currentData !== 'object' || Array.isArray(currentData)) currentData = {};
+        currentData[body.portal] = body.order;
+        fs.writeFileSync(TAB_ORDER_FILE_PATH, JSON.stringify(currentData, null, 2), 'utf-8');
+      } else {
+        fs.writeFileSync(TAB_ORDER_FILE_PATH, JSON.stringify(body, null, 2), 'utf-8');
+      }
+      return NextResponse.json({
+        success: true,
+        message: 'Saved tab order directly to database',
+        source: 'database',
+      });
+    }
 
     if (type === 'app_cms') {
       // Save directly to disk database

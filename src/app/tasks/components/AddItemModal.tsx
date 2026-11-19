@@ -24,6 +24,7 @@ import {
 import { useLiveProperties } from '@/hooks/useLiveProperties';
 import { toast } from 'sonner';
 import CustomDropdown from '@/components/ui/CustomDropdown';
+import DocumentUploadField from '@/components/ui/DocumentUploadField';
 
 interface AddItemModalProps {
   isOpen: boolean;
@@ -54,6 +55,9 @@ export default function AddItemModal({
   const [dueInDays, setDueInDays] = useState<number>(7);
   const [assigneeName, setAssigneeName] = useState<string>('Jamie Clarke');
   const [description, setDescription] = useState('');
+  const [docName, setDocName] = useState('');
+  const [docUrl, setDocUrl] = useState('');
+  const [docSize, setDocSize] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Update property if defaultProperty changes
@@ -105,7 +109,10 @@ export default function AddItemModal({
       assigneeColor: selectedAssignee.color,
       description: description.trim(),
       createdAt: new Date().toISOString().split('T')[0],
-    };
+      documentName: docName,
+      documentUrl: docUrl,
+      documentSize: docSize,
+    } as any;
 
     setTimeout(() => {
       onTaskCreated(newTask);
@@ -116,6 +123,9 @@ export default function AddItemModal({
       // Reset form
       setTitle('');
       setDescription('');
+      setDocName('');
+      setDocUrl('');
+      setDocSize('');
       setDueInDays(7);
       setPriority('medium');
       setType('Task');
@@ -304,6 +314,24 @@ export default function AddItemModal({
                 onChange={(e) => setDescription(e.target.value)}
                 placeholder="Add any specific context or instructions for the on-site team..."
                 className="w-full text-xs rounded-lg px-3.5 py-2 bg-surface2 text-foreground border border-border focus:border-primary outline-none transition-all placeholder:text-muted-foreground resize-none"
+              />
+            </div>
+
+            {/* Optional Document Upload */}
+            <div>
+              <DocumentUploadField
+                label="Attach Document / Photo / Proof (Optional)"
+                documentName={docName}
+                onUpload={({ name, url, size }) => {
+                  setDocName(name);
+                  setDocUrl(url);
+                  setDocSize(size || '');
+                }}
+                onRemove={() => {
+                  setDocName('');
+                  setDocUrl('');
+                  setDocSize('');
+                }}
               />
             </div>
           </div>

@@ -1,0 +1,33 @@
+{
+  "propco": [
+    "propco-dashboard",
+    "properties",
+    "fixed-assets",
+    "non-fixed-assets",
+    "compliance",
+    "insurance",
+    "contracts",
+    "reports",
+    "acquisition"
+  ],
+  "opco": [
+    "opco-dashboard",
+    "fixed-assets",
+    "non-fixed-assets",
+    "maintenance",
+    "compliance",
+    "utilities",
+    "tasks",
+    "contracts",
+    "reports",
+    "acquisition"
+  ],
+  "bottom": [
+    "approvals",
+    "docs-upload",
+    "recent-logs",
+    "import",
+    "users",
+    "settings"
+  ]
+}

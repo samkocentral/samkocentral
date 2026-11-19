@@ -20,6 +20,8 @@ import ConfirmDeleteModal from '@/components/modals/ConfirmDeleteModal';
 import { toast } from 'sonner';
 import { useDeepPageCms } from '@/lib/deepPageCms';
 import CustomDropdown from '@/components/ui/CustomDropdown';
+import DocumentUploadField from '@/components/ui/DocumentUploadField';
+import DocumentTableCell from '@/components/ui/DocumentTableCell';
 
 const PRIORITY_FILTERS = ['All', 'urgent', 'high', 'medium', 'low'] as const;
 const STATUS_FILTERS_TASK = ['All', 'open', 'in-progress', 'completed'] as const;
@@ -32,6 +34,9 @@ interface TaskFormValues {
   assignee: string;
   category: string;
   description: string;
+  documentName?: string;
+  documentUrl?: string;
+  documentSize?: string;
 }
 
 const PRIORITY_COLOR: Record<TaskPriority, string> = {
@@ -54,19 +59,44 @@ export default function TaskManagerClient() {
   const { columns: cmsColumns } = useDeepPageCms('tasks');
 
   const activeColumns = useMemo(() => {
+    let cols: any[] = [];
     if (cmsColumns && cmsColumns.length > 0) {
-      return [...cmsColumns].sort((a, b) => a.order - b.order).filter((c) => c.visible !== false);
+      cols = [...cmsColumns].filter((c) => c.visible !== false);
+    } else {
+      cols = [
+        { id: 'priority', label: 'Priority', visible: true, order: 1 },
+        { id: 'title', label: 'Task', visible: true, order: 2 },
+        { id: 'property', label: 'Site', visible: true, order: 3 },
+        { id: 'category', label: 'Category', visible: true, order: 4 },
+        { id: 'assignee', label: 'Assignee', visible: true, order: 5 },
+        { id: 'status', label: 'Status', visible: true, order: 6 },
+        { id: 'dueDate', label: 'Due Date', visible: true, order: 7 },
+        { id: 'daysLeft', label: 'Days Left', visible: true, order: 8 },
+        { id: 'document', label: 'Document', visible: true, order: 9 },
+      ];
     }
-    return [
-      { id: 'priority', label: 'Priority', visible: true, order: 1 },
-      { id: 'title', label: 'Task', visible: true, order: 2 },
-      { id: 'property', label: 'Site', visible: true, order: 3 },
-      { id: 'category', label: 'Category', visible: true, order: 4 },
-      { id: 'assignee', label: 'Assignee', visible: true, order: 5 },
-      { id: 'status', label: 'Status', visible: true, order: 6 },
-      { id: 'dueDate', label: 'Due Date', visible: true, order: 7 },
-      { id: 'daysLeft', label: 'Days Left', visible: true, order: 8 },
-    ];
+
+    const nonActions = cols
+      .filter(
+        (c) =>
+          c.id.toLowerCase() !== 'actions' &&
+          c.id.toLowerCase() !== 'document' &&
+          c.id.toLowerCase() !== 'attachment'
+      )
+      .sort((a, b) => (a.order || 0) - (b.order || 0));
+
+    const docCol = cols.find(
+      (c) => c.id.toLowerCase() === 'document' || c.id.toLowerCase() === 'attachment'
+    ) || {
+      id: 'document',
+      label: 'Document',
+      visible: true,
+      order: 9998,
+    };
+
+    const actionsCol = cols.find((c) => c.id.toLowerCase() === 'actions');
+
+    return actionsCol ? [...nonActions, docCol, actionsCol] : [...nonActions, docCol];
   }, [cmsColumns]);
 
   const [tasks, setTasks] = useState<Task[]>(() => {
@@ -728,6 +758,21 @@ export default function TaskManagerClient() {
                             );
                           }
 
+                          if (colKey === 'document' || colKey === 'attachment') {
+                            return (
+                              <td
+                                key={col.id}
+                                className="table-cell"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <DocumentTableCell
+                                  documentName={(task as any).documentName || (task as any).document || (task as any).proofDocument}
+                                  documentUrl={(task as any).documentUrl}
+                                />
+                              </td>
+                            );
+                          }
+
                           // Dynamic custom columns
                           const val = (task as any)[col.id] ?? (task as any)[colKey];
                           return (
@@ -924,6 +969,23 @@ export default function TaskManagerClient() {
                 rows={3}
                 style={{ resize: 'vertical' }}
                 {...register('description')}
+              />
+            </div>
+
+            <div>
+              <DocumentUploadField
+                label="Attach Document / Photo / Proof (Optional)"
+                documentName={watch('documentName')}
+                onUpload={({ name, url, size }) => {
+                  setValue('documentName', name);
+                  setValue('documentUrl', url);
+                  setValue('documentSize', size || '');
+                }}
+                onRemove={() => {
+                  setValue('documentName', '');
+                  setValue('documentUrl', '');
+                  setValue('documentSize', '');
+                }}
               />
             </div>
           </div>

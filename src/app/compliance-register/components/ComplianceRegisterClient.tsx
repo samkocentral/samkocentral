@@ -1,5 +1,7 @@
 'use client';
 
+import { COMPLIANCE_MASTER_ITEMS, COMPLIANCE_MASTER_PROPERTIES } from '@/data/complianceMasterData';
+
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import {
@@ -41,6 +43,8 @@ import TableCheckbox from '@/components/ui/TableCheckbox';
 import BulkActionBar from '@/components/ui/BulkActionBar';
 import ConfirmDeleteModal from '@/components/modals/ConfirmDeleteModal';
 import { getLivePropertyNames } from '@/hooks/useLiveProperties';
+import DocumentUploadField, { openDocumentInNewTab } from '@/components/ui/DocumentUploadField';
+import DocumentTableCell from '@/components/ui/DocumentTableCell';
 
 type ComplianceStatus = 'compliant' | 'expiring-soon' | 'overdue' | 'pending';
 type RiskRating = 'low' | 'medium' | 'high' | 'critical';
@@ -83,6 +87,8 @@ interface ComplianceItem {
   notes?: string;
   complianceType?: string;
   section?: string;
+  checkType?: string;
+  portal?: string;
 }
 
 const COMPLIANCE_CATEGORIES = [
@@ -108,1378 +114,9 @@ const COMPLIANCE_CATEGORIES = [
   'Local Authority Requirements',
 ];
 
-const DEFAULT_HOTELS = ['Crowne Plaza Kingston-south', 'Stanhill Court'];
+const DEFAULT_HOTELS = Array.from(COMPLIANCE_MASTER_PROPERTIES);
 
-const MOCK_COMPLIANCE: ComplianceItem[] = [
-  {
-    "id": "comp-cp-1",
-    "complianceId": "FRA-2026-CPS",
-    "name": "Fire Risk Assessment (FRA)",
-    "item": "Fire Risk Assessment (FRA)",
-    "title": "Fire Risk Assessment (FRA)",
-    "type": "Statutory",
-    "category": "Fire Safety",
-    "complianceType": "OpCo",
-    "section": "OpCo",
-    "description": "Fire Risk Assessment (FRA) under Regulatory Reform (Fire Safety) Order 2005",
-    "property": "Crowne Plaza Kingston-south",
-    "hotel": "Crowne Plaza Kingston-south",
-    "site": "Crowne Plaza Kingston-south",
-    "hotelName": "Crowne Plaza Kingston-south",
-    "hotelId": "hotel-001",
-    "propertyId": "hotel-001",
-    "department": "Engineering",
-    "area": "Whole Building",
-    "regulatoryAuthority": "Regulatory Reform (Fire Safety) Order 2005",
-    "standard": "Regulatory Reform (Fire Safety) Order 2005",
-    "certificateNumber": "FRA-2026-CPS",
-    "certificateRef": "FRA-2026-CPS",
-    "issueDate": "2026-04-27",
-    "lastInspection": "2026-04-27",
-    "lastReviewed": "2026-04-27",
-    "expiryDate": "2027-04-27",
-    "dueDate": "2027-04-27",
-    "renewalDate": "2027-04-27",
-    "inspectionFrequency": "Yearly",
-    "frequency": "Yearly",
-    "responsiblePerson": "Nathan Coote",
-    "assignee": "Nathan Coote",
-    "contractor": "Peninsula",
-    "status": "compliant",
-    "riskRating": "high",
-    "notes": "Standard: Regulatory Reform (Fire Safety) Order 2005. Contractor: Peninsula. Frequency: Yearly."
-  },
-  {
-    "id": "comp-cp-2",
-    "complianceId": "COMP-CP-002",
-    "name": "Fire Alarm Service",
-    "item": "Fire Alarm Service",
-    "title": "Fire Alarm Service",
-    "type": "Statutory",
-    "category": "Fire Safety",
-    "complianceType": "OpCo",
-    "section": "OpCo",
-    "description": "Fire Alarm Service under BS 5839",
-    "property": "Crowne Plaza Kingston-south",
-    "hotel": "Crowne Plaza Kingston-south",
-    "site": "Crowne Plaza Kingston-south",
-    "hotelName": "Crowne Plaza Kingston-south",
-    "hotelId": "hotel-001",
-    "propertyId": "hotel-001",
-    "department": "Engineering",
-    "area": "Whole Building",
-    "regulatoryAuthority": "BS 5839",
-    "standard": "BS 5839",
-    "certificateNumber": "",
-    "certificateRef": "",
-    "issueDate": "2026-04-14",
-    "lastInspection": "2026-04-14",
-    "lastReviewed": "2026-04-14",
-    "expiryDate": "2026-10-14",
-    "dueDate": "2026-10-14",
-    "renewalDate": "2026-10-14",
-    "inspectionFrequency": "6 Months",
-    "frequency": "6 Months",
-    "responsiblePerson": "Nathan Coote",
-    "assignee": "Nathan Coote",
-    "contractor": "City Fire",
-    "status": "overdue",
-    "riskRating": "critical",
-    "notes": "Standard: BS 5839. Contractor: City Fire. Frequency: 6 Months."
-  },
-  {
-    "id": "comp-cp-3",
-    "complianceId": "COMP-CP-003",
-    "name": "Emergency Lighting Service",
-    "item": "Emergency Lighting Service",
-    "title": "Emergency Lighting Service",
-    "type": "Statutory",
-    "category": "Fire Safety",
-    "complianceType": "OpCo",
-    "section": "OpCo",
-    "description": "Emergency Lighting Service under BS 5266-1:2025 / BS EN 50172 / BS EN 1838",
-    "property": "Crowne Plaza Kingston-south",
-    "hotel": "Crowne Plaza Kingston-south",
-    "site": "Crowne Plaza Kingston-south",
-    "hotelName": "Crowne Plaza Kingston-south",
-    "hotelId": "hotel-001",
-    "propertyId": "hotel-001",
-    "department": "Engineering",
-    "area": "Whole Building",
-    "regulatoryAuthority": "BS 5266-1:2025 / BS EN 50172 / BS EN 1838",
-    "standard": "BS 5266-1:2025 / BS EN 50172 / BS EN 1838",
-    "certificateNumber": "",
-    "certificateRef": "",
-    "issueDate": "2026-04-14",
-    "lastInspection": "2026-04-14",
-    "lastReviewed": "2026-04-14",
-    "expiryDate": "2027-04-14",
-    "dueDate": "2027-04-14",
-    "renewalDate": "2027-04-14",
-    "inspectionFrequency": "Yearly",
-    "frequency": "Yearly",
-    "responsiblePerson": "Nathan Coote",
-    "assignee": "Nathan Coote",
-    "contractor": "City Fire",
-    "status": "compliant",
-    "riskRating": "high",
-    "notes": "Standard: BS 5266-1:2025 / BS EN 50172 / BS EN 1838. Contractor: City Fire. Frequency: Yearly."
-  },
-  {
-    "id": "comp-cp-4",
-    "complianceId": "COMP-CP-004",
-    "name": "Dry Riser Test",
-    "item": "Dry Riser Test",
-    "title": "Dry Riser Test",
-    "type": "Statutory",
-    "category": "Fire Safety",
-    "complianceType": "OpCo",
-    "section": "OpCo",
-    "description": "Dry Riser Test under BS 9990:2015",
-    "property": "Crowne Plaza Kingston-south",
-    "hotel": "Crowne Plaza Kingston-south",
-    "site": "Crowne Plaza Kingston-south",
-    "hotelName": "Crowne Plaza Kingston-south",
-    "hotelId": "hotel-001",
-    "propertyId": "hotel-001",
-    "department": "Engineering",
-    "area": "Whole Building",
-    "regulatoryAuthority": "BS 9990:2015",
-    "standard": "BS 9990:2015",
-    "certificateNumber": "",
-    "certificateRef": "",
-    "issueDate": "2026-01-30",
-    "lastInspection": "2026-01-30",
-    "lastReviewed": "2026-01-30",
-    "expiryDate": "2027-01-30",
-    "dueDate": "2027-01-30",
-    "renewalDate": "2027-01-30",
-    "inspectionFrequency": "Yearly",
-    "frequency": "Yearly",
-    "responsiblePerson": "Nathan Coote",
-    "assignee": "Nathan Coote",
-    "contractor": "Dry Risers Direct",
-    "status": "compliant",
-    "riskRating": "high",
-    "notes": "Standard: BS 9990:2015. Contractor: Dry Risers Direct. Frequency: Yearly."
-  },
-  {
-    "id": "comp-cp-5",
-    "complianceId": "COMP-CP-005",
-    "name": "Fire Door Inspectation",
-    "item": "Fire Door Inspectation",
-    "title": "Fire Door Inspectation",
-    "type": "Statutory",
-    "category": "Fire Safety",
-    "complianceType": "OpCo",
-    "section": "OpCo",
-    "description": "Fire Door Inspectation under Regulatory Reform (Fire Safety) Order 2005",
-    "property": "Crowne Plaza Kingston-south",
-    "hotel": "Crowne Plaza Kingston-south",
-    "site": "Crowne Plaza Kingston-south",
-    "hotelName": "Crowne Plaza Kingston-south",
-    "hotelId": "hotel-001",
-    "propertyId": "hotel-001",
-    "department": "Engineering",
-    "area": "Whole Building",
-    "regulatoryAuthority": "Regulatory Reform (Fire Safety) Order 2005",
-    "standard": "Regulatory Reform (Fire Safety) Order 2005",
-    "certificateNumber": "",
-    "certificateRef": "",
-    "issueDate": "2026-02-27",
-    "lastInspection": "2026-02-27",
-    "lastReviewed": "2026-02-27",
-    "expiryDate": "2026-08-29",
-    "dueDate": "2026-08-29",
-    "renewalDate": "2026-08-29",
-    "inspectionFrequency": "6 Months",
-    "frequency": "6 Months",
-    "responsiblePerson": "Nathan Coote",
-    "assignee": "Nathan Coote",
-    "contractor": "Internal team",
-    "status": "overdue",
-    "riskRating": "high",
-    "notes": "Standard: Regulatory Reform (Fire Safety) Order 2005. Contractor: Internal team. Frequency: 6 Months."
-  },
-  {
-    "id": "comp-cp-6",
-    "complianceId": "COMP-CP-006",
-    "name": "Fire Extinguisher",
-    "item": "Fire Extinguisher",
-    "title": "Fire Extinguisher",
-    "type": "Statutory",
-    "category": "Fire Safety",
-    "complianceType": "OpCo",
-    "section": "OpCo",
-    "description": "Fire Extinguisher under Regulatory Reform (Fire Safety) Order 2005",
-    "property": "Crowne Plaza Kingston-south",
-    "hotel": "Crowne Plaza Kingston-south",
-    "site": "Crowne Plaza Kingston-south",
-    "hotelName": "Crowne Plaza Kingston-south",
-    "hotelId": "hotel-001",
-    "propertyId": "hotel-001",
-    "department": "Engineering",
-    "area": "Whole Building",
-    "regulatoryAuthority": "Regulatory Reform (Fire Safety) Order 2005",
-    "standard": "Regulatory Reform (Fire Safety) Order 2005",
-    "certificateNumber": "",
-    "certificateRef": "",
-    "issueDate": "2026-03-13",
-    "lastInspection": "2026-03-13",
-    "lastReviewed": "2026-03-13",
-    "expiryDate": "2027-03-13",
-    "dueDate": "2027-03-13",
-    "renewalDate": "2027-03-13",
-    "inspectionFrequency": "Yearly",
-    "frequency": "Yearly",
-    "responsiblePerson": "Nathan Coote",
-    "assignee": "Nathan Coote",
-    "contractor": "City Fire",
-    "status": "compliant",
-    "riskRating": "high",
-    "notes": "Standard: Regulatory Reform (Fire Safety) Order 2005. Contractor: City Fire. Frequency: Yearly."
-  },
-  {
-    "id": "comp-cp-7",
-    "complianceId": "COMP-CP-007",
-    "name": "Fire Drill Evacuation",
-    "item": "Fire Drill Evacuation",
-    "title": "Fire Drill Evacuation",
-    "type": "Statutory",
-    "category": "Fire Safety",
-    "complianceType": "OpCo",
-    "section": "OpCo",
-    "description": "Fire Drill Evacuation under Regulatory Reform (Fire Safety) Order 2005",
-    "property": "Crowne Plaza Kingston-south",
-    "hotel": "Crowne Plaza Kingston-south",
-    "site": "Crowne Plaza Kingston-south",
-    "hotelName": "Crowne Plaza Kingston-south",
-    "hotelId": "hotel-001",
-    "propertyId": "hotel-001",
-    "department": "Engineering",
-    "area": "Whole Building",
-    "regulatoryAuthority": "Regulatory Reform (Fire Safety) Order 2005",
-    "standard": "Regulatory Reform (Fire Safety) Order 2005",
-    "certificateNumber": "",
-    "certificateRef": "",
-    "issueDate": "2026-04-14",
-    "lastInspection": "2026-04-14",
-    "lastReviewed": "2026-04-14",
-    "expiryDate": "2026-10-14",
-    "dueDate": "2026-10-14",
-    "renewalDate": "2026-10-14",
-    "inspectionFrequency": "6 Months",
-    "frequency": "6 Months",
-    "responsiblePerson": "Nathan Coote",
-    "assignee": "Nathan Coote",
-    "contractor": "Internal team",
-    "status": "overdue",
-    "riskRating": "high",
-    "notes": "Standard: Regulatory Reform (Fire Safety) Order 2005. Contractor: Internal team. Frequency: 6 Months."
-  },
-  {
-    "id": "comp-cp-8",
-    "complianceId": "COMP-CP-008",
-    "name": "Kitchen Fire Supression System Inspections",
-    "item": "Kitchen Fire Supression System Inspections",
-    "title": "Kitchen Fire Supression System Inspections",
-    "type": "Statutory",
-    "category": "Fire Safety",
-    "complianceType": "OpCo",
-    "section": "OpCo",
-    "description": "Kitchen Fire Supression System Inspections under Regulatory Reform (Fire Safety) Order 2005",
-    "property": "Crowne Plaza Kingston-south",
-    "hotel": "Crowne Plaza Kingston-south",
-    "site": "Crowne Plaza Kingston-south",
-    "hotelName": "Crowne Plaza Kingston-south",
-    "hotelId": "hotel-001",
-    "propertyId": "hotel-001",
-    "department": "Kitchen",
-    "area": "Commercial Kitchen & Extraction",
-    "regulatoryAuthority": "Regulatory Reform (Fire Safety) Order 2005",
-    "standard": "Regulatory Reform (Fire Safety) Order 2005",
-    "certificateNumber": "",
-    "certificateRef": "",
-    "issueDate": "2026-03-12",
-    "lastInspection": "2026-03-12",
-    "lastReviewed": "2026-03-12",
-    "expiryDate": "2026-09-11",
-    "dueDate": "2026-09-11",
-    "renewalDate": "2026-09-11",
-    "inspectionFrequency": "6 Months",
-    "frequency": "6 Months",
-    "responsiblePerson": "Nathan Coote",
-    "assignee": "Nathan Coote",
-    "contractor": "Ansul",
-    "status": "overdue",
-    "riskRating": "high",
-    "notes": "Standard: Regulatory Reform (Fire Safety) Order 2005. Contractor: Ansul. Frequency: 6 Months."
-  },
-  {
-    "id": "comp-cp-9",
-    "complianceId": "COMP-CP-009",
-    "name": "Duct Cleaning",
-    "item": "Duct Cleaning",
-    "title": "Duct Cleaning",
-    "type": "Statutory",
-    "category": "Fire Safety",
-    "complianceType": "OpCo",
-    "section": "OpCo",
-    "description": "Duct Cleaning under BESA TR19 Grease",
-    "property": "Crowne Plaza Kingston-south",
-    "hotel": "Crowne Plaza Kingston-south",
-    "site": "Crowne Plaza Kingston-south",
-    "hotelName": "Crowne Plaza Kingston-south",
-    "hotelId": "hotel-001",
-    "propertyId": "hotel-001",
-    "department": "Kitchen",
-    "area": "Commercial Kitchen & Extraction",
-    "regulatoryAuthority": "BESA TR19 Grease",
-    "standard": "BESA TR19 Grease",
-    "certificateNumber": "",
-    "certificateRef": "",
-    "issueDate": "2026-03-11",
-    "lastInspection": "2026-03-11",
-    "lastReviewed": "2026-03-11",
-    "expiryDate": "2026-09-10",
-    "dueDate": "2026-09-10",
-    "renewalDate": "2026-09-10",
-    "inspectionFrequency": "6 Months",
-    "frequency": "6 Months",
-    "responsiblePerson": "Nathan Coote",
-    "assignee": "Nathan Coote",
-    "contractor": "Approved Contractor",
-    "status": "overdue",
-    "riskRating": "high",
-    "notes": "Standard: BESA TR19 Grease. Contractor: Internal. Frequency: 6 Months."
-  },
-  {
-    "id": "comp-cp-10",
-    "complianceId": "COMP-CP-010",
-    "name": "Linen Chute Inspectation",
-    "item": "Linen Chute Inspectation",
-    "title": "Linen Chute Inspectation",
-    "type": "Statutory",
-    "category": "Fire Safety",
-    "complianceType": "OpCo",
-    "section": "OpCo",
-    "description": "Linen Chute Inspectation under Regulatory Reform (Fire Safety) Order 2005",
-    "property": "Crowne Plaza Kingston-south",
-    "hotel": "Crowne Plaza Kingston-south",
-    "site": "Crowne Plaza Kingston-south",
-    "hotelName": "Crowne Plaza Kingston-south",
-    "hotelId": "hotel-001",
-    "propertyId": "hotel-001",
-    "department": "Engineering",
-    "area": "Whole Building",
-    "regulatoryAuthority": "Regulatory Reform (Fire Safety) Order 2005",
-    "standard": "Regulatory Reform (Fire Safety) Order 2005",
-    "certificateNumber": "",
-    "certificateRef": "",
-    "issueDate": "2025-12-10",
-    "lastInspection": "2025-12-10",
-    "lastReviewed": "2025-12-10",
-    "expiryDate": "2026-12-10",
-    "dueDate": "2026-12-10",
-    "renewalDate": "2026-12-10",
-    "inspectionFrequency": "Yearly",
-    "frequency": "Yearly",
-    "responsiblePerson": "Nathan Coote",
-    "assignee": "Nathan Coote",
-    "contractor": "Hardall International Limited",
-    "status": "overdue",
-    "riskRating": "high",
-    "notes": "Standard: Regulatory Reform (Fire Safety) Order 2005. Contractor: Hardall International Limited. Frequency: Yearly."
-  },
-  {
-    "id": "comp-cp-11",
-    "complianceId": "COMP-CP-011",
-    "name": "Boiler Service",
-    "item": "Boiler Service",
-    "title": "Boiler Service",
-    "type": "Statutory",
-    "category": "Gas Safety",
-    "complianceType": "OpCo",
-    "section": "OpCo",
-    "description": "Boiler Service under Gas Safety (Installation and Use) Regulations 1998",
-    "property": "Crowne Plaza Kingston-south",
-    "hotel": "Crowne Plaza Kingston-south",
-    "site": "Crowne Plaza Kingston-south",
-    "hotelName": "Crowne Plaza Kingston-south",
-    "hotelId": "hotel-001",
-    "propertyId": "hotel-001",
-    "department": "Engineering",
-    "area": "Basement Boiler Plant Room",
-    "regulatoryAuthority": "Gas Safety (Installation and Use) Regulations 1998",
-    "standard": "Gas Safety (Installation and Use) Regulations 1998",
-    "certificateNumber": "",
-    "certificateRef": "",
-    "issueDate": "2025-10-02",
-    "lastInspection": "2025-10-02",
-    "lastReviewed": "2025-10-02",
-    "expiryDate": "2026-10-02",
-    "dueDate": "2026-10-02",
-    "renewalDate": "2026-10-02",
-    "inspectionFrequency": "Yearly",
-    "frequency": "Yearly",
-    "responsiblePerson": "Nathan Coote",
-    "assignee": "Nathan Coote",
-    "contractor": "Industraheat",
-    "status": "overdue",
-    "riskRating": "high",
-    "notes": "Standard: Gas Safety (Installation and Use) Regulations 1998. Contractor: Industraheat. Frequency: Yearly."
-  },
-  {
-    "id": "comp-cp-12",
-    "complianceId": "COMP-CP-012",
-    "name": "Boiler Service",
-    "item": "Boiler Service",
-    "title": "Boiler Service",
-    "type": "Statutory",
-    "category": "Gas Safety",
-    "complianceType": "OpCo",
-    "section": "OpCo",
-    "description": "Boiler Service under Gas Safety (Installation and Use) Regulations 1998",
-    "property": "Crowne Plaza Kingston-south",
-    "hotel": "Crowne Plaza Kingston-south",
-    "site": "Crowne Plaza Kingston-south",
-    "hotelName": "Crowne Plaza Kingston-south",
-    "hotelId": "hotel-001",
-    "propertyId": "hotel-001",
-    "department": "Engineering",
-    "area": "Basement Boiler Plant Room",
-    "regulatoryAuthority": "Gas Safety (Installation and Use) Regulations 1998",
-    "standard": "Gas Safety (Installation and Use) Regulations 1998",
-    "certificateNumber": "",
-    "certificateRef": "",
-    "issueDate": "2025-10-02",
-    "lastInspection": "2025-10-02",
-    "lastReviewed": "2025-10-02",
-    "expiryDate": "2026-10-02",
-    "dueDate": "2026-10-02",
-    "renewalDate": "2026-10-02",
-    "inspectionFrequency": "Yearly",
-    "frequency": "Yearly",
-    "responsiblePerson": "Nathan Coote",
-    "assignee": "Nathan Coote",
-    "contractor": "Industraheat",
-    "status": "overdue",
-    "riskRating": "high",
-    "notes": "Standard: Gas Safety (Installation and Use) Regulations 1998. Contractor: Industraheat. Frequency: Yearly."
-  },
-  {
-    "id": "comp-cp-13",
-    "complianceId": "COMP-CP-013",
-    "name": "Commercial Gas Safety Certificate – Boilers (CP15)",
-    "item": "Commercial Gas Safety Certificate – Boilers (CP15)",
-    "title": "Commercial Gas Safety Certificate – Boilers (CP15)",
-    "type": "Statutory",
-    "category": "Gas Safety",
-    "complianceType": "OpCo",
-    "section": "OpCo",
-    "description": "Commercial Gas Safety Certificate – Boilers (CP15) under Gas Safety (Installation and Use) Regulations 1998",
-    "property": "Crowne Plaza Kingston-south",
-    "hotel": "Crowne Plaza Kingston-south",
-    "site": "Crowne Plaza Kingston-south",
-    "hotelName": "Crowne Plaza Kingston-south",
-    "hotelId": "hotel-001",
-    "propertyId": "hotel-001",
-    "department": "Engineering",
-    "area": "Basement Boiler Plant Room",
-    "regulatoryAuthority": "Gas Safety (Installation and Use) Regulations 1998",
-    "standard": "Gas Safety (Installation and Use) Regulations 1998",
-    "certificateNumber": "",
-    "certificateRef": "",
-    "issueDate": "2025-04-15",
-    "lastInspection": "2025-04-15",
-    "lastReviewed": "2025-04-15",
-    "expiryDate": "2026-04-15",
-    "dueDate": "2026-04-15",
-    "renewalDate": "2026-04-15",
-    "inspectionFrequency": "Yearly",
-    "frequency": "Yearly",
-    "responsiblePerson": "Nathan Coote",
-    "assignee": "Nathan Coote",
-    "contractor": "First Call Limited",
-    "status": "overdue",
-    "riskRating": "high",
-    "notes": "Standard: Gas Safety (Installation and Use) Regulations 1998. Contractor: First Call Limited. Frequency: Yearly."
-  },
-  {
-    "id": "comp-cp-14",
-    "complianceId": "COMP-CP-014",
-    "name": "Commercial Catering Gas Safety Certificate – Kitchen (CP42)",
-    "item": "Commercial Catering Gas Safety Certificate – Kitchen (CP42)",
-    "title": "Commercial Catering Gas Safety Certificate – Kitchen (CP42)",
-    "type": "Statutory",
-    "category": "Gas Safety",
-    "complianceType": "OpCo",
-    "section": "OpCo",
-    "description": "Commercial Catering Gas Safety Certificate – Kitchen (CP42) under Gas Safety (Installation and Use) Regulations 1998",
-    "property": "Crowne Plaza Kingston-south",
-    "hotel": "Crowne Plaza Kingston-south",
-    "site": "Crowne Plaza Kingston-south",
-    "hotelName": "Crowne Plaza Kingston-south",
-    "hotelId": "hotel-001",
-    "propertyId": "hotel-001",
-    "department": "Kitchen",
-    "area": "Commercial Kitchen & Extraction",
-    "regulatoryAuthority": "Gas Safety (Installation and Use) Regulations 1998",
-    "standard": "Gas Safety (Installation and Use) Regulations 1998",
-    "certificateNumber": "",
-    "certificateRef": "",
-    "issueDate": "2025-04-15",
-    "lastInspection": "2025-04-15",
-    "lastReviewed": "2025-04-15",
-    "expiryDate": "2026-04-15",
-    "dueDate": "2026-04-15",
-    "renewalDate": "2026-04-15",
-    "inspectionFrequency": "Yearly",
-    "frequency": "Yearly",
-    "responsiblePerson": "Nathan Coote",
-    "assignee": "Nathan Coote",
-    "contractor": "First Call Limited",
-    "status": "overdue",
-    "riskRating": "high",
-    "notes": "Standard: Gas Safety (Installation and Use) Regulations 1998. Contractor: First Call Limited. Frequency: Yearly."
-  },
-  {
-    "id": "comp-cp-15",
-    "complianceId": "COMP-CP-015",
-    "name": "Lift Service",
-    "item": "Lift Service",
-    "title": "Lift Service",
-    "type": "Statutory",
-    "category": "Lifting Equipment",
-    "complianceType": "OpCo",
-    "section": "OpCo",
-    "description": "Lift Service under LOLER 1998",
-    "property": "Crowne Plaza Kingston-south",
-    "hotel": "Crowne Plaza Kingston-south",
-    "site": "Crowne Plaza Kingston-south",
-    "hotelName": "Crowne Plaza Kingston-south",
-    "hotelId": "hotel-001",
-    "propertyId": "hotel-001",
-    "department": "Engineering",
-    "area": "Lifts & Escalators",
-    "regulatoryAuthority": "LOLER 1998",
-    "standard": "LOLER 1998",
-    "certificateNumber": "",
-    "certificateRef": "",
-    "issueDate": "2026-04-02",
-    "lastInspection": "2026-04-02",
-    "lastReviewed": "2026-04-02",
-    "expiryDate": "2026-10-02",
-    "dueDate": "2026-10-02",
-    "renewalDate": "2026-10-02",
-    "inspectionFrequency": "6 months",
-    "frequency": "6 months",
-    "responsiblePerson": "Nathan Coote",
-    "assignee": "Nathan Coote",
-    "contractor": "Schindler",
-    "status": "overdue",
-    "riskRating": "high",
-    "notes": "Standard: LOLER 1998. Contractor: Schindler. Frequency: 6 months."
-  },
-  {
-    "id": "comp-cp-16",
-    "complianceId": "COMP-CP-016",
-    "name": "Lift Service",
-    "item": "Lift Service",
-    "title": "Lift Service",
-    "type": "Statutory",
-    "category": "Lifting Equipment",
-    "complianceType": "OpCo",
-    "section": "OpCo",
-    "description": "Lift Service under LOLER 1998",
-    "property": "Crowne Plaza Kingston-south",
-    "hotel": "Crowne Plaza Kingston-south",
-    "site": "Crowne Plaza Kingston-south",
-    "hotelName": "Crowne Plaza Kingston-south",
-    "hotelId": "hotel-001",
-    "propertyId": "hotel-001",
-    "department": "Engineering",
-    "area": "Lifts & Escalators",
-    "regulatoryAuthority": "LOLER 1998",
-    "standard": "LOLER 1998",
-    "certificateNumber": "",
-    "certificateRef": "",
-    "issueDate": "2026-04-02",
-    "lastInspection": "2026-04-02",
-    "lastReviewed": "2026-04-02",
-    "expiryDate": "2026-10-02",
-    "dueDate": "2026-10-02",
-    "renewalDate": "2026-10-02",
-    "inspectionFrequency": "6 months",
-    "frequency": "6 months",
-    "responsiblePerson": "Nathan Coote",
-    "assignee": "Nathan Coote",
-    "contractor": "Schindler",
-    "status": "overdue",
-    "riskRating": "high",
-    "notes": "Standard: LOLER 1998. Contractor: Schindler. Frequency: 6 months."
-  },
-  {
-    "id": "comp-cp-17",
-    "complianceId": "COMP-CP-017",
-    "name": "Lift Service",
-    "item": "Lift Service",
-    "title": "Lift Service",
-    "type": "Statutory",
-    "category": "Lifting Equipment",
-    "complianceType": "OpCo",
-    "section": "OpCo",
-    "description": "Lift Service under LOLER 1998",
-    "property": "Crowne Plaza Kingston-south",
-    "hotel": "Crowne Plaza Kingston-south",
-    "site": "Crowne Plaza Kingston-south",
-    "hotelName": "Crowne Plaza Kingston-south",
-    "hotelId": "hotel-001",
-    "propertyId": "hotel-001",
-    "department": "Engineering",
-    "area": "Lifts & Escalators",
-    "regulatoryAuthority": "LOLER 1998",
-    "standard": "LOLER 1998",
-    "certificateNumber": "",
-    "certificateRef": "",
-    "issueDate": "2026-04-02",
-    "lastInspection": "2026-04-02",
-    "lastReviewed": "2026-04-02",
-    "expiryDate": "2026-10-02",
-    "dueDate": "2026-10-02",
-    "renewalDate": "2026-10-02",
-    "inspectionFrequency": "6 months",
-    "frequency": "6 months",
-    "responsiblePerson": "Nathan Coote",
-    "assignee": "Nathan Coote",
-    "contractor": "Schindler",
-    "status": "overdue",
-    "riskRating": "high",
-    "notes": "Standard: LOLER 1998. Contractor: Schindler. Frequency: 6 months."
-  },
-  {
-    "id": "comp-cp-18",
-    "complianceId": "COMP-CP-018",
-    "name": "Health & Safety Visit",
-    "item": "Health & Safety Visit",
-    "title": "Health & Safety Visit",
-    "type": "Non-Statutory",
-    "category": "Health & Safety",
-    "complianceType": "OpCo",
-    "section": "OpCo",
-    "description": "Health & Safety Visit under Health & Safety Visit Act 1974",
-    "property": "Crowne Plaza Kingston-south",
-    "hotel": "Crowne Plaza Kingston-south",
-    "site": "Crowne Plaza Kingston-south",
-    "hotelName": "Crowne Plaza Kingston-south",
-    "hotelId": "hotel-001",
-    "propertyId": "hotel-001",
-    "department": "Engineering",
-    "area": "Whole Building",
-    "regulatoryAuthority": "Health & Safety Visit Act 1974",
-    "standard": "Health & Safety Visit Act 1974",
-    "certificateNumber": "",
-    "certificateRef": "",
-    "issueDate": "2026-01-27",
-    "lastInspection": "2026-01-27",
-    "lastReviewed": "2026-01-27",
-    "expiryDate": "2027-01-27",
-    "dueDate": "2027-01-27",
-    "renewalDate": "2027-01-27",
-    "inspectionFrequency": "Yearly",
-    "frequency": "Yearly",
-    "responsiblePerson": "Nathan Coote",
-    "assignee": "Nathan Coote",
-    "contractor": "Peninsula",
-    "status": "compliant",
-    "riskRating": "medium",
-    "notes": "Standard: Health & Safety Visit Act 1974. Contractor: Peninsula. Frequency: Yearly."
-  },
-  {
-    "id": "comp-cp-19",
-    "complianceId": "COMP-CP-019",
-    "name": "PAT Test",
-    "item": "PAT Test",
-    "title": "PAT Test",
-    "type": "Statutory",
-    "category": "Electrical Safety",
-    "complianceType": "OpCo",
-    "section": "OpCo",
-    "description": "PAT Test under Electricity at Work Regulations 1989",
-    "property": "Crowne Plaza Kingston-south",
-    "hotel": "Crowne Plaza Kingston-south",
-    "site": "Crowne Plaza Kingston-south",
-    "hotelName": "Crowne Plaza Kingston-south",
-    "hotelId": "hotel-001",
-    "propertyId": "hotel-001",
-    "department": "Engineering",
-    "area": "Plant Rooms & Distribution Boards",
-    "regulatoryAuthority": "Electricity at Work Regulations 1989",
-    "standard": "Electricity at Work Regulations 1989",
-    "certificateNumber": "",
-    "certificateRef": "",
-    "issueDate": "2026-05-21",
-    "lastInspection": "2026-05-21",
-    "lastReviewed": "2026-05-21",
-    "expiryDate": "2027-05-21",
-    "dueDate": "2027-05-21",
-    "renewalDate": "2027-05-21",
-    "inspectionFrequency": "Yearly",
-    "frequency": "Yearly",
-    "responsiblePerson": "Nathan Coote",
-    "assignee": "Nathan Coote",
-    "contractor": "Blacksure Services",
-    "status": "compliant",
-    "riskRating": "high",
-    "notes": "Standard: Electricity at Work Regulations 1989. Contractor: Blacksure Services. Frequency: Yearly."
-  },
-  {
-    "id": "comp-cp-20",
-    "complianceId": "COMP-CP-020",
-    "name": "Food Hygiene Rating",
-    "item": "Food Hygiene Rating",
-    "title": "Food Hygiene Rating",
-    "type": "Statutory",
-    "category": "Food Safety",
-    "complianceType": "OpCo",
-    "section": "OpCo",
-    "description": "Food Hygiene Rating under Food Safety Act 1990",
-    "property": "Crowne Plaza Kingston-south",
-    "hotel": "Crowne Plaza Kingston-south",
-    "site": "Crowne Plaza Kingston-south",
-    "hotelName": "Crowne Plaza Kingston-south",
-    "hotelId": "hotel-001",
-    "propertyId": "hotel-001",
-    "department": "Kitchen",
-    "area": "Commercial Kitchen & Extraction",
-    "regulatoryAuthority": "Food Safety Act 1990",
-    "standard": "Food Safety Act 1990",
-    "certificateNumber": "",
-    "certificateRef": "",
-    "issueDate": "2024-06-04",
-    "lastInspection": "2024-06-04",
-    "lastReviewed": "2024-06-04",
-    "expiryDate": "2027-12-31",
-    "dueDate": "2027-12-31",
-    "renewalDate": "2027-12-01",
-    "inspectionFrequency": "N/A",
-    "frequency": "N/A",
-    "responsiblePerson": "Nathan Coote",
-    "assignee": "Nathan Coote",
-    "contractor": "Elmbridge Council",
-    "status": "compliant",
-    "riskRating": "high",
-    "notes": "Standard: Food Safety Act 1990. Contractor: Elmbridge Council. Frequency: N/A."
-  },
-  {
-    "id": "comp-cp-21",
-    "complianceId": "COMP-CP-021",
-    "name": "Air Conditioning Service",
-    "item": "Air Conditioning Service",
-    "title": "Air Conditioning Service",
-    "type": "Statutory",
-    "category": "HVAC",
-    "complianceType": "OpCo",
-    "section": "OpCo",
-    "description": "Air Conditioning Service under Gas Regulations 2015",
-    "property": "Crowne Plaza Kingston-south",
-    "hotel": "Crowne Plaza Kingston-south",
-    "site": "Crowne Plaza Kingston-south",
-    "hotelName": "Crowne Plaza Kingston-south",
-    "hotelId": "hotel-001",
-    "propertyId": "hotel-001",
-    "department": "Engineering",
-    "area": "Whole Building",
-    "regulatoryAuthority": "Gas Regulations 2015",
-    "standard": "Gas Regulations 2015",
-    "certificateNumber": "",
-    "certificateRef": "",
-    "issueDate": "2025-01-01",
-    "lastInspection": "2025-01-01",
-    "lastReviewed": "2025-01-01",
-    "expiryDate": "2026-01-01",
-    "dueDate": "2026-01-01",
-    "renewalDate": "2026-01-01",
-    "inspectionFrequency": "Yearly",
-    "frequency": "Yearly",
-    "responsiblePerson": "Nathan Coote",
-    "assignee": "Nathan Coote",
-    "contractor": "Baseline",
-    "status": "overdue",
-    "riskRating": "high",
-    "notes": "Standard: Gas Regulations 2015. Contractor: Baseline. Frequency: Yearly."
-  },
-  {
-    "id": "comp-cp-22",
-    "complianceId": "COMP-CP-022",
-    "name": "PPL PRS Licence",
-    "item": "PPL PRS Licence",
-    "title": "PPL PRS Licence",
-    "type": "Statutory",
-    "category": "Licensing",
-    "complianceType": "OpCo",
-    "section": "OpCo",
-    "description": "PPL PRS Licence under Copyright, Designs and Patents Act 1988",
-    "property": "Crowne Plaza Kingston-south",
-    "hotel": "Crowne Plaza Kingston-south",
-    "site": "Crowne Plaza Kingston-south",
-    "hotelName": "Crowne Plaza Kingston-south",
-    "hotelId": "hotel-001",
-    "propertyId": "hotel-001",
-    "department": "Front Office",
-    "area": "Whole Building",
-    "regulatoryAuthority": "Copyright, Designs and Patents Act 1988",
-    "standard": "Copyright, Designs and Patents Act 1988",
-    "certificateNumber": "",
-    "certificateRef": "",
-    "issueDate": "2026-01-21",
-    "lastInspection": "2026-01-21",
-    "lastReviewed": "2026-01-21",
-    "expiryDate": "2027-01-20",
-    "dueDate": "2027-01-20",
-    "renewalDate": "2027-01-20",
-    "inspectionFrequency": "Yearly",
-    "frequency": "Yearly",
-    "responsiblePerson": "Nathan Coote",
-    "assignee": "Nathan Coote",
-    "contractor": "PPL PRS",
-    "status": "compliant",
-    "riskRating": "medium",
-    "notes": "Standard: Copyright, Designs and Patents Act 1988. Contractor: PPL PRS. Frequency: Yearly."
-  },
-  {
-    "id": "comp-cp-23",
-    "complianceId": "COMP-CP-023",
-    "name": "MPLC",
-    "item": "MPLC",
-    "title": "MPLC",
-    "type": "Statutory",
-    "category": "Licensing",
-    "complianceType": "OpCo",
-    "section": "OpCo",
-    "description": "MPLC under Copyright, Designs and Patents Act 1988",
-    "property": "Crowne Plaza Kingston-south",
-    "hotel": "Crowne Plaza Kingston-south",
-    "site": "Crowne Plaza Kingston-south",
-    "hotelName": "Crowne Plaza Kingston-south",
-    "hotelId": "hotel-001",
-    "propertyId": "hotel-001",
-    "department": "Front Office",
-    "area": "Whole Building",
-    "regulatoryAuthority": "Copyright, Designs and Patents Act 1988",
-    "standard": "Copyright, Designs and Patents Act 1988",
-    "certificateNumber": "",
-    "certificateRef": "",
-    "issueDate": "2025-09-21",
-    "lastInspection": "2025-09-21",
-    "lastReviewed": "2025-09-21",
-    "expiryDate": "2026-09-21",
-    "dueDate": "2026-09-21",
-    "renewalDate": "2026-09-21",
-    "inspectionFrequency": "Yearly",
-    "frequency": "Yearly",
-    "responsiblePerson": "Nathan Coote",
-    "assignee": "Nathan Coote",
-    "contractor": "MPLC",
-    "status": "overdue",
-    "riskRating": "medium",
-    "notes": "Standard: Copyright, Designs and Patents Act 1988. Contractor: MPLC. Frequency: Yearly."
-  },
-  {
-    "id": "comp-cp-24",
-    "complianceId": "COMP-CP-024",
-    "name": "Wedding License",
-    "item": "Wedding License",
-    "title": "Wedding License",
-    "type": "Statutory",
-    "category": "Licensing",
-    "complianceType": "OpCo",
-    "section": "OpCo",
-    "description": "Wedding License under Marriages and Civil Partnerships (Approved Premises) Regulations 200",
-    "property": "Crowne Plaza Kingston-south",
-    "hotel": "Crowne Plaza Kingston-south",
-    "site": "Crowne Plaza Kingston-south",
-    "hotelName": "Crowne Plaza Kingston-south",
-    "hotelId": "hotel-001",
-    "propertyId": "hotel-001",
-    "department": "Front Office",
-    "area": "Whole Building",
-    "regulatoryAuthority": "Marriages and Civil Partnerships (Approved Premises) Regulations 200",
-    "standard": "Marriages and Civil Partnerships (Approved Premises) Regulations 200",
-    "certificateNumber": "",
-    "certificateRef": "",
-    "issueDate": "2025-12-13",
-    "lastInspection": "2025-12-13",
-    "lastReviewed": "2025-12-13",
-    "expiryDate": "2026-12-13",
-    "dueDate": "2026-12-13",
-    "renewalDate": "2026-12-13",
-    "inspectionFrequency": "Yearly",
-    "frequency": "Yearly",
-    "responsiblePerson": "Nathan Coote",
-    "assignee": "Nathan Coote",
-    "contractor": "Elmbridge Council",
-    "status": "compliant",
-    "riskRating": "medium",
-    "notes": "Standard: Marriages and Civil Partnerships (Approved Premises) Regulations 200. Contractor: Elmbridge Council. Frequency: Yearly."
-  },
-  {
-    "id": "comp-cp-25",
-    "complianceId": "COMP-CP-025",
-    "name": "TV License",
-    "item": "TV License",
-    "title": "TV License",
-    "type": "Statutory",
-    "category": "Licensing",
-    "complianceType": "OpCo",
-    "section": "OpCo",
-    "description": "TV License under Communications Act 2003",
-    "property": "Crowne Plaza Kingston-south",
-    "hotel": "Crowne Plaza Kingston-south",
-    "site": "Crowne Plaza Kingston-south",
-    "hotelName": "Crowne Plaza Kingston-south",
-    "hotelId": "hotel-001",
-    "propertyId": "hotel-001",
-    "department": "Front Office",
-    "area": "Whole Building",
-    "regulatoryAuthority": "Communications Act 2003",
-    "standard": "Communications Act 2003",
-    "certificateNumber": "",
-    "certificateRef": "",
-    "issueDate": "2025-01-01",
-    "lastInspection": "2025-01-01",
-    "lastReviewed": "2025-01-01",
-    "expiryDate": "2026-01-01",
-    "dueDate": "2026-01-01",
-    "renewalDate": "2026-01-01",
-    "inspectionFrequency": "Yearly",
-    "frequency": "Yearly",
-    "responsiblePerson": "Nathan Coote",
-    "assignee": "Nathan Coote",
-    "contractor": "Tv Licensing",
-    "status": "overdue",
-    "riskRating": "medium",
-    "notes": "Standard: Communications Act 2003. Contractor: Tv Licensing. Frequency: Yearly."
-  },
-  {
-    "id": "comp-cp-26",
-    "complianceId": "COMP-CP-026",
-    "name": "Data Protection Registration  Certificate",
-    "item": "Data Protection Registration  Certificate",
-    "title": "Data Protection Registration  Certificate",
-    "type": "Statutory",
-    "category": "Licensing",
-    "complianceType": "OpCo",
-    "section": "OpCo",
-    "description": "Data Protection Registration  Certificate under Data Protection (Charges and Information) Regulations 2018",
-    "property": "Crowne Plaza Kingston-south",
-    "hotel": "Crowne Plaza Kingston-south",
-    "site": "Crowne Plaza Kingston-south",
-    "hotelName": "Crowne Plaza Kingston-south",
-    "hotelId": "hotel-001",
-    "propertyId": "hotel-001",
-    "department": "Front Office",
-    "area": "Whole Building",
-    "regulatoryAuthority": "Data Protection (Charges and Information) Regulations 2018",
-    "standard": "Data Protection (Charges and Information) Regulations 2018",
-    "certificateNumber": "",
-    "certificateRef": "",
-    "issueDate": "2025-01-01",
-    "lastInspection": "2025-01-01",
-    "lastReviewed": "2025-01-01",
-    "expiryDate": "2026-01-01",
-    "dueDate": "2026-01-01",
-    "renewalDate": "2026-01-01",
-    "inspectionFrequency": "Yearly",
-    "frequency": "Yearly",
-    "responsiblePerson": "Nathan Coote",
-    "assignee": "Nathan Coote",
-    "contractor": "DPRC",
-    "status": "overdue",
-    "riskRating": "medium",
-    "notes": "Standard: Data Protection (Charges and Information) Regulations 2018. Contractor: DPRC. Frequency: Yearly."
-  },
-  {
-    "id": "comp-cp-27",
-    "complianceId": "COMP-CP-027",
-    "name": "Pest Control",
-    "item": "Pest Control",
-    "title": "Pest Control",
-    "type": "Statutory",
-    "category": "Food Safety",
-    "complianceType": "OpCo",
-    "section": "OpCo",
-    "description": "Pest Control under Food Safety Act 1990",
-    "property": "Crowne Plaza Kingston-south",
-    "hotel": "Crowne Plaza Kingston-south",
-    "site": "Crowne Plaza Kingston-south",
-    "hotelName": "Crowne Plaza Kingston-south",
-    "hotelId": "hotel-001",
-    "propertyId": "hotel-001",
-    "department": "Kitchen",
-    "area": "Commercial Kitchen & Extraction",
-    "regulatoryAuthority": "Food Safety Act 1990",
-    "standard": "Food Safety Act 1990",
-    "certificateNumber": "",
-    "certificateRef": "",
-    "issueDate": "2026-01-26",
-    "lastInspection": "2026-01-26",
-    "lastReviewed": "2026-01-26",
-    "expiryDate": "2026-04-26",
-    "dueDate": "2026-04-26",
-    "renewalDate": "2026-04-26",
-    "inspectionFrequency": "3 Months",
-    "frequency": "3 Months",
-    "responsiblePerson": "Nathan Coote",
-    "assignee": "Nathan Coote",
-    "contractor": "Nuture",
-    "status": "overdue",
-    "riskRating": "medium",
-    "notes": "Standard: Food Safety Act 1990. Contractor: Nuture. Frequency: 3 Months."
-  },
-  {
-    "id": "comp-cp-28",
-    "complianceId": "COMP-CP-028",
-    "name": "Legionella Bacteria Water Risk Assessment",
-    "item": "Legionella Bacteria Water Risk Assessment",
-    "title": "Legionella Bacteria Water Risk Assessment",
-    "type": "Statutory",
-    "category": "Water Safety",
-    "complianceType": "PropCo",
-    "section": "PropCo",
-    "description": "Legionella Bacteria Water Risk Assessment under HSE ACOP L8 / HSG274",
-    "property": "Crowne Plaza Kingston-south",
-    "hotel": "Crowne Plaza Kingston-south",
-    "site": "Crowne Plaza Kingston-south",
-    "hotelName": "Crowne Plaza Kingston-south",
-    "hotelId": "hotel-001",
-    "propertyId": "hotel-001",
-    "department": "Facilities",
-    "area": "Calorifiers & Water Storage",
-    "regulatoryAuthority": "HSE ACOP L8 / HSG274",
-    "standard": "HSE ACOP L8 / HSG274",
-    "certificateNumber": "",
-    "certificateRef": "",
-    "issueDate": "2025-01-22",
-    "lastInspection": "2025-01-22",
-    "lastReviewed": "2025-01-22",
-    "expiryDate": "2027-01-22",
-    "dueDate": "2027-01-22",
-    "renewalDate": "2027-01-22",
-    "inspectionFrequency": "2 Years",
-    "frequency": "2 Years",
-    "responsiblePerson": "Kevin Davis",
-    "assignee": "Kevin Davis",
-    "contractor": "Guardian",
-    "status": "compliant",
-    "riskRating": "high",
-    "notes": "Standard: HSE ACOP L8 / HSG274. Contractor: Guardian. Frequency: 2 Years."
-  },
-  {
-    "id": "comp-cp-29",
-    "complianceId": "COMP-CP-029",
-    "name": "Asbestos",
-    "item": "Asbestos",
-    "title": "Asbestos",
-    "type": "Statutory",
-    "category": "Asbestos Managenment",
-    "complianceType": "PropCo",
-    "section": "PropCo",
-    "description": "Asbestos under Control of Asbestos Regulations 2012",
-    "property": "Crowne Plaza Kingston-south",
-    "hotel": "Crowne Plaza Kingston-south",
-    "site": "Crowne Plaza Kingston-south",
-    "hotelName": "Crowne Plaza Kingston-south",
-    "hotelId": "hotel-001",
-    "propertyId": "hotel-001",
-    "department": "Engineering",
-    "area": "Whole Building",
-    "regulatoryAuthority": "Control of Asbestos Regulations 2012",
-    "standard": "Control of Asbestos Regulations 2012",
-    "certificateNumber": "",
-    "certificateRef": "",
-    "issueDate": "2025-09-18",
-    "lastInspection": "2025-09-18",
-    "lastReviewed": "2025-09-18",
-    "expiryDate": "2027-12-31",
-    "dueDate": "2027-12-31",
-    "renewalDate": "2027-12-01",
-    "inspectionFrequency": "N/A",
-    "frequency": "N/A",
-    "responsiblePerson": "Kevin Davis",
-    "assignee": "Kevin Davis",
-    "contractor": "PCA",
-    "status": "compliant",
-    "riskRating": "high",
-    "notes": "Standard: Control of Asbestos Regulations 2012. Contractor: PCA. Frequency: N/A."
-  },
-  {
-    "id": "comp-cp-30",
-    "complianceId": "COMP-CP-030",
-    "name": "LOLER",
-    "item": "LOLER",
-    "title": "LOLER",
-    "type": "Statutory",
-    "category": "Lifting Equipment",
-    "complianceType": "PropCo",
-    "section": "PropCo",
-    "description": "LOLER under LOLER 1998",
-    "property": "Crowne Plaza Kingston-south",
-    "hotel": "Crowne Plaza Kingston-south",
-    "site": "Crowne Plaza Kingston-south",
-    "hotelName": "Crowne Plaza Kingston-south",
-    "hotelId": "hotel-001",
-    "propertyId": "hotel-001",
-    "department": "Engineering",
-    "area": "Lifts & Escalators",
-    "regulatoryAuthority": "LOLER 1998",
-    "standard": "LOLER 1998",
-    "certificateNumber": "",
-    "certificateRef": "",
-    "issueDate": "2026-08-18",
-    "lastInspection": "2026-08-18",
-    "lastReviewed": "2026-08-18",
-    "expiryDate": "2027-02-17",
-    "dueDate": "2027-02-17",
-    "renewalDate": "2027-02-17",
-    "inspectionFrequency": "6 Months",
-    "frequency": "6 Months",
-    "responsiblePerson": "Kevin Davis",
-    "assignee": "Kevin Davis",
-    "contractor": "Allianz",
-    "status": "compliant",
-    "riskRating": "high",
-    "notes": "Standard: LOLER 1998. Contractor: Allianz. Frequency: 6 Months."
-  },
-  {
-    "id": "comp-cp-31",
-    "complianceId": "COMP-CP-031",
-    "name": "LOLER",
-    "item": "LOLER",
-    "title": "LOLER",
-    "type": "Statutory",
-    "category": "Lifting Equipment",
-    "complianceType": "PropCo",
-    "section": "PropCo",
-    "description": "LOLER under LOLER 1998",
-    "property": "Crowne Plaza Kingston-south",
-    "hotel": "Crowne Plaza Kingston-south",
-    "site": "Crowne Plaza Kingston-south",
-    "hotelName": "Crowne Plaza Kingston-south",
-    "hotelId": "hotel-001",
-    "propertyId": "hotel-001",
-    "department": "Engineering",
-    "area": "Lifts & Escalators",
-    "regulatoryAuthority": "LOLER 1998",
-    "standard": "LOLER 1998",
-    "certificateNumber": "",
-    "certificateRef": "",
-    "issueDate": "2026-08-18",
-    "lastInspection": "2026-08-18",
-    "lastReviewed": "2026-08-18",
-    "expiryDate": "2027-02-17",
-    "dueDate": "2027-02-17",
-    "renewalDate": "2027-02-17",
-    "inspectionFrequency": "6 Months",
-    "frequency": "6 Months",
-    "responsiblePerson": "Kevin Davis",
-    "assignee": "Kevin Davis",
-    "contractor": "Allianz",
-    "status": "compliant",
-    "riskRating": "high",
-    "notes": "Standard: LOLER 1998. Contractor: Allianz. Frequency: 6 Months."
-  },
-  {
-    "id": "comp-cp-32",
-    "complianceId": "COMP-CP-032",
-    "name": "LOLER",
-    "item": "LOLER",
-    "title": "LOLER",
-    "type": "Statutory",
-    "category": "Lifting Equipment",
-    "complianceType": "PropCo",
-    "section": "PropCo",
-    "description": "LOLER under LOLER 1998",
-    "property": "Crowne Plaza Kingston-south",
-    "hotel": "Crowne Plaza Kingston-south",
-    "site": "Crowne Plaza Kingston-south",
-    "hotelName": "Crowne Plaza Kingston-south",
-    "hotelId": "hotel-001",
-    "propertyId": "hotel-001",
-    "department": "Engineering",
-    "area": "Lifts & Escalators",
-    "regulatoryAuthority": "LOLER 1998",
-    "standard": "LOLER 1998",
-    "certificateNumber": "",
-    "certificateRef": "",
-    "issueDate": "2026-08-18",
-    "lastInspection": "2026-08-18",
-    "lastReviewed": "2026-08-18",
-    "expiryDate": "2027-02-17",
-    "dueDate": "2027-02-17",
-    "renewalDate": "2027-02-17",
-    "inspectionFrequency": "6 Months",
-    "frequency": "6 Months",
-    "responsiblePerson": "Kevin Davis",
-    "assignee": "Kevin Davis",
-    "contractor": "Allianz",
-    "status": "compliant",
-    "riskRating": "high",
-    "notes": "Standard: LOLER 1998. Contractor: Allianz. Frequency: 6 Months."
-  },
-  {
-    "id": "comp-cp-33",
-    "complianceId": "COMP-CP-033",
-    "name": "Lightning Protection",
-    "item": "Lightning Protection",
-    "title": "Lightning Protection",
-    "type": "Statutory",
-    "category": "Electrical Safety",
-    "complianceType": "PropCo",
-    "section": "PropCo",
-    "description": "Lightning Protection under BS EN 62305",
-    "property": "Crowne Plaza Kingston-south",
-    "hotel": "Crowne Plaza Kingston-south",
-    "site": "Crowne Plaza Kingston-south",
-    "hotelName": "Crowne Plaza Kingston-south",
-    "hotelId": "hotel-001",
-    "propertyId": "hotel-001",
-    "department": "Engineering",
-    "area": "Plant Rooms & Distribution Boards",
-    "regulatoryAuthority": "BS EN 62305",
-    "standard": "BS EN 62305",
-    "certificateNumber": "",
-    "certificateRef": "",
-    "issueDate": "2025-08-05",
-    "lastInspection": "2025-08-05",
-    "lastReviewed": "2025-08-05",
-    "expiryDate": "2026-08-05",
-    "dueDate": "2026-08-05",
-    "renewalDate": "2026-08-05",
-    "inspectionFrequency": "Yearly",
-    "frequency": "Yearly",
-    "responsiblePerson": "Kevin Davis",
-    "assignee": "Kevin Davis",
-    "contractor": "Strike Control",
-    "status": "compliant",
-    "riskRating": "high",
-    "notes": "Standard: BS EN 62305. Contractor: Strike Control. Frequency: Yearly."
-  },
-  {
-    "id": "comp-cp-34",
-    "complianceId": "COMP-CP-034",
-    "name": "External Wall Assessment FRAEW",
-    "item": "External Wall Assessment FRAEW",
-    "title": "External Wall Assessment FRAEW",
-    "type": "Statutory",
-    "category": "Fire Safety",
-    "complianceType": "PropCo",
-    "section": "PropCo",
-    "description": "External Wall Assessment FRAEW under Regulatory Reform (Fire Safety) Order 2005",
-    "property": "Crowne Plaza Kingston-south",
-    "hotel": "Crowne Plaza Kingston-south",
-    "site": "Crowne Plaza Kingston-south",
-    "hotelName": "Crowne Plaza Kingston-south",
-    "hotelId": "hotel-001",
-    "propertyId": "hotel-001",
-    "department": "Engineering",
-    "area": "Whole Building",
-    "regulatoryAuthority": "Regulatory Reform (Fire Safety) Order 2005",
-    "standard": "Regulatory Reform (Fire Safety) Order 2005",
-    "certificateNumber": "",
-    "certificateRef": "",
-    "issueDate": "2025-08-19",
-    "lastInspection": "2025-08-19",
-    "lastReviewed": "2025-08-19",
-    "expiryDate": "2027-12-31",
-    "dueDate": "2027-12-31",
-    "renewalDate": "2027-12-01",
-    "inspectionFrequency": "N/A",
-    "frequency": "N/A",
-    "responsiblePerson": "Kevin Davis",
-    "assignee": "Kevin Davis",
-    "contractor": "City Fire",
-    "status": "compliant",
-    "riskRating": "high",
-    "notes": "Standard: Regulatory Reform (Fire Safety) Order 2005. Contractor: City Fire. Frequency: N/A."
-  },
-  {
-    "id": "comp-cp-35",
-    "complianceId": "COMP-CP-035",
-    "name": "Energy Performance Certificate",
-    "item": "Energy Performance Certificate",
-    "title": "Energy Performance Certificate",
-    "type": "Statutory",
-    "category": "Electrical Safety",
-    "complianceType": "PropCo",
-    "section": "PropCo",
-    "description": "Energy Performance Certificate under BS EN 62305",
-    "property": "Crowne Plaza Kingston-south",
-    "hotel": "Crowne Plaza Kingston-south",
-    "site": "Crowne Plaza Kingston-south",
-    "hotelName": "Crowne Plaza Kingston-south",
-    "hotelId": "hotel-001",
-    "propertyId": "hotel-001",
-    "department": "Engineering",
-    "area": "Plant Rooms & Distribution Boards",
-    "regulatoryAuthority": "BS EN 62305",
-    "standard": "BS EN 62305",
-    "certificateNumber": "",
-    "certificateRef": "",
-    "issueDate": "2018-04-16",
-    "lastInspection": "2018-04-16",
-    "lastReviewed": "2018-04-16",
-    "expiryDate": "2028-04-13",
-    "dueDate": "2028-04-13",
-    "renewalDate": "2028-04-13",
-    "inspectionFrequency": "10 years",
-    "frequency": "10 years",
-    "responsiblePerson": "Kevin Davis",
-    "assignee": "Kevin Davis",
-    "contractor": "Elmbridge Conuncil",
-    "status": "compliant",
-    "riskRating": "high",
-    "notes": "Standard: BS EN 62305. Contractor: Elmbridge Conuncil. Frequency: 10 years."
-  },
-  {
-    "id": "comp-cp-36",
-    "complianceId": "COMP-CP-036",
-    "name": "Electrical Installation Condition Report",
-    "item": "Electrical Installation Condition Report",
-    "title": "Electrical Installation Condition Report",
-    "type": "Statutory",
-    "category": "Electrical Safety",
-    "complianceType": "PropCo",
-    "section": "PropCo",
-    "description": "Electrical Installation Condition Report under BS EN 62305",
-    "property": "Crowne Plaza Kingston-south",
-    "hotel": "Crowne Plaza Kingston-south",
-    "site": "Crowne Plaza Kingston-south",
-    "hotelName": "Crowne Plaza Kingston-south",
-    "hotelId": "hotel-001",
-    "propertyId": "hotel-001",
-    "department": "Engineering",
-    "area": "Plant Rooms & Distribution Boards",
-    "regulatoryAuthority": "BS EN 62305",
-    "standard": "BS EN 62305",
-    "certificateNumber": "",
-    "certificateRef": "",
-    "issueDate": "2024-09-16",
-    "lastInspection": "2024-09-16",
-    "lastReviewed": "2024-09-16",
-    "expiryDate": "2029-09-15",
-    "dueDate": "2029-09-15",
-    "renewalDate": "2029-09-15",
-    "inspectionFrequency": "5 Years",
-    "frequency": "5 Years",
-    "responsiblePerson": "Kevin Davis",
-    "assignee": "Kevin Davis",
-    "contractor": "NICEIC",
-    "status": "compliant",
-    "riskRating": "high",
-    "notes": "Standard: BS EN 62305. Contractor: NICEIC. Frequency: 5 Years."
-  }
-];
+const MOCK_COMPLIANCE: ComplianceItem[] = COMPLIANCE_MASTER_ITEMS as ComplianceItem[];
 
 const STATUS_CONFIG: Record<
   ComplianceStatus,
@@ -1591,7 +228,7 @@ export default function ComplianceRegisterClient() {
           const parsed = JSON.parse(saved);
           if (Array.isArray(parsed)) return parsed;
         }
-      } catch {}
+      } catch { }
     }
     return [];
   });
@@ -1605,7 +242,7 @@ export default function ComplianceRegisterClient() {
             const parsed = JSON.parse(saved);
             if (Array.isArray(parsed)) setCustomCategories(parsed);
           }
-        } catch {}
+        } catch { }
       }
     };
     window.addEventListener('samko:compliance_categories_updated', handleCategorySync);
@@ -1701,7 +338,7 @@ export default function ComplianceRegisterClient() {
     if (typeof window !== 'undefined') {
       try {
         localStorage.setItem('samko_compliance_categories', JSON.stringify(updatedCustom));
-      } catch {}
+      } catch { }
     }
     removeDropdownOptionByName('compliance', 'category', oldName);
     addDropdownOption('compliance', 'category', newName);
@@ -1716,7 +353,7 @@ export default function ComplianceRegisterClient() {
     if (typeof window !== 'undefined') {
       try {
         localStorage.setItem('samko_compliance_items', JSON.stringify(updatedItems));
-      } catch {}
+      } catch { }
     }
     setEditingCat(null);
     toast.success(`Renamed category "${oldName}" to "${newName}"`);
@@ -1733,6 +370,7 @@ export default function ComplianceRegisterClient() {
       { id: 'name', label: 'Compliance Item', originalLabel: 'Name', visible: true, order: 1 },
       { id: 'category', label: 'Category', originalLabel: 'Category', visible: true, order: 2 },
       { id: 'property', label: 'Property', originalLabel: 'Property', visible: true, order: 3 },
+      { id: 'checkType', label: 'Check Type', originalLabel: 'Check Type', visible: true, order: 3.5 },
       { id: 'standard', label: 'Standard', originalLabel: 'Standard', visible: true, order: 4 },
       { id: 'contractor', label: 'Contractor', originalLabel: 'Contractor', visible: true, order: 5 },
       { id: 'frequency', label: 'Frequency', originalLabel: 'Frequency', visible: true, order: 6 },
@@ -1766,6 +404,7 @@ export default function ComplianceRegisterClient() {
       },
       { id: 'riskRating', label: 'Risk Rating', originalLabel: 'Risk', visible: true, order: 11 },
       { id: 'status', label: 'Status', originalLabel: 'Status', visible: true, order: 12 },
+      { id: 'document', label: 'Document', originalLabel: 'Document', visible: true, order: 12.5 },
       { id: 'actions', label: 'Actions', originalLabel: 'Actions', visible: true, order: 13 },
     ],
     []
@@ -1785,30 +424,51 @@ export default function ComplianceRegisterClient() {
       cols = DEFAULT_COMPLIANCE_COLUMNS.filter((c) => c.visible !== false);
     }
 
-    // Separate actions column to GUARANTEE it is ALWAYS the last column!
+    // Separate columns: all standard data columns first, then Document, then Actions as absolute last!
     const nonActions = cols
-      .filter((c) => c.id.toLowerCase() !== 'actions')
+      .filter(
+        (c) =>
+          c.id.toLowerCase() !== 'actions' &&
+          c.id.toLowerCase() !== 'document' &&
+          c.id.toLowerCase() !== 'attachment'
+      )
       .sort((a, b) => (a.order ?? 99) - (b.order ?? 99));
+
+    const docCol = cols.find(
+      (c) => c.id.toLowerCase() === 'document' || c.id.toLowerCase() === 'attachment'
+    ) || {
+      id: 'document',
+      label: 'Document',
+      originalLabel: 'Document',
+      visible: true,
+      order: 9998,
+    };
+
     const actionsCol = cols.find((c) => c.id.toLowerCase() === 'actions') || {
       id: 'actions',
       label: 'Actions',
       originalLabel: 'Actions',
       visible: true,
-      order: 999,
+      order: 9999,
     };
 
-    return [...nonActions, actionsCol];
+    return [...nonActions, docCol, actionsCol];
   }, [cmsColumns, DEFAULT_COMPLIANCE_COLUMNS]);
 
   const [items, setItems] = useState<ComplianceItem[]>(() => {
     if (typeof window !== 'undefined') {
       try {
-        const cached = sessionStorage.getItem('samko_cache_compliance_v3');
+        const cached = sessionStorage.getItem('samko_cache_compliance_master_v3');
         if (cached) {
           const parsed = JSON.parse(cached);
-          if (Array.isArray(parsed) && parsed.length >= 30) return parsed;
+          if (Array.isArray(parsed) && parsed.length >= 200) {
+            const hasPropco = parsed.some(
+              (c: any) => (c.complianceType || c.section || c.portal || '').toLowerCase() === 'propco'
+            );
+            if (hasPropco) return parsed;
+          }
         }
-      } catch {}
+      } catch { }
     }
     return MOCK_COMPLIANCE;
   });
@@ -1934,7 +594,7 @@ export default function ComplianceRegisterClient() {
     type: 'Statutory',
     category: 'Fire Risk Assessment',
     hotel: DEFAULT_HOTELS[0],
-    department: 'Engineering',
+    department: '',
     area: 'Whole Building',
     regulatoryAuthority: 'Fire & Rescue Service',
     certificateNumber: '',
@@ -1947,6 +607,9 @@ export default function ComplianceRegisterClient() {
     riskRating: 'medium' as RiskRating,
     status: 'compliant' as ComplianceStatus,
     notes: '',
+    documentName: '',
+    documentUrl: '',
+    documentSize: '',
   });
 
   const fetchCompliance = useCallback(async () => {
@@ -1963,10 +626,50 @@ export default function ComplianceRegisterClient() {
         compRes.value.data &&
         compRes.value.data.length > 0
       ) {
-        setItems(compRes.value.data);
+        let cleanData = compRes.value.data.map((c: any) => {
+          const isPropco =
+            c.id === 'comp-cp-28' ||
+            c.id === 'comp-cp-29' ||
+            c.id === 'comp-cp-30' ||
+            c.id === 'comp-cp-31' ||
+            c.id === 'comp-cp-32' ||
+            c.id === 'comp-cp-33' ||
+            c.id === 'comp-cp-34' ||
+            c.id === 'comp-cp-35' ||
+            c.id === 'comp-cp-36' ||
+            ['COMP-CP-028', 'COMP-CP-029', 'COMP-CP-030', 'COMP-CP-031', 'COMP-CP-032', 'COMP-CP-033', 'COMP-CP-034', 'COMP-CP-035', 'COMP-CP-036'].includes(c.complianceId) ||
+            (c.complianceType || c.section || c.portal || '').toLowerCase() === 'propco';
+          if (isPropco) {
+            return {
+              ...c,
+              complianceType: 'PropCo',
+              section: 'PropCo',
+              portal: 'propco',
+            };
+          }
+          return c;
+        });
+
+        // Always guarantee that PropCo items are fully restored and present
+        const propcoMocks = MOCK_COMPLIANCE.filter(
+          (m) => (m.complianceType || m.section || '').toLowerCase() === 'propco'
+        );
+        const existingIds = new Set(cleanData.map((c: any) => c.id));
+        propcoMocks.forEach((pm) => {
+          if (!existingIds.has(pm.id)) {
+            cleanData.push({
+              ...pm,
+              complianceType: 'PropCo',
+              section: 'PropCo',
+              portal: 'propco',
+            });
+          }
+        });
+
+        setItems(cleanData);
         try {
-          sessionStorage.setItem('samko_cache_compliance_v3', JSON.stringify(compRes.value.data));
-        } catch {}
+          sessionStorage.setItem('samko_cache_compliance_master_v3', JSON.stringify(cleanData));
+        } catch { }
       }
       if (
         propsRes.status === 'fulfilled' &&
@@ -2109,8 +812,12 @@ export default function ComplianceRegisterClient() {
       const isAccessible = isPropertyAccessible(c.hotel || (c as any).property || (c as any).site);
       if (!isAccessible) return false;
       const type = (c.complianceType || c.section || (c as any).portal || '').toLowerCase();
-      if (isPropcoPortal) return type === 'propco';
-      return type !== 'propco';
+            const isPropcoItem =
+        type === 'propco' ||
+        (c as any).section?.toLowerCase() === 'propco' ||
+        (c as any).complianceType?.toLowerCase() === 'propco';
+      if (isPropcoPortal) return isPropcoItem;
+      return !isPropcoItem;
     });
   }, [items, isPropertyAccessible, isPropcoPortal]);
 
@@ -2611,367 +1318,397 @@ export default function ComplianceRegisterClient() {
         >
           <div className="overflow-x-auto w-full">
             <table className="w-full text-left border-collapse" style={{ minWidth: 900 }}>
-            <thead>
-              <tr style={{ background: 'var(--surface2)' }}>
-                {hasDeleteAccess && (
-                  <th className="px-3 py-3 w-10 text-center">
-                    <TableCheckbox
-                      checked={isAllCompliancePageSelected}
-                      indeterminate={isSomeCompliancePageSelected}
-                      onChange={handleToggleSelectAllCompliancePage}
-                      title="Select all on this page"
-                    />
-                  </th>
-                )}
-                {activeColumns.map((col: any) => (
-                  <th
-                    key={col.id}
-                    className={`text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide whitespace-nowrap ${
-                      col.id.toLowerCase() === 'actions' ? 'text-right' : ''
-                    }`}
-                  >
-                    {col.label}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {paginatedCompliance.map((item) => {
-                const days = daysUntil(item.expiryDate);
-                const statusCfg = STATUS_CONFIG[item.status] || STATUS_CONFIG.compliant;
-                const riskCfg = RISK_CONFIG[item.riskRating] || RISK_CONFIG.low;
+              <thead>
+                <tr style={{ background: 'var(--surface2)' }}>
+                  {hasDeleteAccess && (
+                    <th className="px-3 py-3 w-10 text-center">
+                      <TableCheckbox
+                        checked={isAllCompliancePageSelected}
+                        indeterminate={isSomeCompliancePageSelected}
+                        onChange={handleToggleSelectAllCompliancePage}
+                        title="Select all on this page"
+                      />
+                    </th>
+                  )}
+                  {activeColumns.map((col: any) => (
+                    <th
+                      key={col.id}
+                      className={`text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide whitespace-nowrap ${col.id.toLowerCase() === 'actions' ? 'text-right' : ''
+                        }`}
+                    >
+                      {col.label}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {paginatedCompliance.map((item) => {
+                  const days = daysUntil(item.expiryDate);
+                  const statusCfg = STATUS_CONFIG[item.status] || STATUS_CONFIG.compliant;
+                  const riskCfg = RISK_CONFIG[item.riskRating] || RISK_CONFIG.low;
 
-                return (
-                  <tr
-                    key={item.id}
-                    className={`border-t border-border cursor-pointer transition-colors ${selectedComplianceIds.includes(item.id) ? 'bg-[#e8c97a]/5' : ''}`}
-                    style={{ background: 'transparent' }}
-                    onMouseEnter={(e) =>
+                  return (
+                    <tr
+                      key={item.id}
+                      className={`border-t border-border cursor-pointer transition-colors ${selectedComplianceIds.includes(item.id) ? 'bg-[#e8c97a]/5' : ''}`}
+                      style={{ background: 'transparent' }}
+                      onMouseEnter={(e) =>
                       (e.currentTarget.style.background = selectedComplianceIds.includes(item.id)
                         ? 'rgba(232,201,122,0.08)'
                         : 'var(--surface2)')
-                    }
-                    onMouseLeave={(e) =>
+                      }
+                      onMouseLeave={(e) =>
                       (e.currentTarget.style.background = selectedComplianceIds.includes(item.id)
                         ? 'rgba(232,201,122,0.05)'
                         : 'transparent')
-                    }
-                    onClick={() => setSelectedItem(item)}
-                  >
-                    {hasDeleteAccess && (
-                      <td className="px-3 py-3 text-center" onClick={(e) => e.stopPropagation()}>
-                        <TableCheckbox
-                          checked={selectedComplianceIds.includes(item.id)}
-                          onChange={() => handleToggleComplianceSelect(item.id)}
-                          title={`Select ${item.name}`}
-                        />
-                      </td>
-                    )}
-                    {activeColumns.map((col: any) => {
-                      const colKey = col.id.toLowerCase();
-                      if (colKey === 'id' || colKey === 'complianceid') {
-                        return (
-                          <td
-                            key={col.id}
-                            className="px-4 py-3 text-xs font-mono text-muted-foreground whitespace-nowrap"
-                          >
-                            {item.complianceId || item.id}
-                          </td>
-                        );
                       }
-                      if (colKey === 'name' || colKey === 'complianceitem') {
-                        return (
-                          <td key={col.id} className="px-4 py-3">
-                            <div className="font-medium text-sm">{item.name}</div>
-                            <div className="text-xs text-muted-foreground">{item.type}</div>
-                          </td>
-                        );
-                      }
-                      if (colKey === 'category') {
-                        return (
-                          <td key={col.id} className="px-4 py-3">
-                            <span
-                              className="text-xs px-2 py-0.5 rounded"
-                              style={{ background: 'var(--surface3)', color: 'var(--text2)' }}
-                            >
-                              {item.category}
-                            </span>
-                          </td>
-                        );
-                      }
-                      if (colKey === 'property' || colKey === 'hotel') {
-                        return (
-                          <td
-                            key={col.id}
-                            className="px-4 py-3 text-sm text-muted-foreground whitespace-nowrap"
-                          >
-                            {item.hotel || (item as any).property}
-                          </td>
-                        );
-                      }
-                      if (colKey === 'department') {
-                        return (
-                          <td key={col.id} className="px-4 py-3 text-sm text-muted-foreground">
-                            {item.department}
-                          </td>
-                        );
-                      }
-                      if (
-                        colKey === 'standard' ||
-                        colKey === 'regulatoryauthority' ||
-                        colKey === 'authority'
-                      ) {
-                        const std = item.standard || item.regulatoryAuthority;
-                        return (
-                          <td
-                            key={col.id}
-                            className="px-4 py-3 text-xs text-muted-foreground whitespace-nowrap max-w-[220px] truncate"
-                            title={std}
-                          >
-                            {std || '—'}
-                          </td>
-                        );
-                      }
-                      if (colKey === 'contractor') {
-                        return (
-                          <td key={col.id} className="px-4 py-3 text-sm whitespace-nowrap">
-                            {item.contractor ? (
-                              <span
-                                className="inline-flex items-center px-2.5 py-0.5 rounded text-xs font-medium border border-border"
-                                style={{ background: 'var(--surface2)', color: 'var(--text)' }}
-                              >
-                                {item.contractor}
-                              </span>
-                            ) : (
-                              <span className="text-muted-foreground text-xs">—</span>
-                            )}
-                          </td>
-                        );
-                      }
-                      if (colKey === 'frequency' || colKey === 'inspectionfrequency') {
-                        const freq = item.frequency || item.inspectionFrequency || 'Yearly';
-                        return (
-                          <td key={col.id} className="px-4 py-3 text-xs whitespace-nowrap">
-                            <span
-                              className="inline-flex items-center px-2 py-0.5 rounded font-medium border border-border text-xs"
-                              style={{ background: 'var(--surface3)', color: 'var(--text2)' }}
-                            >
-                              {freq}
-                            </span>
-                          </td>
-                        );
-                      }
-                      if (
-                        colKey === 'lastinspection' ||
-                        colKey === 'issuedate' ||
-                        colKey === 'lastreviewed'
-                      ) {
-                        const dateStr = item.lastInspection || item.issueDate || item.lastReviewed;
-                        return (
-                          <td
-                            key={col.id}
-                            className="px-4 py-3 text-sm text-muted-foreground whitespace-nowrap"
-                          >
-                            {dateStr && dateStr !== 'N/A'
-                              ? new Date(dateStr).toLocaleDateString('en-GB', {
-                                  day: 'numeric',
-                                  month: 'short',
-                                  year: 'numeric',
-                                })
-                              : '—'}
-                          </td>
-                        );
-                      }
-                      if (
-                        colKey === 'certificateref' ||
-                        colKey === 'certificatenumber' ||
-                        colKey === 'certref'
-                      ) {
-                        const rawRef = item.certificateRef || item.certificateNumber;
-                        const ref =
-                          rawRef &&
-                          rawRef !== 'N/A' &&
-                          !rawRef.startsWith('COMP-CP-') &&
-                          !rawRef.startsWith('comp-cp-')
-                            ? rawRef
-                            : null;
-                        return (
-                          <td
-                            key={col.id}
-                            className="px-4 py-3 text-xs font-mono text-muted-foreground whitespace-nowrap"
-                          >
-                            {ref ? (
-                              <span
-                                className="px-2 py-0.5 rounded border border-border text-xs"
-                                style={{ background: 'var(--surface2)', color: 'var(--text)' }}
-                              >
-                                {ref}
-                              </span>
-                            ) : (
-                              <span className="text-muted-foreground text-xs">—</span>
-                            )}
-                          </td>
-                        );
-                      }
-                      if (colKey === 'expirydate') {
-                        return (
-                          <td key={col.id} className="px-4 py-3 text-sm whitespace-nowrap">
-                            {item.expiryDate
-                              ? new Date(item.expiryDate).toLocaleDateString('en-GB', {
-                                  day: 'numeric',
-                                  month: 'short',
-                                  year: 'numeric',
-                                })
-                              : '—'}
-                          </td>
-                        );
-                      }
-                      if (colKey === 'daysleft') {
-                        return (
-                          <td
-                            key={col.id}
-                            className="px-4 py-3 text-sm font-semibold whitespace-nowrap"
-                            style={{
-                              color:
-                                days < 0
-                                  ? '#f43f5e'
-                                  : days <= 30
-                                    ? '#f59e0b'
-                                    : days <= 90
-                                      ? '#f97316'
-                                      : '#3dd68c',
-                            }}
-                          >
-                            {days < 0 ? `${Math.abs(days)}d overdue` : `${days}d`}
-                          </td>
-                        );
-                      }
-                      if (colKey === 'responsible' || colKey === 'responsibleperson') {
-                        return (
-                          <td
-                            key={col.id}
-                            className="px-4 py-3 text-sm text-muted-foreground whitespace-nowrap"
-                          >
-                            {item.responsiblePerson}
-                          </td>
-                        );
-                      }
-                      if (colKey === 'risk' || colKey === 'riskrating') {
-                        return (
-                          <td key={col.id} className="px-4 py-3">
-                            <span
-                              className="text-xs font-semibold px-2 py-0.5 rounded-full capitalize"
-                              style={{ background: riskCfg.bg, color: riskCfg.color }}
-                            >
-                              {item.riskRating}
-                            </span>
-                          </td>
-                        );
-                      }
-                      if (colKey === 'status') {
-                        return (
-                          <td
-                            key={col.id}
-                            className="px-4 py-3"
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            <StatusDropdown
-                              value={item.status}
-                              disabled={isViewer || !canEdit}
-                              options={[
-                                {
-                                  value: 'compliant',
-                                  label: 'Compliant',
-                                  color: '#3dd68c',
-                                  bg: 'rgba(61,214,140,0.12)',
-                                },
-                                {
-                                  value: 'expiring-soon',
-                                  label: 'Expiring Soon',
-                                  color: '#f59e0b',
-                                  bg: 'rgba(245,158,11,0.12)',
-                                },
-                                {
-                                  value: 'overdue',
-                                  label: 'Overdue',
-                                  color: '#f43f5e',
-                                  bg: 'rgba(244,63,94,0.12)',
-                                },
-                                {
-                                  value: 'pending',
-                                  label: 'Pending',
-                                  color: '#60a5fa',
-                                  bg: 'rgba(96,165,250,0.12)',
-                                },
-                              ]}
-                              onChange={(val) => handleStatusChange(item.id, val)}
-                            />
-                          </td>
-                        );
-                      }
-                      if (colKey === 'actions') {
-                        return (
-                          <td
-                            key={col.id}
-                            className="px-4 py-3 text-right"
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            <div className="flex items-center justify-end gap-1.5 whitespace-nowrap">
-                              <button
-                                className="p-1.5 rounded-lg border border-border hover:bg-surface2 transition-colors cursor-pointer"
-                                style={{ color: 'var(--text2)' }}
-                                title="View Details"
-                                onClick={() => setSelectedItem(item)}
-                              >
-                                <Eye size={13} />
-                              </button>
-                              {hasWriteAccess && (
-                                <button
-                                  className="p-1.5 rounded-lg border border-border hover:bg-surface2 transition-colors text-muted-foreground hover:text-primary cursor-pointer"
-                                  title="Edit Compliance Item"
-                                  onClick={() => handleOpenEdit(item)}
-                                >
-                                  <Edit2 size={13} />
-                                </button>
-                              )}
-                              {hasDeleteAccess && (
-                                <button
-                                  className="p-1.5 rounded-lg border border-rose-500/20 hover:bg-rose-500/15 text-rose-400 transition-colors cursor-pointer"
-                                  title="Delete Compliance Item"
-                                  onClick={() => setItemToDelete(item)}
-                                >
-                                  <Trash2 size={13} />
-                                </button>
-                              )}
-                            </div>
-                          </td>
-                        );
-                      }
-
-                      // Dynamic custom columns
-                      const val = (item as any)[col.id] ?? (item as any)[colKey];
-                      return (
-                        <td
-                          key={col.id}
-                          className="px-4 py-3 text-sm text-foreground whitespace-nowrap"
-                        >
-                          {val !== undefined && val !== null && String(val).trim() !== ''
-                            ? String(val)
-                            : '—'}
+                      onClick={() => setSelectedItem(item)}
+                    >
+                      {hasDeleteAccess && (
+                        <td className="px-3 py-3 text-center" onClick={(e) => e.stopPropagation()}>
+                          <TableCheckbox
+                            checked={selectedComplianceIds.includes(item.id)}
+                            onChange={() => handleToggleComplianceSelect(item.id)}
+                            title={`Select ${item.name}`}
+                          />
                         </td>
-                      );
-                    })}
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-          {displayItems.length === 0 && (
-            <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
-              <ShieldCheck size={32} className="mb-3 opacity-30" />
-              <p className="text-sm">No compliance items found</p>
-            </div>
-          )}
+                      )}
+                      {activeColumns.map((col: any) => {
+                        const colKey = col.id.toLowerCase();
+                        if (colKey === 'id' || colKey === 'complianceid') {
+                          return (
+                            <td
+                              key={col.id}
+                              className="px-4 py-3 text-xs font-mono text-muted-foreground whitespace-nowrap"
+                            >
+                              {item.complianceId || item.id}
+                            </td>
+                          );
+                        }
+                        if (colKey === 'name' || colKey === 'complianceitem') {
+                          return (
+                            <td key={col.id} className="px-4 py-3">
+                              <div className="font-medium text-sm">{item.name}</div>
+                              <div className="text-xs text-muted-foreground">{item.type}</div>
+                            </td>
+                          );
+                        }
+                        if (colKey === 'category') {
+                          return (
+                            <td key={col.id} className="px-4 py-3">
+                              <span
+                                className="text-xs px-2 py-0.5 rounded"
+                                style={{ background: 'var(--surface3)', color: 'var(--text2)' }}
+                              >
+                                {item.category}
+                              </span>
+                            </td>
+                          );
+                        }
+                        if (colKey === 'checktype' || colKey === 'type') {
+                          const val = (item as any).checkType || item.type || 'Statutory';
+                          const isStat = String(val).toLowerCase().includes('statutory') && !String(val).toLowerCase().includes('non');
+                          return (
+                            <td key={col.id} className="px-4 py-3 whitespace-nowrap">
+                              <span
+                                className={`inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold border ${
+                                  isStat
+                                    ? 'bg-rose-500/10 text-rose-400 border-rose-500/20'
+                                    : 'bg-blue-500/10 text-blue-400 border-blue-500/20'
+                                }`}
+                              >
+                                {val}
+                              </span>
+                            </td>
+                          );
+                        }
+                        if (colKey === 'property' || colKey === 'hotel') {
+                          return (
+                            <td
+                              key={col.id}
+                              className="px-4 py-3 text-sm text-muted-foreground whitespace-nowrap"
+                            >
+                              {item.hotel || (item as any).property}
+                            </td>
+                          );
+                        }
+                        if (colKey === 'department') {
+                          return (
+                            <td key={col.id} className="px-4 py-3 text-sm text-muted-foreground">
+                              {(item.department && item.department.trim()) ? item.department : '—'}
+                            </td>
+                          );
+                        }
+                        if (
+                          colKey === 'standard' ||
+                          colKey === 'regulatoryauthority' ||
+                          colKey === 'authority'
+                        ) {
+                          const std = item.standard || item.regulatoryAuthority;
+                          return (
+                            <td
+                              key={col.id}
+                              className="px-4 py-3 text-xs text-muted-foreground whitespace-nowrap max-w-[220px] truncate"
+                              title={std}
+                            >
+                              {std || '—'}
+                            </td>
+                          );
+                        }
+                        if (colKey === 'contractor') {
+                          return (
+                            <td key={col.id} className="px-4 py-3 text-sm whitespace-nowrap">
+                              {item.contractor ? (
+                                <span
+                                  className="inline-flex items-center px-2.5 py-0.5 rounded text-xs font-medium border border-border"
+                                  style={{ background: 'var(--surface2)', color: 'var(--text)' }}
+                                >
+                                  {item.contractor}
+                                </span>
+                              ) : (
+                                <span className="text-muted-foreground text-xs">—</span>
+                              )}
+                            </td>
+                          );
+                        }
+                        if (colKey === 'frequency' || colKey === 'inspectionfrequency') {
+                          const freq = item.frequency || item.inspectionFrequency || 'Yearly';
+                          return (
+                            <td key={col.id} className="px-4 py-3 text-xs whitespace-nowrap">
+                              <span
+                                className="inline-flex items-center px-2 py-0.5 rounded font-medium border border-border text-xs"
+                                style={{ background: 'var(--surface3)', color: 'var(--text2)' }}
+                              >
+                                {freq}
+                              </span>
+                            </td>
+                          );
+                        }
+                        if (
+                          colKey === 'lastinspection' ||
+                          colKey === 'issuedate' ||
+                          colKey === 'lastreviewed'
+                        ) {
+                          const dateStr = item.lastInspection || item.issueDate || item.lastReviewed;
+                          return (
+                            <td
+                              key={col.id}
+                              className="px-4 py-3 text-sm text-muted-foreground whitespace-nowrap"
+                            >
+                              {dateStr && dateStr !== 'N/A'
+                                ? new Date(dateStr).toLocaleDateString('en-GB', {
+                                  day: 'numeric',
+                                  month: 'short',
+                                  year: 'numeric',
+                                })
+                                : '—'}
+                            </td>
+                          );
+                        }
+                        if (
+                          colKey === 'certificateref' ||
+                          colKey === 'certificatenumber' ||
+                          colKey === 'certref'
+                        ) {
+                          const rawRef = item.certificateRef || item.certificateNumber;
+                          const ref =
+                            rawRef &&
+                              rawRef !== 'N/A' &&
+                              !rawRef.startsWith('COMP-CP-') &&
+                              !rawRef.startsWith('comp-cp-')
+                              ? rawRef
+                              : null;
+                          return (
+                            <td
+                              key={col.id}
+                              className="px-4 py-3 text-xs font-mono text-muted-foreground whitespace-nowrap"
+                            >
+                              {ref ? (
+                                <span
+                                  className="px-2 py-0.5 rounded border border-border text-xs"
+                                  style={{ background: 'var(--surface2)', color: 'var(--text)' }}
+                                >
+                                  {ref}
+                                </span>
+                              ) : (
+                                <span className="text-muted-foreground text-xs">—</span>
+                              )}
+                            </td>
+                          );
+                        }
+                        if (colKey === 'expirydate') {
+                          return (
+                            <td key={col.id} className="px-4 py-3 text-sm whitespace-nowrap">
+                              {item.expiryDate
+                                ? new Date(item.expiryDate).toLocaleDateString('en-GB', {
+                                  day: 'numeric',
+                                  month: 'short',
+                                  year: 'numeric',
+                                })
+                                : '—'}
+                            </td>
+                          );
+                        }
+                        if (colKey === 'daysleft') {
+                          return (
+                            <td
+                              key={col.id}
+                              className="px-4 py-3 text-sm font-semibold whitespace-nowrap"
+                              style={{
+                                color:
+                                  days < 0
+                                    ? '#f43f5e'
+                                    : days <= 30
+                                      ? '#f59e0b'
+                                      : days <= 90
+                                        ? '#f97316'
+                                        : '#3dd68c',
+                              }}
+                            >
+                              {days < 0 ? `${Math.abs(days)}d overdue` : `${days}d`}
+                            </td>
+                          );
+                        }
+                        if (colKey === 'responsible' || colKey === 'responsibleperson') {
+                          return (
+                            <td
+                              key={col.id}
+                              className="px-4 py-3 text-sm text-muted-foreground whitespace-nowrap"
+                            >
+                              {item.responsiblePerson || '—'}
+                            </td>
+                          );
+                        }
+                        if (colKey === 'risk' || colKey === 'riskrating') {
+                          return (
+                            <td key={col.id} className="px-4 py-3">
+                              <span
+                                className="text-xs font-semibold px-2 py-0.5 rounded-full capitalize"
+                                style={{ background: riskCfg.bg, color: riskCfg.color }}
+                              >
+                                {item.riskRating}
+                              </span>
+                            </td>
+                          );
+                        }
+                        if (colKey === 'status') {
+                          return (
+                            <td
+                              key={col.id}
+                              className="px-4 py-3"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <StatusDropdown
+                                value={item.status}
+                                disabled={isViewer || !canEdit}
+                                options={[
+                                  {
+                                    value: 'compliant',
+                                    label: 'Compliant',
+                                    color: '#3dd68c',
+                                    bg: 'rgba(61,214,140,0.12)',
+                                  },
+                                  {
+                                    value: 'expiring-soon',
+                                    label: 'Expiring Soon',
+                                    color: '#f59e0b',
+                                    bg: 'rgba(245,158,11,0.12)',
+                                  },
+                                  {
+                                    value: 'overdue',
+                                    label: 'Overdue',
+                                    color: '#f43f5e',
+                                    bg: 'rgba(244,63,94,0.12)',
+                                  },
+                                  {
+                                    value: 'pending',
+                                    label: 'Pending',
+                                    color: '#60a5fa',
+                                    bg: 'rgba(96,165,250,0.12)',
+                                  },
+                                ]}
+                                onChange={(val) => handleStatusChange(item.id, val)}
+                              />
+                            </td>
+                          );
+                        }
+                        if (colKey === 'document' || colKey === 'attachment') {
+                          return (
+                            <td
+                              key={col.id}
+                              className="px-4 py-3"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <DocumentTableCell
+                                documentName={(item as any).documentName || (item as any).document || (item as any).certificateUrl || (item as any).certificateName}
+                                documentUrl={(item as any).documentUrl || (item as any).certificateUrl}
+                              />
+                            </td>
+                          );
+                        }
+                        if (colKey === 'actions') {
+                          return (
+                            <td
+                              key={col.id}
+                              className="px-4 py-3 text-right"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <div className="flex items-center justify-end gap-1.5 whitespace-nowrap">
+                                <button
+                                  className="p-1.5 rounded-lg border border-border hover:bg-surface2 transition-colors cursor-pointer"
+                                  style={{ color: 'var(--text2)' }}
+                                  title="View Details"
+                                  onClick={() => setSelectedItem(item)}
+                                >
+                                  <Eye size={13} />
+                                </button>
+                                {hasWriteAccess && (
+                                  <button
+                                    className="p-1.5 rounded-lg border border-border hover:bg-surface2 transition-colors text-muted-foreground hover:text-primary cursor-pointer"
+                                    title="Edit Compliance Item"
+                                    onClick={() => handleOpenEdit(item)}
+                                  >
+                                    <Edit2 size={13} />
+                                  </button>
+                                )}
+                                {hasDeleteAccess && (
+                                  <button
+                                    className="p-1.5 rounded-lg border border-rose-500/20 hover:bg-rose-500/15 text-rose-400 transition-colors cursor-pointer"
+                                    title="Delete Compliance Item"
+                                    onClick={() => setItemToDelete(item)}
+                                  >
+                                    <Trash2 size={13} />
+                                  </button>
+                                )}
+                              </div>
+                            </td>
+                          );
+                        }
+
+                        // Dynamic custom columns
+                        const val = (item as any)[col.id] ?? (item as any)[colKey];
+                        return (
+                          <td
+                            key={col.id}
+                            className="px-4 py-3 text-sm text-foreground whitespace-nowrap"
+                          >
+                            {val !== undefined && val !== null && String(val).trim() !== ''
+                              ? String(val)
+                              : '—'}
+                          </td>
+                        );
+                      })}
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+            {displayItems.length === 0 && (
+              <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
+                <ShieldCheck size={32} className="mb-3 opacity-30" />
+                <p className="text-sm">No compliance items found</p>
+              </div>
+            )}
           </div>
           <LoadingPagination
             currentPage={currentPage}
@@ -3069,6 +1806,51 @@ export default function ComplianceRegisterClient() {
                 </div>
               ))}
             </div>
+            {/* Attached Certificate / Document Section */}
+            {(() => {
+              const docName =
+                (selectedItem as any).documentName ||
+                (selectedItem as any).document ||
+                (selectedItem as any).certificateName ||
+                `${selectedItem.name} Certificate.pdf`;
+              const docUrl =
+                (selectedItem as any).documentUrl ||
+                (selectedItem as any).certificateUrl ||
+                (selectedItem as any).fileUrl;
+
+              return (
+                <div className="px-6 pb-4">
+                  <div className="text-xs text-muted-foreground mb-1.5 uppercase font-semibold">
+                    Attached Statutory Document / Certificate
+                  </div>
+                  <div className="flex items-center justify-between p-3 rounded-xl border border-border bg-surface2">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-primary/10 text-primary border border-primary/20 flex-shrink-0">
+                        <FileText size={16} />
+                      </div>
+                      <div className="min-w-0">
+                        <div className="font-semibold text-xs text-foreground truncate" title={docName}>
+                          {docName}
+                        </div>
+                        <div className="text-[10px] text-muted-foreground font-mono">
+                          REF: {selectedItem.complianceId} · Official Compliance Record
+                        </div>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => openDocumentInNewTab(docUrl, docName)}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-primary text-black hover:bg-primary/90 transition-all cursor-pointer shadow-sm active:scale-95 flex-shrink-0 ml-2"
+                      title="Open real document in new tab"
+                    >
+                      <Eye size={12} />
+                      <span>View Real Document</span>
+                    </button>
+                  </div>
+                </div>
+              );
+            })()}
+
             {selectedItem.notes && (
               <div className="px-6 pb-4">
                 <div className="text-xs text-muted-foreground mb-1">Notes</div>
@@ -3304,6 +2086,30 @@ export default function ComplianceRegisterClient() {
                     onChange={(e) => setAddForm({ ...addForm, notes: e.target.value })}
                     className="rounded-lg border border-border px-3 py-2 text-sm outline-none resize-none"
                     style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
+                  />
+                </div>
+                <div className="col-span-2">
+                  <DocumentUploadField
+                    label="Compliance Certificate / Report / Document (Optional)"
+                    documentName={addForm.documentName}
+                    documentUrl={addForm.documentUrl}
+                    documentSize={addForm.documentSize}
+                    onUpload={({ name, url, size }) =>
+                      setAddForm({
+                        ...addForm,
+                        documentName: name,
+                        documentUrl: url,
+                        documentSize: size || '',
+                      })
+                    }
+                    onRemove={() =>
+                      setAddForm({
+                        ...addForm,
+                        documentName: '',
+                        documentUrl: '',
+                        documentSize: '',
+                      })
+                    }
                   />
                 </div>
               </div>
@@ -3578,6 +2384,30 @@ export default function ComplianceRegisterClient() {
                     onChange={(e) => setEditingItem({ ...editingItem, notes: e.target.value })}
                     className="rounded-lg border border-border px-3 py-2 text-sm outline-none resize-none"
                     style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
+                  />
+                </div>
+                <div className="col-span-2">
+                  <DocumentUploadField
+                    label="Compliance Certificate / Report / Document (Optional)"
+                    documentName={(editingItem as any).documentName || (editingItem as any).document || (editingItem as any).certificateUrl || (editingItem as any).certificateName || ''}
+                    documentUrl={(editingItem as any).documentUrl || (editingItem as any).certificateUrl}
+                    documentSize={(editingItem as any).documentSize}
+                    onUpload={({ name, url, size }) =>
+                      setEditingItem({
+                        ...editingItem,
+                        documentName: name,
+                        documentUrl: url,
+                        documentSize: size || '',
+                      } as any)
+                    }
+                    onRemove={() =>
+                      setEditingItem({
+                        ...editingItem,
+                        documentName: '',
+                        documentUrl: '',
+                        documentSize: '',
+                      } as any)
+                    }
                   />
                 </div>
               </div>

@@ -18,6 +18,7 @@ import {
   Tag,
   RefreshCw,
   Printer,
+  ExternalLink,
 } from 'lucide-react';
 import { DOCUMENTS, daysUntil, formatDateGB, type Document, type DocStatus } from '@/lib/mockData';
 import { DEPARTMENTS } from '@/lib/assetData';
@@ -39,6 +40,7 @@ import { useLoadingPagination } from '@/hooks/useLoadingPagination';
 import CustomDropdown from '@/components/ui/CustomDropdown';
 import TableCheckbox from '@/components/ui/TableCheckbox';
 import BulkActionBar from '@/components/ui/BulkActionBar';
+import DocumentUploadField, { openDocumentInNewTab } from '@/components/ui/DocumentUploadField';
 import {
   useLiveProperties,
   getLiveProperties,
@@ -86,19 +88,44 @@ function createRealDocumentBlob(doc: Document): { url: string; filename: string 
   };
 }
 
+function getDeletedDocIds(): Set<string> {
+  if (typeof window === 'undefined') return new Set();
+  try {
+    const raw = localStorage.getItem('samko_deleted_doc_ids');
+    if (raw) {
+      const arr = JSON.parse(raw);
+      if (Array.isArray(arr)) return new Set(arr);
+    }
+  } catch {}
+  return new Set();
+}
+
+function markDocAsDeleted(id: string) {
+  if (typeof window === 'undefined') return;
+  try {
+    const set = getDeletedDocIds();
+    set.add(id);
+    localStorage.setItem('samko_deleted_doc_ids', JSON.stringify(Array.from(set)));
+  } catch {}
+}
+
+const docMatchesFood = (val?: string) => Boolean(val && val.toLowerCase().includes('food'));
+
 export default function DocumentRepositoryClient() {
-  const { isViewer, canEdit, canUpload, canDelete, canWriteTab, isPropertyAccessible } = useAuth();
-  const hasWriteAccess = !isViewer && canEdit && canWriteTab('documents');
-  const hasDeleteAccess = !isViewer && canDelete && canWriteTab('documents');
+  const { isViewer, isUploader, canEdit, canUpload, canDelete, canWriteTab, isPropertyAccessible } = useAuth();
+  const hasWriteAccess = !isViewer && !isUploader && canEdit && canWriteTab('documents');
+  const hasDeleteAccess = !isViewer && !isUploader && canDelete && canWriteTab('documents');
   const { dropdowns: cmsDropdowns } = useDeepPageCms('documents');
+
   useEffect(() => {
     const handleSync = () => {
       try {
+        const deletedIds = getDeletedDocIds();
         const saved = localStorage.getItem('samko_repository_documents');
         if (saved) {
           const parsed = JSON.parse(saved);
-          if (Array.isArray(parsed) && parsed.length > 0) {
-            setDocuments(parsed);
+          if (Array.isArray(parsed)) {
+            setDocuments(parsed.filter((d: any) => !deletedIds.has(d.id)));
           }
         }
       } catch {}
@@ -116,24 +143,27 @@ export default function DocumentRepositoryClient() {
   const [documents, setDocuments] = useState<Document[]>(() => {
     if (typeof window !== 'undefined') {
       try {
+        const deletedIds = getDeletedDocIds();
         const saved = localStorage.getItem('samko_repository_documents');
         if (saved) {
           const parsed = JSON.parse(saved);
-          if (Array.isArray(parsed) && parsed.length > 0 && parsed.length <= 3) {
-            const enriched = parsed.map((doc: any) => {
-              const isFood =
-                (doc.name && doc.name.toLowerCase().includes('food')) ||
-                (doc.category && doc.category.toLowerCase().includes('food'));
-              const isUserUpload =
-                String(doc.id).startsWith('doc-17') || String(doc.id).startsWith('doc-food');
-              const status =
-                doc.approvalStatus || (isFood || isUserUpload ? 'pending' : 'approved');
-              return {
-                ...doc,
-                department: doc.department || (isFood ? 'Kitchen' : 'Maintenance'),
-                approvalStatus: status,
-              };
-            });
+          if (Array.isArray(parsed)) {
+            const enriched = parsed
+              .filter((doc: any) => !deletedIds.has(doc.id))
+              .map((doc: any) => {
+                const isFood =
+                  (doc.name && doc.name.toLowerCase().includes('food')) ||
+                  (doc.category && doc.category.toLowerCase().includes('food'));
+                const isUserUpload =
+                  String(doc.id).startsWith('doc-17') || String(doc.id).startsWith('doc-food');
+                const status =
+                  doc.approvalStatus || (isFood || isUserUpload ? 'pending' : 'approved');
+                return {
+                  ...doc,
+                  department: doc.department || (isFood ? 'Kitchen' : 'Maintenance'),
+                  approvalStatus: status,
+                };
+              });
             try {
               localStorage.setItem('samko_repository_documents', JSON.stringify(enriched));
               const pendingCount = enriched.filter(
@@ -142,13 +172,12 @@ export default function DocumentRepositoryClient() {
               localStorage.setItem('samko_approvals_count', String(pendingCount));
             } catch {}
             return enriched;
-          } else if (Array.isArray(parsed) && parsed.length > 3) {
-            localStorage.removeItem('samko_repository_documents');
           }
         }
       } catch {}
     }
-    return DOCUMENTS;
+    const deletedIds = getDeletedDocIds();
+    return DOCUMENTS.filter((d) => !deletedIds.has(d.id));
   });
   const { properties: liveProperties } = useLiveProperties();
   const [properties, setProperties] = useState<any[]>(() => getLiveProperties());
@@ -171,6 +200,9 @@ export default function DocumentRepositoryClient() {
   const [editApprovalStatus, setEditApprovalStatus] = useState<'pending' | 'hold' | 'approved'>(
     'pending'
   );
+  const [editFileName, setEditFileName] = useState('');
+  const [editFileUrl, setEditFileUrl] = useState('');
+  const [editFileSize, setEditFileSize] = useState('');
 
   const handleOpenEditDoc = (doc: Document) => {
     setEditingDoc(doc);
@@ -183,6 +215,11 @@ export default function DocumentRepositoryClient() {
     setEditNotes(doc.approvalNotes || doc.notes || '');
     setEditStatus(doc.status || 'ok');
     setEditApprovalStatus(doc.approvalStatus || 'pending');
+
+    const realBlob = createRealDocumentBlob(doc);
+    setEditFileName(doc.fileName || `${doc.name}.pdf`);
+    setEditFileUrl(doc.fileUrl || realBlob.url);
+    setEditFileSize(doc.size || '1.0 MB');
   };
 
   const handleSaveEditDoc = async (e: React.FormEvent) => {
@@ -206,6 +243,9 @@ export default function DocumentRepositoryClient() {
           status: editStatus,
           approvalStatus: editApprovalStatus,
           approvalNotes: editNotes.trim() || d.approvalNotes,
+          fileName: editFileName || d.fileName,
+          fileUrl: editFileUrl || d.fileUrl,
+          size: editFileSize || d.size || '1.0 MB',
         };
       }
       return d;
@@ -412,16 +452,18 @@ export default function DocumentRepositoryClient() {
         api.properties.getAll(),
       ]);
       if (docRes.status === 'fulfilled' && docRes.value.success && docRes.value.data?.length > 0) {
-        let docsToSet = docRes.value.data;
+        const deletedIds = getDeletedDocIds();
+        let docsToSet = docRes.value.data.filter((d: any) => !deletedIds.has(d.id));
         if (typeof window !== 'undefined') {
           try {
             const saved = localStorage.getItem('samko_repository_documents');
             if (saved) {
               const parsed = JSON.parse(saved);
-              const customOnly = parsed.filter((p: any) => p.fileUrl || p.id?.startsWith('doc-17'));
+              const activeSaved = parsed.filter((d: any) => !deletedIds.has(d.id));
+              const customOnly = activeSaved.filter((p: any) => p.fileUrl || p.id?.startsWith('doc-17'));
               docsToSet = [
                 ...customOnly,
-                ...docRes.value.data.filter(
+                ...activeSaved.filter(
                   (d: any) => !customOnly.some((c: any) => c.id === d.id)
                 ),
               ];
@@ -622,32 +664,53 @@ export default function DocumentRepositoryClient() {
     toast.info(`Selected ${matched.length} documents matching ${typeKey.replace(':', ': ')}`);
   };
 
-  const handleConfirmBulkDeleteDocs = async () => {
-    if (selectedDocIds.length === 0) return;
-    setIsBulkDeletingDocs(true);
-    try {
-      const ids = [...selectedDocIds];
-      const count = ids.length;
-
-      setDocuments((prev) => prev.filter((d) => !ids.includes(d.id)));
-      setSelectedDocIds([]);
-      setSelectedDocTypeFilter('');
-      setShowBulkDeleteDocsModal(false);
-
-      await Promise.allSettled(ids.map((id) => api.documents.delete(id)));
-
-      if (typeof window !== 'undefined') {
+  const persistDocuments = (newList: Document[]) => {
+    setDocuments(newList);
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.setItem('samko_repository_documents', JSON.stringify(newList));
+        sessionStorage.setItem('samko_repository_documents', JSON.stringify(newList));
+        const pendingCount = newList.filter((d: any) => {
+          const isFood =
+            (d.name && docMatchesFood(d.name)) ||
+            (d.category && docMatchesFood(d.category));
+          const isUserUpload =
+            String(d.id).startsWith('doc-17') || String(d.id).startsWith('doc-food');
+          const status = d.approvalStatus || (isFood || isUserUpload ? 'pending' : 'approved');
+          return status === 'pending' || status === 'hold';
+        }).length;
+        localStorage.setItem('samko_approvals_count', String(pendingCount));
+        window.dispatchEvent(
+          new CustomEvent('samko:approvals-changed', { detail: { count: pendingCount } })
+        );
+        window.dispatchEvent(
+          new CustomEvent('samko:doc_approved', { detail: { documents: newList, count: pendingCount } })
+        );
+        window.dispatchEvent(
+          new CustomEvent('samko:doc_uploaded', { detail: { count: pendingCount } })
+        );
         window.dispatchEvent(
           new CustomEvent('samko:data-changed', { detail: { type: 'documents' } })
         );
-      }
-
-      toast.success(`Deleted ${count} documents successfully!`);
-    } catch (err: any) {
-      toast.error('Bulk delete encountered an issue', { description: err?.message });
-    } finally {
-      setIsBulkDeletingDocs(false);
+      } catch {}
     }
+  };
+
+  const handleConfirmBulkDeleteDocs = () => {
+    if (selectedDocIds.length === 0) return;
+    const ids = [...selectedDocIds];
+    const count = ids.length;
+    ids.forEach((id) => markDocAsDeleted(id));
+    const updated = documents.filter((d) => !ids.includes(d.id));
+    persistDocuments(updated);
+    setSelectedDocIds([]);
+    setSelectedDocTypeFilter('');
+    setShowBulkDeleteDocsModal(false);
+    setIsBulkDeletingDocs(false);
+    toast.success(`Deleted ${count} document${count > 1 ? 's' : ''} successfully!`);
+    Promise.allSettled(ids.map((id) => api.documents.delete(id))).catch((err) => {
+      console.warn('Backend bulk delete sync error:', err);
+    });
   };
 
   const handleSort = (col: typeof sortCol) => {
@@ -665,16 +728,10 @@ export default function DocumentRepositoryClient() {
       });
       return;
     }
-    setDocuments((prev) => prev.map((d) => (d.id === id ? { ...d, status: newStatus } : d)));
+    const updated = documents.map((d) => (d.id === id ? { ...d, status: newStatus } : d));
+    persistDocuments(updated);
     if (previewDoc && previewDoc.id === id) {
       setPreviewDoc((prev) => (prev ? { ...prev, status: newStatus } : null));
-    }
-    if (typeof window !== 'undefined') {
-      window.dispatchEvent(
-        new CustomEvent('samko:data-changed', {
-          detail: { type: 'documents', id, status: newStatus },
-        })
-      );
     }
     try {
       await api.documents.update(id, { status: newStatus });
@@ -683,28 +740,23 @@ export default function DocumentRepositoryClient() {
     }
   };
 
-  const handleDelete = async (id: string, name: string) => {
+  const handleDelete = (id: string, name: string) => {
     if (isViewer || !canDelete) {
       toast.error('Permission Denied', {
         description: 'L4 Viewers cannot delete repository documents.',
       });
       return;
     }
-    setDocuments((prev) => prev.filter((d) => d.id !== id));
+    markDocAsDeleted(id);
+    const updated = documents.filter((d) => d.id !== id);
+    persistDocuments(updated);
     if (previewDoc && previewDoc.id === id) setPreviewDoc(null);
+    setDocToDelete(null);
+    setIsDeletingDoc(false);
     toast.success('Document deleted successfully', { description: name });
-    if (typeof window !== 'undefined') {
-      window.dispatchEvent(
-        new CustomEvent('samko:data-changed', {
-          detail: { type: 'documents', id, action: 'delete' },
-        })
-      );
-    }
-    try {
-      await api.documents.delete(id);
-    } catch (e) {
+    api.documents.delete(id).catch((e) => {
       console.error('Failed to delete document from DB:', e);
-    }
+    });
   };
 
   const handleDownload = (doc: Document) => {
@@ -1111,10 +1163,16 @@ export default function DocumentRepositoryClient() {
               </thead>
               <tbody>
                 {paginatedDocs.map((doc) => {
-                  const days = daysUntil(doc.expiry);
+                  const hasValidExpiry = Boolean(
+                    doc.expiry &&
+                    doc.expiry !== 'NaN' &&
+                    doc.expiry !== 'undefined' &&
+                    !isNaN(new Date(doc.expiry).getTime())
+                  );
+                  const days = hasValidExpiry ? daysUntil(doc.expiry) : 0;
                   const isFood =
-                    (doc.name && doc.name.toLowerCase().includes('food')) ||
-                    (doc.category && doc.category.toLowerCase().includes('food'));
+                    (doc.name && docMatchesFood(doc.name)) ||
+                    (doc.category && docMatchesFood(doc.category));
                   const dept = doc.department || (isFood ? 'Kitchen' : 'Maintenance');
                   return (
                     <tr
@@ -1186,17 +1244,21 @@ export default function DocumentRepositoryClient() {
 
                       {/* 5. Expiry Date */}
                       <td className="table-cell text-muted2" style={{ fontSize: 12 }}>
-                        {formatDateGB(doc.expiry)}
+                        {hasValidExpiry ? formatDateGB(doc.expiry) : '—'}
                       </td>
 
                       {/* 6. Days Left */}
                       <td className="table-cell">
-                        <span
-                          className="font-head tabular-nums"
-                          style={{ fontSize: 13, fontWeight: 700, color: daysColor(days) }}
-                        >
-                          {days < 0 ? `${Math.abs(days)}d overdue` : `${days}d`}
-                        </span>
+                        {hasValidExpiry ? (
+                          <span
+                            className="font-head tabular-nums"
+                            style={{ fontSize: 13, fontWeight: 700, color: daysColor(days) }}
+                          >
+                            {days < 0 ? `${Math.abs(days)}d overdue` : `${days}d`}
+                          </span>
+                        ) : (
+                          <span className="text-muted2 text-xs">—</span>
+                        )}
                       </td>
 
                       {/* 7. Compliance */}
@@ -1442,76 +1504,63 @@ export default function DocumentRepositoryClient() {
           <div className="flex flex-col gap-4">
             {/* Visual Document Viewer Surface */}
             <div
-              className="rounded-xl border border-border overflow-hidden"
-              style={{ background: 'var(--surface2)' }}
+              className="rounded-xl border border-border overflow-hidden bg-zinc-950"
             >
-              {previewDoc.fileUrl ? (
-                previewDoc.fileUrl.startsWith('data:image/') ||
-                ['.JPEG', '.JPG', '.PNG', '.WEBP', '.GIF', '.SVG'].some((ext) =>
-                  (previewDoc.fileName || previewDoc.name || '').toUpperCase().endsWith(ext)
-                ) ? (
-                  <div className="p-4 flex items-center justify-center bg-black/40 min-h-[300px]">
-                    <img
-                      src={previewDoc.fileUrl}
-                      alt={previewDoc.name}
-                      className="max-h-[420px] w-auto max-w-full object-contain rounded-lg shadow-md"
-                    />
-                  </div>
-                ) : (
-                  <div className="h-[430px] w-full bg-zinc-950 flex flex-col">
-                    <div className="flex items-center justify-between px-4 py-2 border-b border-border bg-surface3 text-xs">
-                      <span className="font-mono text-foreground font-semibold truncate max-w-md">
-                        {previewDoc.fileName || `${previewDoc.name}.pdf`}
-                      </span>
-                      <span className="text-[10px] uppercase font-bold px-2 py-0.5 rounded bg-primary/20 text-primary">
-                        Live PDF Document Preview
-                      </span>
+              {(() => {
+                const docBlob = createRealDocumentBlob(previewDoc);
+                const targetUrl = previewDoc.fileUrl || docBlob.url;
+                const isImage =
+                  Boolean(previewDoc.fileUrl) &&
+                  (previewDoc.fileUrl!.startsWith('data:image/') ||
+                    ['.JPEG', '.JPG', '.PNG', '.WEBP', '.GIF', '.SVG'].some((ext) =>
+                      (previewDoc.fileName || previewDoc.name || '').toUpperCase().endsWith(ext)
+                    ));
+
+                return (
+                  <div>
+                    <div className="flex items-center justify-between px-4 py-2 border-b border-border bg-surface3 text-xs flex-wrap gap-2">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <FileText size={14} className="text-primary flex-shrink-0" />
+                        <span className="font-mono text-foreground font-semibold truncate max-w-xs sm:max-w-md">
+                          {previewDoc.fileName || `${previewDoc.name}.pdf`}
+                        </span>
+                        <span className="text-[10px] uppercase font-bold px-2 py-0.5 rounded bg-primary/20 text-primary flex-shrink-0">
+                          {isImage ? 'Live Image View' : 'Live Document View'}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => openDocumentInNewTab(targetUrl, previewDoc.name)}
+                          className="flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-semibold bg-primary text-black hover:bg-primary/90 transition-all cursor-pointer shadow-sm active:scale-95"
+                          title="Open real document in new tab"
+                        >
+                          <ExternalLink size={12} />
+                          <span>Open in New Tab</span>
+                        </button>
+                      </div>
                     </div>
-                    <iframe
-                      src={`${previewDoc.fileUrl}#toolbar=0`}
-                      title={previewDoc.name}
-                      className="w-full flex-1 border-0"
-                    />
+
+                    <div className="h-[430px] w-full bg-zinc-950 flex flex-col items-center justify-center">
+                      {isImage ? (
+                        <div className="w-full h-full p-4 flex items-center justify-center overflow-auto">
+                          <img
+                            src={targetUrl}
+                            alt={previewDoc.name}
+                            className="max-h-[390px] w-auto max-w-full object-contain rounded-lg shadow-md"
+                          />
+                        </div>
+                      ) : (
+                        <iframe
+                          src={`${targetUrl}#toolbar=1`}
+                          title={previewDoc.name}
+                          className="w-full flex-1 border-0"
+                        />
+                      )}
+                    </div>
                   </div>
-                )
-              ) : (
-                /* Fallback stylized official compliance certificate preview canvas */
-                <div
-                  className="p-8 flex flex-col items-center justify-center text-center relative overflow-hidden"
-                  style={{
-                    minHeight: 290,
-                    background:
-                      'radial-gradient(ellipse at top, rgba(232,201,122,0.10) 0%, rgba(20,20,25,0.98) 75%)',
-                  }}
-                >
-                  <div
-                    className="w-16 h-16 rounded-2xl flex items-center justify-center mb-3"
-                    style={{ background: 'rgba(232,201,122,0.15)', color: 'var(--primary)' }}
-                  >
-                    <FileText size={32} />
-                  </div>
-                  <div
-                    className="inline-block px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider mb-2 border border-primary/30"
-                    style={{ background: 'rgba(232,201,122,0.10)', color: 'var(--primary)' }}
-                  >
-                    Official Samko Statutory Compliance Certificate
-                  </div>
-                  <h3 className="font-head font-bold text-lg text-foreground max-w-lg">
-                    {previewDoc.name}
-                  </h3>
-                  <p className="text-xs text-muted-foreground mt-1 max-w-sm">
-                    {previewDoc.site} · {previewDoc.category} · Valid through{' '}
-                    {formatDateGB(previewDoc.expiry)}
-                  </p>
-                  <div className="mt-5 flex items-center gap-4 text-[11px] text-muted-foreground border-t border-border/60 pt-3">
-                    <span>Doc Ref: #{previewDoc.id.toUpperCase()}</span>
-                    <span>•</span>
-                    <span>Version: {previewDoc.version}</span>
-                    <span>•</span>
-                    <span>Audited by: {previewDoc.uploadedBy}</span>
-                  </div>
-                </div>
-              )}
+                );
+              })()}
             </div>
 
             {/* Metadata Grid */}
@@ -2119,6 +2168,35 @@ export default function DocumentRepositoryClient() {
               </div>
             </div>
 
+            {/* Attached Document File (View, Re-upload, Delete) */}
+            <div className="pt-1">
+              <DocumentUploadField
+                label="Attached Document File (PDF, Images, Docs)"
+                documentName={editFileName}
+                documentUrl={editFileUrl}
+                documentSize={editFileSize}
+                onUpload={({ name, url, size }) => {
+                  setEditFileName(name);
+                  setEditFileUrl(url);
+                  if (size) setEditFileSize(size);
+                  toast.success(`Attached file updated: ${name}`);
+                }}
+                onRemove={() => {
+                  setEditFileName('');
+                  setEditFileUrl('');
+                  setEditFileSize('');
+                  toast.info('Attached document removed');
+                }}
+                onView={() => {
+                  if (editFileUrl) {
+                    openDocumentInNewTab(editFileUrl, editFileName || editName);
+                  } else {
+                    toast.error('No document file attached to view');
+                  }
+                }}
+              />
+            </div>
+
             <div>
               <label className="samko-label" htmlFor="edit-doc-notes">
                 Notes
@@ -2156,15 +2234,9 @@ export default function DocumentRepositoryClient() {
       <ConfirmDeleteModal
         isOpen={Boolean(docToDelete)}
         onClose={() => setDocToDelete(null)}
-        onConfirm={async () => {
+        onConfirm={() => {
           if (!docToDelete) return;
-          setIsDeletingDoc(true);
-          try {
-            await handleDelete(docToDelete.id, docToDelete.name);
-          } finally {
-            setIsDeletingDoc(false);
-            setDocToDelete(null);
-          }
+          handleDelete(docToDelete.id, docToDelete.name);
         }}
         title="Confirm Deletion"
         itemIdentifier={docToDelete?.id}

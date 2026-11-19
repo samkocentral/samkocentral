@@ -22,7 +22,9 @@ import {
   ShieldCheck,
   FolderOpen,
   ShieldAlert,
+  ExternalLink,
 } from 'lucide-react';
+import { openDocumentInNewTab } from '@/components/ui/DocumentUploadField';
 import { toast } from 'sonner';
 import { useAuth } from '@/lib/authContext';
 import { DOCUMENTS, type Document, type DocStatus } from '@/lib/mockData';
@@ -38,6 +40,7 @@ import {
 } from '@/lib/deepPageCms';
 import CustomDropdown from '@/components/ui/CustomDropdown';
 import ConfirmDeleteModal from '@/components/modals/ConfirmDeleteModal';
+import { api } from '@/lib/api';
 
 // Load directly from real document repository
 function loadRealDocuments(): Document[] {
@@ -84,7 +87,7 @@ function createRealDocumentBlob(doc: Document): { url: string; filename: string 
 
 export default function DocsUploadClient() {
   const router = useRouter();
-  const { user, isViewer, canUpload, canDelete, isPropertyAccessible } = useAuth();
+  const { user, isViewer, isUploader, canUpload, canDelete, isPropertyAccessible } = useAuth();
   const { dropdowns: cmsDropdowns } = useDeepPageCms('documents');
 
   // Real Documents state synchronized with Document Repository
@@ -98,9 +101,11 @@ export default function DocsUploadClient() {
       setDocuments(loadRealDocuments());
     };
     window.addEventListener('samko:data-changed', handleSync);
+    window.addEventListener('samko:approvals-changed', handleSync);
     window.addEventListener('storage', handleSync);
     return () => {
       window.removeEventListener('samko:data-changed', handleSync);
+      window.removeEventListener('samko:approvals-changed', handleSync);
       window.removeEventListener('storage', handleSync);
     };
   }, []);
@@ -114,6 +119,26 @@ export default function DocsUploadClient() {
         // Remove legacy dummy keys
         sessionStorage.removeItem('samko_vault_documents');
         localStorage.removeItem('samko_vault_documents');
+
+        // Calculate pending approvals count:
+        const pendingCount = newList.filter((d: any) => {
+          const status =
+            d.approvalStatus ||
+            (String(d.id).startsWith('doc-17') || String(d.id).startsWith('doc-food')
+              ? 'pending'
+              : 'approved');
+          return status === 'pending' || status === 'hold';
+        }).length;
+
+        localStorage.setItem('samko_approvals_count', String(pendingCount));
+
+        // Dispatch events so Approvals badges update in real-time in Topbar, Sidebar, and Approvals page
+        window.dispatchEvent(
+          new CustomEvent('samko:approvals-changed', { detail: { count: pendingCount } })
+        );
+        window.dispatchEvent(
+          new CustomEvent('samko:doc_uploaded', { detail: { count: pendingCount, documents: newList } })
+        );
         window.dispatchEvent(
           new CustomEvent('samko:data-changed', { detail: { type: 'documents' } })
         );
@@ -330,17 +355,22 @@ export default function DocsUploadClient() {
     const daysRem = Math.ceil((new Date(expDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
     const status: DocStatus = daysRem <= 0 ? 'critical' : daysRem <= 90 ? 'warning' : 'ok';
 
-    const newDoc: Document = {
+    const newDoc: any = {
       id: `doc-${Date.now()}`,
       name: uploadForm.name,
       fileName: uploadForm.fileName || `${uploadForm.name.replace(/[^a-z0-9_-]/gi, '_')}.pdf`,
       site: uploadForm.property,
       category: uploadForm.category,
+      department:
+        uploadForm.category?.toLowerCase().includes('food') ||
+        uploadForm.category?.toLowerCase().includes('hygiene')
+          ? 'Kitchen'
+          : 'Maintenance',
       version: uploadForm.version || 'v1.0',
       uploaded: new Date().toISOString().split('T')[0],
-      uploadedBy: 'Current Administrator',
+      uploadedBy: user?.name || (isUploader ? 'Uploader (L3)' : 'Current Administrator'),
       expiry: expDate,
-
+      approvalStatus: 'pending',
       status,
       size: uploadForm.fileSize || '1.8 MB',
       fileUrl: uploadForm.fileUrl || '',
@@ -368,6 +398,12 @@ export default function DocsUploadClient() {
 
   // Handle delete document
   const handleDeleteDocument = (id: string) => {
+    try {
+      const raw = localStorage.getItem('samko_deleted_doc_ids');
+      const set = raw ? new Set(JSON.parse(raw)) : new Set();
+      set.add(id);
+      localStorage.setItem('samko_deleted_doc_ids', JSON.stringify(Array.from(set)));
+    } catch {}
     const updated = documents.filter((d) => d.id !== id);
     saveDocuments(updated);
     if (previewDoc && previewDoc.id === id) {
@@ -376,6 +412,7 @@ export default function DocsUploadClient() {
     toast.success('Document Deleted', {
       description: 'Record permanently removed from repository.',
     });
+    api.documents.delete(id).catch(() => {});
   };
 
   if (user.roleLevel === 'L4') {
@@ -888,13 +925,27 @@ export default function DocsUploadClient() {
 
               {/* Document Live Viewer Surface */}
               <div className="rounded-xl border border-border overflow-hidden bg-black/40 min-h-[360px] flex flex-col">
-                <div className="flex items-center justify-between px-4 py-2 border-b border-border bg-surface3 text-xs">
-                  <span className="font-mono text-foreground font-semibold truncate max-w-md">
+                <div className="flex items-center justify-between px-4 py-2 border-b border-border bg-surface3 text-xs flex-wrap gap-2">
+                  <span className="font-mono text-foreground font-semibold truncate max-w-xs sm:max-w-md">
                     {previewDoc.fileName || `${previewDoc.name}.pdf`}
                   </span>
-                  <span className="text-[10px] uppercase font-bold px-2 py-0.5 rounded bg-primary/20 text-primary">
-                    Live PDF Document
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const blob = createRealDocumentBlob(previewDoc);
+                        openDocumentInNewTab(blob.url, previewDoc.name);
+                      }}
+                      className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold bg-primary text-black hover:bg-primary/90 transition-all cursor-pointer shadow-sm active:scale-95"
+                      title="Open full document in a new browser tab"
+                    >
+                      <ExternalLink size={12} />
+                      <span>Open in New Tab</span>
+                    </button>
+                    <span className="text-[10px] uppercase font-bold px-2 py-0.5 rounded bg-primary/20 text-primary">
+                      Live PDF Document
+                    </span>
+                  </div>
                 </div>
 
                 <iframe

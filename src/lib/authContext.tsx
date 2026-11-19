@@ -144,8 +144,19 @@ export const DEMO_CREDENTIALS: {
       roleLevel: 'L3',
       roleTitle: 'Uploader',
       portal: 'opco',
-      hotel: 'Crowne Plaza Kingston-south',
-      assignedProperties: ['Crowne Plaza Kingston-south'],
+      hotel: 'All Sites',
+      assignedProperties: [
+        'All Sites',
+        'All Properties',
+        'Crowne Plaza Kingston-south',
+        'Stanhill Court',
+        'Hotel Hampton 1 & Hampton 2 Property',
+        'Ravens Ait Island',
+        'River Club',
+        'Warren House',
+        'Gatwick Manor (Stanhill Court)',
+        'Sharnbrook',
+      ],
       status: 'active',
       initials: 'UP',
       description: 'Responsible for recording and uploading operational logs and files',
@@ -214,28 +225,36 @@ interface AuthContextType {
 const HOTEL_ID_NAME_MAP: Record<string, string> = {
   'hotel-001': 'crowne plaza kingston-south',
   'hotel-002': 'stanhill court',
-  'hotel-003': 'hotel hampton 1 & hampton 2 property',
-  'hotel-004': 'ravens ait island',
-  'hotel-005': 'river club',
-  'hotel-006': 'warren house',
-  'hotel-007': 'gatwick manor (stanhill court)',
+  'hotel-003': 'warren house',
+  'hotel-004': 'the river club',
+  'hotel-005': 'hampton 1',
+  'hotel-006': 'hampton 2',
+  'hotel-007': 'ravens ait',
   'hotel-008': 'sharnbrook',
+  'hotel-009': 'clapham common 1',
+  'hotel-010': 'clapham common 2',
   'h-01': 'crowne plaza kingston-south',
   'h-02': 'stanhill court',
-  'h-03': 'hotel hampton 1 & hampton 2 property',
-  'h-04': 'ravens ait island',
-  'h-05': 'river club',
-  'h-06': 'warren house',
-  'h-07': 'gatwick manor (stanhill court)',
+  'h-03': 'warren house',
+  'h-04': 'the river club',
+  'h-05': 'hampton 1',
+  'h-06': 'hampton 2',
+  'h-07': 'ravens ait',
   'h-08': 'sharnbrook',
+  'h-09': 'clapham common 1',
+  'h-10': 'clapham common 2',
   'cp-kingston': 'crowne plaza kingston-south',
   'stanhill-court': 'stanhill court',
-  hampton: 'hotel hampton 1 & hampton 2 property',
-  'ravens-ait': 'ravens ait island',
-  'river-club': 'river club',
   'warren-house': 'warren house',
-  'gatwick-manor': 'gatwick manor (stanhill court)',
-  sharnbrook: 'sharnbrook',
+  'river-club': 'the river club',
+  'the-river-club': 'the river club',
+  'hampton-1': 'hampton 1',
+  'hampton-2': 'hampton 2',
+  'hampton': 'hampton 1',
+  'ravens-ait': 'ravens ait',
+  'sharnbrook': 'sharnbrook',
+  'clapham-common-1': 'clapham common 1',
+  'clapham-common-2': 'clapham common 2',
 };
 
 export function checkPropertyAccess(
@@ -264,6 +283,7 @@ export function checkPropertyAccess(
         : [];
 
   if (
+    user.roleLevel === 'L3' ||
     assigned.includes('all') ||
     assigned.includes('All Properties') ||
     assigned.includes('All Sites')
@@ -442,6 +462,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (authFlag === 'true' && storedUser) {
         const parsed = JSON.parse(storedUser);
         if (parsed && (parsed.email || parsed.id)) {
+          if (parsed.roleLevel === 'L3' || parsed.id === 'usr-l3-001') {
+            parsed.hotel = 'All Sites';
+            parsed.assignedProperties = [
+              'All Sites',
+              'All Properties',
+              'Crowne Plaza Kingston-south',
+              'Stanhill Court',
+              'Hotel Hampton 1 & Hampton 2 Property',
+              'Ravens Ait Island',
+              'River Club',
+              'Warren House',
+              'Gatwick Manor (Stanhill Court)',
+              'Sharnbrook',
+            ];
+            try {
+              localStorage.setItem('samko_auth_user', JSON.stringify(parsed));
+            } catch {}
+          }
           activeParsedUser = parsed;
           setUser(parsed);
           setIsAuthenticated(true);
@@ -571,6 +609,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // Switched back to original master/bot
         setOriginalAdmin(null);
         localStorage.removeItem('samko_original_admin');
+      }
+
+      if (newUser.roleLevel === 'L3' || newUser.id === 'usr-l3-001') {
+        newUser.hotel = 'All Sites';
+        newUser.assignedProperties = [
+          'All Sites',
+          'All Properties',
+          'Crowne Plaza Kingston-south',
+          'Stanhill Court',
+          'Hotel Hampton 1 & Hampton 2 Property',
+          'Ravens Ait Island',
+          'River Club',
+          'Warren House',
+          'Gatwick Manor (Stanhill Court)',
+          'Sharnbrook',
+        ];
       }
 
       setUser(newUser);
@@ -821,6 +875,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (tabId === 'task-module' && perms['tasks'] !== undefined) return perms['tasks'].enabled;
       if (['documents', 'document-repository'].includes(tabId) && perms['documents'] !== undefined)
         return perms['documents'].enabled;
+      if (['acquisitions', 'deal-room'].includes(tabId) && perms['acquisition'] !== undefined)
+        return perms['acquisition'].enabled;
       if (['qr-codes', 'qr-scanner'].includes(tabId) && perms['qr-codes'] !== undefined)
         return perms['qr-codes'].enabled;
       if (tabId === 'inspections' && perms['inspections'] !== undefined)
@@ -866,6 +922,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (!perm && tabId.endsWith('-reports')) perm = perms['reports'];
       if (!perm && tabId === 'task-module') perm = perms['tasks'];
       if (!perm && ['documents', 'document-repository'].includes(tabId)) perm = perms['documents'];
+      if (!perm && ['acquisitions', 'deal-room'].includes(tabId)) perm = perms['acquisition'];
       if (!perm && ['qr-codes', 'qr-scanner'].includes(tabId)) perm = perms['qr-codes'];
       if (!perm && tabId === 'inspections') perm = perms['inspections'];
       if (!perm && ['multi-site', 'multi-site-operations'].includes(tabId))
@@ -910,7 +967,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const canManageUsers = isSuperAdmin || isDigitalBot;
   const canAccessSettings = isSuperAdmin || isDigitalBot;
-  const canEdit = (!isViewer && user.roleLevel !== 'L4') || isDigitalBot;
+  const canEdit = (isSuperAdmin || isAdmin || isDigitalBot) && !isViewer && !isUploader;
   const canDelete = isSuperAdmin || isDigitalBot;
   const canUpload = (isSuperAdmin || isAdmin || isUploader || isDigitalBot) && !isViewer;
   const canSwitchPortal = isSuperAdmin || isDigitalBot;

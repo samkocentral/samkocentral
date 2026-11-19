@@ -39,6 +39,8 @@ import { useLoadingPagination } from '@/hooks/useLoadingPagination';
 import TableCheckbox from '@/components/ui/TableCheckbox';
 import BulkActionBar from '@/components/ui/BulkActionBar';
 import ConfirmDeleteModal from '@/components/modals/ConfirmDeleteModal';
+import DocumentUploadField from '@/components/ui/DocumentUploadField';
+import DocumentTableCell from '@/components/ui/DocumentTableCell';
 const DEFAULT_MAINTENANCE_CATEGORIES = [
   'HVAC & Ventilation',
   'Electrical & Lighting',
@@ -114,7 +116,7 @@ function StatCard({
   );
 }
 export default function MaintenanceClient() {
-  const { isViewer, canEdit, canDelete, canWriteTab, isPropertyAccessible } = useAuth();
+  const { isViewer, canEdit, canDelete, canWriteTab, isPropertyAccessible, activePortal } = useAuth();
   const hasWriteAccess = !isViewer && canEdit && canWriteTab('maintenance');
   const hasDeleteAccess = !isViewer && canDelete && canWriteTab('maintenance');
   const {
@@ -127,20 +129,50 @@ export default function MaintenanceClient() {
     dropdowns: cmsDropdowns,
   } = useDeepPageCms('maintenance');
   const activeColumns = useMemo(() => {
+    let cols: any[] = [];
     if (cmsColumns && cmsColumns.length > 0) {
-      return [...cmsColumns].sort((a, b) => a.order - b.order).filter((c) => c.visible !== false);
+      cols = [...cmsColumns].filter((c) => c.visible !== false);
+    } else {
+      cols = [
+        { id: 'asset', label: 'Asset Name', visible: true, order: 1 },
+        { id: 'property', label: 'Property Site', visible: true, order: 2 },
+        { id: 'type', label: 'Service Type', visible: true, order: 3 },
+        { id: 'frequency', label: 'Frequency', visible: true, order: 4 },
+        { id: 'scheduledDate', label: 'Scheduled Date', visible: true, order: 5 },
+        { id: 'assignedTo', label: 'Assigned To', visible: true, order: 6 },
+        { id: 'status', label: 'Status', visible: true, order: 7 },
+        { id: 'nextDueDate', label: 'Next Due Date', visible: true, order: 8 },
+        { id: 'document', label: 'Document', visible: true, order: 9 },
+        { id: 'actions', label: 'Actions', visible: true, order: 10 },
+      ];
     }
-    return [
-      { id: 'asset', label: 'Asset Name', visible: true, order: 1 },
-      { id: 'property', label: 'Property Site', visible: true, order: 2 },
-      { id: 'type', label: 'Service Type', visible: true, order: 3 },
-      { id: 'frequency', label: 'Frequency', visible: true, order: 4 },
-      { id: 'scheduledDate', label: 'Scheduled Date', visible: true, order: 5 },
-      { id: 'assignedTo', label: 'Assigned To', visible: true, order: 6 },
-      { id: 'status', label: 'Status', visible: true, order: 7 },
-      { id: 'nextDueDate', label: 'Next Due Date', visible: true, order: 8 },
-      { id: 'actions', label: 'Actions', visible: true, order: 9 },
-    ];
+
+    const nonActions = cols
+      .filter(
+        (c) =>
+          c.id.toLowerCase() !== 'actions' &&
+          c.id.toLowerCase() !== 'document' &&
+          c.id.toLowerCase() !== 'attachment'
+      )
+      .sort((a, b) => (a.order || 0) - (b.order || 0));
+
+    const docCol = cols.find(
+      (c) => c.id.toLowerCase() === 'document' || c.id.toLowerCase() === 'attachment'
+    ) || {
+      id: 'document',
+      label: 'Document',
+      visible: true,
+      order: 9998,
+    };
+
+    const actionsCol = cols.find((c) => c.id.toLowerCase() === 'actions') || {
+      id: 'actions',
+      label: 'Actions',
+      visible: true,
+      order: 9999,
+    };
+
+    return [...nonActions, docCol, actionsCol];
   }, [cmsColumns]);
   const customColumns = useMemo(() => {
     const standardKeys = new Set([
@@ -152,6 +184,8 @@ export default function MaintenanceClient() {
       'assignedto',
       'status',
       'nextduedate',
+      'document',
+      'attachment',
       'actions',
     ]);
     return (cmsColumns || []).filter((c) => !standardKeys.has(c.id.toLowerCase()));
@@ -363,6 +397,9 @@ export default function MaintenanceClient() {
     assignedTo: 'Marcus Webb',
     status: 'scheduled' as MaintenanceRecord['status'],
     notes: '',
+    documentName: '',
+    documentUrl: '',
+    documentSize: '',
   });
   const fetchRecords = useCallback(async () => {
     try {
@@ -413,13 +450,19 @@ export default function MaintenanceClient() {
     window.addEventListener('samko:data-changed', handleDataChanged);
     return () => window.removeEventListener('samko:data-changed', handleDataChanged);
   }, [fetchRecords]);
+  const portalParam = searchParams?.get('portal');
+  const isPropCo = portalParam === 'propco' || (!portalParam && activePortal === 'propco');
+
   const accessibleRecords = useMemo(() => {
-    return records.filter((m) =>
-      isPropertyAccessible(
+    return records.filter((m) => {
+      const itemPortal = (m as any).portal || 'opco';
+      if (isPropCo && itemPortal !== 'propco') return false;
+      if (!isPropCo && itemPortal === 'propco') return false;
+      return isPropertyAccessible(
         m.hotelName || (m as any).propertyName || (m as any).property || m.hotelId
-      )
-    );
-  }, [records, isPropertyAccessible]);
+      );
+    });
+  }, [records, isPropertyAccessible, isPropCo]);
 
   const accessibleProperties = useMemo(() => {
     return properties.filter((h) => isPropertyAccessible(h.name || h.id));
@@ -678,6 +721,7 @@ export default function MaintenanceClient() {
     const newRecord: MaintenanceRecord = {
       ...addForm,
       id: newId,
+      portal: isPropCo ? 'propco' : 'opco',
     };
     setRecords((prev) => [newRecord, ...prev]);
     setShowAddModal(false);
@@ -1115,6 +1159,29 @@ export default function MaintenanceClient() {
                           </td>
                         );
                       }
+                      if (colKey === 'document') {
+                        return (
+                          <td
+                            key={col.id}
+                            className="px-3.5 py-2.5 text-xs"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <DocumentTableCell
+                              documentName={
+                                (m as any).documentName ||
+                                (m as any).attachmentName ||
+                                (m as any).document ||
+                                (m as any).docName
+                              }
+                              documentUrl={
+                                (m as any).documentUrl ||
+                                (m as any).attachmentUrl ||
+                                (m as any).fileUrl
+                              }
+                            />
+                          </td>
+                        );
+                      }
                       if (colKey === 'actions') {
                         return (
                           <td
@@ -1402,6 +1469,30 @@ export default function MaintenanceClient() {
                   style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
                 />
               </div>
+
+              {/* Optional Document Upload */}
+              <DocumentUploadField
+                label="Attach Service Report / Certificate / Invoice (Optional)"
+                documentName={(addForm as any).documentName}
+                documentUrl={(addForm as any).documentUrl}
+                documentSize={(addForm as any).documentSize}
+                onUpload={({ name, url, size }) =>
+                  setAddForm({
+                    ...addForm,
+                    documentName: name,
+                    documentUrl: url,
+                    documentSize: size,
+                  } as any)
+                }
+                onRemove={() =>
+                  setAddForm({
+                    ...addForm,
+                    documentName: '',
+                    documentUrl: '',
+                    documentSize: '',
+                  } as any)
+                }
+              />
               <div className="flex items-center justify-end gap-3 pt-3 border-t border-border">
                 <button
                   type="button"
@@ -1713,6 +1804,38 @@ export default function MaintenanceClient() {
                   style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
                 />
               </div>
+
+              {/* Optional Document Upload */}
+              <DocumentUploadField
+                label="Attach Service Report / Certificate / Invoice (Optional)"
+                documentName={(editingRecord as any)?.documentName}
+                documentUrl={(editingRecord as any)?.documentUrl || (editingRecord as any)?.attachmentUrl || (editingRecord as any)?.fileUrl}
+                documentSize={(editingRecord as any)?.documentSize}
+                onUpload={({ name, url, size }) =>
+                  setEditingRecord((prev) =>
+                    prev
+                      ? ({
+                          ...prev,
+                          documentName: name,
+                          documentUrl: url,
+                          documentSize: size,
+                        } as any)
+                      : null
+                  )
+                }
+                onRemove={() =>
+                  setEditingRecord((prev) =>
+                    prev
+                      ? ({
+                          ...prev,
+                          documentName: '',
+                          documentUrl: '',
+                          documentSize: '',
+                        } as any)
+                      : null
+                  )
+                }
+              />
               <div className="flex items-center justify-end gap-3 pt-3 border-t border-border">
                 <button
                   type="button"

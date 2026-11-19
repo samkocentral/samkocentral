@@ -27,6 +27,8 @@ import { useDeepPageCms } from '@/lib/deepPageCms';
 import LoadingPagination from '@/components/ui/LoadingPagination';
 import { useLoadingPagination } from '@/hooks/useLoadingPagination';
 import CustomDropdown from '@/components/ui/CustomDropdown';
+import DocumentUploadField from '@/components/ui/DocumentUploadField';
+import DocumentTableCell from '@/components/ui/DocumentTableCell';
 
 type TabId = 'pending' | 'in-progress' | 'completed';
 
@@ -105,20 +107,50 @@ export default function InspectionsClient() {
   } = useDeepPageCms('inspections');
 
   const activeColumns = useMemo(() => {
+    let cols: any[] = [];
     if (cmsColumns && cmsColumns.length > 0) {
-      return [...cmsColumns].sort((a, b) => a.order - b.order).filter((c) => c.visible !== false);
+      cols = [...cmsColumns].filter((c) => c.visible !== false);
+    } else {
+      cols = [
+        { id: 'asset', label: 'Asset', visible: true, order: 1 },
+        { id: 'property', label: 'Property', visible: true, order: 2 },
+        { id: 'type', label: 'Type', visible: true, order: 3 },
+        { id: 'category', label: 'Category', visible: true, order: 4 },
+        { id: 'risk', label: 'Risk', visible: true, order: 5 },
+        { id: 'assignedTo', label: 'Assigned To', visible: true, order: 6 },
+        { id: 'scheduled', label: 'Scheduled', visible: true, order: 7 },
+        { id: 'result', label: 'Result', visible: true, order: 8 },
+        { id: 'document', label: 'Document', visible: true, order: 8.5 },
+        { id: 'actions', label: '', visible: true, order: 9 },
+      ];
     }
-    return [
-      { id: 'asset', label: 'Asset', visible: true, order: 1 },
-      { id: 'property', label: 'Property', visible: true, order: 2 },
-      { id: 'type', label: 'Type', visible: true, order: 3 },
-      { id: 'category', label: 'Category', visible: true, order: 4 },
-      { id: 'risk', label: 'Risk', visible: true, order: 5 },
-      { id: 'assignedTo', label: 'Assigned To', visible: true, order: 6 },
-      { id: 'scheduled', label: 'Scheduled', visible: true, order: 7 },
-      { id: 'result', label: 'Result', visible: true, order: 8 },
-      { id: 'actions', label: '', visible: true, order: 9 },
-    ];
+
+    const nonActions = cols
+      .filter(
+        (c) =>
+          c.id.toLowerCase() !== 'actions' &&
+          c.id.toLowerCase() !== 'document' &&
+          c.id.toLowerCase() !== 'attachment'
+      )
+      .sort((a, b) => (a.order || 0) - (b.order || 0));
+
+    const docCol = cols.find(
+      (c) => c.id.toLowerCase() === 'document' || c.id.toLowerCase() === 'attachment'
+    ) || {
+      id: 'document',
+      label: 'Document',
+      visible: true,
+      order: 9998,
+    };
+
+    const actionsCol = cols.find((c) => c.id.toLowerCase() === 'actions') || {
+      id: 'actions',
+      label: '',
+      visible: true,
+      order: 9999,
+    };
+
+    return [...nonActions, docCol, actionsCol];
   }, [cmsColumns]);
 
   const [activeTab, setActiveTab] = useState<TabId>('pending');
@@ -141,6 +173,9 @@ export default function InspectionsClient() {
     assignedTo: 'Marcus Webb',
     frequency: 'monthly',
     notes: '',
+    documentName: '',
+    documentUrl: '',
+    documentSize: '',
   });
 
   const fetchData = useCallback(async () => {
@@ -649,6 +684,20 @@ export default function InspectionsClient() {
                           </td>
                         );
                       }
+                      if (colKey === 'document' || colKey === 'attachment') {
+                        return (
+                          <td
+                            key={col.id}
+                            className="px-3.5 py-2.5"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <DocumentTableCell
+                              documentName={(insp as any).documentName || (insp as any).document || (insp as any).reportDocument}
+                              documentUrl={(insp as any).documentUrl}
+                            />
+                          </td>
+                        );
+                      }
                       if (colKey === 'actions') {
                         return (
                           <td key={col.id} className="px-3.5 py-2.5 text-right">
@@ -960,6 +1009,28 @@ export default function InspectionsClient() {
                     onChange={(e) => setNewForm({ ...newForm, notes: e.target.value })}
                     className="w-full rounded-lg border border-border px-3 py-2 text-sm outline-none resize-none"
                     style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
+                  />
+                </div>
+                <div>
+                  <DocumentUploadField
+                    label="Attach Inspection Report / Certificate (Optional)"
+                    documentName={newForm.documentName}
+                    onUpload={({ name, url, size }) =>
+                      setNewForm({
+                        ...newForm,
+                        documentName: name,
+                        documentUrl: url,
+                        documentSize: size || '',
+                      })
+                    }
+                    onRemove={() =>
+                      setNewForm({
+                        ...newForm,
+                        documentName: '',
+                        documentUrl: '',
+                        documentSize: '',
+                      })
+                    }
                   />
                 </div>
               </div>

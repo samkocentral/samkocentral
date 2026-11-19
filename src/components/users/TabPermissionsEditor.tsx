@@ -107,6 +107,7 @@ const SECTION_METADATA: Record<
   opco: { label: 'OPCO', badgeBg: 'rgba(96,165,250,0.15)', color: '#60a5fa' },
   both: { label: 'PROPCO & OPCO', badgeBg: 'rgba(61,214,140,0.15)', color: '#3dd68c' },
   bottom: { label: 'BOTTOM', badgeBg: 'rgba(148,163,184,0.15)', color: '#94a3b8' },
+  hidden: { label: 'HIDDEN', badgeBg: 'rgba(244,63,94,0.15)', color: '#f43f5e' },
 };
 
 interface TabPermissionsEditorProps {

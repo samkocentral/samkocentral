@@ -527,6 +527,78 @@ export const api = {
         method: 'DELETE',
       }),
   },
+
+  // ── Acquisition Vault & Documents (Server-Side DB) ──────────────
+  acquisition: {
+    getAll: (params?: { portal?: string; folderId?: string }) =>
+      fetchJson<{
+        success: boolean;
+        folders: any[];
+        files: any[];
+        allFolders: any[];
+        allFiles: any[];
+      }>(`/api/acquisition${buildQuery(params)}`),
+    createFolder: (data: any) =>
+      fetchJson<{ success: boolean; folder: any; folders: any[] }>('/api/acquisition', {
+        method: 'POST',
+        body: JSON.stringify({ action: 'create_folder', ...data }),
+      }),
+    editFolder: (id: string, data: any) =>
+      fetchJson<{ success: boolean; folder: any; folders: any[] }>('/api/acquisition', {
+        method: 'POST',
+        body: JSON.stringify({ action: 'edit_folder', id, ...data }),
+      }),
+    moveFolder: (id: string, targetFolderId: string | null) =>
+      fetchJson<{ success: boolean; folder: any; folders: any[] }>('/api/acquisition', {
+        method: 'POST',
+        body: JSON.stringify({ action: 'move_folder', id, targetFolderId }),
+      }),
+    deleteFolder: (id: string) =>
+      fetchJson<{
+        success: boolean;
+        deletedFolderIds: string[];
+        folders: any[];
+        files: any[];
+      }>('/api/acquisition', {
+        method: 'POST',
+        body: JSON.stringify({ action: 'delete_folder', id }),
+      }),
+    uploadFile: (data: any) =>
+      fetchJson<{ success: boolean; file: any; files: any[] }>('/api/acquisition', {
+        method: 'POST',
+        body: JSON.stringify({ action: 'upload_file', ...data }),
+      }),
+    bulkUploadFiles: (files: any[]) =>
+      fetchJson<{ success: boolean; count: number; files: any[] }>('/api/acquisition', {
+        method: 'POST',
+        body: JSON.stringify({ action: 'bulk_upload_files', files }),
+      }),
+    editFile: (id: string, data: any) =>
+      fetchJson<{ success: boolean; file: any; files: any[] }>('/api/acquisition', {
+        method: 'POST',
+        body: JSON.stringify({ action: 'edit_file', id, ...data }),
+      }),
+    reuploadFile: (id: string, data: any) =>
+      fetchJson<{ success: boolean; file: any; files: any[] }>('/api/acquisition', {
+        method: 'POST',
+        body: JSON.stringify({ action: 'reupload_file', id, ...data }),
+      }),
+    moveFiles: (fileIds: string[], targetFolderId: string | null) =>
+      fetchJson<{ success: boolean; movedFileIds: string[]; files: any[] }>('/api/acquisition', {
+        method: 'POST',
+        body: JSON.stringify({ action: 'move_file', fileIds, targetFolderId }),
+      }),
+    deleteFiles: (fileIds: string[]) =>
+      fetchJson<{ success: boolean; deletedFileIds: string[]; files: any[] }>('/api/acquisition', {
+        method: 'POST',
+        body: JSON.stringify({ action: 'delete_file', fileIds }),
+      }),
+    sync: (data: { folders?: any[]; files?: any[] }) =>
+      fetchJson<{ success: boolean; folders: any[]; files: any[] }>('/api/acquisition', {
+        method: 'POST',
+        body: JSON.stringify({ action: 'sync', ...data }),
+      }),
+  },
 };
 
 export default api;

@@ -13,6 +13,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { moveTabToSection } from '@/lib/permissions';
 
 export interface AppCmsSubTab {
   id: string;
@@ -159,6 +160,23 @@ export const DEFAULT_APP_CMS: AppCmsConfig = {
         order: 2,
       },
       {
+        id: 'compliance',
+        name: 'Compliance',
+        path: '/compliance-register?portal=propco',
+        iconName: 'ShieldCheck',
+        description: 'Statutory compliance, certifications, safety audits & fire risk assessments',
+        group: 'Governance & Legal',
+        section: 'both',
+        enabled: true,
+        order: 3,
+        subtabs: [
+          { id: 'compliance-register', label: 'Compliance Register', path: '/compliance-register?portal=propco' },
+          { id: 'certifications', label: 'Certifications', path: '/compliance-register?tab=certifications&portal=propco' },
+          { id: 'statutory', label: 'Statutory Inspections', path: '/compliance-register?tab=statutory&portal=propco' },
+          { id: 'expiry', label: 'Expiry Dashboard', path: '/compliance-tracker?portal=propco' },
+        ],
+      },
+      {
         id: 'insurance',
         name: 'Insurance',
         path: '/insurance-register',
@@ -169,7 +187,7 @@ export const DEFAULT_APP_CMS: AppCmsConfig = {
         enabled: true,
         order: 3,
         subtabs: [
-          { id: 'register', label: 'Insurance Register', path: '/insurance-register' },
+          { id: 'insurance-register', label: 'Insurance Register', path: '/insurance-register' },
           { id: 'claims', label: 'Claims', path: '/insurance-register?tab=claims' },
           { id: 'renewals', label: 'Renewals', path: '/insurance-register?tab=renewals' },
         ],
@@ -185,11 +203,23 @@ export const DEFAULT_APP_CMS: AppCmsConfig = {
         enabled: true,
         order: 4,
         subtabs: [
-          { id: 'register', label: 'Contracts Register', path: '/contracts-register' },
+          { id: 'contracts-register', label: 'Contracts Register', path: '/contracts-register' },
           { id: 'suppliers', label: 'Suppliers', path: '/contracts-register?tab=suppliers' },
           { id: 'renewals', label: 'Renewals', path: '/contracts-register?tab=renewals' },
           { id: 'slas', label: 'SLAs', path: '/contracts-register?tab=slas' },
         ],
+      },
+      {
+        id: 'acquisition',
+        name: 'Acquisition',
+        path: '/acquisition?portal=propco',
+        iconName: 'FolderOpen',
+        description:
+          'M&A due diligence repository, title deeds, legal contracts, surveys, and financial valuation models',
+        group: 'Governance & Legal',
+        section: 'both',
+        enabled: true,
+        order: 5,
       },
       {
         id: 'reports',
@@ -200,7 +230,7 @@ export const DEFAULT_APP_CMS: AppCmsConfig = {
         group: 'Analytics & Tools',
         section: 'propco',
         enabled: true,
-        order: 5,
+        order: 6,
       },
     ],
   },
@@ -332,6 +362,18 @@ export const DEFAULT_APP_CMS: AppCmsConfig = {
             path: '/utilities-register?type=electricity',
           },
         ],
+      },
+      {
+        id: 'acquisition',
+        name: 'Acquisition',
+        path: '/acquisition?portal=opco',
+        iconName: 'FolderOpen',
+        description:
+          'M&A due diligence repository, title deeds, legal contracts, surveys, and financial valuation models',
+        group: 'Governance & Legal',
+        section: 'both',
+        enabled: true,
+        order: 8,
       },
     ],
   },
@@ -625,6 +667,31 @@ export function getAppCmsConfig(): AppCmsConfig {
     };
     ensureSubtabs('propco');
     ensureSubtabs('opco');
+
+    const ensureAcquisitionTab = (portalKey: 'propco' | 'opco') => {
+      const portal = config[portalKey];
+      if (!portal || !portal.tabs) return;
+      const existing = portal.tabs.find((t) => t.id === 'acquisition' || t.id === 'acquisitions');
+      if (existing) {
+        if (existing.name === 'Acquisition Vault') existing.name = 'Acquisition';
+      } else {
+        portal.tabs.push({
+          id: 'acquisition',
+          name: 'Acquisition',
+          path: `/acquisition?portal=${portalKey}`,
+          iconName: 'FolderOpen',
+          description:
+            'M&A due diligence repository, title deeds, legal contracts, surveys, and financial valuation models',
+          group: 'Governance & Legal',
+          section: 'both',
+          enabled: true,
+          order: portalKey === 'propco' ? 5 : 8,
+        });
+      }
+    };
+    ensureAcquisitionTab('propco');
+    ensureAcquisitionTab('opco');
+
     return config;
   } catch (err) {
     console.error('Error reading App CMS config:', err);
@@ -901,21 +968,45 @@ export function addCustomTabOrDropdown(params: {
 
   // If adding under a specific target tab as a dropdown/subtab
   if (targetTabId && targetTabId !== 'root') {
-    const targetSection = section === 'both' ? 'opco' : section === 'bottom' ? 'opco' : section;
-    const portal = current[targetSection];
-    const parentTab = portal?.tabs.find((t) => t.id === targetTabId);
-    if (parentTab) {
-      if (!parentTab.subtabs) parentTab.subtabs = [];
-      parentTab.subtabs.push({
-        id: `sub-${Date.now()}`,
-        label: name.trim(),
-        path: cleanPath,
-        iconName,
-      });
+    const newSubtabId = `sub-${Date.now()}`;
+    let added = false;
+    let targetName = '';
+
+    if (section === 'both' || section === 'propco') {
+      const parentPropco = current.propco?.tabs.find((t) => t.id === targetTabId);
+      if (parentPropco) {
+        if (!parentPropco.subtabs) parentPropco.subtabs = [];
+        parentPropco.subtabs.push({
+          id: newSubtabId,
+          label: name.trim(),
+          path: cleanPath,
+          iconName,
+        });
+        added = true;
+        targetName = parentPropco.name;
+      }
+    }
+
+    if (section === 'both' || section === 'opco' || section === 'bottom') {
+      const parentOpco = current.opco?.tabs.find((t) => t.id === targetTabId);
+      if (parentOpco) {
+        if (!parentOpco.subtabs) parentOpco.subtabs = [];
+        parentOpco.subtabs.push({
+          id: newSubtabId,
+          label: name.trim(),
+          path: cleanPath,
+          iconName,
+        });
+        added = true;
+        if (!targetName) targetName = parentOpco.name;
+      }
+    }
+
+    if (added) {
       saveAppCmsConfig(current);
       return {
         success: true,
-        message: `Dropdown sub-tab "${name.trim()}" added inside ${parentTab.name}!`,
+        message: `Dropdown sub-tab "${name.trim()}" added inside ${targetName || targetTabId}!`,
       };
     }
   }
@@ -953,10 +1044,13 @@ export function addCustomTabOrDropdown(params: {
     });
   }
 
+  // Register in section mapping so it is recognized immediately by sidebar and section manager
+  moveTabToSection(newTabId, section);
+
   saveAppCmsConfig(current);
   return {
     success: true,
-    message: `Tab "${name.trim()}" added to ${section.toUpperCase()}!`,
+    message: `Tab "${name.trim()}" added to ${section === 'both' ? 'BOTH PROPCO & OPCO' : section.toUpperCase()}!`,
   };
 }
 

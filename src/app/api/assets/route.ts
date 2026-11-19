@@ -10,6 +10,7 @@ export async function GET(req: NextRequest) {
   const department = searchParams.get('department')?.toLowerCase() || '';
   const status = searchParams.get('status')?.toLowerCase() || '';
   const type = searchParams.get('type'); // 'fixed' | 'non-fixed'
+  const portal = searchParams.get('portal')?.toLowerCase();
 
   let assets = await getCollectionData('assets');
 
@@ -48,6 +49,10 @@ export async function GET(req: NextRequest) {
     assets = assets.filter((a: any) => isAssetFixed(a));
   } else if (type === 'non-fixed') {
     assets = assets.filter((a: any) => !isAssetFixed(a));
+  }
+
+  if (portal) {
+    assets = assets.filter((a: any) => (a.portal || 'propco').toLowerCase() === portal);
   }
 
   return NextResponse.json({

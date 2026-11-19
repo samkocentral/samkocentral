@@ -39,6 +39,8 @@ import { useLoadingPagination } from '@/hooks/useLoadingPagination';
 import TableCheckbox from '@/components/ui/TableCheckbox';
 import BulkActionBar from '@/components/ui/BulkActionBar';
 import ConfirmDeleteModal from '@/components/modals/ConfirmDeleteModal';
+import DocumentUploadField from '@/components/ui/DocumentUploadField';
+import DocumentTableCell from '@/components/ui/DocumentTableCell';
 
 type UtilityType = 'Electricity' | 'Gas' | 'Water' | string;
 type UtilityStatus = 'active' | 'expiring-soon' | 'expired' | 'incomplete';
@@ -227,7 +229,7 @@ const DEFAULT_UTILITY_CATEGORIES = [
 ];
 
 export default function UtilitiesRegisterClient() {
-  const { isViewer, canEdit, canDelete, canWriteTab, isPropertyAccessible } = useAuth();
+  const { isViewer, canEdit, canDelete, canWriteTab, isPropertyAccessible, activePortal } = useAuth();
   const hasWriteAccess = !isViewer && canEdit && canWriteTab('utilities');
   const hasDeleteAccess = !isViewer && canDelete && canWriteTab('utilities');
   const {
@@ -243,7 +245,7 @@ export default function UtilitiesRegisterClient() {
   const activeColumns = useMemo(() => {
     let cols: ColumnDefinition[] = [];
     if (cmsColumns && cmsColumns.length > 0) {
-      cols = [...cmsColumns].sort((a, b) => a.order - b.order).filter((c) => c.visible !== false);
+      cols = [...cmsColumns].filter((c) => c.visible !== false);
     } else {
       cols = [
         {
@@ -290,35 +292,40 @@ export default function UtilitiesRegisterClient() {
           originalLabel: 'Annual Cost',
         },
         { id: 'status', label: 'Status', visible: true, order: 8, originalLabel: 'Status' },
-        { id: 'actions', label: 'Actions', visible: true, order: 9, originalLabel: 'Actions' },
+        { id: 'document', label: 'Document', visible: true, order: 9, originalLabel: 'Document' },
+        { id: 'actions', label: 'Actions', visible: true, order: 10, originalLabel: 'Actions' },
       ];
     }
 
-    // Always guarantee status column exists
-    if (!cols.some((c) => c.id.toLowerCase() === 'status')) {
-      const maxOrder = cols.reduce((max, c) => Math.max(max, c.order || 0), 0);
-      cols.push({
-        id: 'status',
-        label: 'Status',
-        visible: true,
-        order: maxOrder + 1,
-        originalLabel: 'Status',
-      });
-    }
+    // Guarantee data columns first, then Document, then Actions ALWAYS last!
+    const nonActions = cols
+      .filter(
+        (c) =>
+          c.id.toLowerCase() !== 'actions' &&
+          c.id.toLowerCase() !== 'document' &&
+          c.id.toLowerCase() !== 'attachment'
+      )
+      .sort((a, b) => (a.order || 0) - (b.order || 0));
 
-    // Always guarantee actions column exists
-    if (!cols.some((c) => c.id.toLowerCase() === 'actions')) {
-      const maxOrder = cols.reduce((max, c) => Math.max(max, c.order || 0), 0);
-      cols.push({
-        id: 'actions',
-        label: 'Actions',
-        visible: true,
-        order: maxOrder + 1,
-        originalLabel: 'Actions',
-      });
-    }
+    const docCol = cols.find(
+      (c) => c.id.toLowerCase() === 'document' || c.id.toLowerCase() === 'attachment'
+    ) || {
+      id: 'document',
+      label: 'Document',
+      visible: true,
+      order: 9998,
+      originalLabel: 'Document',
+    };
 
-    return cols;
+    const actionsCol = cols.find((c) => c.id.toLowerCase() === 'actions') || {
+      id: 'actions',
+      label: 'Actions',
+      visible: true,
+      order: 9999,
+      originalLabel: 'Actions',
+    };
+
+    return [...nonActions, docCol, actionsCol];
   }, [cmsColumns]);
 
   const [accounts, setAccounts] = useState<UtilityAccount[]>(() => {
@@ -349,6 +356,8 @@ export default function UtilitiesRegisterClient() {
 
   const searchParams = useSearchParams();
   const router = useRouter();
+  const portalParam = searchParams?.get('portal');
+  const isPropco = portalParam === 'propco' || (!portalParam && activePortal === 'propco');
 
   const typeParam = searchParams?.get('type')?.toLowerCase();
   const initialType: 'all' | UtilityType =
@@ -710,6 +719,9 @@ export default function UtilitiesRegisterClient() {
     supplierEmail: '',
     status: 'active' as UtilityStatus,
     notes: '',
+    documentName: '',
+    documentUrl: '',
+    documentSize: '',
   });
 
   const fetchUtilitiesData = useCallback(async () => {
@@ -815,6 +827,9 @@ export default function UtilitiesRegisterClient() {
         supplierEmail: '',
         status: 'active' as UtilityStatus,
         notes: '',
+        documentName: '',
+        documentUrl: '',
+        documentSize: '',
       });
       if (typeof window !== 'undefined') {
         window.dispatchEvent(
@@ -895,10 +910,13 @@ export default function UtilitiesRegisterClient() {
   };
 
   const accessibleAccounts = useMemo(() => {
-    return accounts.filter((u) =>
-      isPropertyAccessible(u.property || (u as any).hotel || (u as any).site)
-    );
-  }, [accounts, isPropertyAccessible]);
+    return accounts.filter((u) => {
+      const itemPortal = (u as any).portal || 'opco';
+      if (isPropco && itemPortal !== 'propco') return false;
+      if (!isPropco && itemPortal === 'propco') return false;
+      return isPropertyAccessible(u.property || (u as any).hotel || (u as any).site);
+    });
+  }, [accounts, isPropertyAccessible, isPropco]);
 
   const activeCount = accessibleAccounts.filter((u) => u.status === 'active').length;
   const expiringSoon = accessibleAccounts.filter((u) => u.status === 'expiring-soon').length;
@@ -1542,6 +1560,20 @@ export default function UtilitiesRegisterClient() {
                           </td>
                         );
                       }
+                      if (colKey === 'document' || colKey === 'attachment') {
+                        return (
+                          <td
+                            key={col.id}
+                            className="px-4 py-3"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <DocumentTableCell
+                              documentName={(account as any).documentName || (account as any).document || (account as any).billDocument}
+                              documentUrl={(account as any).documentUrl}
+                            />
+                          </td>
+                        );
+                      }
                       if (colKey === 'actions') {
                         return (
                           <td
@@ -1979,6 +2011,28 @@ export default function UtilitiesRegisterClient() {
                     style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
                   />
                 </div>
+                <div className="col-span-2">
+                  <DocumentUploadField
+                    label="Attach Utility Bill / Contract / Agreement (Optional)"
+                    documentName={formData.documentName}
+                    onUpload={({ name, url, size }) =>
+                      setFormData({
+                        ...formData,
+                        documentName: name,
+                        documentUrl: url,
+                        documentSize: size || '',
+                      })
+                    }
+                    onRemove={() =>
+                      setFormData({
+                        ...formData,
+                        documentName: '',
+                        documentUrl: '',
+                        documentSize: '',
+                      })
+                    }
+                  />
+                </div>
               </div>
               <div className="flex gap-2 p-6 pt-0">
                 <button
@@ -2251,6 +2305,28 @@ export default function UtilitiesRegisterClient() {
                     }
                     className="rounded-lg border border-border px-3 py-2 text-sm outline-none resize-none"
                     style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
+                  />
+                </div>
+                <div className="col-span-2">
+                  <DocumentUploadField
+                    label="Attach Utility Bill / Contract / Agreement (Optional)"
+                    documentName={(editingAccount as any).documentName || (editingAccount as any).document || (editingAccount as any).billDocument || ''}
+                    onUpload={({ name, url, size }) =>
+                      setEditingAccount({
+                        ...editingAccount,
+                        documentName: name,
+                        documentUrl: url,
+                        documentSize: size || '',
+                      } as any)
+                    }
+                    onRemove={() =>
+                      setEditingAccount({
+                        ...editingAccount,
+                        documentName: '',
+                        documentUrl: '',
+                        documentSize: '',
+                      } as any)
+                    }
                   />
                 </div>
               </div>

@@ -7,8 +7,15 @@ export async function GET(req: NextRequest) {
   const property = searchParams.get('property') || searchParams.get('site') || '';
   const category = searchParams.get('category')?.toLowerCase() || '';
   const status = searchParams.get('status')?.toLowerCase() || '';
+  const portal = searchParams.get('portal')?.toLowerCase() || '';
 
   let items = await getCollectionData('compliance');
+
+  if (portal && portal !== 'all') {
+    items = items.filter(
+      (c: any) => (c.complianceType || c.section || c.portal || '').toLowerCase() === portal
+    );
+  }
 
   if (search) {
     items = items.filter(

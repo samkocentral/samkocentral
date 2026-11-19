@@ -28,6 +28,8 @@ import {
 } from 'lucide-react';
 import Icon from '@/components/ui/AppIcon';
 import CustomDropdown from '@/components/ui/CustomDropdown';
+import DocumentUploadField from '@/components/ui/DocumentUploadField';
+import DocumentTableCell from '@/components/ui/DocumentTableCell';
 import { api } from '@/lib/api';
 import { useAuth } from '@/lib/authContext';
 import { toast } from 'sonner';
@@ -71,6 +73,7 @@ interface Contract {
   sla: string;
   status: ContractStatus;
   notes?: string;
+  portal?: 'propco' | 'opco';
 }
 
 const CONTRACT_CATEGORIES = [
@@ -287,7 +290,7 @@ function KPICard({
 }
 
 export default function ContractsRegisterClient() {
-  const { isViewer, canEdit, canDelete, canWriteTab, isPropertyAccessible } = useAuth();
+  const { isViewer, canEdit, canDelete, canWriteTab, isPropertyAccessible, activePortal } = useAuth();
   const hasWriteAccess = !isViewer && canEdit && canWriteTab('contracts');
   const hasDeleteAccess = !isViewer && canDelete && canWriteTab('contracts');
   const {
@@ -301,23 +304,53 @@ export default function ContractsRegisterClient() {
   } = useDeepPageCms('contracts');
 
   const activeColumns = useMemo(() => {
+    let cols: any[] = [];
     if (cmsColumns && cmsColumns.length > 0) {
-      return [...cmsColumns].sort((a, b) => a.order - b.order).filter((c) => c.visible !== false);
+      cols = [...cmsColumns].filter((c) => c.visible !== false);
+    } else {
+      cols = [
+        { id: 'contractId', label: 'ID', visible: true, order: 1 },
+        { id: 'contractName', label: 'Contract', visible: true, order: 2 },
+        { id: 'supplierName', label: 'Supplier', visible: true, order: 3 },
+        { id: 'category', label: 'Category', visible: true, order: 4 },
+        { id: 'hotel', label: 'Property', visible: true, order: 5 },
+        { id: 'contractValue', label: 'Value', visible: true, order: 6 },
+        { id: 'endDate', label: 'End Date', visible: true, order: 7 },
+        { id: 'daysLeft', label: 'Days Left', visible: true, order: 8 },
+        { id: 'autoRenew', label: 'Auto Renew', visible: true, order: 9 },
+        { id: 'contractOwner', label: 'Owner', visible: true, order: 10 },
+        { id: 'status', label: 'Status', visible: true, order: 11 },
+        { id: 'document', label: 'Document', visible: true, order: 12 },
+        { id: 'actions', label: 'Actions', visible: true, order: 13 },
+      ];
     }
-    return [
-      { id: 'contractId', label: 'ID', visible: true, order: 1 },
-      { id: 'contractName', label: 'Contract', visible: true, order: 2 },
-      { id: 'supplierName', label: 'Supplier', visible: true, order: 3 },
-      { id: 'category', label: 'Category', visible: true, order: 4 },
-      { id: 'hotel', label: 'Property', visible: true, order: 5 },
-      { id: 'contractValue', label: 'Value', visible: true, order: 6 },
-      { id: 'endDate', label: 'End Date', visible: true, order: 7 },
-      { id: 'daysLeft', label: 'Days Left', visible: true, order: 8 },
-      { id: 'autoRenew', label: 'Auto Renew', visible: true, order: 9 },
-      { id: 'contractOwner', label: 'Owner', visible: true, order: 10 },
-      { id: 'status', label: 'Status', visible: true, order: 11 },
-      { id: 'actions', label: 'Actions', visible: true, order: 12 },
-    ];
+
+    const nonActions = cols
+      .filter(
+        (c) =>
+          c.id.toLowerCase() !== 'actions' &&
+          c.id.toLowerCase() !== 'document' &&
+          c.id.toLowerCase() !== 'attachment'
+      )
+      .sort((a, b) => (a.order || 0) - (b.order || 0));
+
+    const docCol = cols.find(
+      (c) => c.id.toLowerCase() === 'document' || c.id.toLowerCase() === 'attachment'
+    ) || {
+      id: 'document',
+      label: 'Document',
+      visible: true,
+      order: 9998,
+    };
+
+    const actionsCol = cols.find((c) => c.id.toLowerCase() === 'actions') || {
+      id: 'actions',
+      label: 'Actions',
+      visible: true,
+      order: 9999,
+    };
+
+    return [...nonActions, docCol, actionsCol];
   }, [cmsColumns]);
 
   const searchParams = useSearchParams();
@@ -368,9 +401,14 @@ export default function ContractsRegisterClient() {
     }
   }, [searchParams]);
 
+  const portalParam = searchParams?.get('portal');
+  const isOpCo = portalParam === 'opco' || (!portalParam && activePortal === 'opco');
+
   const handleTabChange = (t: 'register' | 'suppliers' | 'renewals' | 'slas') => {
     setActiveTab(t);
-    const url = t === 'register' ? '/contracts-register' : `/contracts-register?tab=${t}`;
+    const portalQuery = portalParam ? `portal=${portalParam}` : '';
+    const base = t === 'register' ? '/contracts-register' : `/contracts-register?tab=${t}`;
+    const url = portalQuery ? (t === 'register' ? `${base}?${portalQuery}` : `${base}&${portalQuery}`) : base;
     router.push(url, { scroll: false });
   };
   const [search, setSearch] = useState('');
@@ -700,6 +738,7 @@ export default function ContractsRegisterClient() {
       contractId: tempId,
       contractValue: Number(formData.contractValue) || 0,
       monthlyCost: Number(formData.monthlyCost) || 0,
+      portal: isOpCo ? 'opco' : 'propco',
     });
     try {
       const res = await api.contracts.create(payload);
@@ -852,10 +891,13 @@ export default function ContractsRegisterClient() {
   };
 
   const accessibleContracts = useMemo(() => {
-    return contracts.filter((c) =>
-      isPropertyAccessible(c.hotel || (c as any).property || (c as any).site)
-    );
-  }, [contracts, isPropertyAccessible]);
+    return contracts.filter((c) => {
+      const itemPortal = (c as any).portal || 'propco';
+      if (isOpCo && itemPortal !== 'opco') return false;
+      if (!isOpCo && itemPortal === 'opco') return false;
+      return isPropertyAccessible(c.hotel || (c as any).property || (c as any).site);
+    });
+  }, [contracts, isPropertyAccessible, isOpCo]);
 
   const activeContracts = accessibleContracts.filter((c) => c.status === 'active').length;
   const expiringSoon = accessibleContracts.filter((c) => c.status === 'expiring-soon').length;
@@ -1090,12 +1132,26 @@ export default function ContractsRegisterClient() {
       >
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="font-head font-bold text-xl">{cmsTitle || 'Contracts Register'}</h1>
+            <h1 className="font-head font-bold text-xl">
+              {cmsTitle || (isOpCo ? 'OpCo Contracts & Supplier Register' : 'PropCo Contracts & Supplier Register')}
+            </h1>
+            <span
+              className="px-2 py-0.5 rounded text-[10px] font-extrabold uppercase border"
+              style={{
+                background: isOpCo ? 'rgba(96,165,250,0.15)' : 'rgba(232,201,122,0.15)',
+                color: isOpCo ? '#60a5fa' : '#e8c97a',
+                borderColor: isOpCo ? 'rgba(96,165,250,0.35)' : 'rgba(232,201,122,0.35)',
+              }}
+            >
+              {isOpCo ? 'OpCo Operations' : 'PropCo Asset Co'}
+            </span>
             {loading && <Loader2 size={14} className="animate-spin text-muted-foreground" />}
           </div>
           <p className="text-xs text-muted-foreground mt-0.5">
             {cmsSubtitle ||
-              `Centralise all supplier and service contracts — ${contracts.length} contracts across all properties`}
+              (isOpCo
+                ? `Operational supplier and service agreements — ${accessibleContracts.length} OpCo contracts`
+                : `Capital asset supplier and service contracts — ${accessibleContracts.length} PropCo contracts across all properties`)}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -1518,6 +1574,29 @@ export default function ContractsRegisterClient() {
                                     color: sc.color,
                                     border: `1px solid ${sc.color}33`,
                                   }}
+                                />
+                              </td>
+                            );
+                          }
+                          if (colKey === 'document') {
+                            return (
+                              <td
+                                key={col.id}
+                                className="px-4 py-3 text-xs"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <DocumentTableCell
+                                  documentName={
+                                    (contract as any).documentName ||
+                                    (contract as any).attachmentName ||
+                                    (contract as any).document ||
+                                    (contract as any).contractFile
+                                  }
+                                  documentUrl={
+                                    (contract as any).documentUrl ||
+                                    (contract as any).attachmentUrl ||
+                                    (contract as any).fileUrl
+                                  }
                                 />
                               </td>
                             );
@@ -2280,6 +2359,30 @@ export default function ContractsRegisterClient() {
                     style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
                   />
                 </div>
+                <div className="col-span-2">
+                  <DocumentUploadField
+                    label="Attach Contract Document / SLA / Agreement (Optional)"
+                    documentName={(formData as any).documentName}
+                    documentUrl={(formData as any).documentUrl}
+                    documentSize={(formData as any).documentSize}
+                    onUpload={({ name, url, size }) =>
+                      setFormData({
+                        ...formData,
+                        documentName: name,
+                        documentUrl: url,
+                        documentSize: size,
+                      } as any)
+                    }
+                    onRemove={() =>
+                      setFormData({
+                        ...formData,
+                        documentName: '',
+                        documentUrl: '',
+                        documentSize: '',
+                      } as any)
+                    }
+                  />
+                </div>
               </div>
               <div className="flex gap-2 p-6 pt-0">
                 <button
@@ -2594,6 +2697,30 @@ export default function ContractsRegisterClient() {
                     onChange={(e) => setEditFormData({ ...editFormData, notes: e.target.value })}
                     className="rounded-lg border border-border px-3 py-2 text-sm outline-none resize-none"
                     style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
+                  />
+                </div>
+                <div className="col-span-2">
+                  <DocumentUploadField
+                    label="Contract Document / Agreement (Optional)"
+                    documentName={editFormData.documentName || editFormData.document || ''}
+                    documentUrl={editFormData.documentUrl}
+                    documentSize={editFormData.documentSize}
+                    onUpload={({ name, url, size }) =>
+                      setEditFormData({
+                        ...editFormData,
+                        documentName: name,
+                        documentUrl: url,
+                        documentSize: size,
+                      })
+                    }
+                    onRemove={() =>
+                      setEditFormData({
+                        ...editFormData,
+                        documentName: '',
+                        documentUrl: '',
+                        documentSize: '',
+                      })
+                    }
                   />
                 </div>
               </div>

@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import {
   Upload,
   CheckSquare,
@@ -21,6 +21,12 @@ import {
   Sparkles,
   Radio,
   ExternalLink,
+  ClipboardCheck,
+  AlertTriangle,
+  Info,
+  Clock,
+  User,
+  FileText,
 } from 'lucide-react';
 import { useAuth, DEMO_CREDENTIALS } from '@/lib/authContext';
 import { getInitialTasks, type TaskItem } from '@/data/tasksData';
@@ -52,6 +58,7 @@ export default function Topbar({
   actions,
   hideDefaultActions = false,
 }: TopbarProps) {
+  const router = useRouter();
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [notifOpen, setNotifOpen] = useState(false);
   const [notifFilter, setNotifFilter] = useState<'all' | 'critical' | 'warning' | 'unread'>('all');
@@ -64,6 +71,9 @@ export default function Topbar({
   const [tasksFilter, setTasksFilter] = useState<'all' | 'urgent' | 'open'>('all');
   const [tasksList, setTasksList] = useState<TaskItem[]>([]);
   const [systemUsers, setSystemUsers] = useState<any[]>([]);
+  const [selectedAlertModal, setSelectedAlertModal] = useState<AppNotification | null>(null);
+  const [selectedTaskModal, setSelectedTaskModal] = useState<TaskItem | null>(null);
+  const [pendingApprovalsCount, setPendingApprovalsCount] = useState<number>(0);
 
   useEffect(() => {
     const fetchUsers = async () => {
@@ -108,7 +118,16 @@ export default function Topbar({
     isPropertyAccessible,
   } = useAuth();
 
-  // Load and listen for live notifications updates across the entire application
+  const isSuperAdminOrBot =
+    isSuperAdmin ||
+    isDigitalBot ||
+    user?.roleLevel === 'L1' ||
+    user?.id === 'usr-bot-001' ||
+    user?.name?.toLowerCase().includes('digital bot') ||
+    user?.roleTitle?.toLowerCase().includes('digital bot') ||
+    user?.roleTitle?.toLowerCase().includes('super admin');
+
+  // Load and listen for live notifications, tasks, and approvals updates across the application
   useEffect(() => {
     const syncNotifs = () => {
       setNotifications(getNotifications());
@@ -126,13 +145,65 @@ export default function Topbar({
       } catch (e) {}
       setTasksList(getInitialTasks());
     };
+    const syncApprovals = () => {
+      try {
+        const rawDel = localStorage.getItem('samko_deleted_doc_ids');
+        const deletedIds = rawDel ? new Set(JSON.parse(rawDel)) : new Set();
+        const rawCount = localStorage.getItem('samko_approvals_count');
+        if (rawCount !== null && !isNaN(parseInt(rawCount, 10))) {
+          setPendingApprovalsCount(parseInt(rawCount, 10));
+          return;
+        }
+        const cached = localStorage.getItem('samko_repository_documents');
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          if (Array.isArray(parsed)) {
+            const count = parsed
+              .filter((d: any) => !deletedIds.has(d.id))
+              .filter((d: any) =>
+                isPropertyAccessible(
+                  d.site || d.property || d.propertyName || d.hotelName || d.hotel
+                )
+              )
+              .filter((d: any) => {
+                const isFood =
+                  (d.name && d.name.toLowerCase().includes('food')) ||
+                  (d.category && d.category.toLowerCase().includes('food'));
+                const isUserUpload =
+                  String(d.id).startsWith('doc-17') || String(d.id).startsWith('doc-food');
+                const status =
+                  d.approvalStatus || (isFood || isUserUpload ? 'pending' : 'approved');
+                return status === 'pending' || status === 'hold';
+              }).length;
+            setPendingApprovalsCount(count);
+            return;
+          }
+        }
+      } catch {}
+      setPendingApprovalsCount(0);
+    };
+
+    const handleApprovalsEvent = (e: any) => {
+      if (e?.detail?.count !== undefined && typeof e.detail.count === 'number') {
+        setPendingApprovalsCount(e.detail.count);
+      } else {
+        syncApprovals();
+      }
+    };
+
     syncTasks();
     syncNotifs();
+    syncApprovals();
 
     window.addEventListener('samko:notifications-updated', syncNotifs);
     window.addEventListener('samko:task-changed', syncTasks);
+    window.addEventListener('samko:doc_uploaded', syncApprovals);
+    window.addEventListener('samko:doc_approved', syncApprovals);
+    window.addEventListener('samko:approvals-changed', handleApprovalsEvent);
     window.addEventListener('samko:data-changed', syncNotifs);
+    window.addEventListener('samko:data-changed', syncApprovals);
     window.addEventListener('storage', syncNotifs);
+    window.addEventListener('storage', syncApprovals);
 
     const interval = setInterval(() => {
       setPulse((p) => !p);
@@ -140,11 +211,17 @@ export default function Topbar({
 
     return () => {
       window.removeEventListener('samko:notifications-updated', syncNotifs);
+      window.removeEventListener('samko:task-changed', syncTasks);
+      window.removeEventListener('samko:doc_uploaded', syncApprovals);
+      window.removeEventListener('samko:doc_approved', syncApprovals);
+      window.removeEventListener('samko:approvals-changed', handleApprovalsEvent);
       window.removeEventListener('samko:data-changed', syncNotifs);
+      window.removeEventListener('samko:data-changed', syncApprovals);
       window.removeEventListener('storage', syncNotifs);
+      window.removeEventListener('storage', syncApprovals);
       clearInterval(interval);
     };
-  }, []);
+  }, [isPropertyAccessible]);
 
   // Scope notifications and tasks by user's assigned property
   const accessibleNotifications = useMemo(() => {
@@ -309,7 +386,8 @@ export default function Topbar({
   }, []);
 
   return (
-    <header
+    <>
+      <header
       className="flex items-center gap-4 border-b border-border flex-shrink-0"
       style={{ padding: '0 24px', height: 62, background: 'var(--card)' }}
     >
@@ -331,8 +409,10 @@ export default function Topbar({
               type="button"
               onClick={() => {
                 setActivePortal('propco');
-                if (pathname === '/') {
-                  window.history.replaceState(null, '', '/?portal=propco');
+                if (typeof window !== 'undefined') {
+                  const url = new URL(window.location.href);
+                  url.searchParams.set('portal', 'propco');
+                  router.push(url.pathname + url.search);
                 }
               }}
               className="px-2.5 py-1 rounded text-[11px] font-bold transition-all cursor-pointer"
@@ -347,8 +427,10 @@ export default function Topbar({
               type="button"
               onClick={() => {
                 setActivePortal('opco');
-                if (pathname === '/') {
-                  window.history.replaceState(null, '', '/?portal=opco');
+                if (typeof window !== 'undefined') {
+                  const url = new URL(window.location.href);
+                  url.searchParams.set('portal', 'opco');
+                  router.push(url.pathname + url.search);
                 }
               }}
               className="px-2.5 py-1 rounded text-[11px] font-bold transition-all cursor-pointer"
@@ -666,7 +748,10 @@ export default function Topbar({
                         </div>
 
                         {/* Title & Description */}
-                        <div className="mt-1.5">
+                        <div
+                          className="mt-1.5 cursor-pointer"
+                          onClick={() => setSelectedAlertModal(notif)}
+                        >
                           <p
                             className={`text-xs font-bold leading-tight ${
                               isCrit ? 'text-rose-300' : 'text-foreground'
@@ -681,21 +766,34 @@ export default function Topbar({
 
                         {/* Bottom Actions */}
                         <div className="mt-2.5 pt-2 border-t border-border/50 flex items-center justify-between gap-2">
-                          {notif.actionUrl ? (
-                            <Link
-                              href={notif.actionUrl}
-                              onClick={() => {
-                                markAsRead(notif.id);
-                                setNotifOpen(false);
+                          <div className="flex items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedAlertModal(notif);
                               }}
-                              className="inline-flex items-center gap-1 text-[11px] font-bold text-primary hover:underline"
+                              className="inline-flex items-center gap-1 text-[10.5px] font-bold text-foreground hover:text-primary transition-colors cursor-pointer bg-surface3/90 hover:bg-surface3 px-2 py-0.5 rounded border border-border/60"
+                              title="View this alert in detail"
                             >
-                              <span>{notif.actionLabel || 'View Details'}</span>
-                              <ExternalLink size={10} />
-                            </Link>
-                          ) : (
-                            <span />
-                          )}
+                              <Eye size={11} className="text-primary" />
+                              <span>View Alert</span>
+                            </button>
+
+                            {notif.actionUrl ? (
+                              <Link
+                                href={notif.actionUrl}
+                                onClick={() => {
+                                  markAsRead(notif.id);
+                                  setNotifOpen(false);
+                                }}
+                                className="inline-flex items-center gap-1 text-[11px] font-bold text-primary hover:underline"
+                              >
+                                <span>{notif.actionLabel || 'View Compliance'}</span>
+                                <ExternalLink size={10} />
+                              </Link>
+                            ) : null}
+                          </div>
 
                           <button
                             type="button"
@@ -732,9 +830,14 @@ export default function Topbar({
                     Live Telemetry Monitoring Active
                   </span>
                 </div>
-                <span className="text-[10px] text-muted-foreground font-medium">
-                  5 UK Properties
-                </span>
+                <Link
+                  href="/compliance-register"
+                  onClick={() => setNotifOpen(false)}
+                  className="inline-flex items-center gap-1 text-[11px] font-bold text-primary hover:underline"
+                >
+                  <span>View All Alerts</span>
+                  <ExternalLink size={10} />
+                </Link>
               </div>
             </div>
           )}
@@ -874,11 +977,10 @@ export default function Topbar({
                       return true;
                     })
                     .map((task: TaskItem) => (
-                      <Link
+                      <div
                         key={task.id}
-                        href="/tasks"
-                        onClick={() => setTasksOpen(false)}
-                        className="block p-2.5 rounded-xl border border-border/70 hover:border-primary/50 transition-all hover:bg-surface2/80 text-foreground group"
+                        onClick={() => setSelectedTaskModal(task)}
+                        className="block p-2.5 rounded-xl border border-border/70 hover:border-primary/50 transition-all hover:bg-surface2/80 text-foreground group cursor-pointer"
                         style={{ background: 'var(--surface2)' }}
                       >
                         <div className="flex items-center justify-between gap-2">
@@ -932,9 +1034,23 @@ export default function Topbar({
                             </span>
                             <span>{task.assignee}</span>
                           </span>
-                          <span className="capitalize">{task.status}</span>
+                          <div className="flex items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedTaskModal(task);
+                              }}
+                              className="inline-flex items-center gap-1 text-[10px] font-bold text-primary hover:text-primary-focus px-1.5 py-0.5 rounded bg-surface3 border border-border/60 hover:bg-surface3/80 transition-colors cursor-pointer"
+                              title="View this task in detail"
+                            >
+                              <Eye size={10} />
+                              <span>View Task</span>
+                            </button>
+                            <span className="capitalize">{task.status}</span>
+                          </div>
                         </div>
-                      </Link>
+                      </div>
                     ))}
                 </div>
 
@@ -948,7 +1064,7 @@ export default function Topbar({
                     onClick={() => setTasksOpen(false)}
                     className="w-full flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl text-xs font-bold samko-btn-primary transition-all text-center"
                   >
-                    <span>Open Task Manager & Action List</span>
+                    <span>Open Task Manager & Action List (View All Tasks)</span>
                     <ExternalLink size={13} />
                   </Link>
                 </div>
@@ -959,17 +1075,23 @@ export default function Topbar({
 
         {actions}
 
-        {/* Action buttons (hidden or restricted for L4 Viewers) */}
-        {!hideDefaultActions && canUpload && (
+        {/* Approvals Quick Button (Strictly Super Admin & Digital Bot only) */}
+        {!hideDefaultActions && isSuperAdminOrBot && (
           <Link
-            href="/document-repository"
-            className="samko-btn-ghost flex items-center gap-1.5"
+            href="/approvals"
+            className={`samko-btn-ghost flex items-center gap-1.5 transition-all text-xs font-semibold ${
+              pathname === '/approvals' ? 'border-primary/60 bg-surface2 text-primary' : ''
+            }`}
             style={{ padding: '6px 12px', fontSize: 12 }}
+            title="Approvals Management Queue"
           >
-            <Upload size={13} />
-            <span className="hidden sm:inline">
-              {cmsOverride.secondaryActionLabel || 'Upload Doc'}
-            </span>
+            <ClipboardCheck size={14} className="text-primary" />
+            <span className="hidden sm:inline">Approvals</span>
+            {pendingApprovalsCount > 0 && (
+              <span className="px-1.5 py-0.2 rounded-full text-[10px] font-black bg-rose-500/20 text-rose-300 border border-rose-500/30">
+                {pendingApprovalsCount}
+              </span>
+            )}
           </Link>
         )}
 
@@ -1164,5 +1286,361 @@ export default function Topbar({
         </div>
       </div>
     </header>
+
+      {/* Alert Detail View Modal */}
+      {selectedAlertModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4 animate-in fade-in"
+          onClick={() => setSelectedAlertModal(null)}
+        >
+          <div
+            className="relative w-full max-w-lg rounded-2xl border border-border shadow-2xl p-6 text-foreground overflow-hidden"
+            style={{ background: 'var(--surface, #11141a)', backgroundColor: '#11141a' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="flex items-start justify-between gap-3 pb-4 border-b border-border">
+              <div className="flex items-center gap-2.5">
+                <div
+                  className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${
+                    selectedAlertModal.type === 'critical'
+                      ? 'bg-rose-500/20 text-rose-400 border border-rose-500/30'
+                      : selectedAlertModal.type === 'warning'
+                        ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
+                        : 'bg-blue-500/20 text-blue-400 border border-blue-500/30'
+                  }`}
+                >
+                  {selectedAlertModal.type === 'critical' || selectedAlertModal.type === 'warning' ? (
+                    <AlertTriangle size={18} />
+                  ) : (
+                    <Info size={18} />
+                  )}
+                </div>
+                <div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span
+                      className={`px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider ${
+                        selectedAlertModal.type === 'critical'
+                          ? 'bg-rose-500/20 text-rose-300 border border-rose-500/30'
+                          : selectedAlertModal.type === 'warning'
+                            ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+                            : 'bg-blue-500/20 text-blue-300 border border-blue-500/30'
+                      }`}
+                    >
+                      {selectedAlertModal.source || selectedAlertModal.type}
+                    </span>
+                    <span className="text-xs text-muted-foreground">
+                      {formatRelativeTime(selectedAlertModal.timestamp)}
+                    </span>
+                  </div>
+                  <h3 className="text-base font-bold text-foreground mt-1">
+                    {selectedAlertModal.title}
+                  </h3>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSelectedAlertModal(null)}
+                className="text-muted-foreground hover:text-foreground p-1.5 rounded-lg hover:bg-surface2 transition-colors cursor-pointer"
+                title="Close"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Content */}
+            <div className="py-4 space-y-3.5">
+              {/* Site info */}
+              {selectedAlertModal.site && (
+                <div className="flex items-center gap-2 text-xs text-muted-foreground bg-surface2 px-3 py-2 rounded-xl border border-border/70">
+                  <Building2 size={15} className="text-primary flex-shrink-0" />
+                  <span className="font-semibold text-foreground">Property / Site:</span>
+                  <span>{selectedAlertModal.site}</span>
+                </div>
+              )}
+
+              {/* Message */}
+              <div>
+                <label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground block mb-1">
+                  Alert Message & Details
+                </label>
+                <div className="p-3.5 rounded-xl bg-surface2 border border-border text-xs leading-relaxed text-foreground/90">
+                  {selectedAlertModal.message}
+                </div>
+              </div>
+
+              {/* Status */}
+              <div className="flex items-center justify-between text-xs p-3 rounded-xl bg-surface3/50 border border-border/60">
+                <span className="text-muted-foreground font-medium">Notification Status:</span>
+                <span
+                  className={`font-bold px-2 py-0.5 rounded text-[11px] ${
+                    selectedAlertModal.read
+                      ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                      : 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+                  }`}
+                >
+                  {selectedAlertModal.read ? 'Read' : 'Unread (Action Pending)'}
+                </span>
+              </div>
+            </div>
+
+            {/* Footer Actions */}
+            <div className="pt-4 border-t border-border flex items-center justify-between gap-2 flex-wrap">
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (selectedAlertModal.read) {
+                      markAsUnread(selectedAlertModal.id);
+                      setSelectedAlertModal((prev) => (prev ? { ...prev, read: false } : null));
+                    } else {
+                      markAsRead(selectedAlertModal.id);
+                      setSelectedAlertModal((prev) => (prev ? { ...prev, read: true } : null));
+                    }
+                  }}
+                  className="samko-btn-ghost px-3 py-1.5 text-xs font-semibold cursor-pointer"
+                >
+                  {selectedAlertModal.read ? 'Mark Unread' : 'Mark as Read'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    deleteNotification(selectedAlertModal.id);
+                    setSelectedAlertModal(null);
+                  }}
+                  className="text-xs text-rose-400 hover:text-rose-300 px-2 py-1.5 rounded hover:bg-rose-500/10 transition-colors cursor-pointer"
+                >
+                  Delete
+                </button>
+              </div>
+
+              <div className="flex items-center gap-2">
+                {selectedAlertModal.actionUrl && (
+                  <Link
+                    href={selectedAlertModal.actionUrl}
+                    onClick={() => {
+                      markAsRead(selectedAlertModal.id);
+                      setSelectedAlertModal(null);
+                      setNotifOpen(false);
+                    }}
+                    className="samko-btn-primary px-3.5 py-1.5 text-xs font-bold flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <span>{selectedAlertModal.actionLabel || 'View Compliance'}</span>
+                    <ExternalLink size={12} />
+                  </Link>
+                )}
+                <button
+                  type="button"
+                  onClick={() => setSelectedAlertModal(null)}
+                  className="samko-btn-secondary px-3.5 py-1.5 text-xs font-semibold cursor-pointer"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Task Detail View Modal */}
+      {selectedTaskModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4 animate-in fade-in"
+          onClick={() => setSelectedTaskModal(null)}
+        >
+          <div
+            className="relative w-full max-w-lg rounded-2xl border border-border shadow-2xl p-6 text-foreground overflow-hidden"
+            style={{ background: 'var(--surface, #11141a)', backgroundColor: '#11141a' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="flex items-start justify-between gap-3 pb-4 border-b border-border">
+              <div className="flex items-center gap-2.5">
+                <div
+                  className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
+                  style={{
+                    background:
+                      selectedTaskModal.priority === 'urgent'
+                        ? 'rgba(244,63,94,0.15)'
+                        : selectedTaskModal.priority === 'high'
+                          ? 'rgba(245,158,11,0.15)'
+                          : 'rgba(56,189,248,0.15)',
+                    color:
+                      selectedTaskModal.priority === 'urgent'
+                        ? '#f43f5e'
+                        : selectedTaskModal.priority === 'high'
+                          ? '#f59e0b'
+                          : '#38bdf8',
+                  }}
+                >
+                  <CheckSquare size={18} />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span
+                      className="px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider"
+                      style={{
+                        background:
+                          selectedTaskModal.priority === 'urgent'
+                            ? 'rgba(244,63,94,0.15)'
+                            : selectedTaskModal.priority === 'high'
+                              ? 'rgba(245,158,11,0.15)'
+                              : 'rgba(56,189,248,0.15)',
+                        color:
+                          selectedTaskModal.priority === 'urgent'
+                            ? '#f43f5e'
+                            : selectedTaskModal.priority === 'high'
+                              ? '#f59e0b'
+                              : '#38bdf8',
+                      }}
+                    >
+                      {selectedTaskModal.priority} Priority
+                    </span>
+                    <span className="text-xs text-muted-foreground font-mono">
+                      {selectedTaskModal.id}
+                    </span>
+                  </div>
+                  <h3 className="text-base font-bold text-foreground mt-1">
+                    {selectedTaskModal.title}
+                  </h3>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSelectedTaskModal(null)}
+                className="text-muted-foreground hover:text-foreground p-1.5 rounded-lg hover:bg-surface2 transition-colors cursor-pointer"
+                title="Close"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Content */}
+            <div className="py-4 space-y-3.5">
+              {/* Grid info: Property, Timing, Assignee, Status */}
+              <div className="grid grid-cols-2 gap-2.5">
+                <div className="p-2.5 rounded-xl bg-surface2 border border-border/70">
+                  <span className="text-[10px] uppercase font-bold text-muted-foreground block">
+                    Property / Site
+                  </span>
+                  <div className="flex items-center gap-1.5 mt-1 text-xs font-semibold text-foreground truncate">
+                    <Building2 size={13} className="text-primary flex-shrink-0" />
+                    <span className="truncate">{selectedTaskModal.property || 'Portfolio-wide'}</span>
+                  </div>
+                </div>
+
+                <div className="p-2.5 rounded-xl bg-surface2 border border-border/70">
+                  <span className="text-[10px] uppercase font-bold text-muted-foreground block">
+                    Due Date & Timing
+                  </span>
+                  <div className="flex items-center gap-1.5 mt-1 text-xs font-semibold text-foreground">
+                    <Calendar size={13} className="text-primary flex-shrink-0" />
+                    <span
+                      style={{
+                        color: selectedTaskModal.dueInDays < 0 ? '#f43f5e' : 'inherit',
+                      }}
+                    >
+                      {selectedTaskModal.dueInDays < 0
+                        ? `${Math.abs(selectedTaskModal.dueInDays)}d overdue`
+                        : selectedTaskModal.dueInDays === 0
+                          ? 'Due Today'
+                          : `In ${selectedTaskModal.dueInDays} days`}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="p-2.5 rounded-xl bg-surface2 border border-border/70">
+                  <span className="text-[10px] uppercase font-bold text-muted-foreground block">
+                    Assignee
+                  </span>
+                  <div className="flex items-center gap-1.5 mt-1 text-xs font-semibold text-foreground">
+                    <span
+                      className="w-4 h-4 rounded-full flex items-center justify-center text-[8px] font-bold text-black flex-shrink-0"
+                      style={{ background: selectedTaskModal.assigneeColor || '#e8c97a' }}
+                    >
+                      {selectedTaskModal.assigneeInitials}
+                    </span>
+                    <span className="truncate">{selectedTaskModal.assignee}</span>
+                  </div>
+                </div>
+
+                <div className="p-2.5 rounded-xl bg-surface2 border border-border/70">
+                  <span className="text-[10px] uppercase font-bold text-muted-foreground block">
+                    Status
+                  </span>
+                  <div className="mt-1">
+                    <span className="text-xs font-bold capitalize px-2 py-0.5 rounded bg-surface3 border border-border/60">
+                      {selectedTaskModal.status}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Description */}
+              {selectedTaskModal.description && (
+                <div>
+                  <label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground block mb-1">
+                    Task Description & Instructions
+                  </label>
+                  <div className="p-3.5 rounded-xl bg-surface2 border border-border text-xs leading-relaxed text-foreground/90">
+                    {selectedTaskModal.description}
+                  </div>
+                </div>
+              )}
+
+              {/* Linked Document if any */}
+              {(selectedTaskModal as any).documentName && (
+                <div className="p-2.5 rounded-xl bg-surface2 border border-border/70 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <FileText size={15} className="text-primary" />
+                    <span className="text-xs font-semibold text-foreground truncate max-w-[240px]">
+                      {(selectedTaskModal as any).documentName}
+                    </span>
+                  </div>
+                  {(selectedTaskModal as any).documentUrl && (
+                    <a
+                      href={(selectedTaskModal as any).documentUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-xs font-bold text-primary hover:underline flex items-center gap-1 flex-shrink-0"
+                    >
+                      <span>View Doc</span>
+                      <ExternalLink size={11} />
+                    </a>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="pt-4 border-t border-border flex items-center justify-between gap-2">
+              <span className="text-[11px] text-muted-foreground">
+                Assigned duty & statutory action item
+              </span>
+              <div className="flex items-center gap-2">
+                <Link
+                  href="/tasks"
+                  onClick={() => {
+                    setSelectedTaskModal(null);
+                    setTasksOpen(false);
+                  }}
+                  className="samko-btn-primary px-3.5 py-1.5 text-xs font-bold flex items-center gap-1.5 cursor-pointer"
+                >
+                  <span>Open in Task Manager</span>
+                  <ExternalLink size={12} />
+                </Link>
+                <button
+                  type="button"
+                  onClick={() => setSelectedTaskModal(null)}
+                  className="samko-btn-secondary px-3.5 py-1.5 text-xs font-semibold cursor-pointer"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 }

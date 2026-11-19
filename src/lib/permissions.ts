@@ -48,22 +48,6 @@ export const ALL_SYSTEM_TABS: TabConfig[] = [
     path: '/asset-management/properties',
     description: 'Master list of 5 UK properties, hotel managers, locations and room counts',
   },
-  {
-    id: 'tasks',
-    name: 'Tasks & Action List',
-    group: 'Core & Portfolio',
-    path: '/task-manager',
-    description: 'Central task tracker, maintenance tickets, compliance obligations and workflows',
-  },
-  {
-    id: 'recent-logs',
-    name: 'Audit Logs',
-    group: 'Core & Portfolio',
-    path: '/recent-logs',
-    description:
-      'Real-time ledger of actions taken by users, sign-offs, and critical system events',
-    isSystem: true,
-  },
 
   // ── ASSET MANAGEMENT ──
   {
@@ -80,15 +64,8 @@ export const ALL_SYSTEM_TABS: TabConfig[] = [
     path: '/asset-management/assets?type=non-fixed',
     description: 'Movable furniture, fixtures, kitchen appliances, electronics & room equipment',
   },
-  {
-    id: 'categories',
-    name: 'Asset Categories',
-    group: 'Asset Management',
-    path: '/asset-management/categories',
-    description: 'Hierarchical taxonomy for asset classification and tagging across properties',
-  },
 
-  // ── MAINTENANCE ──
+  // ── MAINTENANCE & OPERATIONS ──
   {
     id: 'maintenance',
     name: 'Maintenance & PPM Schedules',
@@ -97,8 +74,6 @@ export const ALL_SYSTEM_TABS: TabConfig[] = [
     description:
       'Planned preventive maintenance calendars, engineer work orders and contractor logs',
   },
-
-  // ── COMPLIANCE ──
   {
     id: 'compliance',
     name: 'Compliance Register',
@@ -106,15 +81,6 @@ export const ALL_SYSTEM_TABS: TabConfig[] = [
     path: '/compliance-register',
     description: 'Statutory compliance tracking (Legionella, Gas CP12, EICR, Fire Safety, LOLER)',
   },
-  {
-    id: 'compliance-tracker',
-    name: 'Compliance Expiry Tracker',
-    group: 'Compliance',
-    path: '/compliance-tracker',
-    description: 'Timeline and countdown of certificates approaching statutory expiration',
-  },
-
-  // ── GOVERNANCE & LEGAL ──
   {
     id: 'insurance',
     name: 'Insurance Register',
@@ -130,6 +96,28 @@ export const ALL_SYSTEM_TABS: TabConfig[] = [
     description: 'Vendor SLA agreements, utility contracts, lift servicing, FM provider contracts',
   },
   {
+    id: 'reports',
+    name: 'Reports & Analytics',
+    group: 'Analytics & Tools',
+    path: '/asset-management/reports',
+    description: 'Asset valuation reports, maintenance spend summaries, compliance audit exports',
+  },
+  {
+    id: 'acquisition',
+    name: 'Acquisition',
+    group: 'Governance & Legal',
+    path: '/acquisition',
+    description:
+      'M&A due diligence repository, title deeds, legal contracts, surveys, and financial valuation models',
+  },
+  {
+    id: 'tasks',
+    name: 'Tasks & Action List',
+    group: 'Core & Portfolio',
+    path: '/tasks',
+    description: 'Central task tracker, maintenance tickets, compliance obligations and workflows',
+  },
+  {
     id: 'utilities',
     name: 'Utilities & Energy Accounts',
     group: 'Governance & Legal',
@@ -137,22 +125,31 @@ export const ALL_SYSTEM_TABS: TabConfig[] = [
     description:
       'Electricity, gas, water meters, billing records, consumption analytics and tariffs',
   },
+
+  // ── BOTTOM / SYSTEM TABS ──
   {
-    id: 'documents',
-    name: 'Document Vault & Repository',
+    id: 'approvals',
+    name: 'Approvals Register',
+    group: 'Administration',
+    path: '/approvals',
+    description: 'Review and approve newly submitted assets, documents and compliance items',
+  },
+  {
+    id: 'docs-upload',
+    name: 'Docs Upload',
     group: 'Governance & Legal',
     path: '/document-repository',
     description:
-      'Secure digital repository for statutory certificates, manuals, floor plans and audits',
+      'Universal document repository, compliance certificates, warranties and O&M manual uploads',
   },
-
-  // ── ANALYTICS & TOOLS ──
   {
-    id: 'reports',
-    name: 'Reports & Analytics',
-    group: 'Analytics & Tools',
-    path: '/asset-management/reports',
-    description: 'Asset valuation reports, maintenance spend summaries, compliance audit exports',
+    id: 'recent-logs',
+    name: 'Audit Logs',
+    group: 'Core & Portfolio',
+    path: '/recent-logs',
+    description:
+      'Real-time ledger of actions taken by users, sign-offs, and critical system events',
+    isSystem: true,
   },
   {
     id: 'import',
@@ -161,29 +158,6 @@ export const ALL_SYSTEM_TABS: TabConfig[] = [
     path: '/asset-management/import',
     description: 'Excel/CSV bulk data import for properties, assets, contracts and compliance logs',
   },
-  {
-    id: 'inspections',
-    name: 'Asset Inspections & Audits',
-    group: 'Maintenance',
-    path: '/asset-management/inspections',
-    description: 'Routine site walkthrough checklists, room inspections and condition assessments',
-  },
-  {
-    id: 'qr-codes',
-    name: 'QR Codes & Barcode Scanner',
-    group: 'Asset Management',
-    path: '/asset-management/qr-scanner',
-    description: 'Scan physical equipment QR labels or print badge sheets for site engineering',
-  },
-  {
-    id: 'multi-site',
-    name: 'Multi-Site Operations',
-    group: 'Core & Portfolio',
-    path: '/multi-site-operations',
-    description: 'Group-wide multi-property benchmark KPIs and regional facility summaries',
-  },
-
-  // ── ADMINISTRATION ──
   {
     id: 'users',
     name: 'Users & Permissions Management',
@@ -200,21 +174,6 @@ export const ALL_SYSTEM_TABS: TabConfig[] = [
     description:
       'Global organization preferences, email alerts, CMS customization, and audit retention',
     isSystem: true,
-  },
-  {
-    id: 'approvals',
-    name: 'Approvals Register',
-    group: 'Administration',
-    path: '/approvals',
-    description: 'Review and approve newly submitted assets, documents and compliance items',
-  },
-  {
-    id: 'docs-upload',
-    name: 'Document Repository',
-    group: 'Governance & Legal',
-    path: '/document-repository',
-    description:
-      'Universal document repository, compliance certificates, warranties and O&M manual uploads',
   },
 ];
 
@@ -259,15 +218,10 @@ export const DEFAULT_L3_UPLOADER_PERMISSIONS: UserTabPermissions = ALL_SYSTEM_TA
       // Approvals, Users & Settings are hidden from L3 Uploader
       acc[tab.id] = { enabled: false, accessLevel: 'read' };
     } else if (tab.id === 'docs-upload') {
-      // Docs Upload is accessible to L3 Uploader
-      acc[tab.id] = { enabled: true, accessLevel: 'write' };
-    } else if (
-      tab.group === 'Core & Portfolio' ||
-      tab.group === 'Asset Management' ||
-      tab.group === 'Maintenance'
-    ) {
+      // Docs Upload is accessible to L3 Uploader for uploading files
       acc[tab.id] = { enabled: true, accessLevel: 'write' };
     } else {
+      // All other tabs are read-only for L3 Uploader (no edit rights)
       acc[tab.id] = { enabled: true, accessLevel: 'read' };
     }
     return acc;
@@ -323,6 +277,14 @@ export function getAllRoleTabTemplates(): Record<string, UserTabPermissions> {
       if (res.L2['docs-upload']) res.L2['docs-upload'].enabled = true;
       if (res.L3['docs-upload']) res.L3['docs-upload'].enabled = true;
       if (res.L4['docs-upload']) res.L4['docs-upload'].enabled = false;
+      // Enforce L3 Uploader has read-only access on all operational tabs (no edit rights)
+      if (res.L3) {
+        Object.keys(res.L3).forEach((tabKey) => {
+          if (tabKey !== 'docs-upload') {
+            res.L3[tabKey] = { ...res.L3[tabKey], accessLevel: 'read' };
+          }
+        });
+      }
       return res;
     }
   } catch (err) {
@@ -467,40 +429,39 @@ export function transferAllTabsBetweenRoles({
   return templates;
 }
 
-export type TabSectionLocation = 'propco' | 'opco' | 'both' | 'bottom';
+export type TabSectionLocation = 'propco' | 'opco' | 'both' | 'bottom' | 'hidden';
 
 export const DEFAULT_TAB_SECTIONS: Record<string, TabSectionLocation> = {
-  // PropCo
-  dashboard: 'propco',
+  // PropCo Exclusive
   'propco-dashboard': 'propco',
   properties: 'propco',
-  'fixed-assets': 'propco',
-  'all-assets': 'propco',
-  categories: 'propco',
   insurance: 'propco',
   contracts: 'propco',
-  'contract-reports': 'propco',
-  documents: 'bottom',
-  'multi-site': 'propco',
-  reports: 'both',
 
-  // OpCo
-  'opco-dashboard': 'opco',
-  'non-fixed-assets': 'opco',
-  'non-fixed': 'opco',
-  maintenance: 'opco',
+  // Both Sections (In PropCo and OpCo)
+  'fixed-assets': 'both',
+  'all-assets': 'both',
+  'non-fixed-assets': 'both',
+  'non-fixed': 'both',
   compliance: 'both',
-  'compliance-tracker': 'both',
+  'compliance-register': 'both',
+  'propco-compliance': 'both',
+  reports: 'both',
+  'contract-reports': 'both',
+  'maintenance-reports': 'both',
+  acquisition: 'both',
+
+  // OpCo Exclusive
+  'opco-dashboard': 'opco',
+  maintenance: 'opco',
   tasks: 'opco',
-  'maintenance-reports': 'opco',
   'task-module': 'opco',
   utilities: 'opco',
-  inspections: 'opco',
-  'qr-codes': 'opco',
 
-  // Bottom / Common
+  // Bottom
   approvals: 'bottom',
   'docs-upload': 'bottom',
+  documents: 'bottom',
   'recent-logs': 'bottom',
   import: 'bottom',
   users: 'bottom',
@@ -511,20 +472,32 @@ const STORAGE_TAB_SECTIONS_KEY = 'samko:tab_section_mapping';
 
 export function getTabSectionMapping(): Record<string, TabSectionLocation> {
   if (typeof window === 'undefined') {
-    return { ...DEFAULT_TAB_SECTIONS };
+    const res = { ...DEFAULT_TAB_SECTIONS };
+    delete res.dashboard;
+    return res;
   }
   try {
     const raw = localStorage.getItem(STORAGE_TAB_SECTIONS_KEY);
     if (raw) {
       const parsed = JSON.parse(raw);
       if (parsed && typeof parsed === 'object') {
-        return { ...DEFAULT_TAB_SECTIONS, ...parsed };
+        const merged = { ...DEFAULT_TAB_SECTIONS, ...parsed };
+        if (merged.compliance === 'opco') merged.compliance = 'both';
+        delete merged.dashboard;
+        delete merged['qr-codes'];
+        delete merged.categories;
+        delete merged.inspections;
+        delete merged['multi-site'];
+        delete merged['compliance-tracker'];
+        return merged;
       }
     }
   } catch (err) {
     console.warn('Failed to load tab section mapping:', err);
   }
-  return { ...DEFAULT_TAB_SECTIONS };
+  const res = { ...DEFAULT_TAB_SECTIONS };
+  delete res.dashboard;
+  return res;
 }
 
 export function saveTabSectionMapping(mapping: Record<string, TabSectionLocation>): void {
@@ -533,15 +506,39 @@ export function saveTabSectionMapping(mapping: Record<string, TabSectionLocation
     localStorage.setItem(STORAGE_TAB_SECTIONS_KEY, JSON.stringify(mapping));
     window.dispatchEvent(new CustomEvent('samko:sections-changed', { detail: { mapping } }));
     window.dispatchEvent(new CustomEvent('samko:app-cms-updated', { detail: { mapping } }));
+    fetch('/api/cms?type=tab_section_mapping', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(mapping),
+    }).catch((err) => console.warn('[Permissions] Failed to sync tab sections to database:', err));
   } catch (err) {
     console.error('Failed to save tab section mapping:', err);
   }
 }
 
+// Background sync from database for tab section mapping
+if (typeof window !== 'undefined') {
+  setTimeout(() => {
+    fetch('/api/cms?type=tab_section_mapping')
+      .then((r) => r.json())
+      .then((res) => {
+        if (res.success && res.data && typeof res.data === 'object') {
+          try {
+            const raw = localStorage.getItem(STORAGE_TAB_SECTIONS_KEY);
+            const localObj = raw ? JSON.parse(raw) : null;
+            if (!localObj || JSON.stringify(localObj) !== JSON.stringify(res.data)) {
+              localStorage.setItem(STORAGE_TAB_SECTIONS_KEY, JSON.stringify(res.data));
+              window.dispatchEvent(new CustomEvent('samko:sections-changed', { detail: { mapping: res.data } }));
+              window.dispatchEvent(new CustomEvent('samko:app-cms-updated', { detail: { mapping: res.data } }));
+            }
+          } catch {}
+        }
+      })
+      .catch(() => {});
+  }, 200);
+}
+
 export const TAB_ALIASES: Record<string, string[]> = {
-  dashboard: ['propco-dashboard', 'opco-dashboard'],
-  'propco-dashboard': ['dashboard'],
-  'opco-dashboard': ['dashboard'],
   'fixed-assets': ['all-assets'],
   'all-assets': ['fixed-assets'],
   'non-fixed-assets': ['non-fixed'],
@@ -549,12 +546,22 @@ export const TAB_ALIASES: Record<string, string[]> = {
   reports: ['contract-reports', 'maintenance-reports'],
   'contract-reports': ['reports', 'maintenance-reports'],
   'maintenance-reports': ['reports', 'contract-reports'],
-  tasks: ['task-module'],
-  'task-module': ['tasks'],
-  compliance: ['compliance-tracker'],
-  'compliance-tracker': ['compliance'],
-  documents: ['docs-upload'],
-  'docs-upload': ['documents'],
+  tasks: ['task-module', 'task-manager'],
+  'task-module': ['tasks', 'task-manager'],
+  'task-manager': ['tasks', 'task-module'],
+  compliance: ['compliance-register', 'propco-compliance'],
+  'compliance-register': ['compliance', 'propco-compliance'],
+  'propco-compliance': ['compliance', 'compliance-register'],
+  contracts: ['contracts-register'],
+  'contracts-register': ['contracts'],
+  insurance: ['insurance-register'],
+  'insurance-register': ['insurance'],
+  documents: ['docs-upload', 'document-repository'],
+  'docs-upload': ['documents', 'document-repository'],
+  'document-repository': ['documents', 'docs-upload'],
+  acquisition: ['acquisitions', 'deal-room'],
+  acquisitions: ['acquisition', 'deal-room'],
+  'deal-room': ['acquisition', 'acquisitions'],
 };
 
 /**
@@ -603,4 +610,131 @@ export function moveTabToSection(
   }
   saveTabSectionMapping(mapping);
   return mapping;
+}
+
+const STORAGE_TAB_ORDER_KEY = 'samko:tab_order';
+
+export const DEFAULT_PROPCO_ORDER: string[] = [
+  'propco-dashboard',
+  'properties',
+  'fixed-assets',
+  'non-fixed-assets',
+  'compliance',
+  'insurance',
+  'contracts',
+  'reports',
+  'acquisition',
+];
+
+export const DEFAULT_OPCO_ORDER: string[] = [
+  'opco-dashboard',
+  'fixed-assets',
+  'non-fixed-assets',
+  'maintenance',
+  'compliance',
+  'reports',
+  'acquisition',
+  'tasks',
+  'utilities',
+];
+
+export const DEFAULT_BOTTOM_ORDER: string[] = [
+  'approvals',
+  'docs-upload',
+  'recent-logs',
+  'import',
+  'users',
+  'settings',
+];
+
+export const DEFAULT_TAB_ORDER: string[] = [
+  ...DEFAULT_PROPCO_ORDER,
+  'opco-dashboard',
+  'maintenance',
+  'tasks',
+  'utilities',
+  ...DEFAULT_BOTTOM_ORDER,
+];
+
+export function getPortalTabOrder(portal: 'propco' | 'opco' | 'bottom'): string[] {
+  const defaults =
+    portal === 'propco'
+      ? DEFAULT_PROPCO_ORDER
+      : portal === 'opco'
+      ? DEFAULT_OPCO_ORDER
+      : DEFAULT_BOTTOM_ORDER;
+
+  if (typeof window === 'undefined') return [...defaults];
+  try {
+    const raw = localStorage.getItem(`samko:${portal}_tab_order`);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        const validIds = new Set(ALL_SYSTEM_TABS.map((t) => t.id));
+        const filtered = parsed.filter(
+          (id: string) =>
+            typeof id === 'string' &&
+            (validIds.has(id) || defaults.includes(id) || id.startsWith('custom-'))
+        );
+        defaults.forEach((id) => {
+          if (!filtered.includes(id)) filtered.push(id);
+        });
+        return filtered;
+      }
+    }
+  } catch (e) {}
+  return [...defaults];
+}
+
+export function savePortalTabOrder(portal: 'propco' | 'opco' | 'bottom', order: string[]): void {
+  if (typeof window === 'undefined') return;
+  try {
+    localStorage.setItem(`samko:${portal}_tab_order`, JSON.stringify(order));
+    window.dispatchEvent(
+      new CustomEvent('samko:tab-order-changed', { detail: { portal, order } })
+    );
+    fetch(`/api/cms?type=tab_order&portal=${portal}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ portal, order }),
+    }).catch(() => {});
+  } catch (e) {}
+}
+
+export function getTabOrder(): string[] {
+  if (typeof window === 'undefined') return [...DEFAULT_TAB_ORDER];
+  try {
+    const raw = localStorage.getItem(STORAGE_TAB_ORDER_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        const validIds = new Set(ALL_SYSTEM_TABS.map((t) => t.id));
+        const filtered = parsed.filter(
+          (id: string) =>
+            typeof id === 'string' &&
+            (validIds.has(id) || DEFAULT_TAB_ORDER.includes(id) || id.startsWith('custom-'))
+        );
+        DEFAULT_TAB_ORDER.forEach((id) => {
+          if (!filtered.includes(id)) {
+            filtered.push(id);
+          }
+        });
+        return filtered;
+      }
+    }
+  } catch (e) {}
+  return [...DEFAULT_TAB_ORDER];
+}
+
+export function saveTabOrder(order: string[]): void {
+  if (typeof window === 'undefined') return;
+  try {
+    localStorage.setItem(STORAGE_TAB_ORDER_KEY, JSON.stringify(order));
+    window.dispatchEvent(new CustomEvent('samko:tab-order-changed', { detail: { order } }));
+    fetch('/api/cms?type=tab_order', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(order),
+    }).catch(() => {});
+  } catch (e) {}
 }

@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { HOTELS, type Hotel } from '@/lib/assetData';
 import { api } from '@/lib/api';
 
-const CACHE_KEY = 'samko_cached_properties';
+const CACHE_KEY = 'samko_cached_properties_v3';
 
 /**
  * Synchronously retrieves live properties from localStorage cache if available,
@@ -14,10 +14,13 @@ const CACHE_KEY = 'samko_cached_properties';
 export function getLiveProperties(): Hotel[] {
   if (typeof window !== 'undefined') {
     try {
+      // Invalidate legacy smaller cache keys
+      localStorage.removeItem('samko_cached_properties');
+      localStorage.removeItem('samko_cached_properties_v2');
       const raw = localStorage.getItem(CACHE_KEY);
       if (raw) {
         const parsed = JSON.parse(raw);
-        if (Array.isArray(parsed) && parsed.length > 0) {
+        if (Array.isArray(parsed) && parsed.length >= 10) {
           return parsed;
         }
       }

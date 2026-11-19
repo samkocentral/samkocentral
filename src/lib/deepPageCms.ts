@@ -140,16 +140,22 @@ export interface DeepAppCMSStore {
   maintenancecompleted: DeepPageConfig;
 }
 
-const STORAGE_KEY = 'samko:deep_page_cms_v15';
+const STORAGE_KEY = 'samko:deep_page_cms_v16';
 const EVENT_KEY = 'samko:deep-page-cms-updated';
 
-// Automatically purge legacy cache keys once in browser
+// Automatically purge legacy cache keys once in browser to prevent QuotaExceededError
 if (typeof window !== 'undefined') {
-  for (let i = 1; i <= 14; i++) {
-    try {
-      localStorage.removeItem(`samko:deep_page_cms_v${i}`);
-    } catch {}
-  }
+  try {
+    for (let i = 1; i <= 20; i++) {
+      try { localStorage.removeItem('samko:deep_page_cms_v' + i); } catch {}
+    }
+    for (let i = localStorage.length - 1; i >= 0; i--) {
+      const k = localStorage.key(i);
+      if (k && (k.startsWith('samko:deep_page_cms_') || k.startsWith('samko_cached_properties'))) {
+        try { localStorage.removeItem(k); } catch {}
+      }
+    }
+  } catch {}
 }
 
 // ─── DYNAMIC SUB-TAB DATA GENERATORS ──────────────────────────────────────────
@@ -414,12 +420,23 @@ export const DEFAULT_DOCUMENT_CATEGORIES = [
 ];
 
 export const DEFAULT_COMPLIANCE_CATEGORIES = [
+  'Fire Safety',
+  'Gas Safety',
+  'Lifting Equipment',
+  'Health & Safety',
+  'Electrical Safety',
+  'Food Safety',
+  'HVAC',
+  'Licensing',
+  'Water Safety',
+  'Asbestos Management',
+  'Energy Performance',
+  'Security',
   'Fire Risk Assessment',
   'Fire Alarm Certificate',
   'Emergency Lighting',
   'PAT Testing',
   'Fixed Wire Testing',
-  'Gas Safety',
   'Water Hygiene',
   'Legionella',
   'Lift Inspection',
@@ -428,7 +445,6 @@ export const DEFAULT_COMPLIANCE_CATEGORIES = [
   'HVAC Certification',
   'Asbestos Survey',
   'Electrical Compliance',
-  'Health & Safety',
   'Food Hygiene',
   'Environmental',
   'Insurance Compliance',
@@ -444,8 +460,8 @@ export const DEFAULT_DEEP_CMS: DeepAppCMSStore = {
   properties: {
     id: 'properties',
     title: 'Properties & Hotel Sites',
-    subtitle: '8 properties managed across England & South East portfolio',
-    badgeText: '8 Properties Active',
+    subtitle: '10 properties managed across England & South East portfolio',
+    badgeText: '10 Properties Active',
     badgeColor: '#e8c97a',
     searchPlaceholder: 'Search properties by name, city, manager, phone...',
     primaryActionLabel: 'Add Property',
@@ -453,7 +469,7 @@ export const DEFAULT_DEEP_CMS: DeepAppCMSStore = {
       {
         id: 'city',
         label: 'City / Region',
-        options: ['All Cities', 'London', 'Surrey', 'West Sussex', 'Bedfordshire'],
+        options: ['All Cities', 'London', 'Surrey', 'Bedfordshire'],
       },
       { id: 'status', label: 'Property Status', options: ['All Statuses', 'active', 'inactive'] },
     ],
@@ -467,102 +483,126 @@ export const DEFAULT_DEEP_CMS: DeepAppCMSStore = {
     },
     items: [
       {
-        id: 'cp-kingston',
-        name: 'Crowne Plaza Kingston-south',
-        city: 'London',
-        address: 'Holiday Inn, Kingston House Estate, Portsmouth Rd, Surbiton KT6 5QQ',
-        manager: 'Marcus Webb',
-        phone: '+44 20 8546 0100',
-        status: 'active',
-        totalAssets: 35,
-        overdueCount: 1,
-        dueTodayCount: 0,
+            "id": "hotel-001",
+            "name": "Crowne Plaza Kingston-south",
+            "address": "Holiday Inn, Kingston House Estate, Portsmouth Rd, Thames Ditton, Surbiton KT6 5QG",
+            "city": "London",
+            "status": "active",
+            "totalAssets": 35,
+            "overdueCount": 1,
+            "dueTodayCount": 0,
+            "manager": "Marcus Webb",
+            "phone": "+44 20 8546 0100"
       },
       {
-        id: 'stanhill-court',
-        name: 'Stanhill Court',
-        city: 'Surrey',
-        address: 'Stanhill Road, Charlwood, Horley, Surrey RH6 0EP',
-        manager: 'Sarah Chen',
-        phone: '+44 1293 862 166',
-        status: 'active',
-        totalAssets: 15,
-        overdueCount: 0,
-        dueTodayCount: 1,
+            "id": "hotel-002",
+            "name": "Stanhill Court",
+            "address": "Stanhill Road, Charlwood, Horley, Surrey RH6 0EP",
+            "city": "Surrey",
+            "status": "active",
+            "totalAssets": 15,
+            "overdueCount": 0,
+            "dueTodayCount": 1,
+            "manager": "Sarah Chen",
+            "phone": "+44 1293 862 166"
       },
       {
-        id: 'hampton',
-        name: 'Hotel Hampton 1 & Hampton 2 Property',
-        city: 'Surrey',
-        address: 'Kingston House Estate, Portsmouth Rd, Long Ditton, Surbiton KT6 5QQ',
-        manager: 'James Okafor',
-        phone: '+44 20 8941 0200',
-        status: 'active',
-        totalAssets: 15,
-        overdueCount: 1,
-        dueTodayCount: 0,
+            "id": "hotel-003",
+            "name": "Warren House",
+            "address": "Warren Rd, Kingston upon Thames KT2 7HY",
+            "city": "London",
+            "status": "active",
+            "totalAssets": 12,
+            "overdueCount": 0,
+            "dueTodayCount": 0,
+            "manager": "Nathan Coote",
+            "phone": "+44 20 8547 1777"
       },
       {
-        id: 'ravens-ait',
-        name: 'Ravens Ait Island',
-        city: 'London',
-        address: 'Ravens Ait, Portsmouth Rd, Surbiton KT6 4HN',
-        manager: 'Priya Sharma',
-        phone: '+44 20 8399 0300',
-        status: 'active',
-        totalAssets: 17,
-        overdueCount: 0,
-        dueTodayCount: 1,
+            "id": "hotel-004",
+            "name": "The River Club",
+            "address": "Old Bridge Way, Claygate, Esher KT10 0EH",
+            "city": "Surrey",
+            "status": "active",
+            "totalAssets": 16,
+            "overdueCount": 1,
+            "dueTodayCount": 0,
+            "manager": "Priya Sharma",
+            "phone": "+44 1372 463 388"
       },
       {
-        id: 'river-club',
-        name: 'River Club',
-        city: 'London',
-        address: 'Old Malden Lane, Worcester Park KT4 7PX',
-        manager: 'David Thornton',
-        phone: '+44 20 8977 0400',
-        status: 'active',
-        totalAssets: 16,
-        overdueCount: 1,
-        dueTodayCount: 0,
+            "id": "hotel-005",
+            "name": "Hampton 1",
+            "address": "Kingston House Estate, Portsmouth Rd, Long Ditton, Surbiton KT6 5QQ",
+            "city": "Surrey",
+            "status": "active",
+            "totalAssets": 15,
+            "overdueCount": 1,
+            "dueTodayCount": 0,
+            "manager": "James Okafor",
+            "phone": "+44 20 8941 0200"
       },
       {
-        id: 'warren-house',
-        name: 'Warren House',
-        city: 'London',
-        address: '19 Warren Road, Kingston upon Thames, Surrey KT2 7HY',
-        manager: 'Harshit Gulati',
-        phone: '+44 20 8335 6767',
-        status: 'active',
-        totalAssets: 0,
-        overdueCount: 0,
-        dueTodayCount: 0,
+            "id": "hotel-006",
+            "name": "Hampton 2",
+            "address": "Kingston House Estate, Portsmouth Rd, Long Ditton, Surbiton KT6 5QQ",
+            "city": "Surrey",
+            "status": "active",
+            "totalAssets": 14,
+            "overdueCount": 0,
+            "dueTodayCount": 0,
+            "manager": "James Okafor",
+            "phone": "+44 20 8941 0201"
       },
       {
-        id: 'gatwick-manor',
-        name: 'Gatwick Manor (Stanhill Court)',
-        city: 'West Sussex',
-        address: 'London Road, Lowfield Heath, Crawley RH10 9ST',
-        manager: 'Oliver Smith',
-        phone: '+44 1293 543 543',
-        status: 'active',
-        totalAssets: 0,
-        overdueCount: 0,
-        dueTodayCount: 0,
+            "id": "hotel-007",
+            "name": "Ravens Ait",
+            "address": "Ravens Ait, Portsmouth Rd, Surbiton KT6 4HN",
+            "city": "London",
+            "status": "active",
+            "totalAssets": 17,
+            "overdueCount": 0,
+            "dueTodayCount": 1,
+            "manager": "Priya Sharma",
+            "phone": "+44 20 8399 0300"
       },
       {
-        id: 'sharnbrook',
-        name: 'Sharnbrook',
-        city: 'Bedfordshire',
-        address: 'Park Lane, Sharnbrook, Bedford MK44 1LX',
-        manager: 'Elena Rossi',
-        phone: '+44 1933 778 000',
-        status: 'active',
-        totalAssets: 0,
-        overdueCount: 0,
-        dueTodayCount: 0,
+            "id": "hotel-008",
+            "name": "Sharnbrook",
+            "address": "Park Lane, Sharnbrook, Bedford MK44 1LX",
+            "city": "Bedfordshire",
+            "status": "active",
+            "totalAssets": 10,
+            "overdueCount": 0,
+            "dueTodayCount": 0,
+            "manager": "Jamie Clarke",
+            "phone": "+44 1234 783 188"
       },
-    ],
+      {
+            "id": "hotel-009",
+            "name": "Clapham Common 1",
+            "address": "Clapham Common South Side, London SW4 9DE",
+            "city": "London",
+            "status": "active",
+            "totalAssets": 8,
+            "overdueCount": 0,
+            "dueTodayCount": 0,
+            "manager": "Nathan Coote",
+            "phone": "+44 20 7622 1234"
+      },
+      {
+            "id": "hotel-010",
+            "name": "Clapham Common 2",
+            "address": "Clapham Common North Side, London SW4 0AB",
+            "city": "London",
+            "status": "active",
+            "totalAssets": 8,
+            "overdueCount": 0,
+            "dueTodayCount": 0,
+            "manager": "Nathan Coote",
+            "phone": "+44 20 7622 5678"
+      }
+],
   },
   assets: {
     id: 'assets',
@@ -682,7 +722,8 @@ export const DEFAULT_DEEP_CMS: DeepAppCMSStore = {
         order: 10,
       },
       { id: 'status', label: 'Status', originalLabel: 'Status', visible: true, order: 11 },
-      { id: 'actions', label: 'Actions', originalLabel: 'Actions', visible: true, order: 12 },
+      { id: 'document', label: 'Document', originalLabel: 'Document', visible: true, order: 12 },
+      { id: 'actions', label: 'Actions', originalLabel: 'Actions', visible: true, order: 13 },
     ],
     items: ASSETS.filter((a) => isAssetFixed(a)).map((a) => ({
       id: a.id,
@@ -804,7 +845,8 @@ export const DEFAULT_DEEP_CMS: DeepAppCMSStore = {
         order: 6,
       },
       { id: 'status', label: 'Status', originalLabel: 'Status', visible: true, order: 7 },
-      { id: 'actions', label: 'Actions', originalLabel: 'Actions', visible: true, order: 8 },
+      { id: 'document', label: 'Document', originalLabel: 'Document', visible: true, order: 8 },
+      { id: 'actions', label: 'Actions', originalLabel: 'Actions', visible: true, order: 9 },
     ],
     items: MAINTENANCE_RECORDS.map((m) => ({
       id: m.id,
@@ -894,6 +936,7 @@ export const DEFAULT_DEEP_CMS: DeepAppCMSStore = {
       { id: 'name', label: 'Compliance Item', originalLabel: 'Name', visible: true, order: 1 },
       { id: 'category', label: 'Category', originalLabel: 'Category', visible: true, order: 2 },
       { id: 'property', label: 'Property', originalLabel: 'Property', visible: true, order: 3 },
+      { id: 'checkType', label: 'Check Type', originalLabel: 'Check Type', visible: true, order: 3.5 },
       { id: 'standard', label: 'Standard', originalLabel: 'Standard', visible: true, order: 4 },
       { id: 'contractor', label: 'Contractor', originalLabel: 'Contractor', visible: true, order: 5 },
       { id: 'frequency', label: 'Frequency', originalLabel: 'Frequency', visible: true, order: 6 },
@@ -903,7 +946,8 @@ export const DEFAULT_DEEP_CMS: DeepAppCMSStore = {
       { id: 'responsiblePerson', label: 'Responsible', originalLabel: 'Responsible', visible: true, order: 10 },
       { id: 'riskRating', label: 'Risk Rating', originalLabel: 'Risk', visible: true, order: 11 },
       { id: 'status', label: 'Status', originalLabel: 'Status', visible: true, order: 12 },
-      { id: 'actions', label: 'Actions', originalLabel: 'Actions', visible: true, order: 13 },
+      { id: 'document', label: 'Document', originalLabel: 'Document', visible: true, order: 13 },
+      { id: 'actions', label: 'Actions', originalLabel: 'Actions', visible: true, order: 14 },
     ],
     items: (db.compliance || []).map((c: any) => ({
       ...c,
@@ -913,7 +957,7 @@ export const DEFAULT_DEEP_CMS: DeepAppCMSStore = {
       category: c.category,
       property: c.property || c.hotel || c.site,
       hotel: c.hotel || c.property,
-      department: c.department || 'Engineering',
+      department: c.department || '',
       standard: c.standard || c.regulatoryAuthority || '',
       regulatoryAuthority: c.regulatoryAuthority || c.standard || '',
       contractor: c.contractor || '',
@@ -1040,7 +1084,8 @@ export const DEFAULT_DEEP_CMS: DeepAppCMSStore = {
         order: 9,
       },
       { id: 'status', label: 'Status', originalLabel: 'Status', visible: true, order: 10 },
-      { id: 'actions', label: 'Actions', originalLabel: 'Actions', visible: true, order: 11 },
+      { id: 'document', label: 'Document', originalLabel: 'Document', visible: true, order: 11 },
+      { id: 'actions', label: 'Actions', originalLabel: 'Actions', visible: true, order: 12 },
     ],
     items: (db.contracts || []).map((c: any) => ({
       id: c.id,
@@ -1308,7 +1353,8 @@ export const DEFAULT_DEEP_CMS: DeepAppCMSStore = {
         order: 7,
       },
       { id: 'status', label: 'Status', originalLabel: 'Status', visible: true, order: 8 },
-      { id: 'actions', label: 'Actions', originalLabel: 'Actions', visible: true, order: 9 },
+      { id: 'document', label: 'Document', originalLabel: 'Document', visible: true, order: 9 },
+      { id: 'actions', label: 'Actions', originalLabel: 'Actions', visible: true, order: 10 },
     ],
     items: UTILITIES.map((u) => ({
       id: u.id,
@@ -1410,9 +1456,9 @@ export const DEFAULT_DEEP_CMS: DeepAppCMSStore = {
   },
   documents: {
     id: 'documents',
-    title: 'Document Repository & Vault',
+    title: 'Document Repository',
     subtitle: 'O&M manuals, warranty certificates, architectural plans & files',
-    badgeText: 'Vault Active',
+    badgeText: 'Repository Active',
     badgeColor: '#a78bfa',
     searchPlaceholder: 'Search documents, properties, categories…',
     primaryActionLabel: 'Upload Document',
@@ -3950,7 +3996,6 @@ export function getDeepCMSStore(): DeepAppCMSStore {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(DEFAULT_DEEP_CMS));
       return DEFAULT_DEEP_CMS;
     }
     const parsed: DeepAppCMSStore = JSON.parse(raw);
@@ -4118,7 +4163,27 @@ export function getDeepCMSStore(): DeepAppCMSStore {
                   );
                   const merged = [...nonActionSaved, ...missingDefCols];
                   merged.sort((a, b) => a.order - b.order);
-                  const finalCols = actionCol ? [...merged, actionCol] : merged;
+
+                  // Guarantee standard data columns first, then Document, then Actions ALWAYS last!
+                  const nonActionDataCols = merged.filter(
+                    (c) =>
+                      c.id.toLowerCase() !== 'actions' &&
+                      c.id.toLowerCase() !== 'document' &&
+                      c.id.toLowerCase() !== 'attachment'
+                  );
+                  const docCol = merged.find(
+                    (c) => c.id.toLowerCase() === 'document' || c.id.toLowerCase() === 'attachment'
+                  ) || {
+                    id: 'document',
+                    label: 'Document',
+                    originalLabel: 'Document',
+                    visible: true,
+                    order: 9998,
+                  };
+                  const finalCols = actionCol
+                    ? [...nonActionDataCols, docCol, actionCol]
+                    : [...nonActionDataCols, docCol];
+
                   return finalCols.map((c, idx) => ({
                     ...c,
                     order: idx + 1,
@@ -4158,7 +4223,22 @@ export function getDeepCMSStore(): DeepAppCMSStore {
 export function saveDeepCMSStore(store: DeepAppCMSStore): void {
   if (typeof window === 'undefined') return;
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(store));
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(store));
+    } catch (quotaErr) {
+      console.warn('[CMS] Storage quota exceeded, clearing legacy keys and retrying:', quotaErr);
+      try {
+        for (let i = localStorage.length - 1; i >= 0; i--) {
+          const k = localStorage.key(i);
+          if (k && k !== STORAGE_KEY) {
+            try { localStorage.removeItem(k); } catch {}
+          }
+        }
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(store));
+      } catch (innerErr) {
+        console.warn('[CMS] Storage quota still exceeded, in-memory store active:', innerErr);
+      }
+    }
     window.dispatchEvent(new CustomEvent(EVENT_KEY, { detail: store }));
     fetch('/api/cms', {
       method: 'POST',

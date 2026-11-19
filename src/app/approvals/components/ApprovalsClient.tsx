@@ -42,6 +42,8 @@ import LoadingPagination from '@/components/ui/LoadingPagination';
 import { useLoadingPagination } from '@/hooks/useLoadingPagination';
 import TableCheckbox from '@/components/ui/TableCheckbox';
 import BulkActionBar from '@/components/ui/BulkActionBar';
+import DocumentUploadField, { openDocumentInNewTab } from '@/components/ui/DocumentUploadField';
+import { api } from '@/lib/api';
 
 export type ApprovalStatus = 'pending' | 'hold' | 'approved';
 
@@ -106,19 +108,43 @@ function getSeedSubmissions(): DocumentSubmission[] {
   ];
 }
 
+function getDeletedDocIds(): Set<string> {
+  if (typeof window === 'undefined') return new Set();
+  try {
+    const raw = localStorage.getItem('samko_deleted_doc_ids');
+    if (raw) {
+      const arr = JSON.parse(raw);
+      if (Array.isArray(arr)) return new Set(arr);
+    }
+  } catch {}
+  return new Set();
+}
+
+function markDocAsDeleted(id: string) {
+  if (typeof window === 'undefined') return;
+  try {
+    const set = getDeletedDocIds();
+    set.add(id);
+    localStorage.setItem('samko_deleted_doc_ids', JSON.stringify(Array.from(set)));
+  } catch {}
+}
+
 // Load real document submissions from samko_repository_documents
 function loadDocumentSubmissions(): DocumentSubmission[] {
   if (typeof window !== 'undefined') {
     try {
+      const deletedIds = getDeletedDocIds();
       const saved = localStorage.getItem('samko_repository_documents');
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0 && parsed.length <= 3) {
+        if (Array.isArray(parsed) && parsed.length > 0) {
           const seeds = getSeedSubmissions();
           const seedMap = new Map(seeds.map((s) => [s.id, s]));
           const nameMap = new Map(seeds.map((s) => [s.name?.toLowerCase().trim(), s]));
 
-          const enriched: DocumentSubmission[] = parsed.map((doc: any) => {
+          const enriched: DocumentSubmission[] = parsed
+            .filter((doc: any) => !deletedIds.has(doc.id))
+            .map((doc: any) => {
             const seed = seedMap.get(doc.id) || nameMap.get(doc.name?.toLowerCase().trim());
             const isFood =
               (doc.name && doc.name.toLowerCase().includes('food')) ||
@@ -173,10 +199,6 @@ function loadDocumentSubmissions(): DocumentSubmission[] {
       }
     } catch (e) {}
   }
-  try {
-    localStorage.removeItem('samko_repository_documents');
-    localStorage.setItem('samko_approvals_count', '1');
-  } catch {}
   return getSeedSubmissions();
 }
 
@@ -216,7 +238,7 @@ function createDocumentPdfBlob(doc: DocumentSubmission): { url: string; filename
 
 export default function ApprovalsClient() {
   const router = useRouter();
-  const { user, isPropertyAccessible } = useAuth();
+  const { user, isViewer, isUploader, canEdit, isPropertyAccessible } = useAuth();
 
   // Strict Super Admin or Digital Bot permission check
   const isSuperAdminOrBot =
@@ -259,7 +281,10 @@ export default function ApprovalsClient() {
         ).length;
         localStorage.setItem('samko_approvals_count', String(pendingTotal));
         window.dispatchEvent(
-          new CustomEvent('samko:doc_approved', { detail: { documents: newList } })
+          new CustomEvent('samko:doc_approved', { detail: { documents: newList, count: pendingTotal } })
+        );
+        window.dispatchEvent(
+          new CustomEvent('samko:doc_uploaded', { detail: { count: pendingTotal } })
         );
         window.dispatchEvent(
           new CustomEvent('samko:data-changed', { detail: { type: 'documents' } })
@@ -292,6 +317,9 @@ export default function ApprovalsClient() {
   const [editVersion, setEditVersion] = useState('v1.0');
   const [editNotes, setEditNotes] = useState('');
   const [editApprovalStatus, setEditApprovalStatus] = useState<ApprovalStatus>('pending');
+  const [editFileName, setEditFileName] = useState('');
+  const [editFileUrl, setEditFileUrl] = useState('');
+  const [editFileSize, setEditFileSize] = useState('');
 
   const handleOpenEditDoc = (doc: DocumentSubmission) => {
     setEditingDoc(doc);
@@ -303,6 +331,11 @@ export default function ApprovalsClient() {
     setEditVersion(doc.version || 'v1.0');
     setEditNotes(doc.approvalNotes || '');
     setEditApprovalStatus(doc.approvalStatus || 'pending');
+
+    const pdfBlob = createDocumentPdfBlob(doc);
+    setEditFileName(doc.fileName || `${doc.name}.pdf`);
+    setEditFileUrl(doc.fileUrl || pdfBlob.url);
+    setEditFileSize(doc.size || '1.0 MB');
   };
 
   const handleSaveEditDoc = (e: React.FormEvent) => {
@@ -325,6 +358,9 @@ export default function ApprovalsClient() {
           version: editVersion.trim() || d.version || 'v1.0',
           approvalStatus: editApprovalStatus,
           approvalNotes: editNotes.trim() || d.approvalNotes,
+          fileName: editFileName || d.fileName,
+          fileUrl: editFileUrl || d.fileUrl,
+          size: editFileSize || d.size || '1.0 MB',
         };
       }
       return d;
@@ -332,7 +368,7 @@ export default function ApprovalsClient() {
 
     saveDocuments(updated);
     toast.success('Document updated successfully', {
-      description: `"${editName.trim()}" details have been updated.`,
+      description: `"${editName.trim()}" details and attachment updated.`,
     });
     setEditingDoc(null);
   };
@@ -538,18 +574,17 @@ export default function ApprovalsClient() {
 
   const handleConfirmBulkDelete = () => {
     if (selectedIds.length === 0) return;
-    setIsBulkDeleting(true);
-    try {
-      const count = selectedIds.length;
-      const updated = documents.filter((d) => !selectedIds.includes(d.id));
-      saveDocuments(updated);
-      setSelectedIds([]);
-      setSelectedTypeFilter('');
-      setShowBulkDeleteModal(false);
-      toast.success(`Deleted ${count} document submission${count > 1 ? 's' : ''}`);
-    } finally {
-      setIsBulkDeleting(false);
-    }
+    const ids = [...selectedIds];
+    const count = ids.length;
+    ids.forEach((id) => markDocAsDeleted(id));
+    const updated = documents.filter((d) => !ids.includes(d.id));
+    saveDocuments(updated);
+    setSelectedIds([]);
+    setSelectedTypeFilter('');
+    setShowBulkDeleteModal(false);
+    setIsBulkDeleting(false);
+    toast.success(`Deleted ${count} document submission${count > 1 ? 's' : ''}`);
+    Promise.allSettled(ids.map((id) => api.documents.delete(id))).catch(() => {});
   };
 
   // Handle Approval Update (Restricted to Super Admin or Digital Bot)
@@ -671,15 +706,15 @@ export default function ApprovalsClient() {
   // Delete document
   const handleConfirmDelete = () => {
     if (!docToDelete) return;
-    setIsDeleting(true);
-    try {
-      const updated = documents.filter((d) => d.id !== docToDelete.id);
-      saveDocuments(updated);
-      toast.success(`Deleted "${docToDelete.name}"`);
-      setDocToDelete(null);
-    } finally {
-      setIsDeleting(false);
-    }
+    const id = docToDelete.id;
+    const name = docToDelete.name;
+    markDocAsDeleted(id);
+    const updated = documents.filter((d) => d.id !== id);
+    saveDocuments(updated);
+    toast.success(`Deleted "${name}"`);
+    setDocToDelete(null);
+    setIsDeleting(false);
+    api.documents.delete(id).catch(() => {});
   };
 
   // Download PDF
@@ -959,10 +994,10 @@ export default function ApprovalsClient() {
                   Submitted By
                 </th>
                 <th className="py-3 px-4 text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                  Attached File
+                  Approval Status
                 </th>
                 <th className="py-3 px-4 text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                  Approval Status
+                  Document
                 </th>
                 <th className="py-3 px-4 text-xs font-bold uppercase tracking-wider text-muted-foreground text-right">
                   Actions
@@ -1070,7 +1105,29 @@ export default function ApprovalsClient() {
                         </div>
                       </td>
 
-                      {/* Attached File Preview / Download */}
+                      {/* Approval Status Badge */}
+                      <td className="py-3 px-4 whitespace-nowrap">
+                        {isPending && (
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-amber-500/10 text-amber-400 border border-amber-500/25">
+                            <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
+                            Pending Review
+                          </span>
+                        )}
+                        {isHold && (
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-rose-500/10 text-rose-400 border border-rose-500/25">
+                            <AlertTriangle size={11} />
+                            On Hold
+                          </span>
+                        )}
+                        {isApproved && (
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/25">
+                            <CheckCircle2 size={11} />
+                            Approved
+                          </span>
+                        )}
+                      </td>
+
+                      {/* Document Preview / Download */}
                       <td
                         className="py-3 px-4 whitespace-nowrap"
                         onClick={(e) => e.stopPropagation()}
@@ -1096,28 +1153,6 @@ export default function ApprovalsClient() {
                             <Download size={12} />
                           </button>
                         </div>
-                      </td>
-
-                      {/* Approval Status Badge */}
-                      <td className="py-3 px-4 whitespace-nowrap">
-                        {isPending && (
-                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-amber-500/10 text-amber-400 border border-amber-500/25">
-                            <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
-                            Pending Review
-                          </span>
-                        )}
-                        {isHold && (
-                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-rose-500/10 text-rose-400 border border-rose-500/25">
-                            <AlertTriangle size={11} />
-                            On Hold
-                          </span>
-                        )}
-                        {isApproved && (
-                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/25">
-                            <CheckCircle2 size={11} />
-                            Approved
-                          </span>
-                        )}
                       </td>
 
                       {/* Actions */}
@@ -1161,14 +1196,16 @@ export default function ApprovalsClient() {
                           </button>
 
                           {/* Edit Button */}
-                          <button
-                            type="button"
-                            onClick={() => handleOpenEditDoc(doc)}
-                            className="p-1.5 rounded-lg border border-border hover:border-primary text-muted-foreground hover:text-primary transition-all cursor-pointer bg-surface2"
-                            title="Edit Document"
-                          >
-                            <Edit2 size={13} />
-                          </button>
+                          {!isViewer && !isUploader && canEdit && (
+                            <button
+                              type="button"
+                              onClick={() => handleOpenEditDoc(doc)}
+                              className="p-1.5 rounded-lg border border-border hover:border-primary text-muted-foreground hover:text-primary transition-all cursor-pointer bg-surface2"
+                              title="Edit Document"
+                            >
+                              <Edit2 size={13} />
+                            </button>
+                          )}
 
                           {/* Hold Button */}
                           <button
@@ -1243,7 +1280,7 @@ export default function ApprovalsClient() {
       {/* Preview & Super Admin Approval Modal */}
       {previewDoc && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-150">
-          <div className="w-full max-w-3xl rounded-2xl border border-border overflow-hidden shadow-2xl bg-surface animate-in zoom-in-95 duration-150">
+          <div className="w-full max-w-4xl rounded-2xl border border-border overflow-hidden shadow-2xl bg-surface animate-in zoom-in-95 duration-150">
             {/* Header */}
             <div className="flex items-center justify-between px-6 py-4 border-b border-border bg-surface2">
               <div className="flex items-center gap-3">
@@ -1270,6 +1307,69 @@ export default function ApprovalsClient() {
 
             {/* Content Body */}
             <div className="p-6 space-y-6 max-h-[75vh] overflow-y-auto custom-scrollbar">
+              {/* Real Live Document Viewer */}
+              {(() => {
+                const docBlob = createDocumentPdfBlob(previewDoc);
+                const isImage =
+                  Boolean(previewDoc.fileUrl) &&
+                  (previewDoc.fileUrl!.startsWith('data:image/') ||
+                    Boolean(previewDoc.fileUrl!.match(/\.(png|jpg|jpeg|webp|gif)/i)));
+
+                return (
+                  <div className="rounded-xl border border-border overflow-hidden bg-zinc-950">
+                    <div className="flex items-center justify-between px-4 py-2.5 border-b border-border bg-surface3 text-xs flex-wrap gap-2">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <FileText size={15} className="text-primary flex-shrink-0" />
+                        <span className="font-semibold text-foreground font-mono truncate max-w-xs sm:max-w-md">
+                          {previewDoc.fileName || `${previewDoc.name}.pdf`}
+                        </span>
+                        <span className="text-[10px] uppercase font-bold px-2 py-0.5 rounded bg-primary/20 text-primary flex-shrink-0">
+                          {isImage ? 'Live Image Document' : 'Live Document Preview'}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => openDocumentInNewTab(docBlob.url, previewDoc.name)}
+                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-primary text-black hover:bg-primary/90 transition-all cursor-pointer shadow-sm active:scale-95"
+                          title="Open real document in full new browser tab"
+                        >
+                          <ExternalLink size={13} />
+                          <span>Open Real Document in New Tab</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDownloadPdf(previewDoc)}
+                          className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-border text-xs font-semibold bg-surface hover:border-primary text-foreground transition-all cursor-pointer"
+                          title="Download document file"
+                        >
+                          <Download size={13} />
+                          <span>Download</span>
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="h-[430px] w-full bg-zinc-950 flex flex-col items-center justify-center">
+                      {isImage ? (
+                        <div className="w-full h-full p-4 flex items-center justify-center overflow-auto">
+                          <img
+                            src={previewDoc.fileUrl}
+                            alt={previewDoc.name}
+                            className="max-h-[390px] max-w-full rounded object-contain shadow-2xl"
+                          />
+                        </div>
+                      ) : (
+                        <iframe
+                          src={`${docBlob.url}#toolbar=1`}
+                          title={previewDoc.name}
+                          className="w-full h-full border-0"
+                        />
+                      )}
+                    </div>
+                  </div>
+                );
+              })()}
+
               {/* Metadata Grid */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 p-4 rounded-xl border border-border bg-surface2">
                 <div>
@@ -1732,6 +1832,35 @@ export default function ApprovalsClient() {
                   ]}
                 />
               </div>
+            </div>
+
+            {/* Attached Document File (View, Re-upload, Delete) */}
+            <div className="pt-1">
+              <DocumentUploadField
+                label="Attached Document File (PDF, Images, Docs)"
+                documentName={editFileName}
+                documentUrl={editFileUrl}
+                documentSize={editFileSize}
+                onUpload={({ name, url, size }) => {
+                  setEditFileName(name);
+                  setEditFileUrl(url);
+                  if (size) setEditFileSize(size);
+                  toast.success(`Attached file updated: ${name}`);
+                }}
+                onRemove={() => {
+                  setEditFileName('');
+                  setEditFileUrl('');
+                  setEditFileSize('');
+                  toast.info('Attached document removed');
+                }}
+                onView={() => {
+                  if (editFileUrl) {
+                    openDocumentInNewTab(editFileUrl, editFileName || editName);
+                  } else {
+                    toast.error('No document file attached to view');
+                  }
+                }}
+              />
             </div>
 
             <div>
