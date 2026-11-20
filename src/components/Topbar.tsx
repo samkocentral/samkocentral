@@ -52,6 +52,33 @@ interface TopbarProps {
   hideDefaultActions?: boolean;
 }
 
+function getAlertDestination(notif?: { actionUrl?: string; title?: string; message?: string; source?: string } | null): { url: string; label: string } {
+  if (!notif) return { url: '/compliance-tracker', label: 'View Tracker' };
+  if (notif.actionUrl && notif.actionUrl !== '/compliance-register') {
+    return { url: notif.actionUrl, label: 'View Details' };
+  }
+  const text = `${notif.title || ''} ${notif.message || ''} ${notif.source || ''}`.toLowerCase();
+  if (text.includes('backup') || text.includes('prun') || text.includes('database') || text.includes('setting')) {
+    return { url: '/settings', label: 'View Settings' };
+  }
+  if (text.includes('leak') || text.includes('hvac') || text.includes('generator') || text.includes('plant') || text.includes('maintenance')) {
+    return { url: '/asset-management/maintenance', label: 'View Maintenance' };
+  }
+  if (text.includes('gas') || text.includes('meter') || text.includes('water') || text.includes('electric') || text.includes('utility')) {
+    return { url: '/utilities-register', label: 'View Utilities' };
+  }
+  if (text.includes('contract') || text.includes('supplier')) {
+    return { url: '/contracts-register', label: 'View Contracts' };
+  }
+  if (text.includes('asset') || text.includes('equipment') || text.includes('loler')) {
+    return { url: '/asset-management/assets', label: 'View Assets' };
+  }
+  if (text.includes('task') || text.includes('duty') || text.includes('action')) {
+    return { url: '/tasks', label: 'View Tasks' };
+  }
+  return { url: '/compliance-tracker', label: 'View Tracker' };
+}
+
 export default function Topbar({
   title,
   subtitle,
@@ -780,19 +807,22 @@ export default function Topbar({
                               <span>View Alert</span>
                             </button>
 
-                            {notif.actionUrl ? (
-                              <Link
-                                href={notif.actionUrl}
-                                onClick={() => {
-                                  markAsRead(notif.id);
-                                  setNotifOpen(false);
-                                }}
-                                className="inline-flex items-center gap-1 text-[11px] font-bold text-primary hover:underline"
-                              >
-                                <span>{notif.actionLabel || 'View Compliance'}</span>
-                                <ExternalLink size={10} />
-                              </Link>
-                            ) : null}
+                            {(() => {
+                              const dest = getAlertDestination(notif);
+                              return (
+                                <Link
+                                  href={dest.url}
+                                  onClick={() => {
+                                    markAsRead(notif.id);
+                                    setNotifOpen(false);
+                                  }}
+                                  className="inline-flex items-center gap-1 text-[11px] font-bold text-primary hover:underline"
+                                >
+                                  <span>{notif.actionLabel || dest.label}</span>
+                                  <ExternalLink size={10} />
+                                </Link>
+                              );
+                            })()}
                           </div>
 
                           <button
@@ -831,7 +861,7 @@ export default function Topbar({
                   </span>
                 </div>
                 <Link
-                  href="/compliance-register"
+                  href="/compliance-tracker"
                   onClick={() => setNotifOpen(false)}
                   className="inline-flex items-center gap-1 text-[11px] font-bold text-primary hover:underline"
                 >
@@ -1415,20 +1445,23 @@ export default function Topbar({
               </div>
 
               <div className="flex items-center gap-2">
-                {selectedAlertModal.actionUrl && (
-                  <Link
-                    href={selectedAlertModal.actionUrl}
-                    onClick={() => {
-                      markAsRead(selectedAlertModal.id);
-                      setSelectedAlertModal(null);
-                      setNotifOpen(false);
-                    }}
-                    className="samko-btn-primary px-3.5 py-1.5 text-xs font-bold flex items-center gap-1.5 cursor-pointer"
-                  >
-                    <span>{selectedAlertModal.actionLabel || 'View Compliance'}</span>
-                    <ExternalLink size={12} />
-                  </Link>
-                )}
+                {(() => {
+                  const dest = getAlertDestination(selectedAlertModal);
+                  return (
+                    <Link
+                      href={dest.url}
+                      onClick={() => {
+                        markAsRead(selectedAlertModal.id);
+                        setSelectedAlertModal(null);
+                        setNotifOpen(false);
+                      }}
+                      className="samko-btn-primary px-3.5 py-1.5 text-xs font-bold flex items-center gap-1.5 cursor-pointer"
+                    >
+                      <span>{selectedAlertModal.actionLabel || dest.label}</span>
+                      <ExternalLink size={12} />
+                    </Link>
+                  );
+                })()}
                 <button
                   type="button"
                   onClick={() => setSelectedAlertModal(null)}

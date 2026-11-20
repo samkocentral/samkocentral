@@ -3902,6 +3902,46 @@ export default function UsersClient() {
             : ''
         }
         width={720}
+        footer={
+          permissionsModalUser ? (
+            <div className="flex items-center justify-between w-full">
+              <div className="flex items-center gap-2 text-xs text-muted-foreground select-none">
+                <span className="w-2 h-2 rounded-full bg-emerald-400" />
+                <span>
+                  <strong className="text-foreground font-semibold">
+                    {Object.values(tempModalPermissions).filter((p) => p?.enabled).length}
+                  </strong>{' '}
+                  of <strong className="text-foreground font-semibold">{ALL_SYSTEM_TABS.length}</strong> tabs enabled
+                </span>
+              </div>
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => setPermissionsModalUser(null)}
+                  className="px-4 py-2 rounded-lg text-xs font-bold border border-border transition-colors hover:bg-surface3 cursor-pointer"
+                  style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
+                >
+                  {isSuperAdmin ? 'Cancel' : 'Close'}
+                </button>
+                {isSuperAdmin && (
+                  <button
+                    type="button"
+                    disabled={savingPermissions}
+                    onClick={handleSaveModalPermissions}
+                    className="samko-btn-primary px-5 py-2 rounded-lg text-xs font-bold shadow-md hover:brightness-110 active:scale-[0.99] flex items-center gap-1.5 cursor-pointer"
+                  >
+                    {savingPermissions ? (
+                      <Loader2 size={13} className="animate-spin" />
+                    ) : (
+                      <Check size={13} />
+                    )}
+                    <span>Save Tab Assignments</span>
+                  </button>
+                )}
+              </div>
+            </div>
+          ) : null
+        }
       >
         {permissionsModalUser && (
           <div className="space-y-4">
@@ -3953,31 +3993,6 @@ export default function UsersClient() {
               onSyncUsersInRole={handleSyncUsersInRole}
               onAssignToAllUsers={handleAssignTabToAllUsers}
             />
-
-            <div className="flex items-center justify-end gap-3 pt-3 border-t border-border mt-3">
-              <button
-                type="button"
-                onClick={() => setPermissionsModalUser(null)}
-                className="samko-btn-ghost text-xs"
-              >
-                {isSuperAdmin ? 'Cancel' : 'Close'}
-              </button>
-              {isSuperAdmin && (
-                <button
-                  type="button"
-                  disabled={savingPermissions}
-                  onClick={handleSaveModalPermissions}
-                  className="samko-btn-primary flex items-center gap-1.5 text-xs font-semibold"
-                >
-                  {savingPermissions ? (
-                    <Loader2 size={13} className="animate-spin" />
-                  ) : (
-                    <Check size={13} />
-                  )}
-                  Save &amp; Apply Permissions
-                </button>
-              )}
-            </div>
           </div>
         )}
       </Modal>

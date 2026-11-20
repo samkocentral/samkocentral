@@ -1350,10 +1350,11 @@ export default function UtilitiesRegisterClient() {
       {/* Table */}
       <div className="flex-1 overflow-auto px-6 pb-6">
         <div
-          className="rounded-xl border border-border overflow-x-auto shadow-sm"
+          className="rounded-xl border border-border overflow-hidden shadow-sm"
           style={{ background: 'var(--surface)' }}
         >
-          <table className="w-full text-left border-collapse" style={{ minWidth: 1050 }}>
+          <div className="overflow-x-auto custom-scrollbar">
+            <table className="w-full text-left border-collapse" style={{ minWidth: 1050 }}>
             <thead>
               <tr style={{ background: 'var(--surface2)' }}>
                 {hasDeleteAccess && (
@@ -1639,6 +1640,7 @@ export default function UtilitiesRegisterClient() {
               })}
             </tbody>
           </table>
+          </div>
           <LoadingPagination
             currentPage={currentPage}
             totalRecords={totalRecords}

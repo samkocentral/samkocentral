@@ -3016,7 +3016,8 @@ export default function Sidebar({ currentPath }: SidebarProps) {
               </div>
             </div>
 
-            {/* ── LOCATION SELECTION & ADD NEW TAB / DROPDOWN CARD ── */}
+            {/* ── LOCATION SELECTION & ADD NEW TAB / DROPDOWN CARD (Hidden) ── */}
+            {false && (
             <div
               className="p-3.5 rounded-xl border border-border transition-all"
               style={{ background: 'var(--surface2)' }}
@@ -3188,6 +3189,8 @@ export default function Sidebar({ currentPath }: SidebarProps) {
                 </form>
               )}
             </div>
+
+            )}
 
             {/* Filter and Search Bar */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">

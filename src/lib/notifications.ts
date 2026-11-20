@@ -181,7 +181,7 @@ export function markAsRead(id: string): void {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ id, read: true }),
-    }).catch(() => {});
+    }).catch(() => { });
   }
 }
 
@@ -194,7 +194,7 @@ export function markAsUnread(id: string): void {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ id, read: false }),
-    }).catch(() => {});
+    }).catch(() => { });
   }
 }
 
@@ -208,7 +208,7 @@ export function markAllAsRead(): void {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ markAll: true }),
-    }).catch(() => {});
+    }).catch(() => { });
   }
 }
 
@@ -219,7 +219,7 @@ export function deleteNotification(id: string): void {
   if (typeof window !== 'undefined') {
     fetch(`/api/notifications?id=${encodeURIComponent(id)}`, {
       method: 'DELETE',
-    }).catch(() => {});
+    }).catch(() => { });
   }
 }
 
@@ -229,7 +229,7 @@ export function clearAllNotifications(): void {
   if (typeof window !== 'undefined') {
     fetch('/api/notifications?clearAll=true', {
       method: 'DELETE',
-    }).catch(() => {});
+    }).catch(() => { });
   }
 }
 
@@ -249,7 +249,7 @@ export const ALARM_SIMULATION_POOL: Array<Omit<AppNotification, 'id' | 'timestam
     message: 'Ground floor kitchen fire suppression shutter link failure.',
     site: 'Hampton 1 & 2',
     source: 'fire-alarm',
-    actionUrl: '/compliance-register',
+    actionUrl: '/compliance-tracker',
     actionLabel: 'View Status',
   },
   {
@@ -258,7 +258,7 @@ export const ALARM_SIMULATION_POOL: Array<Omit<AppNotification, 'id' | 'timestam
     message: 'Guest passenger elevator 6-month safety inspection deadline exceeded.',
     site: 'River Club',
     source: 'compliance',
-    actionUrl: '/compliance-register',
+    actionUrl: '/compliance-tracker',
     actionLabel: 'Book Inspector',
   },
   {
@@ -267,7 +267,7 @@ export const ALARM_SIMULATION_POOL: Array<Omit<AppNotification, 'id' | 'timestam
     message: 'Commercial kitchen gas solenoid valve tripped due to ventilation interlock.',
     site: 'Stanhill Court',
     source: 'compliance',
-    actionUrl: '/compliance-register',
+    actionUrl: '/compliance-tracker',
     actionLabel: 'Check Valve',
   },
   {
@@ -303,7 +303,7 @@ export const ALARM_SIMULATION_POOL: Array<Omit<AppNotification, 'id' | 'timestam
     message: 'Annual full discharge battery test is due within 7 days.',
     site: 'Hampton 1 & 2',
     source: 'electrical',
-    actionUrl: '/compliance-register',
+    actionUrl: '/compliance-tracker',
     actionLabel: 'Schedule Test',
   },
   {
@@ -321,7 +321,7 @@ export const ALARM_SIMULATION_POOL: Array<Omit<AppNotification, 'id' | 'timestam
     message: 'Monthly microbiology lab results marked compliant (Zero CFU).',
     site: 'River Club',
     source: 'compliance',
-    actionUrl: '/compliance-register',
+    actionUrl: '/compliance-tracker',
     actionLabel: 'View Report',
   },
 ];

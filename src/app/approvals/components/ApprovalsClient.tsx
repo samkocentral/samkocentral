@@ -356,7 +356,7 @@ export default function ApprovalsClient() {
           category: editCategory || d.category,
           expiry: editExpiry || d.expiry,
           version: editVersion.trim() || d.version || 'v1.0',
-          approvalStatus: editApprovalStatus,
+          approvalStatus: isSuperAdminOrBot ? editApprovalStatus : (d.approvalStatus || 'pending'),
           approvalNotes: editNotes.trim() || d.approvalNotes,
           fileName: editFileName || d.fileName,
           fileUrl: editFileUrl || d.fileUrl,
@@ -1196,7 +1196,7 @@ export default function ApprovalsClient() {
                           </button>
 
                           {/* Edit Button */}
-                          {!isViewer && !isUploader && canEdit && (
+                          {!isViewer && (
                             <button
                               type="button"
                               onClick={() => handleOpenEditDoc(doc)}
@@ -1818,12 +1818,13 @@ export default function ApprovalsClient() {
 
               <div>
                 <label className="block text-xs font-semibold uppercase text-muted-foreground mb-1">
-                  Approval Status
+                  Approval Status {!isSuperAdminOrBot && <span className="text-amber-400 font-normal normal-case">(Super Admin Only)</span>}
                 </label>
                 <CustomDropdown
                   variant="form"
                   width="100%"
                   value={editApprovalStatus}
+                  disabled={!isSuperAdminOrBot}
                   onChange={(val) => setEditApprovalStatus(val as ApprovalStatus)}
                   options={[
                     { value: 'pending', label: 'Pending Review', color: '#f59e0b' },

@@ -59,6 +59,7 @@ export default function PropertiesClient() {
   const [properties, setProperties] = useState<Hotel[]>(() => getLiveProperties());
   const [maintenance, setMaintenance] = useState<any[]>(MAINTENANCE_RECORDS);
   const [assets, setAssets] = useState<any[]>(ASSETS);
+  const [compliance, setCompliance] = useState<any[]>([]);
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
@@ -210,10 +211,11 @@ export default function PropertiesClient() {
   const loadAllData = useCallback(async () => {
     try {
       setLoading(true);
-      const [propsRes, mRes, assetsRes] = await Promise.allSettled([
+      const [propsRes, mRes, assetsRes, compRes] = await Promise.allSettled([
         api.properties.getAll(),
         api.maintenance.getAll(),
         api.assets.getAll(),
+        api.compliance.getAll(),
       ]);
 
       if (
@@ -240,6 +242,14 @@ export default function PropertiesClient() {
         assetsRes.value.data.length > 0
       ) {
         setAssets(assetsRes.value.data);
+      }
+      if (
+        compRes.status === 'fulfilled' &&
+        compRes.value.success &&
+        compRes.value.data &&
+        compRes.value.data.length > 0
+      ) {
+        setCompliance(compRes.value.data);
       }
     } catch (e) {
       console.warn('Using default properties data:', e);
@@ -445,6 +455,12 @@ export default function PropertiesClient() {
 
   // Multi-select Properties State
   const [selectedPropertyIds, setSelectedPropertyIds] = useState<string[]>([]);
+
+  useEffect(() => {
+    if (!hasDeleteAccess) {
+      setSelectedPropertyIds([]);
+    }
+  }, [hasDeleteAccess]);
   const [isBulkDeletingProperties, setIsBulkDeletingProperties] = useState(false);
   const [showBulkDeletePropertiesModal, setShowBulkDeletePropertiesModal] = useState(false);
   const [selectedPropertyTypeFilter, setSelectedPropertyTypeFilter] = useState('');
@@ -630,15 +646,12 @@ export default function PropertiesClient() {
       <div className="flex-1 overflow-y-auto px-6 py-5">
         <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3 items-stretch">
           {paginatedProperties?.map((hotel) => {
-            const assetCount =
-              assets.filter(
-                (a) =>
-                  a.hotelId === hotel?.id ||
-                  a.hotelName === hotel?.name ||
-                  (a as any).propertyId === hotel?.id
-              ).length ||
-              hotel?.totalAssets ||
-              0;
+            const assetCount = assets.filter(
+              (a) =>
+                a.hotelId === hotel?.id ||
+                a.hotelName === hotel?.name ||
+                (a as any).propertyId === hotel?.id
+            ).length;
             const overdueCount =
               maintenance.filter(
                 (m) =>
@@ -662,26 +675,29 @@ export default function PropertiesClient() {
               <div
                 key={hotel?.id}
                 className={`flex flex-col justify-between h-full rounded-xl border p-5 transition-all duration-150 hover:border-opacity-60 ${
-                  selectedPropertyIds.includes(hotel?.id)
+                  hasDeleteAccess && selectedPropertyIds.includes(hotel?.id)
                     ? 'border-[#e8c97a] shadow-[0_0_15px_rgba(232,201,122,0.15)] bg-[#e8c97a]/5'
                     : 'border-border'
                 }`}
                 style={{
-                  background: selectedPropertyIds.includes(hotel?.id)
-                    ? 'rgba(232,201,122,0.04)'
-                    : 'var(--surface)',
+                  background:
+                    hasDeleteAccess && selectedPropertyIds.includes(hotel?.id)
+                      ? 'rgba(232,201,122,0.04)'
+                      : 'var(--surface)',
                 }}
               >
                 {/* Header */}
                 <div className="flex items-start justify-between gap-2.5 mb-3.5">
                   <div className="flex items-start gap-2.5 min-w-0 flex-1">
-                    <div className="pt-1 flex-shrink-0">
-                      <TableCheckbox
-                        checked={selectedPropertyIds.includes(hotel?.id)}
-                        onChange={() => handleTogglePropertySelect(hotel?.id)}
-                        title={`Select ${hotel?.name}`}
-                      />
-                    </div>
+                    {hasDeleteAccess && (
+                      <div className="pt-1 flex-shrink-0">
+                        <TableCheckbox
+                          checked={selectedPropertyIds.includes(hotel?.id)}
+                          onChange={() => handleTogglePropertySelect(hotel?.id)}
+                          title={`Select ${hotel?.name}`}
+                        />
+                      </div>
+                    )}
                     <div
                       className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5"
                       style={{ background: 'rgba(232,201,122,0.12)' }}
@@ -843,22 +859,24 @@ export default function PropertiesClient() {
         className="sticky bottom-0 z-20 flex-shrink-0"
       />
 
-      {/* Floating Bulk Action Bar */}
-      <div className="mt-2 px-6">
-        <BulkActionBar
-          selectedCount={selectedPropertyIds.length}
-          totalCount={filtered.length}
-          onClearSelection={handleClearPropertySelection}
-          onSelectAll={handleSelectAllFilteredProperties}
-          onDeleteSelected={() => setShowBulkDeletePropertiesModal(true)}
-          typeOptions={propertyTypeOptions}
-          onSelectByType={handleSelectPropertyByType}
-          selectedTypeValue={selectedPropertyTypeFilter}
-          typePlaceholder="Select all of type (Status)..."
-          recordName="properties"
-          isDeleting={isBulkDeletingProperties}
-        />
-      </div>
+      {/* Floating Bulk Action Bar (Only shown for authorized delete users) */}
+      {hasDeleteAccess && (
+        <div className="mt-2 px-6">
+          <BulkActionBar
+            selectedCount={selectedPropertyIds.length}
+            totalCount={filtered.length}
+            onClearSelection={handleClearPropertySelection}
+            onSelectAll={handleSelectAllFilteredProperties}
+            onDeleteSelected={() => setShowBulkDeletePropertiesModal(true)}
+            typeOptions={propertyTypeOptions}
+            onSelectByType={handleSelectPropertyByType}
+            selectedTypeValue={selectedPropertyTypeFilter}
+            typePlaceholder="Select all of type (Status)..."
+            recordName="properties"
+            isDeleting={isBulkDeletingProperties}
+          />
+        </div>
+      )}
 
       {/* Add Property Modal */}
       {showAddModal && (

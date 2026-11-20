@@ -10,7 +10,8 @@
       "overdueCount": 1,
       "dueTodayCount": 0,
       "manager": "Marcus Webb",
-      "phone": "+44 20 8546 0100"
+      "phone": "+44 20 8546 0100",
+      "updatedAt": "2026-11-19T18:11:18.144Z"
     },
     {
       "id": "hotel-002",

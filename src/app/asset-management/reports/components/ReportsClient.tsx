@@ -48,6 +48,7 @@ import { api } from '@/lib/api';
 import PageCMSEditButton from '@/components/cms/PageCMSEditButton';
 import { useDeepPageCms } from '@/lib/deepPageCms';
 import { useAuth } from '@/lib/authContext';
+import DocumentTableCell from '@/components/ui/DocumentTableCell';
 
 const stats = getAssetStats();
 
@@ -1522,10 +1523,10 @@ function ContractReport() {
                 <span className="font-head font-bold text-sm">Contracts Register</span>
               </div>
               <div className="overflow-x-auto">
-                <table className="w-full min-w-[760px]">
+                <table className="w-full min-w-[860px]">
                   <thead style={{ background: 'var(--surface2)' }}>
                     <tr>
-                      {['Hotel', 'Supplier', 'Category', 'Annual Value', 'End Date', 'Status'].map(
+                      {['Hotel', 'Supplier', 'Category', 'Annual Value', 'End Date', 'Status', 'Document'].map(
                         (h) => (
                           <th
                             key={h}
@@ -1545,6 +1546,16 @@ function ContractReport() {
                           : con.status === 'expiring-soon'
                             ? '#f59e0b'
                             : '#f43f5e';
+                      const docName =
+                        (con as any).documentName ||
+                        (con as any).fileName ||
+                        (con as any).document ||
+                        null;
+                      const docUrl =
+                        (con as any).documentUrl ||
+                        (con as any).fileUrl ||
+                        null;
+
                       return (
                         <tr
                           key={i}
@@ -1573,6 +1584,12 @@ function ContractReport() {
                             >
                               {(con.status || 'Active').replace('-', ' ')}
                             </span>
+                          </td>
+                          <td className="px-4 py-3">
+                            <DocumentTableCell
+                              documentName={docName}
+                              documentUrl={docUrl}
+                            />
                           </td>
                         </tr>
                       );

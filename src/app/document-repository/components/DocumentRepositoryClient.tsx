@@ -112,8 +112,17 @@ function markDocAsDeleted(id: string) {
 const docMatchesFood = (val?: string) => Boolean(val && val.toLowerCase().includes('food'));
 
 export default function DocumentRepositoryClient() {
-  const { isViewer, isUploader, canEdit, canUpload, canDelete, canWriteTab, isPropertyAccessible } = useAuth();
-  const hasWriteAccess = !isViewer && !isUploader && canEdit && canWriteTab('documents');
+  const { user, isViewer, isUploader, canEdit, canUpload, canDelete, canWriteTab, isPropertyAccessible } = useAuth();
+
+  // Strict Super Admin or Digital Bot permission check
+  const isSuperAdminOrBot =
+    user?.roleLevel === 'L1' ||
+    user?.id === 'usr-bot-001' ||
+    user?.name?.toLowerCase().includes('digital bot') ||
+    user?.roleTitle?.toLowerCase().includes('digital bot') ||
+    user?.roleTitle?.toLowerCase().includes('super admin');
+
+  const hasWriteAccess = !isViewer && (canEdit || isUploader || canUpload);
   const hasDeleteAccess = !isViewer && !isUploader && canDelete && canWriteTab('documents');
   const { dropdowns: cmsDropdowns } = useDeepPageCms('documents');
 
@@ -241,7 +250,7 @@ export default function DocumentRepositoryClient() {
           expiry: editExpiry || d.expiry,
           version: editVersion.trim() || d.version || 'v1.0',
           status: editStatus,
-          approvalStatus: editApprovalStatus,
+          approvalStatus: isSuperAdminOrBot ? editApprovalStatus : (d.approvalStatus || 'pending'),
           approvalNotes: editNotes.trim() || d.approvalNotes,
           fileName: editFileName || d.fileName,
           fileUrl: editFileUrl || d.fileUrl,
@@ -1109,8 +1118,9 @@ export default function DocumentRepositoryClient() {
             }
           />
         ) : (
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', minWidth: 940, borderCollapse: 'collapse' }}>
+          <>
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', minWidth: 940, borderCollapse: 'collapse' }}>
               <thead>
                 <tr>
                   {hasDeleteAccess && (
@@ -1459,6 +1469,10 @@ export default function DocumentRepositoryClient() {
                 })}
               </tbody>
             </table>
+          </div>
+
+          {/* Fixed Pagination Footer (Spans 100% of visible card width, NOT scrolled horizontally) */}
+          <div className="p-4 border-t border-border">
             <LoadingPagination
               currentPage={currentPage}
               totalRecords={totalRecords}
@@ -1470,7 +1484,8 @@ export default function DocumentRepositoryClient() {
               recordName="documents"
             />
           </div>
-        )}
+        </>
+      )}
       </div>
 
       {/* Floating Bulk Action Bar (Only shown for authorized delete users) */}
@@ -2151,13 +2166,14 @@ export default function DocumentRepositoryClient() {
 
               <div>
                 <label className="samko-label" htmlFor="edit-doc-approval">
-                  Approval Status
+                  Approval Status {!isSuperAdminOrBot && <span className="text-amber-400 font-normal normal-case text-xs">(Super Admin Only)</span>}
                 </label>
                 <CustomDropdown
                   id="edit-doc-approval"
                   variant="form"
                   width="100%"
                   value={editApprovalStatus}
+                  disabled={!isSuperAdminOrBot}
                   onChange={(val) => setEditApprovalStatus(val as any)}
                   options={[
                     { value: 'pending', label: 'Pending Approval', color: '#f59e0b' },
