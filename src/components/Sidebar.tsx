@@ -103,11 +103,11 @@ const SECTION_BADGE_STYLES: Record<
   TabSectionLocation,
   { label: string; badgeBg: string; color: string }
 > = {
-  propco: { label: 'PROPCO', badgeBg: 'rgba(232,201,122,0.15)', color: '#e8c97a' },
-  opco: { label: 'OPCO', badgeBg: 'rgba(96,165,250,0.15)', color: '#60a5fa' },
-  both: { label: 'PROPCO & OPCO', badgeBg: 'rgba(61,214,140,0.15)', color: '#3dd68c' },
-  bottom: { label: 'BOTTOM', badgeBg: 'rgba(148,163,184,0.15)', color: '#94a3b8' },
-  hidden: { label: 'HIDDEN', badgeBg: 'rgba(244,63,94,0.18)', color: '#f43f5e' },
+  propco: { label: 'PROPCO', badgeBg: 'var(--badge-propco-bg, rgba(232,201,122,0.15))', color: 'var(--badge-propco-color, #e8c97a)' },
+  opco: { label: 'OPCO', badgeBg: 'var(--badge-opco-bg, rgba(96,165,250,0.15))', color: 'var(--badge-opco-color, #60a5fa)' },
+  both: { label: 'PROPCO & OPCO', badgeBg: 'var(--badge-both-bg, rgba(61,214,140,0.15))', color: 'var(--badge-both-color, #3dd68c)' },
+  bottom: { label: 'BOTTOM', badgeBg: 'var(--badge-bottom-bg, rgba(148,163,184,0.15))', color: 'var(--badge-bottom-color, #94a3b8)' },
+  hidden: { label: 'HIDDEN', badgeBg: 'var(--badge-hidden-bg, rgba(244,63,94,0.18))', color: 'var(--badge-hidden-color, #f43f5e)' },
 };
 
 export default function Sidebar({ currentPath }: SidebarProps) {
@@ -732,6 +732,28 @@ export default function Sidebar({ currentPath }: SidebarProps) {
     }
   }, [activeRoutePath]);
 
+  // Synchronize open portals whenever activePortal state changes or samko:portal-changed is fired
+  useEffect(() => {
+    if (activePortal === 'propco') {
+      setOpenPortals({ propco: true, opco: false });
+    } else if (activePortal === 'opco') {
+      setOpenPortals({ propco: false, opco: true });
+    }
+  }, [activePortal]);
+
+  useEffect(() => {
+    const handlePortalChange = (e: any) => {
+      const p = e?.detail?.portal;
+      if (p === 'propco') {
+        setOpenPortals({ propco: true, opco: false });
+      } else if (p === 'opco') {
+        setOpenPortals({ propco: false, opco: true });
+      }
+    };
+    window.addEventListener('samko:portal-changed', handlePortalChange);
+    return () => window.removeEventListener('samko:portal-changed', handlePortalChange);
+  }, []);
+
   const fetchDynamicCounts = useCallback(async () => {
     try {
       const [mRes, compRes, tasksRes] = await Promise.allSettled([
@@ -1125,7 +1147,9 @@ export default function Sidebar({ currentPath }: SidebarProps) {
             } catch (e) { }
           }
         }}
-        className="flex items-center gap-2 rounded-lg transition-colors duration-150 group relative"
+        data-active={active ? 'true' : 'false'}
+        data-portal={portalContext}
+        className="samko-sidebar-nav-item flex items-center gap-2 rounded-lg transition-all duration-150 group relative"
         style={{
           padding: collapsed ? '8px 10px' : '7px 10px',
           background: active ? activeBg : 'transparent',
@@ -1251,7 +1275,9 @@ export default function Sidebar({ currentPath }: SidebarProps) {
         <button
           type="button"
           onClick={() => toggleSubDropdown(id)}
-          className="flex items-center gap-2 rounded-lg transition-colors duration-150 group relative cursor-pointer w-full text-left"
+          data-active={isChildActive ? 'true' : 'false'}
+          data-portal={portalContext}
+          className="samko-sidebar-nav-item flex items-center gap-2 rounded-lg transition-all duration-150 group relative cursor-pointer w-full text-left"
           style={{
             padding: '7px 10px',
             background: isChildActive ? activeBg : 'transparent',
@@ -1389,7 +1415,9 @@ export default function Sidebar({ currentPath }: SidebarProps) {
       <div className="mt-3 mb-1 px-1">
         <div
           onClick={() => togglePortal(portalKey)}
-          className="flex items-center justify-between w-full px-2.5 py-1.5 rounded-lg transition-colors cursor-pointer group"
+          data-active={isCurrentActive ? 'true' : 'false'}
+          data-portal={portalKey}
+          className="samko-portal-header flex items-center justify-between w-full px-2.5 py-1.5 rounded-lg transition-colors cursor-pointer group"
           style={{
             background: isCurrentActive
               ? portalKey === 'propco'
@@ -1842,16 +1870,16 @@ export default function Sidebar({ currentPath }: SidebarProps) {
         sectionFilter === 'ALL'
           ? loc !== 'hidden'
           : sectionFilter === 'propco'
-          ? loc === 'propco' || loc === 'both'
-          : sectionFilter === 'opco'
-          ? loc === 'opco' || loc === 'both'
-          : sectionFilter === 'both'
-          ? loc === 'both'
-          : sectionFilter === 'bottom'
-          ? loc === 'bottom'
-          : sectionFilter === 'hidden'
-          ? loc === 'hidden'
-          : loc === sectionFilter;
+            ? loc === 'propco' || loc === 'both'
+            : sectionFilter === 'opco'
+              ? loc === 'opco' || loc === 'both'
+              : sectionFilter === 'both'
+                ? loc === 'both'
+                : sectionFilter === 'bottom'
+                  ? loc === 'bottom'
+                  : sectionFilter === 'hidden'
+                    ? loc === 'hidden'
+                    : loc === sectionFilter;
 
       return matchSearch && matchFilter;
     });
@@ -1860,10 +1888,10 @@ export default function Sidebar({ currentPath }: SidebarProps) {
       sectionFilter === 'propco'
         ? propcoOrder
         : sectionFilter === 'opco'
-        ? opcoOrder
-        : sectionFilter === 'bottom'
-        ? bottomOrder
-        : tabOrder;
+          ? opcoOrder
+          : sectionFilter === 'bottom'
+            ? bottomOrder
+            : tabOrder;
 
     return [...filtered].sort((a, b) => {
       let idxA = activeSortingOrder.indexOf(a.id);
@@ -1916,7 +1944,7 @@ export default function Sidebar({ currentPath }: SidebarProps) {
         localStorage.setItem('samko:bottom_tab_order', JSON.stringify(nextBottom));
         localStorage.setItem('samko:tab_order', JSON.stringify(nextTabOrder));
         window.dispatchEvent(new CustomEvent('samko:sections-changed'));
-      } catch (e) {}
+      } catch (e) { }
     }
 
     // Persist to API
@@ -1928,7 +1956,7 @@ export default function Sidebar({ currentPath }: SidebarProps) {
         opco: nextOpco,
         bottom: nextBottom,
       }),
-    }).catch(() => {});
+    }).catch(() => { });
 
     const currentTabName = allTabsCombined.find((t) => t.id === tabId)?.name || tabId;
     const targetTabName = allTabsCombined.find((t) => t.id === targetTabId)?.name || targetTabId;
@@ -2809,7 +2837,7 @@ export default function Sidebar({ currentPath }: SidebarProps) {
       {/* Critical Alert Banner */}
       {!collapsed && criticalCount > 0 && (
         <div
-          className="mx-2 mb-2 rounded-lg flex items-center gap-2"
+          className="samko-alert-banner mx-2 mb-2 rounded-lg flex items-center gap-2"
           style={{
             background: 'rgba(244,63,94,0.10)',
             border: `1px solid rgba(244,63,94,${pulse ? '0.35' : '0.18'})`,
@@ -2865,7 +2893,7 @@ export default function Sidebar({ currentPath }: SidebarProps) {
                 width: 28,
                 height: 28,
                 background: roleBadgeColor,
-                color: '#000',
+                color: '#ffffff',
                 fontSize: 10,
               }}
             >
@@ -2900,7 +2928,7 @@ export default function Sidebar({ currentPath }: SidebarProps) {
                 width: 28,
                 height: 28,
                 background: roleBadgeColor,
-                color: '#000',
+                color: '#ffffff',
                 fontSize: 10,
               }}
             >
@@ -2973,8 +3001,6 @@ export default function Sidebar({ currentPath }: SidebarProps) {
                   onClick={() => handleSaveTabAssignments(true)}
                   className="samko-btn-primary flex items-center justify-center gap-2 px-5 py-2 rounded-xl text-xs font-bold shadow-md cursor-pointer hover:scale-[1.02] active:scale-[0.98] transition-all"
                   style={{
-                    background: 'var(--primary)',
-                    color: '#000',
                     boxShadow: '0 4px 14px rgba(232,201,122,0.25)',
                   }}
                 >
@@ -2988,7 +3014,7 @@ export default function Sidebar({ currentPath }: SidebarProps) {
           <div className="space-y-4 text-xs">
             {/* Explanatory note */}
             <div
-              className="p-3.5 rounded-xl border border-primary/30 flex items-start gap-3 shadow-sm"
+              className="samko-banner-card p-3.5 rounded-xl border border-primary/30 flex items-start gap-3 shadow-sm"
               style={{
                 background:
                   'linear-gradient(135deg, rgba(232,201,122,0.12) 0%, rgba(96,165,250,0.08) 100%)',
@@ -3018,177 +3044,177 @@ export default function Sidebar({ currentPath }: SidebarProps) {
 
             {/* ── LOCATION SELECTION & ADD NEW TAB / DROPDOWN CARD (Hidden) ── */}
             {false && (
-            <div
-              className="p-3.5 rounded-xl border border-border transition-all"
-              style={{ background: 'var(--surface2)' }}
-            >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div
-                    className="w-7 h-7 rounded-lg flex items-center justify-center font-bold text-xs"
-                    style={{ background: 'var(--primary)', color: '#000' }}
-                  >
-                    <Plus size={15} />
-                  </div>
-                  <div>
-                    <div className="font-bold text-foreground text-xs">Add New Tab or Dropdown</div>
-                    <div className="text-[10.5px] text-muted-foreground">
-                      Select section and target tab location to add into that section or specific
-                      tab dropdown
+              <div
+                className="p-3.5 rounded-xl border border-border transition-all"
+                style={{ background: 'var(--surface2)' }}
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div
+                      className="w-7 h-7 rounded-lg flex items-center justify-center font-bold text-xs"
+                      style={{ background: 'var(--primary)', color: '#000' }}
+                    >
+                      <Plus size={15} />
+                    </div>
+                    <div>
+                      <div className="font-bold text-foreground text-xs">Add New Tab or Dropdown</div>
+                      <div className="text-[10.5px] text-muted-foreground">
+                        Select section and target tab location to add into that section or specific
+                        tab dropdown
+                      </div>
                     </div>
                   </div>
+
+                  <button
+                    type="button"
+                    onClick={() => setShowAddForm(!showAddForm)}
+                    className="px-2.5 py-1 rounded-md text-[11px] font-bold border transition-all cursor-pointer"
+                    style={{
+                      background: showAddForm ? 'var(--primary)' : 'var(--surface)',
+                      color: showAddForm ? '#000' : 'var(--foreground)',
+                      borderColor: 'var(--border)',
+                    }}
+                  >
+                    {showAddForm ? 'Close Form' : '+ Add Tab / Dropdown'}
+                  </button>
                 </div>
 
-                <button
-                  type="button"
-                  onClick={() => setShowAddForm(!showAddForm)}
-                  className="px-2.5 py-1 rounded-md text-[11px] font-bold border transition-all cursor-pointer"
-                  style={{
-                    background: showAddForm ? 'var(--primary)' : 'var(--surface)',
-                    color: showAddForm ? '#000' : 'var(--foreground)',
-                    borderColor: 'var(--border)',
-                  }}
-                >
-                  {showAddForm ? 'Close Form' : '+ Add Tab / Dropdown'}
-                </button>
+                {showAddForm && (
+                  <form
+                    onSubmit={handleAddNewTabOrDropdown}
+                    className="mt-3 pt-3 border-t border-border/60 space-y-3"
+                  >
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                      {/* 1. Section Selection Dropdown */}
+                      <div>
+                        <label className="block text-[10px] font-bold uppercase text-muted-foreground mb-1">
+                          1. Section Location
+                        </label>
+                        <CustomDropdown
+                          variant="form"
+                          width="100%"
+                          value={newTabSection}
+                          onChange={(val) => {
+                            const s = val as 'propco' | 'opco' | 'both' | 'bottom';
+                            setNewTabSection(s);
+                            setNewTabTarget('root');
+                          }}
+                          options={[
+                            { value: 'opco', label: 'OpCo (Operations Portal)' },
+                            { value: 'propco', label: 'PropCo (Asset Co Portal)' },
+                            { value: 'both', label: 'Both Sections (PropCo & OpCo)' },
+                            { value: 'bottom', label: 'Bottom Nav List' },
+                          ]}
+                        />
+                      </div>
+
+                      {/* 2. Target Location / Tab Dropdown */}
+                      <div>
+                        <label className="block text-[10px] font-bold uppercase text-muted-foreground mb-1">
+                          2. Target Location / Tab
+                        </label>
+                        <CustomDropdown
+                          variant="form"
+                          width="100%"
+                          value={newTabTarget}
+                          onChange={(val) => {
+                            setNewTabTarget(val);
+                            if (newTabName) {
+                              updateSuggestedPath(newTabName, val);
+                            }
+                          }}
+                          options={[
+                            { value: 'root', label: 'Section Root (New Top-Level Sidebar Tab)' },
+                            ...(newTabSection === 'opco'
+                              ? [
+                                { value: 'non-fixed', label: 'Inside Non-Fixed Assets' },
+                                {
+                                  value: 'maintenance',
+                                  label: 'Inside Maintenance (PPM / Work Orders)',
+                                },
+                                {
+                                  value: 'compliance',
+                                  label: 'Inside Compliance (Certs / Statutory)',
+                                },
+                                { value: 'tasks', label: 'Inside Tasks and Alerts' },
+                                { value: 'reports', label: 'Inside Reports' },
+                                { value: 'task-module', label: 'Inside Task Module' },
+                                {
+                                  value: 'utilities',
+                                  label: 'Inside Utility (Electricity / Gas / Water)',
+                                },
+                              ]
+                              : []),
+                            ...(newTabSection === 'propco'
+                              ? [
+                                { value: 'properties', label: 'Inside Properties' },
+                                { value: 'all-assets', label: 'Inside Fixed Assets' },
+                                {
+                                  value: 'insurance',
+                                  label: 'Inside Insurance (Claims / Renewals)',
+                                },
+                                {
+                                  value: 'contracts',
+                                  label: 'Inside Contracts (Suppliers / SLAs)',
+                                },
+                                { value: 'reports', label: 'Inside Reports' },
+                              ]
+                              : []),
+                          ]}
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                      {/* Tab/Dropdown Title */}
+                      <div>
+                        <label className="block text-[10px] font-bold uppercase text-muted-foreground mb-1">
+                          Tab or Dropdown Title
+                        </label>
+                        <input
+                          type="text"
+                          placeholder="e.g. Energy Audit, Water Log, Gas Safety..."
+                          value={newTabName}
+                          onChange={(e) => {
+                            const name = e.target.value;
+                            setNewTabName(name);
+                            updateSuggestedPath(name, newTabTarget);
+                          }}
+                          className="w-full px-2.5 py-1.5 text-xs rounded-lg border border-border bg-surface text-foreground outline-none"
+                        />
+                      </div>
+
+                      {/* Route Path */}
+                      <div>
+                        <label className="block text-[10px] font-bold uppercase text-muted-foreground mb-1">
+                          Page Route / URL
+                        </label>
+                        <input
+                          type="text"
+                          placeholder="e.g. /utilities-register?type=water"
+                          value={newTabPath}
+                          onChange={(e) => setNewTabPath(e.target.value)}
+                          className="w-full px-2.5 py-1.5 text-xs rounded-lg border border-border bg-surface text-foreground outline-none font-mono"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between pt-1">
+                      <span className="text-[10.5px] text-muted-foreground">
+                        {newTabTarget === 'root'
+                          ? `Will appear as a new tab under ${newTabSection.toUpperCase()}`
+                          : `Will appear inside the ${newTabTarget} page and dropdown in ${newTabSection.toUpperCase()}`}
+                      </span>
+                      <button
+                        type="submit"
+                        className="samko-btn-primary px-3.5 py-1.5 rounded-lg text-xs font-bold cursor-pointer"
+                      >
+                        Save Tab / Dropdown
+                      </button>
+                    </div>
+                  </form>
+                )}
               </div>
-
-              {showAddForm && (
-                <form
-                  onSubmit={handleAddNewTabOrDropdown}
-                  className="mt-3 pt-3 border-t border-border/60 space-y-3"
-                >
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                    {/* 1. Section Selection Dropdown */}
-                    <div>
-                      <label className="block text-[10px] font-bold uppercase text-muted-foreground mb-1">
-                        1. Section Location
-                      </label>
-                      <CustomDropdown
-                        variant="form"
-                        width="100%"
-                        value={newTabSection}
-                        onChange={(val) => {
-                          const s = val as 'propco' | 'opco' | 'both' | 'bottom';
-                          setNewTabSection(s);
-                          setNewTabTarget('root');
-                        }}
-                        options={[
-                          { value: 'opco', label: 'OpCo (Operations Portal)' },
-                          { value: 'propco', label: 'PropCo (Asset Co Portal)' },
-                          { value: 'both', label: 'Both Sections (PropCo & OpCo)' },
-                          { value: 'bottom', label: 'Bottom Nav List' },
-                        ]}
-                      />
-                    </div>
-
-                    {/* 2. Target Location / Tab Dropdown */}
-                    <div>
-                      <label className="block text-[10px] font-bold uppercase text-muted-foreground mb-1">
-                        2. Target Location / Tab
-                      </label>
-                      <CustomDropdown
-                        variant="form"
-                        width="100%"
-                        value={newTabTarget}
-                        onChange={(val) => {
-                          setNewTabTarget(val);
-                          if (newTabName) {
-                            updateSuggestedPath(newTabName, val);
-                          }
-                        }}
-                        options={[
-                          { value: 'root', label: 'Section Root (New Top-Level Sidebar Tab)' },
-                          ...(newTabSection === 'opco'
-                            ? [
-                              { value: 'non-fixed', label: 'Inside Non-Fixed Assets' },
-                              {
-                                value: 'maintenance',
-                                label: 'Inside Maintenance (PPM / Work Orders)',
-                              },
-                              {
-                                value: 'compliance',
-                                label: 'Inside Compliance (Certs / Statutory)',
-                              },
-                              { value: 'tasks', label: 'Inside Tasks and Alerts' },
-                              { value: 'reports', label: 'Inside Reports' },
-                              { value: 'task-module', label: 'Inside Task Module' },
-                              {
-                                value: 'utilities',
-                                label: 'Inside Utility (Electricity / Gas / Water)',
-                              },
-                            ]
-                            : []),
-                          ...(newTabSection === 'propco'
-                            ? [
-                              { value: 'properties', label: 'Inside Properties' },
-                              { value: 'all-assets', label: 'Inside Fixed Assets' },
-                              {
-                                value: 'insurance',
-                                label: 'Inside Insurance (Claims / Renewals)',
-                              },
-                              {
-                                value: 'contracts',
-                                label: 'Inside Contracts (Suppliers / SLAs)',
-                              },
-                              { value: 'reports', label: 'Inside Reports' },
-                            ]
-                            : []),
-                        ]}
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                    {/* Tab/Dropdown Title */}
-                    <div>
-                      <label className="block text-[10px] font-bold uppercase text-muted-foreground mb-1">
-                        Tab or Dropdown Title
-                      </label>
-                      <input
-                        type="text"
-                        placeholder="e.g. Energy Audit, Water Log, Gas Safety..."
-                        value={newTabName}
-                        onChange={(e) => {
-                          const name = e.target.value;
-                          setNewTabName(name);
-                          updateSuggestedPath(name, newTabTarget);
-                        }}
-                        className="w-full px-2.5 py-1.5 text-xs rounded-lg border border-border bg-surface text-foreground outline-none"
-                      />
-                    </div>
-
-                    {/* Route Path */}
-                    <div>
-                      <label className="block text-[10px] font-bold uppercase text-muted-foreground mb-1">
-                        Page Route / URL
-                      </label>
-                      <input
-                        type="text"
-                        placeholder="e.g. /utilities-register?type=water"
-                        value={newTabPath}
-                        onChange={(e) => setNewTabPath(e.target.value)}
-                        className="w-full px-2.5 py-1.5 text-xs rounded-lg border border-border bg-surface text-foreground outline-none font-mono"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="flex items-center justify-between pt-1">
-                    <span className="text-[10.5px] text-muted-foreground">
-                      {newTabTarget === 'root'
-                        ? `Will appear as a new tab under ${newTabSection.toUpperCase()}`
-                        : `Will appear inside the ${newTabTarget} page and dropdown in ${newTabSection.toUpperCase()}`}
-                    </span>
-                    <button
-                      type="submit"
-                      className="samko-btn-primary px-3.5 py-1.5 rounded-lg text-xs font-bold cursor-pointer"
-                    >
-                      Save Tab / Dropdown
-                    </button>
-                  </div>
-                </form>
-              )}
-            </div>
 
             )}
 
@@ -3205,16 +3231,17 @@ export default function Sidebar({ currentPath }: SidebarProps) {
                     f === 'ALL'
                       ? 'All Tabs'
                       : f === 'both'
-                      ? 'Both Sections'
-                      : f === 'hidden'
-                      ? `Hidden (${hiddenTabsCount})`
-                      : f.toUpperCase();
+                        ? 'Both Sections'
+                        : f === 'hidden'
+                          ? `Hidden (${hiddenTabsCount})`
+                          : f.toUpperCase();
                   return (
                     <button
                       key={f}
                       type="button"
                       onClick={() => setSectionFilter(f)}
-                      className="px-2.5 py-1 rounded-md text-[11px] font-bold border transition-all cursor-pointer flex items-center gap-1"
+                      data-selected={isSelected ? 'true' : 'false'}
+                      className="samko-filter-pill px-2.5 py-1 rounded-md text-[11px] font-bold border transition-all cursor-pointer flex items-center gap-1"
                       style={{
                         background: isSelected
                           ? isHiddenPill
@@ -3226,15 +3253,15 @@ export default function Sidebar({ currentPath }: SidebarProps) {
                             ? '#f43f5e'
                             : '#000'
                           : isHiddenPill && hiddenTabsCount > 0
-                          ? '#f43f5e'
-                          : 'var(--muted-foreground)',
+                            ? '#f43f5e'
+                            : 'var(--muted-foreground)',
                         borderColor: isSelected
                           ? isHiddenPill
                             ? '#f43f5e'
                             : 'var(--primary)'
                           : isHiddenPill && hiddenTabsCount > 0
-                          ? 'rgba(244,63,94,0.45)'
-                          : 'var(--border)',
+                            ? 'rgba(244,63,94,0.45)'
+                            : 'var(--border)',
                       }}
                     >
                       {isHiddenPill && <EyeOff size={11} />}
@@ -3346,7 +3373,7 @@ export default function Sidebar({ currentPath }: SidebarProps) {
                 return (
                   <div
                     key={tab.id}
-                    className="p-3 rounded-xl border border-border flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 hover:bg-white/[0.02] transition-colors"
+                    className="samko-tab-row p-3 rounded-xl border border-border flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 hover:bg-white/[0.02] transition-colors"
                     style={{ background: 'var(--surface)' }}
                   >
                     <div className="flex items-center gap-2.5 min-w-0 flex-1">
@@ -3381,11 +3408,10 @@ export default function Sidebar({ currentPath }: SidebarProps) {
                             toast.success(`Tab "${tab.name}" hidden from sidebar!`);
                           }
                         }}
-                        className={`p-1 rounded-md transition-all cursor-pointer ${
-                          currentLoc === 'hidden'
-                            ? 'text-rose-400 bg-rose-500/15 hover:bg-rose-500/25'
-                            : 'text-muted-foreground hover:text-foreground hover:bg-white/10'
-                        }`}
+                        className={`p-1 rounded-md transition-all cursor-pointer ${currentLoc === 'hidden'
+                          ? 'text-rose-400 bg-rose-500/15 hover:bg-rose-500/25'
+                          : 'text-muted-foreground hover:text-foreground hover:bg-white/10'
+                          }`}
                         title={
                           currentLoc === 'hidden'
                             ? `Tab "${tab.name}" is currently hidden. Click to unhide.`
@@ -3404,11 +3430,10 @@ export default function Sidebar({ currentPath }: SidebarProps) {
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2 flex-wrap">
                           <span
-                            className={`font-semibold text-xs ${
-                              currentLoc === 'hidden'
-                                ? 'line-through text-muted-foreground/60'
-                                : 'text-foreground'
-                            }`}
+                            className={`font-semibold text-xs ${currentLoc === 'hidden'
+                              ? 'line-through text-muted-foreground/60'
+                              : 'text-foreground'
+                              }`}
                           >
                             {tab.name}
                           </span>
@@ -3457,7 +3482,8 @@ export default function Sidebar({ currentPath }: SidebarProps) {
                           setSectionMapping(updated);
                           toast.success(`Tab "${tab.name}" moved to PROPCO!`);
                         }}
-                        className="px-2 py-1 rounded text-[10.5px] font-bold border transition-all cursor-pointer"
+                        data-active={currentLoc === 'propco' ? 'true' : 'false'}
+                        className="samko-loc-btn samko-loc-propco px-2 py-1 rounded text-[10.5px] font-bold border transition-all cursor-pointer"
                         style={{
                           background:
                             currentLoc === 'propco' ? 'rgba(232,201,122,0.18)' : 'var(--surface2)',
@@ -3477,7 +3503,8 @@ export default function Sidebar({ currentPath }: SidebarProps) {
                           setSectionMapping(updated);
                           toast.success(`Tab "${tab.name}" moved to OPCO!`);
                         }}
-                        className="px-2 py-1 rounded text-[10.5px] font-bold border transition-all cursor-pointer"
+                        data-active={currentLoc === 'opco' ? 'true' : 'false'}
+                        className="samko-loc-btn samko-loc-opco px-2 py-1 rounded text-[10.5px] font-bold border transition-all cursor-pointer"
                         style={{
                           background:
                             currentLoc === 'opco' ? 'rgba(96,165,250,0.18)' : 'var(--surface2)',
@@ -3499,7 +3526,8 @@ export default function Sidebar({ currentPath }: SidebarProps) {
                             description: 'It now appears in both sections without moving away.',
                           });
                         }}
-                        className="flex items-center gap-1 px-2.5 py-1 rounded text-[10.5px] font-bold border transition-all cursor-pointer"
+                        data-active={currentLoc === 'both' ? 'true' : 'false'}
+                        className="samko-loc-btn samko-loc-both flex items-center gap-1 px-2.5 py-1 rounded text-[10.5px] font-bold border transition-all cursor-pointer"
                         style={{
                           background:
                             currentLoc === 'both' ? 'rgba(61,214,140,0.2)' : 'var(--surface2)',
@@ -3520,7 +3548,8 @@ export default function Sidebar({ currentPath }: SidebarProps) {
                           setSectionMapping(updated);
                           toast.success(`Tab "${tab.name}" moved to Bottom Nav!`);
                         }}
-                        className="px-2 py-1 rounded text-[10.5px] font-bold border transition-all cursor-pointer"
+                        data-active={currentLoc === 'bottom' ? 'true' : 'false'}
+                        className="samko-loc-btn samko-loc-bottom px-2 py-1 rounded text-[10.5px] font-bold border transition-all cursor-pointer"
                         style={{
                           background:
                             currentLoc === 'bottom' ? 'rgba(148,163,184,0.18)' : 'var(--surface2)',
@@ -3547,7 +3576,8 @@ export default function Sidebar({ currentPath }: SidebarProps) {
                             toast.success(`Tab "${tab.name}" hidden from sidebar!`);
                           }
                         }}
-                        className="flex items-center gap-1 px-2.5 py-1 rounded text-[10.5px] font-bold border transition-all cursor-pointer"
+                        data-active={currentLoc === 'hidden' ? 'true' : 'false'}
+                        className="samko-loc-btn samko-loc-hide flex items-center gap-1 px-2.5 py-1 rounded text-[10.5px] font-bold border transition-all cursor-pointer"
                         style={{
                           background:
                             currentLoc === 'hidden' ? 'rgba(244,63,94,0.20)' : 'var(--surface2)',

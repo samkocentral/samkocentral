@@ -30,6 +30,31 @@ export default function AppLayout({ children, currentPath }: AppLayoutProps) {
     originalAdmin?.name?.toLowerCase().includes('digital bot')
   );
 
+  // Sync theme (Light / Dark) across the entire application
+  React.useEffect(() => {
+    const handleThemeSync = () => {
+      try {
+        const theme = localStorage.getItem('samko_theme');
+        if (theme === 'light') {
+          document.documentElement.classList.add('light');
+          document.documentElement.classList.remove('dark');
+          document.documentElement.setAttribute('data-theme', 'light');
+        } else {
+          document.documentElement.classList.add('dark');
+          document.documentElement.classList.remove('light');
+          document.documentElement.setAttribute('data-theme', 'dark');
+        }
+      } catch {}
+    };
+    handleThemeSync();
+    window.addEventListener('samko:theme-changed', handleThemeSync);
+    window.addEventListener('storage', handleThemeSync);
+    return () => {
+      window.removeEventListener('samko:theme-changed', handleThemeSync);
+      window.removeEventListener('storage', handleThemeSync);
+    };
+  }, []);
+
   // If still checking authentication from local session, show a sleek brand splash
   if (isLoadingAuth) {
     return (

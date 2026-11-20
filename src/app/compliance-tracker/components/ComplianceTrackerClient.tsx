@@ -172,7 +172,7 @@ export default function ComplianceTrackerClient() {
   const [loading, setLoading] = useState(false);
   const [statusFilter, setStatusFilter] = useState<'All' | 'critical' | 'warning' | 'ok'>('All');
   const [categoryFilter, setCategoryFilter] = useState('All');
-  const [siteFilter, setSiteFilter] = useState('All Sites');
+  const [siteFilter, setSiteFilter] = useState<string[]>([]);
   const [search, setSearch] = useState('');
   const [expandedRow, setExpandedRow] = useState<string | null>(null);
   const [openStatusDropdown, setOpenStatusDropdown] = useState<string | null>(null);
@@ -260,8 +260,9 @@ export default function ComplianceTrackerClient() {
       .map((c) => c.site || (c as any).hotel || (c as any).property)
       .filter(Boolean);
     const combined = Array.from(new Set([...liveNames, ...existingSites])).sort();
-    const filteredSites = combined.filter((s) => isPropertyAccessible(s));
-    return ['All Sites', ...filteredSites];
+    return combined.filter(
+      (s) => isPropertyAccessible(s) && s !== 'All Sites' && s !== 'All'
+    );
   }, [liveProperties, accessibleComplianceList, isPropertyAccessible]);
 
   const critCount = accessibleComplianceList.filter((c) => c.status === 'critical').length;
@@ -385,7 +386,12 @@ export default function ComplianceTrackerClient() {
     let items = [...accessibleComplianceList];
     if (statusFilter !== 'All') items = items.filter((c) => c.status === statusFilter);
     if (categoryFilter !== 'All') items = items.filter((c) => c.category === categoryFilter);
-    if (siteFilter !== 'All Sites') items = items.filter((c) => c.site === siteFilter);
+    if (
+      siteFilter.length > 0 &&
+      !siteFilter.some((s) => !s || s.toLowerCase() === 'all' || s.toLowerCase() === 'all sites')
+    ) {
+      items = items.filter((c) => siteFilter.includes(c.site));
+    }
     if (search) {
       const q = search.toLowerCase();
       items = items.filter(
@@ -606,7 +612,9 @@ export default function ComplianceTrackerClient() {
           onChange={setSiteFilter}
           options={sitesList.map((s) => ({ value: s, label: s }))}
           placeholder="All Sites"
+          label="All Sites"
           allLabel="All Sites"
+          multiple
           size="sm"
           variant="filter"
         />
@@ -654,7 +662,7 @@ export default function ComplianceTrackerClient() {
                 onClick={() => {
                   setStatusFilter('All');
                   setCategoryFilter('All');
-                  setSiteFilter('All Sites');
+                  setSiteFilter([]);
                   setSearch('');
                 }}
                 className="samko-btn-ghost"

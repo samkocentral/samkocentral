@@ -2,6 +2,7 @@ import { imageHosts } from './image-hosts.config.mjs';
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  devIndicators: false,
   productionBrowserSourceMaps: false,
   distDir: process.env.DIST_DIR || '.next',
 

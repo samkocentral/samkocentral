@@ -23,9 +23,10 @@ import { TASKS, DOCUMENTS, COMPLIANCE, SITES } from '@/lib/mockData';
 import { getNotifications } from '@/lib/notifications';
 import { useAppCms } from '@/lib/appCmsConfig';
 import { useDeepPageCms } from '@/lib/deepPageCms';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 
 export default function DashboardKPIGrid() {
+  const router = useRouter();
   const {
     activePortal,
     setActivePortal,
@@ -540,14 +541,16 @@ export default function DashboardKPIGrid() {
         </div>
 
         {/* Quick Portal Toggle */}
-        <div className="flex items-center gap-1 bg-surface2 p-0.5 rounded-lg border border-border">
+        <div className="samko-segment-container flex items-center gap-1 bg-surface2 p-0.5 rounded-lg border border-border">
           <button
             type="button"
             onClick={() => {
               setActivePortal('propco');
-              window.history.replaceState(null, '', '/?portal=propco');
+              router.push('/?portal=propco');
             }}
-            className="px-2.5 py-1 rounded text-[11px] font-bold transition-all cursor-pointer"
+            data-active={activePortal === 'propco' ? 'true' : 'false'}
+            data-portal="propco"
+            className="samko-portal-switcher-btn px-2.5 py-1 rounded text-[11px] font-bold transition-all cursor-pointer"
             style={{
               background: activePortal === 'propco' ? 'var(--primary)' : 'transparent',
               color: activePortal === 'propco' ? '#000' : 'var(--text2)',
@@ -559,9 +562,11 @@ export default function DashboardKPIGrid() {
             type="button"
             onClick={() => {
               setActivePortal('opco');
-              window.history.replaceState(null, '', '/?portal=opco');
+              router.push('/?portal=opco');
             }}
-            className="px-2.5 py-1 rounded text-[11px] font-bold transition-all cursor-pointer"
+            data-active={activePortal === 'opco' ? 'true' : 'false'}
+            data-portal="opco"
+            className="samko-portal-switcher-btn px-2.5 py-1 rounded text-[11px] font-bold transition-all cursor-pointer"
             style={{
               background: activePortal === 'opco' ? 'var(--primary)' : 'transparent',
               color: activePortal === 'opco' ? '#000' : 'var(--text2)',
@@ -582,7 +587,7 @@ export default function DashboardKPIGrid() {
             <a
               key={card.id}
               href={card.link}
-              className="samko-card relative overflow-hidden block transition-transform hover:-translate-y-0.5"
+              className="samko-card samko-kpi-card relative overflow-hidden block transition-transform hover:-translate-y-0.5"
               style={{
                 padding: '18px 20px',
                 borderTop: `3px solid ${topColor}`,
@@ -615,7 +620,7 @@ export default function DashboardKPIGrid() {
                 )}
               </div>
               <div
-                className="font-head tabular-nums"
+                className="font-head tabular-nums samko-kpi-val"
                 style={{
                   fontSize: 32,
                   fontWeight: 800,

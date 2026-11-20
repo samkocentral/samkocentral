@@ -1108,8 +1108,8 @@ export default function AcquisitionClient() {
         <div className="lg:col-span-7 xl:col-span-8 flex flex-col gap-2.5 h-full min-h-[580px]">
           {/* ── TOP ADDRESS BAR & ACTION TOOLS ── */}
           <div
-            className="p-2.5 rounded-2xl border border-border bg-surface flex flex-col md:flex-row md:items-center justify-between gap-2.5 shadow-sm"
-            style={{ background: 'var(--surface, #11141a)', backgroundColor: '#11141a' }}
+            className="p-2.5 rounded-2xl border border-border bg-surface flex flex-col md:flex-row md:items-center justify-between gap-3 shadow-sm"
+            style={{ background: 'var(--surface)' }}
           >
             {/* Breadcrumb address path */}
             <div className="flex items-center gap-1.5 flex-1 min-w-0">
@@ -1120,17 +1120,17 @@ export default function AcquisitionClient() {
                   else selectFolder(null);
                 }}
                 disabled={currentFolderId === null}
-                className="p-1.5 rounded-lg bg-surface2 border border-border text-muted-foreground hover:text-foreground disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                className="p-1.5 rounded-lg bg-surface2 border border-border text-muted-foreground hover:text-foreground disabled:opacity-30 disabled:cursor-not-allowed transition-all cursor-pointer flex-shrink-0"
                 title="Up one level"
               >
                 <ArrowUp size={13} />
               </button>
 
-              <div className="flex-1 flex items-center gap-1.5 px-3 py-1 rounded-xl bg-surface2/80 border border-border overflow-x-auto text-xs min-h-[32px]">
+              <div className="flex-1 flex items-center gap-1.5 px-3 py-1 rounded-xl bg-surface2/80 border border-border overflow-x-auto text-xs min-h-[34px] custom-scrollbar">
                 <button
                   type="button"
                   onClick={() => selectFolder(null)}
-                  className={`font-semibold hover:text-primary transition-colors flex-shrink-0 ${
+                  className={`font-semibold hover:text-primary transition-colors flex-shrink-0 cursor-pointer ${
                     currentFolderId === null ? 'text-primary font-bold' : 'text-muted-foreground'
                   }`}
                 >
@@ -1145,7 +1145,7 @@ export default function AcquisitionClient() {
                       <button
                         type="button"
                         onClick={() => selectFolder(crumb.id)}
-                        className={`font-semibold hover:text-primary transition-colors truncate max-w-[200px] flex-shrink-0 ${
+                        className={`font-semibold hover:text-primary transition-colors truncate max-w-[200px] flex-shrink-0 cursor-pointer ${
                           isLast ? 'text-primary font-bold' : 'text-muted-foreground'
                         }`}
                         title={crumb.name}
@@ -1159,25 +1159,25 @@ export default function AcquisitionClient() {
             </div>
 
             {/* Right Action Tools */}
-            <div className="flex items-center gap-2 flex-wrap flex-shrink-0">
+            <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap flex-shrink-0">
               {/* Search */}
-              <div className="relative w-44">
+              <div className="relative w-40 sm:w-48 flex-shrink-0">
                 <Search
                   size={12}
-                  className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground"
+                  className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none"
                 />
                 <input
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Search in folder…"
-                  className="w-full pl-7 pr-6 py-1 rounded-lg text-xs bg-surface2 border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary"
+                  className="w-full pl-7 pr-6 py-1.5 rounded-lg text-xs bg-surface2 border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary transition-colors"
                 />
                 {searchQuery && (
                   <button
                     type="button"
                     onClick={() => setSearchQuery('')}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground text-[10px]"
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground text-[10px] cursor-pointer"
                   >
                     ✕
                   </button>

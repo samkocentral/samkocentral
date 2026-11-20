@@ -626,6 +626,22 @@ export default function PropertiesClient() {
           className="flex items-center gap-2.5 px-6 py-2.5 border-b border-border flex-shrink-0 flex-wrap"
           style={{ background: 'var(--surface)' }}
         >
+          {hasDeleteAccess && (
+            <div className="flex items-center gap-2 pl-1 pr-3 border-r border-border mr-1 select-none flex-shrink-0">
+              <TableCheckbox
+                checked={isAllPropertiesPageSelected}
+                indeterminate={selectedPropertyIds.length > 0 && !isAllPropertiesPageSelected}
+                onChange={handleToggleSelectAllPropertiesPage}
+                title="Select all on this page"
+              />
+              <span
+                onClick={handleToggleSelectAllPropertiesPage}
+                className="text-xs font-semibold text-foreground cursor-pointer hover:text-primary transition-colors"
+              >
+                Select All
+              </span>
+            </div>
+          )}
           {cmsDropdowns.map((drop) => (
             <CustomDropdown
               key={drop.id}
@@ -676,13 +692,13 @@ export default function PropertiesClient() {
                 key={hotel?.id}
                 className={`flex flex-col justify-between h-full rounded-xl border p-5 transition-all duration-150 hover:border-opacity-60 ${
                   hasDeleteAccess && selectedPropertyIds.includes(hotel?.id)
-                    ? 'border-[#e8c97a] shadow-[0_0_15px_rgba(232,201,122,0.15)] bg-[#e8c97a]/5'
+                    ? 'border-[#b4831f] dark:border-[#e8c97a] shadow-[0_0_15px_rgba(180,131,31,0.12)] dark:shadow-[0_0_15px_rgba(232,201,122,0.15)] bg-[#b4831f]/5 dark:bg-[#e8c97a]/5'
                     : 'border-border'
                 }`}
                 style={{
                   background:
                     hasDeleteAccess && selectedPropertyIds.includes(hotel?.id)
-                      ? 'rgba(232,201,122,0.04)'
+                      ? 'rgba(180, 131, 31, 0.05)'
                       : 'var(--surface)',
                 }}
               >

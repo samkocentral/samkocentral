@@ -27,6 +27,8 @@ import {
   Clock,
   User,
   FileText,
+  Sun,
+  Moon,
 } from 'lucide-react';
 import { useAuth, DEMO_CREDENTIALS } from '@/lib/authContext';
 import { getInitialTasks, type TaskItem } from '@/data/tasksData';
@@ -101,6 +103,47 @@ export default function Topbar({
   const [selectedAlertModal, setSelectedAlertModal] = useState<AppNotification | null>(null);
   const [selectedTaskModal, setSelectedTaskModal] = useState<TaskItem | null>(null);
   const [pendingApprovalsCount, setPendingApprovalsCount] = useState<number>(0);
+  const [isDarkMode, setIsDarkMode] = useState<boolean>(true);
+
+  useEffect(() => {
+    const checkTheme = () => {
+      try {
+        const saved = localStorage.getItem('samko_theme');
+        if (saved) {
+          setIsDarkMode(saved === 'dark');
+        } else {
+          setIsDarkMode(!document.documentElement.classList.contains('light'));
+        }
+      } catch {}
+    };
+
+    checkTheme();
+    window.addEventListener('samko:theme-changed', checkTheme);
+    window.addEventListener('storage', checkTheme);
+    return () => {
+      window.removeEventListener('samko:theme-changed', checkTheme);
+      window.removeEventListener('storage', checkTheme);
+    };
+  }, []);
+
+  const handleToggleTheme = () => {
+    const nextDark = !isDarkMode;
+    setIsDarkMode(nextDark);
+    if (typeof window !== 'undefined') {
+      const mode = nextDark ? 'dark' : 'light';
+      localStorage.setItem('samko_theme', mode);
+      if (nextDark) {
+        document.documentElement.classList.remove('light');
+        document.documentElement.classList.add('dark');
+        document.documentElement.setAttribute('data-theme', 'dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+        document.documentElement.classList.add('light');
+        document.documentElement.setAttribute('data-theme', 'light');
+      }
+      window.dispatchEvent(new CustomEvent('samko:theme-changed', { detail: { theme: mode } }));
+    }
+  };
 
   useEffect(() => {
     const fetchUsers = async () => {
@@ -429,7 +472,7 @@ export default function Topbar({
 
           {/* Portal Indicator / Switcher */}
           <div
-            className="flex items-center rounded-lg p-0.5"
+            className="samko-segment-container flex items-center rounded-lg p-0.5"
             style={{ background: 'var(--surface2)', border: '1px solid var(--border)' }}
           >
             <button
@@ -442,7 +485,9 @@ export default function Topbar({
                   router.push(url.pathname + url.search);
                 }
               }}
-              className="px-2.5 py-1 rounded text-[11px] font-bold transition-all cursor-pointer"
+              data-active={activePortal === 'propco' ? 'true' : 'false'}
+              data-portal="propco"
+              className="samko-portal-switcher-btn px-2.5 py-1 rounded text-[11px] font-bold transition-all cursor-pointer"
               style={{
                 background: activePortal === 'propco' ? 'var(--primary)' : 'transparent',
                 color: activePortal === 'propco' ? '#000' : 'var(--text2)',
@@ -460,7 +505,9 @@ export default function Topbar({
                   router.push(url.pathname + url.search);
                 }
               }}
-              className="px-2.5 py-1 rounded text-[11px] font-bold transition-all cursor-pointer"
+              data-active={activePortal === 'opco' ? 'true' : 'false'}
+              data-portal="opco"
+              className="samko-portal-switcher-btn px-2.5 py-1 rounded text-[11px] font-bold transition-all cursor-pointer"
               style={{
                 background: activePortal === 'opco' ? 'var(--primary)' : 'transparent',
                 color: activePortal === 'opco' ? '#000' : 'var(--text2)',
@@ -895,7 +942,7 @@ export default function Topbar({
 
               {/* Dynamic Task Count Badge */}
               <span
-                className="min-w-[18px] h-[18px] px-1 rounded-full flex items-center justify-center text-[10px] font-black"
+                className="samko-count-badge samko-count-badge-amber min-w-[18px] h-[18px] px-1 rounded-full flex items-center justify-center text-[10px] font-black"
                 style={{
                   background: 'rgba(232, 201, 122, 0.2)',
                   color: 'var(--primary)',
@@ -1118,12 +1165,28 @@ export default function Topbar({
             <ClipboardCheck size={14} className="text-primary" />
             <span className="hidden sm:inline">Approvals</span>
             {pendingApprovalsCount > 0 && (
-              <span className="px-1.5 py-0.2 rounded-full text-[10px] font-black bg-rose-500/20 text-rose-300 border border-rose-500/30">
+              <span className="samko-count-badge samko-count-badge-rose px-1.5 py-0.2 rounded-full text-[10px] font-black bg-rose-500/20 text-rose-300 border border-rose-500/30">
                 {pendingApprovalsCount}
               </span>
             )}
           </Link>
         )}
+
+        {/* Dark / Light Mode Toggle Switcher */}
+        <button
+          type="button"
+          onClick={handleToggleTheme}
+          className="w-8 h-8 rounded-full flex items-center justify-center border border-border transition-all duration-200 hover:bg-surface2 hover:border-border-strong cursor-pointer text-foreground shadow-sm group"
+          style={{ background: 'var(--surface2)' }}
+          title={isDarkMode ? 'Switch to Pure White Mode' : 'Switch to Dark Mode'}
+          aria-label={isDarkMode ? 'Switch to Pure White Mode' : 'Switch to Dark Mode'}
+        >
+          {isDarkMode ? (
+            <Sun size={15} className="text-amber-400 group-hover:text-amber-300 transition-transform duration-200 group-hover:rotate-45" />
+          ) : (
+            <Moon size={15} className="text-slate-700 dark:text-slate-300 transition-transform duration-200 group-hover:-rotate-12" />
+          )}
+        </button>
 
         {/* User Account Dropdown */}
         <div className="relative" ref={userMenuRef}>
@@ -1135,7 +1198,7 @@ export default function Topbar({
           >
             <div
               className="w-6 h-6 rounded-full flex items-center justify-center font-bold text-[10px]"
-              style={{ background: roleBadgeColor, color: '#000' }}
+              style={{ background: roleBadgeColor, color: '#ffffff' }}
             >
               {user.initials || 'SA'}
             </div>

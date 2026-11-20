@@ -79,23 +79,23 @@ function KPICard({
 }) {
   return (
     <div
-      className="rounded-xl border border-border p-4 relative overflow-hidden"
+      className="samko-kpi-card rounded-xl border border-border p-4 relative overflow-hidden transition-all shadow-sm"
       style={{ background: 'var(--surface)' }}
     >
-      <div className="absolute top-0 left-0 right-0 h-0.5" style={{ background: color }} />
+      <div className="absolute top-0 left-0 right-0 h-1" style={{ background: color }} />
       <div className="flex items-center justify-between mb-3">
         <div
           className="w-8 h-8 rounded-lg flex items-center justify-center"
           style={{ background: `${color}18` }}
         >
-          <Icon size={15} style={{ color }} />
+          <Icon size={16} style={{ color }} />
         </div>
       </div>
-      <div className="font-head text-2xl font-extrabold" style={{ color }}>
+      <div className="font-head text-2xl font-extrabold samko-kpi-val tracking-tight" style={{ color }}>
         {value}
       </div>
-      <div className="text-xs font-semibold mt-0.5">{label}</div>
-      <div className="text-xs text-muted-foreground mt-0.5">{sub}</div>
+      <div className="text-xs font-bold mt-1 text-foreground">{label}</div>
+      <div className="text-[11px] text-muted-foreground mt-0.5">{sub}</div>
     </div>
   );
 }
@@ -182,6 +182,7 @@ const topDeptData = DEPARTMENTS.map((d) => ({
 
 // ── Maintenance Report ────────────────────────────────────────────────────────
 const MAINTENANCE_BY_HOTEL = HOTELS.map((h) => ({
+  id: h.id,
   name: h.name.split(' ').slice(0, 2).join(' '),
   fullName: h.name,
   scheduled: MAINTENANCE_RECORDS.filter((m) => m.hotelId === h.id && m.status === 'scheduled')
@@ -935,17 +936,13 @@ function MaintenanceReport() {
             Maintenance schedule, completion and overdue analysis
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="samko-segment-container flex items-center gap-1 p-1 rounded-xl">
           {(['overview', 'charts', 'export'] as const).map((s) => (
             <button
               key={s}
               onClick={() => setActiveSection(s)}
-              className="px-4 py-2 rounded-lg text-sm font-medium capitalize transition-colors"
-              style={{
-                background: activeSection === s ? 'rgba(232,201,122,0.12)' : 'var(--surface2)',
-                color: activeSection === s ? 'var(--primary)' : 'var(--text2)',
-                border: `1px solid ${activeSection === s ? 'var(--primary)' : 'var(--border)'}`,
-              }}
+              data-active={activeSection === s ? 'true' : 'false'}
+              className="samko-segment-btn px-4 py-1.5 rounded-lg text-xs font-bold capitalize transition-all cursor-pointer"
             >
               {s}
             </button>
@@ -1010,29 +1007,40 @@ function MaintenanceReport() {
                     </tr>
                   </thead>
                   <tbody>
-                    {accessibleMaintByHotel.map((row) => (
+                    {accessibleMaintByHotel.map((row, idx) => (
                       <tr
-                        key={row.name}
+                        key={row.fullName || (row as any).id || `${row.name}-${idx}`}
                         className="border-b border-border"
                         onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--surface2)')}
                         onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
                       >
-                        <td className="px-4 py-3 font-medium text-sm">{row.fullName}</td>
-                        <td className="px-4 py-3 text-sm" style={{ color: '#60a5fa' }}>
+                        <td className="px-4 py-3 font-medium text-sm text-foreground">{row.fullName}</td>
+                        <td
+                          className={`px-4 py-3 text-sm font-semibold tabular-nums ${row.scheduled > 0 ? 'cell-num-scheduled' : 'cell-num-zero text-muted-foreground'}`}
+                          style={{ color: row.scheduled > 0 ? undefined : undefined }}
+                        >
                           {row.scheduled}
                         </td>
-                        <td className="px-4 py-3 text-sm" style={{ color: '#f59e0b' }}>
+                        <td
+                          className={`px-4 py-3 text-sm font-semibold tabular-nums ${row.dueToday > 0 ? 'cell-num-due' : 'cell-num-zero text-muted-foreground'}`}
+                          style={{ color: row.dueToday > 0 ? undefined : undefined }}
+                        >
                           {row.dueToday}
                         </td>
-                        <td className="px-4 py-3 text-sm" style={{ color: '#f43f5e' }}>
+                        <td
+                          className={`px-4 py-3 text-sm font-semibold tabular-nums ${row.overdue > 0 ? 'cell-num-overdue' : 'cell-num-zero text-muted-foreground'}`}
+                          style={{ color: row.overdue > 0 ? undefined : undefined }}
+                        >
                           {row.overdue}
                         </td>
-                        <td className="px-4 py-3 text-sm" style={{ color: '#3dd68c' }}>
+                        <td
+                          className={`px-4 py-3 text-sm font-semibold tabular-nums ${row.completed > 0 ? 'cell-num-completed' : 'cell-num-zero text-muted-foreground'}`}
+                          style={{ color: row.completed > 0 ? undefined : undefined }}
+                        >
                           {row.completed}
                         </td>
                         <td
-                          className="px-4 py-3 font-bold text-sm"
-                          style={{ color: 'var(--primary)' }}
+                          className="px-4 py-3 font-bold text-sm tabular-nums text-primary"
                         >
                           {row.scheduled + row.dueToday + row.overdue + row.completed}
                         </td>
@@ -1228,17 +1236,13 @@ function InsuranceReport() {
             Policy coverage, premiums and renewal analysis
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="samko-segment-container flex items-center gap-1 p-1 rounded-xl">
           {(['overview', 'charts', 'export'] as const).map((s) => (
             <button
               key={s}
               onClick={() => setActiveSection(s)}
-              className="px-4 py-2 rounded-lg text-sm font-medium capitalize transition-colors"
-              style={{
-                background: activeSection === s ? 'rgba(232,201,122,0.12)' : 'var(--surface2)',
-                color: activeSection === s ? 'var(--primary)' : 'var(--text2)',
-                border: `1px solid ${activeSection === s ? 'var(--primary)' : 'var(--border)'}`,
-              }}
+              data-active={activeSection === s ? 'true' : 'false'}
+              className="samko-segment-btn px-4 py-1.5 rounded-lg text-xs font-bold capitalize transition-all cursor-pointer"
             >
               {s}
             </button>
@@ -1464,17 +1468,13 @@ function ContractReport() {
             Supplier contracts, values and renewal analysis
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="samko-segment-container flex items-center gap-1 p-1 rounded-xl">
           {(['overview', 'charts', 'export'] as const).map((s) => (
             <button
               key={s}
               onClick={() => setActiveSection(s)}
-              className="px-4 py-2 rounded-lg text-sm font-medium capitalize transition-colors"
-              style={{
-                background: activeSection === s ? 'rgba(232,201,122,0.12)' : 'var(--surface2)',
-                color: activeSection === s ? 'var(--primary)' : 'var(--text2)',
-                border: `1px solid ${activeSection === s ? 'var(--primary)' : 'var(--border)'}`,
-              }}
+              data-active={activeSection === s ? 'true' : 'false'}
+              className="samko-segment-btn px-4 py-1.5 rounded-lg text-xs font-bold capitalize transition-all cursor-pointer"
             >
               {s}
             </button>
@@ -1703,17 +1703,13 @@ function ComplianceReport() {
             Statutory compliance, certifications and risk analysis
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="samko-segment-container flex items-center gap-1 p-1 rounded-xl">
           {(['overview', 'charts', 'export'] as const).map((s) => (
             <button
               key={s}
               onClick={() => setActiveSection(s)}
-              className="px-4 py-2 rounded-lg text-sm font-medium capitalize transition-colors"
-              style={{
-                background: activeSection === s ? 'rgba(232,201,122,0.12)' : 'var(--surface2)',
-                color: activeSection === s ? 'var(--primary)' : 'var(--text2)',
-                border: `1px solid ${activeSection === s ? 'var(--primary)' : 'var(--border)'}`,
-              }}
+              data-active={activeSection === s ? 'true' : 'false'}
+              className="samko-segment-btn px-4 py-1.5 rounded-lg text-xs font-bold capitalize transition-all cursor-pointer"
             >
               {s}
             </button>
@@ -1780,12 +1776,12 @@ function ComplianceReport() {
                   <tbody>
                     {accessibleComplianceByHotel
                       .filter((r) => r.total > 0)
-                      .map((row) => {
+                      .map((row, idx) => {
                         const rate =
                           row.total > 0 ? Math.round((row.compliant / row.total) * 100) : 0;
                         return (
                           <tr
-                            key={row.name}
+                            key={row.fullName || `${row.name}-${idx}`}
                             className="border-b border-border"
                             onMouseEnter={(e) =>
                               (e.currentTarget.style.background = 'var(--surface2)')
@@ -2852,17 +2848,13 @@ function UtilitiesReport() {
             properties
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="samko-segment-container flex items-center gap-1 p-1 rounded-xl">
           {(['overview', 'charts', 'export'] as const).map((s) => (
             <button
               key={s}
               onClick={() => setActiveSection(s)}
-              className="px-4 py-2 rounded-lg text-sm font-medium capitalize transition-colors"
-              style={{
-                background: activeSection === s ? 'rgba(232,201,122,0.12)' : 'var(--surface2)',
-                color: activeSection === s ? 'var(--primary)' : 'var(--text2)',
-                border: `1px solid ${activeSection === s ? 'var(--primary)' : 'var(--border)'}`,
-              }}
+              data-active={activeSection === s ? 'true' : 'false'}
+              className="samko-segment-btn px-4 py-1.5 rounded-lg text-xs font-bold capitalize transition-all cursor-pointer"
             >
               {s}
             </button>
@@ -2965,9 +2957,9 @@ function UtilitiesReport() {
                     </tr>
                   </thead>
                   <tbody>
-                    {utilitiesByProperty.map((row) => (
+                    {utilitiesByProperty.map((row, idx) => (
                       <tr
-                        key={row.name}
+                        key={row.fullName || `${row.name}-${idx}`}
                         className="border-b border-border"
                         onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--surface2)')}
                         onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}

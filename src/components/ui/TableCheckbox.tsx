@@ -33,16 +33,16 @@ export default function TableCheckbox({
       title={title}
       className={`w-4 h-4 rounded-[4px] flex items-center justify-center flex-shrink-0 transition-all duration-150 outline-none select-none ${
         disabled
-          ? 'opacity-30 cursor-not-allowed border border-white/10 bg-white/[0.02]'
+          ? 'opacity-30 cursor-not-allowed border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/[0.02]'
           : isSelected
-            ? 'border border-[#e8c97a] bg-[#e8c97a] shadow-sm cursor-pointer'
-            : 'border border-white/25 bg-white/[0.04] hover:border-[#e8c97a]/60 hover:bg-white/[0.08] cursor-pointer'
+            ? 'border border-[#b4831f] dark:border-[#e8c97a] bg-[#b4831f] dark:bg-[#e8c97a] shadow-sm cursor-pointer'
+            : 'border border-slate-300 dark:border-white/25 bg-slate-100/90 dark:bg-white/[0.04] hover:border-[#b4831f] dark:hover:border-[#e8c97a]/60 hover:bg-slate-200/60 dark:hover:bg-white/[0.08] cursor-pointer'
       } ${className}`}
     >
       {checked && !indeterminate && (
-        <Check size={11} strokeWidth={3.5} className="text-[#121316]" />
+        <Check size={11} strokeWidth={3.5} className="text-white dark:text-[#121316]" />
       )}
-      {indeterminate && <Minus size={11} strokeWidth={3.5} className="text-[#121316]" />}
+      {indeterminate && <Minus size={11} strokeWidth={3.5} className="text-white dark:text-[#121316]" />}
     </button>
   );
 }

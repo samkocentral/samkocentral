@@ -1095,7 +1095,7 @@ export default function AssetsClient() {
           {hasWriteAccess && canUpload && (
             <Link
               href="/asset-management/import"
-              className="flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-semibold transition-colors hover:border-primary"
+              className="samko-btn-ghost flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-semibold transition-colors hover:border-primary"
               style={{
                 background: 'var(--surface2)',
                 color: 'var(--text2)',
@@ -1110,7 +1110,7 @@ export default function AssetsClient() {
             <>
               <button
                 onClick={() => setShowAddCategoryModal(true)}
-                className="flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-semibold border border-border transition-colors hover:border-primary"
+                className="samko-btn-ghost flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-semibold border border-border transition-colors hover:border-primary"
                 style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
               >
                 <Tag size={13} style={{ color: 'var(--primary)' }} />
@@ -1118,8 +1118,8 @@ export default function AssetsClient() {
               </button>
               <button
                 onClick={() => setShowAddAssetModal(true)}
-                className="flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-semibold transition-transform active:scale-95"
-                style={{ background: 'var(--primary)', color: '#000' }}
+                className="samko-btn-primary flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-semibold transition-transform active:scale-95"
+                style={{ background: 'var(--primary)' }}
               >
                 <Plus size={14} />
                 {(cmsPrimaryActionLabel || (isNonFixed ? 'Add FF&E Asset' : 'Add Asset'))

@@ -9728,10 +9728,11 @@
       "property": "Crowne Plaza Kingston-south",
       "hotel": "Crowne Plaza Kingston-south",
       "priority": "urgent",
-      "status": "open",
+      "status": "completed",
       "category": "Gas Safety",
       "assignee": "Marcus Webb",
-      "due": "2026-11-30"
+      "due": "2026-11-30",
+      "updatedAt": "2026-11-20T13:58:04.708Z"
     },
     {
       "id": "task-002",
@@ -9741,10 +9742,11 @@
       "property": "Stanhill Court",
       "hotel": "Stanhill Court",
       "priority": "high",
-      "status": "in_progress",
+      "status": "open",
       "category": "Water Hygiene",
       "assignee": "Sarah Chen",
-      "due": "2026-12-05"
+      "due": "2026-12-05",
+      "updatedAt": "2026-11-20T13:58:28.659Z"
     },
     {
       "id": "task-003",
@@ -9757,7 +9759,8 @@
       "status": "open",
       "category": "Plant & Machinery",
       "assignee": "Marcus Webb",
-      "due": "2026-12-15"
+      "due": "2026-12-15",
+      "updatedAt": "2026-11-20T13:58:25.912Z"
     }
   ],
   "alerts": [
@@ -10086,7 +10089,7 @@
       "name": "Digital Bot",
       "initials": "DB",
       "roleLevel": "L1",
-      "lastLogin": "2026-11-16",
+      "lastLogin": "2026-11-20",
       "password": "DigitalBot@2026",
       "roleTitle": "Super Admin",
       "email": "digitalbot@samkocentral.com",
@@ -10201,7 +10204,7 @@
           "accessLevel": "write"
         }
       },
-      "updatedAt": "2026-11-16T09:12:44.468Z"
+      "updatedAt": "2026-11-20T14:23:08.824Z"
     },
     {
       "id": "usr-l1-001",
@@ -10810,128 +10813,6 @@
         }
       },
       "updatedAt": "2026-11-19T07:22:41.589Z"
-    },
-    {
-      "id": "usr-l2-511370",
-      "name": "Madhu",
-      "initials": "M",
-      "roleLevel": "L2",
-      "lastLogin": "2026-11-19",
-      "password": "Madhu2026!",
-      "roleTitle": "Property Director / GM",
-      "email": "madhu@gmail.com",
-      "description": "Site-wide asset oversight, budget approvals & high-level operations",
-      "role": "admin",
-      "portal": "opco",
-      "assignedProperties": [
-        "Crowne Plaza Kingston-south",
-        "Stanhill Court"
-      ],
-      "hotel": "Crowne Plaza Kingston-south, Stanhill Court",
-      "status": "active",
-      "tabPermissions": {
-        "dashboard": {
-          "enabled": true,
-          "accessLevel": "write"
-        },
-        "propco-dashboard": {
-          "enabled": true,
-          "accessLevel": "write"
-        },
-        "opco-dashboard": {
-          "enabled": true,
-          "accessLevel": "write"
-        },
-        "properties": {
-          "enabled": true,
-          "accessLevel": "write"
-        },
-        "tasks": {
-          "enabled": true,
-          "accessLevel": "write"
-        },
-        "recent-logs": {
-          "enabled": true,
-          "accessLevel": "write"
-        },
-        "fixed-assets": {
-          "enabled": true,
-          "accessLevel": "write"
-        },
-        "non-fixed-assets": {
-          "enabled": true,
-          "accessLevel": "write"
-        },
-        "categories": {
-          "enabled": true,
-          "accessLevel": "write"
-        },
-        "maintenance": {
-          "enabled": true,
-          "accessLevel": "write"
-        },
-        "compliance": {
-          "enabled": true,
-          "accessLevel": "write"
-        },
-        "compliance-tracker": {
-          "enabled": true,
-          "accessLevel": "write"
-        },
-        "insurance": {
-          "enabled": true,
-          "accessLevel": "write"
-        },
-        "contracts": {
-          "enabled": true,
-          "accessLevel": "write"
-        },
-        "utilities": {
-          "enabled": true,
-          "accessLevel": "write"
-        },
-        "documents": {
-          "enabled": true,
-          "accessLevel": "write"
-        },
-        "reports": {
-          "enabled": true,
-          "accessLevel": "write"
-        },
-        "import": {
-          "enabled": true,
-          "accessLevel": "write"
-        },
-        "inspections": {
-          "enabled": true,
-          "accessLevel": "write"
-        },
-        "qr-codes": {
-          "enabled": true,
-          "accessLevel": "write"
-        },
-        "multi-site": {
-          "enabled": true,
-          "accessLevel": "write"
-        },
-        "users": {
-          "enabled": true,
-          "accessLevel": "write"
-        },
-        "settings": {
-          "enabled": true,
-          "accessLevel": "read"
-        },
-        "approvals": {
-          "enabled": false,
-          "accessLevel": "read"
-        },
-        "docs-upload": {
-          "enabled": true,
-          "accessLevel": "write"
-        }
-      },
-      "updatedAt": "2026-11-19T07:19:53.099Z"
     }
   ],
   "acquisitionFolders": [],

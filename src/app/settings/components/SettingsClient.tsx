@@ -199,6 +199,51 @@ export default function SettingsClient() {
   }, []);
 
   const [saved, setSaved] = useState(false);
+  const [isDarkMode, setIsDarkMode] = useState<boolean>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('samko_theme');
+      if (saved) return saved === 'dark';
+      return !document.documentElement.classList.contains('light');
+    }
+    return true;
+  });
+
+  useEffect(() => {
+    const handleThemeSync = () => {
+      try {
+        const saved = localStorage.getItem('samko_theme');
+        if (saved) setIsDarkMode(saved === 'dark');
+        else setIsDarkMode(!document.documentElement.classList.contains('light'));
+      } catch {}
+    };
+    window.addEventListener('samko:theme-changed', handleThemeSync);
+    window.addEventListener('storage', handleThemeSync);
+    return () => {
+      window.removeEventListener('samko:theme-changed', handleThemeSync);
+      window.removeEventListener('storage', handleThemeSync);
+    };
+  }, []);
+
+  const handleToggleTheme = (enableDark: boolean) => {
+    setIsDarkMode(enableDark);
+    if (typeof window !== 'undefined') {
+      const mode = enableDark ? 'dark' : 'light';
+      localStorage.setItem('samko_theme', mode);
+      if (enableDark) {
+        document.documentElement.classList.remove('light');
+        document.documentElement.classList.add('dark');
+        document.documentElement.setAttribute('data-theme', 'dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+        document.documentElement.classList.add('light');
+        document.documentElement.setAttribute('data-theme', 'light');
+      }
+      window.dispatchEvent(new CustomEvent('samko:theme-changed', { detail: { theme: mode } }));
+      toast.success(enableDark ? 'Dark Mode activated' : 'Pure White Mode activated', {
+        description: enableDark ? 'Platform theme set to Dark' : 'Platform theme set to Pure White',
+      });
+    }
+  };
   const [seedLoading, setSeedLoading] = useState(false);
   const [seedResult, setSeedResult] = useState<string | null>(null);
   const [apiStatus, setApiStatus] = useState<any | null>(null);
@@ -426,8 +471,8 @@ export default function SettingsClient() {
         </div>
         <button
           onClick={handleSave}
-          className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all"
-          style={{ background: saved ? '#3dd68c' : 'var(--primary)', color: '#000' }}
+          className="samko-btn-primary flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all shadow-sm cursor-pointer"
+          style={saved ? { background: '#10b981', color: '#ffffff' } : undefined}
         >
           <Save size={14} />
           {saved ? 'Saved!' : 'Save Changes'}
@@ -781,8 +826,15 @@ export default function SettingsClient() {
           {activeTab === 'appearance' && (
             <div>
               <SectionCard title="Theme">
-                <SettingRow label="Dark Mode" desc="Use dark theme across the platform">
-                  <Toggle checked onChange={() => {}} />
+                <SettingRow
+                  label="Dark Mode"
+                  desc={
+                    isDarkMode
+                      ? 'Dark theme is active across the platform. Turn off for Pure White theme.'
+                      : 'Pure White theme is active across the platform. Turn on for Dark theme.'
+                  }
+                >
+                  <Toggle checked={isDarkMode} onChange={handleToggleTheme} />
                 </SettingRow>
                 <SettingRow label="Compact Mode" desc="Reduce spacing for denser layouts">
                   <Toggle onChange={() => {}} />

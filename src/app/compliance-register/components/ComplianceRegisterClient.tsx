@@ -1131,11 +1131,11 @@ export default function ComplianceRegisterClient() {
                 : 'OpCo Compliance & Certification Register'}
             </h1>
             {isPropcoPortal ? (
-              <span className="px-2 py-0.5 rounded text-[10px] font-bold tracking-wider border border-[#e8c97a]/40 bg-[#e8c97a]/15 text-[#e8c97a] uppercase">
+              <span className="px-2 py-0.5 rounded text-[10px] font-bold tracking-wider border border-amber-300 dark:border-[#e8c97a]/40 bg-amber-50 dark:bg-[#e8c97a]/15 text-amber-800 dark:text-[#e8c97a] uppercase shadow-xs">
                 PropCo Asset Co
               </span>
             ) : (
-              <span className="px-2 py-0.5 rounded text-[10px] font-bold tracking-wider border border-[#60a5fa]/40 bg-[#60a5fa]/15 text-[#60a5fa] uppercase">
+              <span className="px-2 py-0.5 rounded text-[10px] font-bold tracking-wider border border-blue-300 dark:border-[#60a5fa]/40 bg-blue-50 dark:bg-[#60a5fa]/15 text-blue-700 dark:text-[#60a5fa] uppercase shadow-xs">
                 OpCo Operations
               </span>
             )}
@@ -1152,7 +1152,7 @@ export default function ComplianceRegisterClient() {
 
           <button
             onClick={handleExport}
-            className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium border border-border hover:bg-surface2 transition-all active:scale-95 cursor-pointer"
+            className="samko-btn-ghost flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold border border-border hover:bg-surface2 transition-all active:scale-95 cursor-pointer shadow-xs"
             style={{ background: 'var(--surface2)', color: 'var(--text2)' }}
           >
             <Download size={13} /> Export
@@ -1162,7 +1162,7 @@ export default function ComplianceRegisterClient() {
               <button
                 type="button"
                 onClick={() => setShowAddCategoryModal(true)}
-                className="flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-semibold border border-border transition-colors hover:border-primary cursor-pointer"
+                className="samko-btn-ghost flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-semibold border border-border transition-colors hover:border-primary cursor-pointer shadow-xs"
                 style={{ background: 'var(--surface2)', color: 'var(--foreground)' }}
               >
                 <Tag size={13} style={{ color: 'var(--primary)' }} />
@@ -1170,8 +1170,8 @@ export default function ComplianceRegisterClient() {
               </button>
               <button
                 onClick={() => setShowAddModal(true)}
-                className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-transform active:scale-95"
-                style={{ background: 'var(--primary)', color: '#000' }}
+                className="samko-btn-primary flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-transform active:scale-95 shadow-sm"
+                style={{ background: 'var(--primary)', color: 'var(--primary-foreground, #ffffff)' }}
               >
                 <Plus size={14} />{' '}
                 {(cmsPrimaryActionLabel || 'Add Compliance Item').replace(/^[\+\s]+/, '').trim()}

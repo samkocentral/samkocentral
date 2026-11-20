@@ -38,6 +38,562 @@
   --text3: #5a6478;
 }
 
+/* ───────────────────────────────────────────────────────────── */
+/* Pure White / Light Mode Theme ("Pole White" Executive Luxury) */
+/* ───────────────────────────────────────────────────────────── */
+html.light,
+html[data-theme='light'],
+body.light,
+[data-theme='light'] {
+  --background: #f8fafc;
+  --foreground: #0f172a;
+  --primary: #b4831f;
+  --primary-foreground: #ffffff;
+  --secondary: #f1f5f9;
+  --secondary-foreground: #0f172a;
+  --accent: #926714;
+  --accent-foreground: #ffffff;
+  --muted: #f1f5f9;
+  --muted-foreground: #64748b;
+  --card: #ffffff;
+  --card-foreground: #0f172a;
+  --border: #e2e8f0;
+  --border-strong: #cbd5e1;
+  --input: #ffffff;
+  --ring: #b4831f;
+  --ok: #059669;
+  --ok-bg: rgba(5, 150, 105, 0.12);
+  --warning: #d97706;
+  --warning-bg: rgba(217, 119, 6, 0.12);
+  --critical: #dc2626;
+  --critical-bg: rgba(220, 38, 38, 0.12);
+  --info: #2563eb;
+  --info-bg: rgba(37, 99, 235, 0.12);
+  --purple: #7c3aed;
+  --surface: #ffffff;
+  --surface2: #f8fafc;
+  --surface3: #f1f5f9;
+  --text2: #334155;
+  --text3: #64748b;
+
+  --badge-propco-bg: #fef3c7;
+  --badge-propco-color: #92400e;
+  --badge-opco-bg: #eff6ff;
+  --badge-opco-color: #1d4ed8;
+  --badge-both-bg: #ecfdf5;
+  --badge-both-color: #047857;
+  --badge-bottom-bg: #f1f5f9;
+  --badge-bottom-color: #475569;
+  --badge-hidden-bg: #fff1f2;
+  --badge-hidden-color: #be123c;
+  --logo-subtitle: #2563eb;
+}
+
+html.light,
+html[data-theme='light'] {
+  color-scheme: light !important;
+}
+
+html.light body,
+html[data-theme='light'] body {
+  background-color: #f8fafc !important;
+  color: #0f172a !important;
+}
+
+/* Base Cards & Containers */
+html.light .samko-card,
+html[data-theme='light'] .samko-card {
+  background-color: #ffffff !important;
+  border-color: #e2e8f0 !important;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 1px 2px -1px rgba(0, 0, 0, 0.03) !important;
+}
+
+/* Base Button & Segment Controls (Default / Dark Theme) */
+.samko-btn-primary {
+  background-color: var(--primary);
+  color: #0a0c10;
+  font-weight: 700;
+  box-shadow: 0 2px 6px rgba(232, 201, 122, 0.25);
+  border: 1px solid rgba(232, 201, 122, 0.35);
+}
+.samko-btn-primary:hover {
+  filter: brightness(1.08);
+}
+
+.samko-btn-ghost {
+  background-color: var(--surface2);
+  border: 1px solid var(--border);
+  color: var(--foreground);
+  font-weight: 600;
+}
+.samko-btn-ghost:hover {
+  background-color: var(--surface3);
+}
+
+.samko-segment-container {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+}
+
+.samko-segment-btn {
+  color: var(--muted-foreground);
+  border: 1px solid transparent;
+}
+.samko-segment-btn[data-active='true'] {
+  background-color: rgba(232, 201, 122, 0.12);
+  color: var(--primary);
+  border-color: rgba(232, 201, 122, 0.3);
+}
+.samko-segment-btn[data-active='false']:hover {
+  color: var(--foreground);
+}
+
+/* Primary and Ghost Buttons in Light Mode */
+html.light .samko-btn-primary,
+html[data-theme='light'] .samko-btn-primary {
+  background-color: #b4831f !important;
+  color: #ffffff !important;
+  font-weight: 700 !important;
+  box-shadow: 0 2px 8px rgba(180, 131, 31, 0.32) !important;
+  border: 1px solid #9a6e16 !important;
+}
+
+html.light .samko-btn-primary:hover,
+html[data-theme='light'] .samko-btn-primary:hover {
+  background-color: #9a6e16 !important;
+  color: #ffffff !important;
+}
+
+html.light .samko-btn-ghost,
+html[data-theme='light'] .samko-btn-ghost {
+  background-color: #ffffff !important;
+  border: 1px solid #cbd5e1 !important;
+  color: #1e293b !important;
+  font-weight: 600 !important;
+}
+
+html.light .samko-btn-ghost:hover,
+html[data-theme='light'] .samko-btn-ghost:hover {
+  background-color: #f1f5f9 !important;
+  border-color: #94a3b8 !important;
+  color: #0f172a !important;
+}
+
+/* Form Inputs & Selects */
+html.light .samko-input,
+html[data-theme='light'] .samko-input {
+  background-color: #ffffff !important;
+  border-color: #cbd5e1 !important;
+  color: #0f172a !important;
+}
+
+html.light .samko-input:focus,
+html[data-theme='light'] .samko-input:focus {
+  border-color: #b4831f !important;
+  box-shadow: 0 0 0 2px rgba(180, 131, 31, 0.15) !important;
+}
+
+html.light .samko-input::placeholder,
+html[data-theme='light'] .samko-input::placeholder {
+  color: #94a3b8 !important;
+}
+
+html.light select,
+html[data-theme='light'] select {
+  color-scheme: light !important;
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+  border-color: #cbd5e1 !important;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%23b4831f' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E") !important;
+}
+
+/* Table Polish */
+html.light th,
+html[data-theme='light'] th {
+  color: #334155 !important;
+  font-weight: 700 !important;
+  border-color: #e2e8f0 !important;
+}
+
+html.light thead,
+html[data-theme='light'] thead {
+  background-color: #f8fafc !important;
+}
+
+html.light .table-header-cell,
+html[data-theme='light'] .table-header-cell {
+  background-color: #f8fafc !important;
+  color: #475569 !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.05em !important;
+  border-bottom: 1px solid #e2e8f0 !important;
+}
+
+html.light .table-cell,
+html[data-theme='light'] .table-cell {
+  color: #0f172a !important;
+  border-bottom: 1px solid #f1f5f9 !important;
+}
+
+html.light .table-row-hover:hover .table-cell,
+html[data-theme='light'] .table-row-hover:hover .table-cell {
+  background-color: #f8fafc !important;
+}
+
+/* High Contrast Table Numbers */
+html.light .cell-num-scheduled {
+  color: #2563eb !important;
+  font-weight: 700 !important;
+}
+html.light .cell-num-due {
+  color: #d97706 !important;
+  font-weight: 700 !important;
+}
+html.light .cell-num-overdue {
+  color: #dc2626 !important;
+  font-weight: 700 !important;
+}
+html.light .cell-num-completed {
+  color: #059669 !important;
+  font-weight: 700 !important;
+}
+html.light .cell-num-zero {
+  color: #94a3b8 !important;
+  font-weight: 500 !important;
+}
+
+/* Segmented Control / Tabs (Overview, Charts, Export) */
+html.light .samko-segment-container,
+html[data-theme='light'] .samko-segment-container {
+  background: #f1f5f9 !important;
+  border: 1px solid #e2e8f0 !important;
+}
+
+html.light .samko-segment-btn[data-active='true'],
+html[data-theme='light'] .samko-segment-btn[data-active='true'] {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+  border-color: #cbd5e1 !important;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.08), 0 1px 2px -1px rgba(0, 0, 0, 0.04) !important;
+  font-weight: 700 !important;
+}
+
+html.light .samko-segment-btn[data-active='false'],
+html[data-theme='light'] .samko-segment-btn[data-active='false'] {
+  background-color: transparent !important;
+  color: #64748b !important;
+  border-color: transparent !important;
+  font-weight: 600 !important;
+}
+
+html.light .samko-segment-btn[data-active='false']:hover,
+html[data-theme='light'] .samko-segment-btn[data-active='false']:hover {
+  background-color: #e2e8f0 !important;
+  color: #0f172a !important;
+}
+
+/* Sidebar Nav Items in Light Mode */
+html.light .samko-sidebar-nav-item,
+html[data-theme='light'] .samko-sidebar-nav-item {
+  color: #334155 !important;
+}
+
+html.light .samko-sidebar-nav-item:hover,
+html[data-theme='light'] .samko-sidebar-nav-item:hover {
+  background-color: #f1f5f9 !important;
+  color: #0f172a !important;
+}
+
+html.light .samko-sidebar-nav-item[data-active='true'][data-portal='opco'],
+html[data-theme='light'] .samko-sidebar-nav-item[data-active='true'][data-portal='opco'] {
+  background-color: #eff6ff !important;
+  border-color: #bfdbfe !important;
+  color: #1d4ed8 !important;
+  box-shadow: 0 1px 3px rgba(29, 78, 216, 0.1) !important;
+  font-weight: 700 !important;
+}
+
+html.light .samko-sidebar-nav-item[data-active='true'][data-portal='propco'],
+html[data-theme='light'] .samko-sidebar-nav-item[data-active='true'][data-portal='propco'] {
+  background-color: #fefce8 !important;
+  border-color: #fde68a !important;
+  color: #92400e !important;
+  box-shadow: 0 1px 3px rgba(180, 131, 31, 0.1) !important;
+  font-weight: 700 !important;
+}
+
+/* Portal Section Accordion Header in Light Mode */
+html.light .samko-portal-header[data-active='true'][data-portal='opco'],
+html[data-theme='light'] .samko-portal-header[data-active='true'][data-portal='opco'] {
+  background-color: #eff6ff !important;
+  border-color: #bfdbfe !important;
+}
+
+html.light .samko-portal-header[data-active='true'][data-portal='propco'],
+html[data-theme='light'] .samko-portal-header[data-active='true'][data-portal='propco'] {
+  background-color: #fefce8 !important;
+  border-color: #fde68a !important;
+}
+
+/* Modal Filter Buttons & Tab Cards */
+html.light .samko-filter-pill[data-selected='true'],
+html[data-theme='light'] .samko-filter-pill[data-selected='true'] {
+  background-color: #0f172a !important;
+  color: #ffffff !important;
+  border-color: #0f172a !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15) !important;
+}
+
+html.light .samko-filter-pill[data-selected='false'],
+html[data-theme='light'] .samko-filter-pill[data-selected='false'] {
+  background-color: #ffffff !important;
+  color: #334155 !important;
+  border-color: #cbd5e1 !important;
+}
+
+html.light .samko-filter-pill[data-selected='false']:hover,
+html[data-theme='light'] .samko-filter-pill[data-selected='false']:hover {
+  background-color: #f1f5f9 !important;
+  color: #0f172a !important;
+  border-color: #94a3b8 !important;
+}
+
+/* Modal Tab Card Rows */
+html.light .samko-tab-row,
+html[data-theme='light'] .samko-tab-row {
+  background-color: #ffffff !important;
+  border-color: #e2e8f0 !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03) !important;
+}
+
+html.light .samko-tab-row:hover,
+html[data-theme='light'] .samko-tab-row:hover {
+  background-color: #f8fafc !important;
+  border-color: #cbd5e1 !important;
+}
+
+/* Modal Location Buttons (PropCo, OpCo, Both, Bottom, Hide) */
+html.light .samko-loc-btn,
+html[data-theme='light'] .samko-loc-btn {
+  background-color: #ffffff !important;
+  border: 1px solid #cbd5e1 !important;
+  color: #475569 !important;
+  font-weight: 600 !important;
+}
+
+html.light .samko-loc-btn:hover,
+html[data-theme='light'] .samko-loc-btn:hover {
+  background-color: #f1f5f9 !important;
+  color: #0f172a !important;
+  border-color: #94a3b8 !important;
+}
+
+html.light .samko-loc-btn[data-active='true'].samko-loc-propco,
+html[data-theme='light'] .samko-loc-btn[data-active='true'].samko-loc-propco {
+  background-color: #fef3c7 !important;
+  color: #92400e !important;
+  border-color: #f59e0b !important;
+  font-weight: 700 !important;
+}
+
+html.light .samko-loc-btn[data-active='true'].samko-loc-opco,
+html[data-theme='light'] .samko-loc-btn[data-active='true'].samko-loc-opco {
+  background-color: #eff6ff !important;
+  color: #1d4ed8 !important;
+  border-color: #3b82f6 !important;
+  font-weight: 700 !important;
+}
+
+html.light .samko-loc-btn[data-active='true'].samko-loc-both,
+html[data-theme='light'] .samko-loc-btn[data-active='true'].samko-loc-both {
+  background-color: #ecfdf5 !important;
+  color: #047857 !important;
+  border-color: #10b981 !important;
+  font-weight: 700 !important;
+}
+
+html.light .samko-loc-btn[data-active='true'].samko-loc-bottom,
+html[data-theme='light'] .samko-loc-btn[data-active='true'].samko-loc-bottom {
+  background-color: #f5f3ff !important;
+  color: #6d28d9 !important;
+  border-color: #8b5cf6 !important;
+  font-weight: 700 !important;
+}
+
+html.light .samko-loc-btn[data-active='true'].samko-loc-hide,
+html[data-theme='light'] .samko-loc-btn[data-active='true'].samko-loc-hide {
+  background-color: #fff1f2 !important;
+  color: #be123c !important;
+  border-color: #f43f5e !important;
+  font-weight: 700 !important;
+}
+
+/* Sidebar Critical Alert Banner */
+html.light .samko-alert-banner,
+html[data-theme='light'] .samko-alert-banner {
+  background: #fef2f2 !important;
+  border-color: #fecaca !important;
+}
+html.light .samko-alert-banner span {
+  color: #dc2626 !important;
+  font-weight: 700 !important;
+}
+
+/* Explanatory Banner in Modal */
+html.light .samko-banner-card,
+html[data-theme='light'] .samko-banner-card {
+  background: linear-gradient(135deg, #fefce8 0%, #eff6ff 100%) !important;
+  border-color: #fde68a !important;
+}
+
+/* KPI Cards & Numbers */
+html.light .samko-kpi-card,
+html[data-theme='light'] .samko-kpi-card {
+  background-color: #ffffff !important;
+  border-color: #e2e8f0 !important;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 1px 2px -1px rgba(0, 0, 0, 0.03) !important;
+}
+
+html.light .samko-kpi-val,
+html[data-theme='light'] .samko-kpi-val {
+  color: #0f172a !important;
+  font-weight: 800 !important;
+}
+
+/* Header & Nav Counter Badges in Light Mode */
+html.light .samko-count-badge-rose,
+html[data-theme='light'] .samko-count-badge-rose {
+  background-color: #fee2e2 !important;
+  color: #b91c1c !important;
+  border: 1px solid #fca5a5 !important;
+  font-weight: 800 !important;
+}
+
+html.light .samko-count-badge-amber,
+html[data-theme='light'] .samko-count-badge-amber {
+  background-color: #fef3c7 !important;
+  color: #b45309 !important;
+  border: 1px solid #fcd34d !important;
+  font-weight: 800 !important;
+}
+
+/* Topbar / Dashboard Portal Switcher in Light Mode */
+html.light .samko-portal-switcher-btn[data-active='true'][data-portal='propco'],
+html[data-theme='light'] .samko-portal-switcher-btn[data-active='true'][data-portal='propco'] {
+  background-color: #fef3c7 !important;
+  color: #92400e !important;
+  border: 1px solid #f59e0b !important;
+  box-shadow: 0 1px 3px rgba(180, 131, 31, 0.15) !important;
+  font-weight: 700 !important;
+}
+
+html.light .samko-portal-switcher-btn[data-active='true'][data-portal='opco'],
+html[data-theme='light'] .samko-portal-switcher-btn[data-active='true'][data-portal='opco'] {
+  background-color: #eff6ff !important;
+  color: #1d4ed8 !important;
+  border: 1px solid #3b82f6 !important;
+  box-shadow: 0 1px 3px rgba(29, 78, 216, 0.15) !important;
+  font-weight: 700 !important;
+}
+
+html.light .samko-portal-switcher-btn[data-active='false'],
+html[data-theme='light'] .samko-portal-switcher-btn[data-active='false'] {
+  background-color: transparent !important;
+  color: #64748b !important;
+  border: 1px solid transparent !important;
+}
+
+html.light .samko-portal-switcher-btn[data-active='false']:hover,
+html[data-theme='light'] .samko-portal-switcher-btn[data-active='false']:hover {
+  background-color: #f1f5f9 !important;
+  color: #0f172a !important;
+}
+
+/* Status Badges */
+html.light .status-badge,
+html[data-theme='light'] .status-badge {
+  font-weight: 700 !important;
+}
+
+html.light .filter-chip-btn,
+html[data-theme='light'] .filter-chip-btn {
+  background-color: #ffffff !important;
+  border-color: #cbd5e1 !important;
+  color: #334155 !important;
+}
+
+html.light .filter-chip-btn:hover,
+html[data-theme='light'] .filter-chip-btn:hover {
+  background-color: #f1f5f9 !important;
+  color: #0f172a !important;
+}
+
+html.light .filter-chip-btn.active-chip,
+html[data-theme='light'] .filter-chip-btn.active-chip {
+  background-color: rgba(180, 131, 31, 0.12) !important;
+  border-color: #b4831f !important;
+  color: #b4831f !important;
+}
+
+html.light [data-sonner-toast],
+html[data-theme='light'] [data-sonner-toast] {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+  border-color: #e2e8f0 !important;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1) !important;
+}
+
+html.light [data-sonner-toast] [data-title],
+html[data-theme='light'] [data-sonner-toast] [data-title] {
+  color: #0f172a !important;
+}
+
+/* Pagination high-contrast in Light Mode */
+html.light .pagination-bar,
+html[data-theme='light'] .pagination-bar {
+  background-color: #ffffff !important;
+  border-top-color: #e2e8f0 !important;
+  color: #334155 !important;
+}
+
+html.light .pagination-btn,
+html[data-theme='light'] .pagination-btn {
+  border-color: #cbd5e1 !important;
+  color: #1e293b !important;
+  background-color: #ffffff !important;
+}
+
+html.light .pagination-btn:hover,
+html[data-theme='light'] .pagination-btn:hover {
+  background-color: #f1f5f9 !important;
+  color: #0f172a !important;
+  border-color: #94a3b8 !important;
+}
+
+html.light .pagination-btn:disabled,
+html[data-theme='light'] .pagination-btn:disabled {
+  opacity: 0.3 !important;
+}
+
+html.light [data-sonner-toast] [data-description],
+html[data-theme='light'] [data-sonner-toast] [data-description] {
+  color: #64748b !important;
+}
+
+html.light ::-webkit-scrollbar-track,
+html[data-theme='light'] ::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+html.light ::-webkit-scrollbar-thumb,
+html[data-theme='light'] ::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+html.light ::-webkit-scrollbar-thumb:hover,
+html[data-theme='light'] ::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
 @layer base {
   *,
   *::before,
