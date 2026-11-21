@@ -370,21 +370,12 @@ export default function CompleteAppCMS({ activeSection, onSelectSection }: Props
     <div className="flex flex-col gap-6 max-w-6xl pb-24 w-full">
       {/* CMS Top Header */}
       <div
-        className="rounded-2xl border p-6 relative overflow-hidden shadow-sm"
-        style={{
-          background:
-            'linear-gradient(135deg, rgba(232, 201, 122, 0.08) 0%, rgba(18, 19, 22, 0.95) 100%)',
-          borderColor: 'rgba(232, 201, 122, 0.25)',
-        }}
+        className="rounded-2xl border border-amber-200 dark:border-amber-500/25 p-6 relative overflow-hidden shadow-sm bg-white dark:bg-card bg-gradient-to-br from-amber-500/[0.08] via-white to-white dark:from-amber-950/40 dark:via-card dark:to-card"
       >
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 relative z-10">
           <div className="flex items-start gap-3.5">
             <div
-              className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 shadow-md"
-              style={{
-                background: 'linear-gradient(135deg, #e8c97a 0%, #b89340 100%)',
-                color: '#121316',
-              }}
+              className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 shadow-md bg-gradient-to-br from-amber-500 to-amber-700 text-white dark:from-[#e8c97a] dark:to-[#b89340] dark:text-[#121316]"
             >
               {activeSection === 'dashboard' && <LayoutDashboard size={24} strokeWidth={2.3} />}
               {activeSection === 'propco' && <Building2 size={24} strokeWidth={2.3} />}
@@ -406,17 +397,12 @@ export default function CompleteAppCMS({ activeSection, onSelectSection }: Props
                   {activeSection === 'navigation' && 'Complete App Navigation CMS'}
                 </h2>
                 <span
-                  className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold tracking-wider uppercase"
-                  style={{
-                    background: 'rgba(232, 201, 122, 0.15)',
-                    color: 'var(--primary)',
-                    border: '1px solid rgba(232, 201, 122, 0.3)',
-                  }}
+                  className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold tracking-wider uppercase bg-amber-100 text-amber-800 border border-amber-300 dark:bg-amber-500/20 dark:text-[#e8c97a] dark:border-amber-500/40"
                 >
                   Super Admin L1
                 </span>
               </div>
-              <p className="text-xs text-muted-foreground mt-1 leading-relaxed max-w-2xl">
+              <p className="text-xs text-slate-600 dark:text-muted-foreground mt-1 leading-relaxed max-w-2xl">
                 Edit everything in this section: titles, badges, colors, tabs, URLs, icons,
                 descriptions, and add new tabs with dynamic routing.
               </p>
@@ -574,7 +560,7 @@ export default function CompleteAppCMS({ activeSection, onSelectSection }: Props
                     </div>
                   </div>
                 ) : (
-                  <div className="flex items-center justify-between p-3 rounded-lg border border-border/80 bg-black/20">
+                  <div className="flex items-center justify-between p-3 rounded-lg border border-border/80 bg-slate-50 dark:bg-black/20">
                     <div className="flex items-center gap-2.5">
                       <span
                         className="font-head font-bold text-sm tracking-wider uppercase"

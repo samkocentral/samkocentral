@@ -31,18 +31,18 @@ export default function TableCheckbox({
         if (!disabled) onChange(e);
       }}
       title={title}
-      className={`w-4 h-4 rounded-[4px] flex items-center justify-center flex-shrink-0 transition-all duration-150 outline-none select-none ${
+      className={`w-[18px] h-[18px] rounded-[5px] flex items-center justify-center flex-shrink-0 transition-all duration-150 outline-none select-none ${
         disabled
-          ? 'opacity-30 cursor-not-allowed border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/[0.02]'
+          ? 'opacity-30 cursor-not-allowed border-[1.5px] border-slate-300 dark:border-white/10 bg-slate-100 dark:bg-white/[0.02]'
           : isSelected
-            ? 'border border-[#b4831f] dark:border-[#e8c97a] bg-[#b4831f] dark:bg-[#e8c97a] shadow-sm cursor-pointer'
-            : 'border border-slate-300 dark:border-white/25 bg-slate-100/90 dark:bg-white/[0.04] hover:border-[#b4831f] dark:hover:border-[#e8c97a]/60 hover:bg-slate-200/60 dark:hover:bg-white/[0.08] cursor-pointer'
+            ? 'border-[1.5px] border-[#b4831f] dark:border-[#e8c97a] bg-[#b4831f] dark:bg-[#e8c97a] shadow-sm cursor-pointer'
+            : 'border-[1.5px] border-slate-400 dark:border-white/40 bg-white dark:bg-[#1a1f2c] hover:border-[#b4831f] dark:hover:border-[#e8c97a] hover:bg-slate-50 dark:hover:bg-white/[0.08] shadow-xs cursor-pointer'
       } ${className}`}
     >
       {checked && !indeterminate && (
-        <Check size={11} strokeWidth={3.5} className="text-white dark:text-[#121316]" />
+        <Check size={12} strokeWidth={3.5} className="text-white dark:text-[#121316]" />
       )}
-      {indeterminate && <Minus size={11} strokeWidth={3.5} className="text-white dark:text-[#121316]" />}
+      {indeterminate && <Minus size={12} strokeWidth={3.5} className="text-white dark:text-[#121316]" />}
     </button>
   );
 }

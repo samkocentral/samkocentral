@@ -437,14 +437,14 @@ export default function CustomDropdown({
           <div className="flex items-center gap-2.5 truncate">
             {/* Crisp visible checkbox in both light & dark mode */}
             <div
-              className={`w-4 h-4 rounded-[4px] flex items-center justify-center flex-shrink-0 transition-all duration-150 ${
+              className={`w-[18px] h-[18px] rounded-[5px] flex items-center justify-center flex-shrink-0 transition-all duration-150 ${
                 isAllSelected
-                  ? 'border border-[#b4831f] dark:border-[#e8c97a] bg-[#b4831f] dark:bg-[#e8c97a] shadow-sm'
-                  : 'border border-slate-300 dark:border-white/25 bg-slate-100/90 dark:bg-white/[0.04] group-hover:border-[#b4831f] dark:group-hover:border-[#e8c97a]/60 group-hover:bg-slate-200/60 dark:group-hover:bg-white/[0.08]'
+                  ? 'border-[1.5px] border-[#b4831f] dark:border-[#e8c97a] bg-[#b4831f] dark:bg-[#e8c97a] shadow-sm'
+                  : 'border-[1.5px] border-slate-400 dark:border-white/40 bg-white dark:bg-[#1a1f2c] group-hover:border-[#b4831f] dark:group-hover:border-[#e8c97a] group-hover:bg-slate-50 dark:group-hover:bg-white/[0.08] shadow-xs'
               }`}
             >
               {isAllSelected && (
-                <Check size={11} strokeWidth={3.5} className="text-white dark:text-[#121316]" />
+                <Check size={12} strokeWidth={3.5} className="text-white dark:text-[#121316]" />
               )}
             </div>
             <span>{topAllOption.label}</span>
@@ -481,14 +481,14 @@ export default function CustomDropdown({
             <div className="flex items-center gap-2.5 truncate min-w-0">
               {/* Crisp visible checkbox in both light & dark mode */}
               <div
-                className={`w-4 h-4 rounded-[4px] flex items-center justify-center flex-shrink-0 transition-all duration-150 ${
+                className={`w-[18px] h-[18px] rounded-[5px] flex items-center justify-center flex-shrink-0 transition-all duration-150 ${
                   isSelected
-                    ? 'border border-[#b4831f] dark:border-[#e8c97a] bg-[#b4831f] dark:bg-[#e8c97a] shadow-sm'
-                    : 'border border-slate-300 dark:border-white/25 bg-slate-100/90 dark:bg-white/[0.04] group-hover:border-[#b4831f] dark:group-hover:border-[#e8c97a]/60 group-hover:bg-slate-200/60 dark:group-hover:bg-white/[0.08]'
+                    ? 'border-[1.5px] border-[#b4831f] dark:border-[#e8c97a] bg-[#b4831f] dark:bg-[#e8c97a] shadow-sm'
+                    : 'border-[1.5px] border-slate-400 dark:border-white/40 bg-white dark:bg-[#1a1f2c] group-hover:border-[#b4831f] dark:group-hover:border-[#e8c97a] group-hover:bg-slate-50 dark:group-hover:bg-white/[0.08] shadow-xs'
                 }`}
               >
                 {isSelected && (
-                  <Check size={11} strokeWidth={3.5} className="text-white dark:text-[#121316]" />
+                  <Check size={12} strokeWidth={3.5} className="text-white dark:text-[#121316]" />
                 )}
               </div>
 

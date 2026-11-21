@@ -33,24 +33,32 @@ export default function ConfirmDeleteModal({
   return (
     <div
       className="fixed inset-0 z-[100] flex items-center justify-center p-4 animate-in fade-in duration-150"
-      style={{ background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(4px)' }}
+      style={{ background: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(6px)' }}
       onClick={onClose}
     >
       <div
-        className="w-full max-w-md rounded-2xl border border-rose-500/30 p-6 shadow-2xl animate-in zoom-in-95 duration-200 text-foreground"
-        style={{ background: 'var(--surface, #11141a)', backgroundColor: '#11141a' }}
+        className="w-full max-w-md rounded-2xl border border-rose-500/40 p-6 shadow-2xl animate-in zoom-in-95 duration-200 text-foreground"
+        style={{
+          background: 'var(--card, #ffffff)',
+          backgroundColor: 'var(--card, #ffffff)',
+          color: 'var(--foreground, #0f172a)',
+        }}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header with warning icon and title */}
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-rose-500/20 text-rose-400 flex-shrink-0">
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-rose-500/20 text-rose-500 dark:text-rose-400 flex-shrink-0">
               <AlertTriangle size={20} />
             </div>
             <div>
-              <h3 className="font-head font-bold text-base text-foreground">{title}</h3>
+              <h3 className="font-head font-bold text-base text-foreground" style={{ color: 'var(--foreground)' }}>
+                {title}
+              </h3>
               {itemIdentifier && (
-                <p className="text-xs text-muted-foreground font-mono mt-0.5">{itemIdentifier}</p>
+                <p className="text-xs text-muted-foreground font-mono mt-0.5" style={{ color: 'var(--muted-foreground)' }}>
+                  {itemIdentifier}
+                </p>
               )}
             </div>
           </div>
@@ -58,18 +66,19 @@ export default function ConfirmDeleteModal({
             type="button"
             onClick={onClose}
             disabled={isDeleting}
-            className="p-1 rounded-lg text-muted-foreground hover:text-foreground hover:bg-surface2 transition-colors cursor-pointer"
+            className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-black/5 dark:hover:bg-white/10 transition-colors cursor-pointer"
+            aria-label="Close dialog"
           >
             <X size={16} />
           </button>
         </div>
 
         {/* Warning text */}
-        <p className="text-xs leading-relaxed text-muted-foreground mb-5">
+        <p className="text-xs leading-relaxed text-muted-foreground mb-5" style={{ color: 'var(--muted-foreground)' }}>
           {customWarning || (
             <>
               Are you sure you want to permanently delete{' '}
-              <strong className="text-foreground font-semibold">"{itemName}"</strong> from the{' '}
+              <strong className="text-foreground font-semibold" style={{ color: 'var(--foreground)' }}>"{itemName}"</strong> from the{' '}
               {registerName}? This action cannot be undone.
             </>
           )}
@@ -81,8 +90,8 @@ export default function ConfirmDeleteModal({
             type="button"
             disabled={isDeleting}
             onClick={onClose}
-            className="px-4 py-2 rounded-lg text-xs font-semibold border border-border hover:bg-surface2 transition-colors cursor-pointer"
-            style={{ background: 'var(--surface2)', color: 'var(--text2)' }}
+            className="px-4 py-2 rounded-lg text-xs font-semibold border border-slate-300 dark:border-white/15 hover:bg-slate-100 dark:hover:bg-white/10 transition-colors cursor-pointer"
+            style={{ background: 'var(--surface2, #f1f5f9)', color: 'var(--foreground, #0f172a)' }}
           >
             Cancel
           </button>

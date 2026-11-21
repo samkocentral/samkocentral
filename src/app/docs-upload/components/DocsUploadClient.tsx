@@ -149,7 +149,7 @@ export default function DocsUploadClient() {
   // Search & Filter state
   const [search, setSearch] = useState('');
   const [filterCategory, setFilterCategory] = useState('all');
-  const [filterProperty, setFilterProperty] = useState('all');
+  const [filterProperty, setFilterProperty] = useState<string[]>([]);
   const [filterStatus, setFilterStatus] = useState<'all' | 'ok' | 'warning' | 'critical'>('all');
 
   // Modals state
@@ -265,7 +265,14 @@ export default function DocsUploadClient() {
     return accessibleDocuments.filter((doc) => {
       if (filterStatus !== 'all' && doc.status !== filterStatus) return false;
       if (filterCategory !== 'all' && doc.category !== filterCategory) return false;
-      if (filterProperty !== 'all' && doc.site !== filterProperty) return false;
+      if (
+        filterProperty.length > 0 &&
+        !filterProperty.some(
+          (p) => !p || p.toLowerCase() === 'all' || p.toLowerCase() === 'all properties'
+        )
+      ) {
+        if (!filterProperty.includes(doc.site)) return false;
+      }
 
       if (search.trim()) {
         const q = search.toLowerCase();
@@ -560,9 +567,10 @@ export default function DocsUploadClient() {
               onChange={setFilterProperty}
               options={propertyOptions.map((name) => ({ value: name, label: name }))}
               placeholder="All Properties"
-              allLabel="All Properties"
+              label="All Properties"
               size="sm"
               variant="filter"
+              multiple
             />
 
             {/* Category Filter */}

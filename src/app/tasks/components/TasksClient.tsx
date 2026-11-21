@@ -80,7 +80,7 @@ export default function TasksClient() {
           const parsed = JSON.parse(cached);
           if (Array.isArray(parsed) && parsed.length > 0) return parsed.map(normalizeTaskItem);
         }
-      } catch {}
+      } catch { }
     }
     return getInitialTasks().map(normalizeTaskItem);
   });
@@ -93,7 +93,7 @@ export default function TasksClient() {
         setTasks(normalized);
         try {
           sessionStorage.setItem('samko_cache_tasks', JSON.stringify(normalized));
-        } catch {}
+        } catch { }
       }
     } catch (e) {
       console.warn('Tasks live fetch fallback:', e);
@@ -108,7 +108,7 @@ export default function TasksClient() {
   }, [fetchTasks]);
 
   // Requirement 1: Header Global Filters
-  const [selectedProperty, setSelectedProperty] = useState<string>('ALL');
+  const [selectedProperty, setSelectedProperty] = useState<string[]>([]);
   const [selectedAssignee, setSelectedAssignee] = useState<string>('ALL');
   const [insightsEnabled, setInsightsEnabled] = useState<boolean>(false);
 
@@ -228,13 +228,19 @@ export default function TasksClient() {
     return combined.filter((p) => isPropertyAccessible(p));
   }, [liveProperties, tasks, isPropertyAccessible]);
 
+  const isAllPropertiesSelected =
+    selectedProperty.length === 0 ||
+    selectedProperty.some(
+      (p) => !p || p.toLowerCase() === 'all' || p.toLowerCase() === 'all properties'
+    );
+
   // Filter tasks based on property, assignee, status tab, and search
   const filteredTasks = useMemo(() => {
     return accessibleTasks.filter((t) => {
       // Property filter
-      if (selectedProperty !== 'ALL') {
+      if (!isAllPropertiesSelected) {
         const prop = (t.property || (t as any).hotel || (t as any).site || '').toLowerCase().trim();
-        if (prop !== selectedProperty.toLowerCase().trim()) {
+        if (!selectedProperty.some((p) => p.toLowerCase().trim() === prop)) {
           return false;
         }
       }
@@ -267,7 +273,7 @@ export default function TasksClient() {
 
       return true;
     });
-  }, [accessibleTasks, selectedProperty, selectedAssignee, activeTab, searchQuery]);
+  }, [accessibleTasks, selectedProperty, isAllPropertiesSelected, selectedAssignee, activeTab, searchQuery]);
 
   const {
     currentPage,
@@ -281,12 +287,12 @@ export default function TasksClient() {
 
   // Summary Metrics calculations (across selected properties)
   const scopedTasks = useMemo(() => {
-    if (selectedProperty === 'ALL') return accessibleTasks;
+    if (isAllPropertiesSelected) return accessibleTasks;
     return accessibleTasks.filter((t) => {
       const prop = (t.property || (t as any).hotel || (t as any).site || '').toLowerCase().trim();
-      return prop === selectedProperty.toLowerCase().trim();
+      return selectedProperty.some((p) => p.toLowerCase().trim() === prop);
     });
-  }, [accessibleTasks, selectedProperty]);
+  }, [accessibleTasks, selectedProperty, isAllPropertiesSelected]);
 
   const openCount = scopedTasks.filter((t) => t.status !== 'completed').length;
   const overdueCount = scopedTasks.filter(
@@ -333,10 +339,9 @@ export default function TasksClient() {
             <CustomDropdown
               icon={<Building2 size={14} className="text-primary" />}
               value={selectedProperty}
-              options={[
-                { value: 'ALL', label: `All Properties (${accessibleTaskProperties.length})` },
-                ...accessibleTaskProperties.map((p) => ({ value: p, label: p })),
-              ]}
+              options={accessibleTaskProperties.map((p) => ({ value: p, label: p }))}
+              label={`All Properties (${accessibleTaskProperties.length})`}
+              multiple
               onChange={setSelectedProperty}
             />
 
@@ -391,11 +396,11 @@ export default function TasksClient() {
               </div>
             </div>
 
-            {(selectedProperty !== 'ALL' || selectedAssignee !== 'ALL') && (
+            {(!isAllPropertiesSelected || selectedAssignee !== 'ALL') && (
               <button
                 type="button"
                 onClick={() => {
-                  setSelectedProperty('ALL');
+                  setSelectedProperty([]);
                   setSelectedAssignee('ALL');
                 }}
                 className="text-xs text-primary hover:underline font-semibold flex items-center gap-1"
@@ -439,7 +444,7 @@ export default function TasksClient() {
                   <Plus size={14} />
                   <span>
                     {(cms.primaryActionLabel &&
-                    cms.primaryActionLabel.trim().toLowerCase() !== 'add item'
+                      cms.primaryActionLabel.trim().toLowerCase() !== 'add item'
                       ? cms.primaryActionLabel
                       : 'Add Task'
                     )
@@ -486,7 +491,7 @@ export default function TasksClient() {
               </span>
             </div>
             <div className="text-[11px] text-muted-foreground mt-0.5">
-              Across {selectedProperty === 'ALL' ? 'all properties' : selectedProperty}
+              Across {isAllPropertiesSelected ? 'all properties' : `${selectedProperty.length} properties`}
             </div>
           </div>
           <div
@@ -579,11 +584,7 @@ export default function TasksClient() {
       {/* ───────────────────────────────────────────────────────────── */}
       {insightsEnabled && (
         <div
-          className="rounded-2xl border p-5 space-y-4 animate-fadeIn"
-          style={{
-            background: 'linear-gradient(180deg, rgba(24,28,36,0.95) 0%, rgba(17,19,24,0.95) 100%)',
-            borderColor: 'rgba(232,201,122,0.3)',
-          }}
+          className="rounded-2xl border border-amber-200 dark:border-amber-500/30 p-5 space-y-4 animate-fadeIn bg-white dark:bg-card shadow-sm"
         >
           <div className="flex items-center justify-between border-b border-border pb-3">
             <div className="flex items-center gap-2">
@@ -659,7 +660,7 @@ export default function TasksClient() {
                   const propTasks = accessibleTasks.filter(
                     (t) =>
                       (t.property || (t as any).site || (t as any).hotel || '').toLowerCase() ===
-                        prop.toLowerCase() && t.status !== 'completed'
+                      prop.toLowerCase() && t.status !== 'completed'
                   );
                   return (
                     <div key={prop} className="text-xs">
@@ -724,11 +725,10 @@ export default function TasksClient() {
           <button
             type="button"
             onClick={() => setActiveTab('all')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-              activeTab === 'all'
-                ? 'bg-primary text-black font-bold shadow-sm'
-                : 'text-muted-foreground hover:text-foreground'
-            }`}
+            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${activeTab === 'all'
+              ? 'bg-primary text-black font-bold shadow-sm'
+              : 'text-muted-foreground hover:text-foreground'
+              }`}
           >
             All Tasks ({scopedTasks.length})
           </button>
@@ -736,11 +736,10 @@ export default function TasksClient() {
           <button
             type="button"
             onClick={() => setActiveTab('open')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-              activeTab === 'open'
-                ? 'bg-primary text-black font-bold shadow-sm'
-                : 'text-muted-foreground hover:text-foreground'
-            }`}
+            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${activeTab === 'open'
+              ? 'bg-primary text-black font-bold shadow-sm'
+              : 'text-muted-foreground hover:text-foreground'
+              }`}
           >
             Open ({openCount})
           </button>
@@ -748,11 +747,10 @@ export default function TasksClient() {
           <button
             type="button"
             onClick={() => setActiveTab('urgent')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-              activeTab === 'urgent'
-                ? 'bg-rose-500 text-white font-bold shadow-sm'
-                : 'text-muted-foreground hover:text-rose-400'
-            }`}
+            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${activeTab === 'urgent'
+              ? 'bg-rose-500 text-white font-bold shadow-sm'
+              : 'text-muted-foreground hover:text-rose-400'
+              }`}
           >
             Urgent ({urgentCount})
           </button>
@@ -760,11 +758,10 @@ export default function TasksClient() {
           <button
             type="button"
             onClick={() => setActiveTab('completed')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-              activeTab === 'completed'
-                ? 'bg-emerald-500 text-white font-bold shadow-sm'
-                : 'text-muted-foreground hover:text-emerald-400'
-            }`}
+            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${activeTab === 'completed'
+              ? 'bg-emerald-500 text-white font-bold shadow-sm'
+              : 'text-muted-foreground hover:text-emerald-400'
+              }`}
           >
             Completed ({completedCount})
           </button>
@@ -827,7 +824,7 @@ export default function TasksClient() {
           <button
             type="button"
             onClick={() => {
-              setSelectedProperty('ALL');
+              setSelectedProperty([]);
               setSelectedAssignee('ALL');
               setActiveTab('all');
               setSearchQuery('');
@@ -837,7 +834,7 @@ export default function TasksClient() {
             Clear All Filters
           </button>
         </div>
-      ) : groupByProperty && selectedProperty === 'ALL' ? (
+      ) : groupByProperty && isAllPropertiesSelected ? (
         /* Grouped by Property Feed */
         <div className="space-y-6">
           {Object.entries(tasksByProperty).map(([propertyName, propertyTasks]) => (
@@ -915,14 +912,14 @@ export default function TasksClient() {
         isOpen={isAddModalOpen}
         onClose={() => setIsAddModalOpen(false)}
         onTaskCreated={handleTaskCreated}
-        defaultProperty={selectedProperty}
+        defaultProperty={selectedProperty[0] || 'ALL'}
       />
 
       {/* 2. "Upload document" Modal */}
       <UploadDocumentModal
         isOpen={isUploadModalOpen}
         onClose={() => setIsUploadModalOpen(false)}
-        defaultProperty={selectedProperty}
+        defaultProperty={selectedProperty[0] || 'ALL'}
       />
 
       {/* 3. Delete Confirmation Dialog in Middle */}
@@ -1171,20 +1168,18 @@ function TaskCardRow({
 
   return (
     <div
-      className={`p-4 transition-all hover:bg-surface2/60 flex items-start gap-3.5 group ${
-        isCompleted ? 'opacity-65' : ''
-      }`}
+      className={`p-4 transition-all hover:bg-surface2/60 flex items-start gap-3.5 group ${isCompleted ? 'opacity-65' : ''
+        }`}
     >
       {/* Checkbox */}
       <button
         type="button"
         disabled={!canWrite}
         onClick={() => canWrite && onToggleComplete(task.id)}
-        className={`mt-0.5 transition-colors flex-shrink-0 ${
-          canWrite
-            ? 'text-muted-foreground hover:text-emerald-400 cursor-pointer'
-            : 'text-muted-foreground/40 cursor-default'
-        }`}
+        className={`mt-0.5 transition-colors flex-shrink-0 ${canWrite
+          ? 'text-muted-foreground hover:text-emerald-400 cursor-pointer'
+          : 'text-muted-foreground/40 cursor-default'
+          }`}
         title={
           !canWrite
             ? 'Read-only access (status changes restricted)'
@@ -1227,9 +1222,8 @@ function TaskCardRow({
 
         {/* Title */}
         <h3
-          className={`text-sm font-semibold text-foreground leading-snug transition-all ${
-            isCompleted ? 'line-through text-muted-foreground' : ''
-          }`}
+          className={`text-sm font-semibold text-foreground leading-snug transition-all ${isCompleted ? 'line-through text-muted-foreground' : ''
+            }`}
         >
           {task.title}
         </h3>

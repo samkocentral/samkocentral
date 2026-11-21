@@ -821,21 +821,12 @@ export default function DeepPageCMSEditor({
         <>
           {/* Top Banner */}
           <div
-            className="rounded-2xl border p-6 relative overflow-hidden shadow-sm"
-            style={{
-              background:
-                'linear-gradient(135deg, rgba(232, 201, 122, 0.08) 0%, rgba(18, 19, 22, 0.95) 100%)',
-              borderColor: 'rgba(232, 201, 122, 0.25)',
-            }}
+            className="rounded-2xl border border-amber-200 dark:border-amber-500/25 p-6 relative overflow-hidden shadow-sm bg-white dark:bg-card bg-gradient-to-br from-amber-500/[0.08] via-white to-white dark:from-amber-950/40 dark:via-card dark:to-card"
           >
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
               <div className="flex items-start gap-3.5">
                 <div
-                  className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 shadow-md"
-                  style={{
-                    background: 'linear-gradient(135deg, #e8c97a 0%, #b89340 100%)',
-                    color: '#121316',
-                  }}
+                  className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 shadow-md bg-gradient-to-br from-amber-500 to-amber-700 text-white dark:from-[#e8c97a] dark:to-[#b89340] dark:text-[#121316]"
                 >
                   <Sparkles size={24} strokeWidth={2.3} />
                 </div>
@@ -845,17 +836,12 @@ export default function DeepPageCMSEditor({
                       Page Content CMS
                     </h2>
                     <span
-                      className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold tracking-wider uppercase"
-                      style={{
-                        background: 'rgba(232, 201, 122, 0.15)',
-                        color: 'var(--primary)',
-                        border: '1px solid rgba(232, 201, 122, 0.3)',
-                      }}
+                      className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold tracking-wider uppercase bg-amber-100 text-amber-800 border border-amber-300 dark:bg-amber-500/20 dark:text-[#e8c97a] dark:border-amber-500/40"
                     >
                       Page Editor
                     </span>
                   </div>
-                  <p className="text-xs text-muted-foreground mt-1 leading-relaxed max-w-2xl">
+                  <p className="text-xs text-slate-600 dark:text-muted-foreground mt-1 leading-relaxed max-w-2xl">
                     Customize live page hero text, button labels, KPI metric cards, and table
                     content across the application.
                   </p>
@@ -902,7 +888,7 @@ export default function DeepPageCMSEditor({
               </div>
 
               {/* Live search input */}
-              <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-border bg-black/20 sm:w-64">
+              <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-border bg-slate-50 dark:bg-black/20 sm:w-64">
                 <Search size={13} className="text-muted-foreground" />
                 <input
                   type="text"
@@ -1207,7 +1193,7 @@ export default function DeepPageCMSEditor({
               </p>
             </div>
 
-            <div className="flex items-center gap-1.5 p-1 rounded-lg border border-border bg-black/20 self-start sm:self-auto">
+            <div className="flex items-center gap-1.5 p-1 rounded-lg border border-border bg-slate-100 dark:bg-black/20 self-start sm:self-auto">
               <button
                 type="button"
                 onClick={() => setExecutivePortalKpiTab('opco')}
@@ -1883,10 +1869,10 @@ export default function DeepPageCMSEditor({
                   {/* Top Bar: Dropdown ID + Options Count + Delete Button */}
                   <div className="flex items-center justify-between gap-2 pb-2.5 border-b border-border/60">
                     <div className="flex items-center gap-1.5 min-w-0">
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground truncate px-1.5 py-0.5 rounded bg-black/25 border border-border/40">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-slate-700 dark:text-muted-foreground truncate px-1.5 py-0.5 rounded bg-slate-100 dark:bg-black/25 border border-slate-200 dark:border-border/40">
                         {dropdown.id}
                       </span>
-                      <span className="text-[10px] font-semibold text-primary px-1.5 py-0.5 rounded bg-primary/10 whitespace-nowrap">
+                      <span className="text-[10px] font-semibold text-amber-800 bg-amber-100 border border-amber-300 dark:border-transparent dark:text-primary dark:bg-primary/10 px-1.5 py-0.5 rounded whitespace-nowrap">
                         {dropdown.options.length}{' '}
                         {dropdown.options.length === 1 ? 'Option' : 'Options'}
                       </span>
@@ -1911,8 +1897,7 @@ export default function DeepPageCMSEditor({
                       type="text"
                       value={dropdown.label}
                       onChange={(e) => handleUpdateDropdownLabel(dropdown.id, e.target.value)}
-                      className="rounded-lg border border-border px-2.5 py-1.5 text-xs outline-none font-bold focus:border-primary focus:ring-1 focus:ring-primary/30 transition-all"
-                      style={{ background: 'var(--surface)', color: 'var(--foreground)' }}
+                      className="rounded-lg border border-border px-2.5 py-1.5 text-xs outline-none font-bold focus:border-primary focus:ring-1 focus:ring-primary/30 transition-all bg-white dark:bg-surface text-foreground"
                       placeholder="Display label text..."
                     />
                   </div>
@@ -1925,7 +1910,7 @@ export default function DeepPageCMSEditor({
                       </label>
                       <span className="text-[9px] text-muted-foreground">Click × to remove</span>
                     </div>
-                    <div className="flex flex-wrap gap-1.5 max-h-36 overflow-y-auto custom-scrollbar p-2 rounded-lg border border-border/60 bg-black/25 flex-1 content-start">
+                    <div className="flex flex-wrap gap-1.5 max-h-36 overflow-y-auto custom-scrollbar p-2 rounded-lg border border-border/60 bg-slate-100/70 dark:bg-black/25 flex-1 content-start">
                       {dropdown.options.length === 0 ? (
                         <span className="text-[11px] text-muted-foreground italic p-1">
                           No options configured
@@ -1934,7 +1919,7 @@ export default function DeepPageCMSEditor({
                         dropdown.options.map((opt, optIdx) => (
                           <span
                             key={optIdx}
-                            className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[11px] border border-border bg-surface text-foreground font-medium max-w-full break-all"
+                            className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[11px] border border-slate-200 dark:border-border bg-white dark:bg-surface text-foreground font-medium max-w-full break-all shadow-xs"
                           >
                             <span className="truncate">{opt}</span>
                             <button
@@ -2084,7 +2069,7 @@ export default function DeepPageCMSEditor({
             >
               <table className="w-full text-left border-collapse text-xs">
                 <thead>
-                  <tr className="border-b border-border bg-black/30 text-muted-foreground text-[11px] font-bold uppercase tracking-wider">
+                  <tr className="border-b border-border bg-slate-100 dark:bg-black/30 text-slate-700 dark:text-muted-foreground text-[11px] font-bold uppercase tracking-wider">
                     <th className="py-3 px-3 text-center w-14"># Pos</th>
                     <th className="py-3 px-4 w-44 text-center">Reorder (Move)</th>
                     <th className="py-3 px-4 min-w-[220px]">Header Label (Live Page Title)</th>
@@ -2096,7 +2081,7 @@ export default function DeepPageCMSEditor({
                 </thead>
                 <tbody className="divide-y divide-border/60">
                   {sortedColumns.map((col, idx) => (
-                    <tr key={col.id} className="hover:bg-white/[0.02] transition-colors">
+                    <tr key={col.id} className="hover:bg-slate-50 dark:hover:bg-white/[0.02] transition-colors">
                       {/* # Position Badge */}
                       <td className="py-3 px-3 text-center">
                         <span className="inline-block px-2 py-0.5 rounded-md text-xs font-mono font-bold bg-primary/15 text-primary border border-primary/30">
@@ -2144,7 +2129,7 @@ export default function DeepPageCMSEditor({
 
                       {/* Database Key */}
                       <td className="py-3 px-3">
-                        <code className="px-2 py-1 rounded text-[11px] font-mono font-semibold text-muted-foreground bg-black/30 border border-border/60">
+                        <code className="px-2 py-1 rounded text-[11px] font-mono font-semibold text-slate-700 dark:text-muted-foreground bg-slate-100 dark:bg-black/30 border border-slate-200 dark:border-border/60">
                           {col.id}
                         </code>
                       </td>
@@ -2152,11 +2137,11 @@ export default function DeepPageCMSEditor({
                       {/* Type Badge */}
                       <td className="py-3 px-3 text-center whitespace-nowrap">
                         {col.isCustom ? (
-                          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+                          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
                             Custom
                           </span>
                         ) : (
-                          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-medium text-muted-foreground bg-white/5 border border-white/10">
+                          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-medium text-slate-700 dark:text-muted-foreground bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10">
                             System
                           </span>
                         )}
@@ -2169,8 +2154,8 @@ export default function DeepPageCMSEditor({
                           onClick={() => handleToggleCol(col.id)}
                           className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold border transition-all cursor-pointer ${
                             col.visible
-                              ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-400'
-                              : 'border-border bg-black/20 text-muted-foreground opacity-50 hover:opacity-90'
+                              ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+                              : 'border-border bg-slate-100 dark:bg-black/20 text-muted-foreground opacity-70 hover:opacity-100'
                           }`}
                           title={
                             col.visible
@@ -2405,7 +2390,7 @@ export default function DeepPageCMSEditor({
           <div className="border border-border rounded-xl overflow-x-auto">
             <table className="w-full text-left border-collapse text-xs">
               <thead>
-                <tr className="border-b border-border bg-black/20 text-muted-foreground text-[11px] font-bold uppercase tracking-wider">
+                <tr className="border-b border-border bg-slate-100 dark:bg-black/20 text-slate-700 dark:text-muted-foreground text-[11px] font-bold uppercase tracking-wider">
                   {visibleColumns && visibleColumns.length > 0 ? (
                     <>
                       {visibleColumns.map((col) => (
@@ -2911,17 +2896,17 @@ export default function DeepPageCMSEditor({
                         <span>{hotel.phone}</span>
                       </div>
                       <div className="grid grid-cols-3 gap-2 mt-2 pt-2 border-t border-border/80 text-center">
-                        <div className="p-1 rounded bg-black/20">
+                        <div className="p-1.5 rounded-lg bg-slate-100 dark:bg-black/20 border border-slate-200/80 dark:border-white/5">
                           <div className="font-bold text-foreground">{hotel.totalAssets || 0}</div>
-                          <div className="text-[10px] text-muted-foreground">Assets</div>
+                          <div className="text-[10px] text-slate-600 dark:text-muted-foreground font-medium">Assets</div>
                         </div>
-                        <div className="p-1 rounded bg-black/20">
-                          <div className="font-bold text-rose-400">{hotel.overdueCount || 0}</div>
-                          <div className="text-[10px] text-muted-foreground">Overdue</div>
+                        <div className="p-1.5 rounded-lg bg-slate-100 dark:bg-black/20 border border-slate-200/80 dark:border-white/5">
+                          <div className="font-bold text-rose-600 dark:text-rose-400">{hotel.overdueCount || 0}</div>
+                          <div className="text-[10px] text-slate-600 dark:text-muted-foreground font-medium">Overdue</div>
                         </div>
-                        <div className="p-1 rounded bg-black/20">
-                          <div className="font-bold text-amber-400">{hotel.dueTodayCount || 0}</div>
-                          <div className="text-[10px] text-muted-foreground">Due Today</div>
+                        <div className="p-1.5 rounded-lg bg-slate-100 dark:bg-black/20 border border-slate-200/80 dark:border-white/5">
+                          <div className="font-bold text-amber-600 dark:text-amber-400">{hotel.dueTodayCount || 0}</div>
+                          <div className="text-[10px] text-slate-600 dark:text-muted-foreground font-medium">Due Today</div>
                         </div>
                       </div>
                     </div>
@@ -2985,7 +2970,7 @@ export default function DeepPageCMSEditor({
             <div className="border border-border rounded-xl overflow-x-auto">
               <table className="w-full text-left border-collapse text-xs">
                 <thead>
-                  <tr className="border-b border-border bg-black/20 text-muted-foreground text-[11px] font-bold uppercase tracking-wider">
+                  <tr className="border-b border-border bg-slate-100 dark:bg-black/20 text-slate-700 dark:text-muted-foreground text-[11px] font-bold uppercase tracking-wider">
                     {visibleColumns
                       .filter((c) => c.id !== 'actions')
                       .map((col) => (
@@ -3968,7 +3953,7 @@ export default function DeepPageCMSEditor({
                     )}
                 </div>
 
-                <div className="flex flex-wrap gap-1.5 min-h-[50px] max-h-36 overflow-y-auto p-2 rounded-lg border border-border/70 bg-black/25 content-start">
+                <div className="flex flex-wrap gap-1.5 min-h-[50px] max-h-36 overflow-y-auto p-2 rounded-lg border border-border/70 bg-slate-100/70 dark:bg-black/25 content-start">
                   {newDropdownOptionsList.length === 0 ? (
                     <span className="text-xs text-muted-foreground italic p-1">
                       No options added yet. Type below and press Enter or click + Add Option.

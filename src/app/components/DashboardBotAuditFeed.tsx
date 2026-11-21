@@ -272,7 +272,7 @@ export default function DashboardBotAuditFeed() {
         >
           <div
             className="w-full max-w-lg rounded-2xl border border-primary/35 p-6 shadow-2xl space-y-4"
-            style={{ background: '#11141a' }}
+            style={{ background: 'var(--card)' }}
             onClick={(e) => e.stopPropagation()}
           >
             {/* Modal Header */}

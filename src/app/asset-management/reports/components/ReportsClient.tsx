@@ -2516,7 +2516,7 @@ function ExportSection({
     <div className="max-w-3xl mx-auto flex flex-col gap-4">
       <div
         className="rounded-2xl border border-border p-6 shadow-xl"
-        style={{ background: '#11141a' }}
+        style={{ background: 'var(--card)' }}
       >
         <div className="flex items-center justify-between mb-4">
           <div>
@@ -2609,7 +2609,7 @@ function ExportSection({
         >
           <div
             className="rounded-2xl border border-border-strong w-full max-w-5xl max-h-[88vh] overflow-hidden flex flex-col shadow-2xl samko-modal-card"
-            style={{ background: '#11141a', borderColor: 'var(--border-strong)' }}
+            style={{ background: 'var(--card)', borderColor: 'var(--border-strong)' }}
             onClick={(e) => e.stopPropagation()}
           >
             {/* Modal Header */}
@@ -2695,7 +2695,7 @@ function ExportSection({
             </div>
 
             {/* Table Area */}
-            <div className="flex-1 overflow-auto p-6" style={{ background: '#11141a' }}>
+            <div className="flex-1 overflow-auto p-6" style={{ background: 'var(--card)' }}>
               {filteredPreviewRows.length > 0 ? (
                 <div className="rounded-xl border border-border overflow-hidden">
                   <table className="w-full text-left border-collapse" style={{ minWidth: 700 }}>

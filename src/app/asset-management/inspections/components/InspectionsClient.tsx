@@ -155,7 +155,7 @@ export default function InspectionsClient() {
 
   const [activeTab, setActiveTab] = useState<TabId>('pending');
   const [search, setSearch] = useState('');
-  const [hotelFilter, setHotelFilter] = useState('');
+  const [hotelFilter, setHotelFilter] = useState<string[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [maintenanceRecords, setMaintenanceRecords] = useState<any[]>(MAINTENANCE_RECORDS);
   const [assets, setAssets] = useState<any[]>(ASSETS);
@@ -274,9 +274,12 @@ export default function InspectionsClient() {
         i.hotelName.toLowerCase().includes(search.toLowerCase()) ||
         i.assignedTo.toLowerCase().includes(search.toLowerCase());
       const matchHotel =
-        !hotelFilter ||
-        i.hotelId === hotelFilter ||
-        i.hotelName.toLowerCase().includes(hotelFilter.toLowerCase());
+        hotelFilter.length === 0 ||
+        hotelFilter.some(
+          (h) => !h || h.toLowerCase() === 'all' || h.toLowerCase() === 'all properties'
+        ) ||
+        hotelFilter.includes(i.hotelId) ||
+        hotelFilter.some((h) => i.hotelName.toLowerCase().includes(h.toLowerCase()));
       return matchTab && matchSearch && matchHotel;
     });
   }, [inspections, activeTab, search, hotelFilter]);
@@ -512,9 +515,10 @@ export default function InspectionsClient() {
           onChange={setHotelFilter}
           options={propertyOptions.map((h) => ({ value: h.id, label: h.name }))}
           placeholder="All Properties"
-          allLabel="All Properties"
+          label="All Properties"
           size="sm"
           variant="filter"
+          multiple
         />
       </div>
 

@@ -116,23 +116,27 @@ const CMS_NAV_ITEMS: CmsTabItem[] = [
 function Toggle({
   checked = false,
   onChange,
+  disabled = false,
+  ariaLabel,
 }: {
   checked?: boolean;
   onChange: (v: boolean) => void;
+  disabled?: boolean;
+  ariaLabel?: string;
 }) {
   return (
     <button
-      onClick={() => onChange(!checked)}
-      className="relative inline-flex h-5 w-9 items-center rounded-full transition-colors flex-shrink-0"
-      style={{ background: checked ? 'var(--primary)' : 'var(--surface3)' }}
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      aria-label={ariaLabel}
+      disabled={disabled}
+      data-checked={checked ? 'true' : 'false'}
+      onClick={() => !disabled && onChange(!checked)}
+      className="samko-toggle-track"
+      style={{ opacity: disabled ? 0.4 : 1 }}
     >
-      <span
-        className="inline-block h-3.5 w-3.5 transform rounded-full transition-transform"
-        style={{
-          background: checked ? '#000' : 'var(--text2)',
-          transform: checked ? 'translateX(18px)' : 'translateX(3px)',
-        }}
-      />
+      <span className="samko-toggle-thumb" />
     </button>
   );
 }
@@ -242,6 +246,68 @@ export default function SettingsClient() {
       toast.success(enableDark ? 'Dark Mode activated' : 'Pure White Mode activated', {
         description: enableDark ? 'Platform theme set to Dark' : 'Platform theme set to Pure White',
       });
+    }
+  };
+
+  const [compactMode, setCompactMode] = useState<boolean>(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('samko_compact_mode') === 'true';
+    }
+    return false;
+  });
+
+  const [sidebarCollapsedDefault, setSidebarCollapsedDefault] = useState<boolean>(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('samko_sidebar_collapsed_default') === 'true';
+    }
+    return false;
+  });
+
+  const [showAlertBanner, setShowAlertBanner] = useState<boolean>(() => {
+    if (typeof window !== 'undefined') {
+      const v = localStorage.getItem('samko_show_alert_banner');
+      return v === null ? true : v === 'true';
+    }
+    return true;
+  });
+
+  const [animateBadgeCounts, setAnimateBadgeCounts] = useState<boolean>(() => {
+    if (typeof window !== 'undefined') {
+      const v = localStorage.getItem('samko_animate_badge_counts');
+      return v === null ? true : v === 'true';
+    }
+    return true;
+  });
+
+  const handleToggleCompact = (val: boolean) => {
+    setCompactMode(val);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('samko_compact_mode', String(val));
+      toast.success(val ? 'Compact Mode enabled' : 'Compact Mode disabled');
+    }
+  };
+
+  const handleToggleSidebarDefault = (val: boolean) => {
+    setSidebarCollapsedDefault(val);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('samko_sidebar_collapsed_default', String(val));
+      toast.success(val ? 'Sidebar will start collapsed' : 'Sidebar will start expanded');
+    }
+  };
+
+  const handleToggleAlertBanner = (val: boolean) => {
+    setShowAlertBanner(val);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('samko_show_alert_banner', String(val));
+      toast.success(val ? 'Alert Banner enabled' : 'Alert Banner hidden');
+    }
+  };
+
+  const handleToggleAnimateBadges = (val: boolean) => {
+    setAnimateBadgeCounts(val);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('samko_animate_badge_counts', String(val));
+      toast.success(val ? 'Badge animations enabled' : 'Badge animations paused');
     }
   };
   const [seedLoading, setSeedLoading] = useState(false);
@@ -834,16 +900,16 @@ export default function SettingsClient() {
                       : 'Pure White theme is active across the platform. Turn on for Dark theme.'
                   }
                 >
-                  <Toggle checked={isDarkMode} onChange={handleToggleTheme} />
+                  <Toggle checked={isDarkMode} onChange={handleToggleTheme} ariaLabel="Toggle Dark Mode" />
                 </SettingRow>
                 <SettingRow label="Compact Mode" desc="Reduce spacing for denser layouts">
-                  <Toggle onChange={() => {}} />
+                  <Toggle checked={compactMode} onChange={handleToggleCompact} ariaLabel="Toggle Compact Mode" />
                 </SettingRow>
                 <SettingRow
                   label="Sidebar Collapsed by Default"
                   desc="Start with sidebar collapsed"
                 >
-                  <Toggle onChange={() => {}} />
+                  <Toggle checked={sidebarCollapsedDefault} onChange={handleToggleSidebarDefault} ariaLabel="Toggle Sidebar Collapsed" />
                 </SettingRow>
               </SectionCard>
               <SectionCard title="Dashboard">
@@ -851,13 +917,13 @@ export default function SettingsClient() {
                   label="Show Alert Banner"
                   desc="Display critical alert banner in sidebar"
                 >
-                  <Toggle checked onChange={() => {}} />
+                  <Toggle checked={showAlertBanner} onChange={handleToggleAlertBanner} ariaLabel="Toggle Alert Banner" />
                 </SettingRow>
                 <SettingRow
                   label="Animate Badge Counts"
                   desc="Pulse animation on critical badge counts"
                 >
-                  <Toggle checked onChange={() => {}} />
+                  <Toggle checked={animateBadgeCounts} onChange={handleToggleAnimateBadges} ariaLabel="Toggle Badge Counts Animation" />
                 </SettingRow>
               </SectionCard>
             </div>
@@ -938,15 +1004,11 @@ export default function SettingsClient() {
 
               {/* ── TOP HERO CARD: DATABASE BACKUP & RESTORE ── */}
               <div
-                className="rounded-2xl border border-amber-500/40 p-5 shadow-xl relative overflow-hidden"
-                style={{
-                  background:
-                    'linear-gradient(135deg, rgba(245,158,11,0.12) 0%, rgba(15,23,42,0.95) 100%)',
-                }}
+                className="rounded-2xl border border-amber-200 dark:border-amber-500/40 p-5 shadow-sm relative overflow-hidden bg-white dark:bg-card bg-gradient-to-br from-amber-500/[0.08] via-white to-white dark:from-amber-950/40 dark:via-card dark:to-card"
               >
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                   <div className="flex items-start gap-3">
-                    <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-amber-500/20 text-amber-400 border border-amber-500/40 flex-shrink-0 shadow-inner">
+                    <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/30 flex-shrink-0 shadow-sm">
                       <Database size={24} />
                     </div>
                     <div>
@@ -954,11 +1016,11 @@ export default function SettingsClient() {
                         <h3 className="font-head font-bold text-base text-foreground">
                           Full Database Backup &amp; Disaster Recovery
                         </h3>
-                        <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30">
                           312 Records Protected
                         </span>
                       </div>
-                      <p className="text-xs text-muted-foreground mt-1 max-w-2xl leading-relaxed">
+                      <p className="text-xs text-slate-600 dark:text-muted-foreground mt-1 max-w-2xl leading-relaxed">
                         Instantaneous master JSON backup containing all 13 collections (Properties,
                         Assets, Contracts, Insurance, Tasks, Utilities, Documents, Users, and Audit
                         Logs). Download your full archive before pruning or editing database
@@ -972,7 +1034,7 @@ export default function SettingsClient() {
                       type="button"
                       onClick={handleDownloadBackup}
                       disabled={backupLoading}
-                      className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold text-black bg-amber-400 hover:bg-amber-300 transition-all shadow-md cursor-pointer"
+                      className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold text-white bg-amber-600 hover:bg-amber-700 dark:text-black dark:bg-amber-400 dark:hover:bg-amber-300 transition-all shadow-sm cursor-pointer"
                     >
                       <Download size={15} className={backupLoading ? 'animate-bounce' : ''} />
                       {backupLoading ? 'Exporting Backup...' : 'Download Full Backup (.json)'}
@@ -982,7 +1044,7 @@ export default function SettingsClient() {
                       type="button"
                       onClick={() => restoreInputRef.current?.click()}
                       disabled={restoring}
-                      className="inline-flex items-center gap-2 px-3.5 py-2.5 rounded-xl text-xs font-bold border border-cyan-500/40 text-cyan-300 bg-cyan-500/10 hover:bg-cyan-500/20 transition-all cursor-pointer"
+                      className="inline-flex items-center gap-2 px-3.5 py-2.5 rounded-xl text-xs font-bold border border-cyan-500/40 text-cyan-800 bg-cyan-50 hover:bg-cyan-100 dark:text-cyan-300 dark:bg-cyan-500/10 dark:hover:bg-cyan-500/20 transition-all cursor-pointer shadow-sm"
                     >
                       <FileUp size={15} className={restoring ? 'animate-spin' : ''} />
                       {restoring ? 'Restoring...' : 'Restore Database (.json)'}

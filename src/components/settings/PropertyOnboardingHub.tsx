@@ -2203,14 +2203,11 @@ export default function PropertyOnboardingHub() {
 
       {/* ── HEADER & PROPERTY SELECTOR ── */}
       <div
-        className="rounded-2xl border border-cyan-500/30 p-5 shadow-xl relative overflow-hidden"
-        style={{
-          background: 'linear-gradient(135deg, rgba(6,182,212,0.08) 0%, rgba(15,23,42,0.9) 100%)',
-        }}
+        className="rounded-2xl border border-cyan-500/25 dark:border-cyan-500/30 p-5 shadow-sm relative overflow-hidden bg-white dark:bg-card bg-gradient-to-br from-cyan-500/[0.08] via-white to-white dark:from-cyan-950/40 dark:via-card dark:to-card"
       >
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="flex items-start gap-3">
-            <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 flex-shrink-0 shadow-inner">
+            <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border border-cyan-500/25 flex-shrink-0 shadow-sm">
               <Building2 size={24} />
             </div>
             <div>
@@ -2218,11 +2215,11 @@ export default function PropertyOnboardingHub() {
                 <h2 className="font-head font-bold text-lg text-foreground tracking-tight">
                   Property Data &amp; Setup CMS
                 </h2>
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">
+                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider bg-cyan-500/15 text-cyan-800 dark:text-cyan-300 border border-cyan-500/30">
                   CMS Hub
                 </span>
               </div>
-              <p className="text-xs text-muted-foreground mt-0.5">
+              <p className="text-xs text-slate-600 dark:text-muted-foreground mt-0.5">
                 Dynamic live database manager — assign records, departments, documents, Excel
                 spreadsheets, and manage all 11 sidebar modules for any property.
               </p>
@@ -2234,7 +2231,7 @@ export default function PropertyOnboardingHub() {
             <button
               type="button"
               onClick={() => setShowAddPropertyModal(true)}
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold text-black bg-cyan-400 hover:bg-cyan-300 transition-all shadow-md cursor-pointer whitespace-nowrap"
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold text-white bg-cyan-600 hover:bg-cyan-700 dark:text-black dark:bg-cyan-400 dark:hover:bg-cyan-300 transition-all shadow-sm cursor-pointer whitespace-nowrap"
             >
               <Plus size={14} /> Create New Property
             </button>
@@ -2242,10 +2239,10 @@ export default function PropertyOnboardingHub() {
         </div>
 
         {/* Dynamic Property Selector Bar */}
-        <div className="mt-5 pt-4 border-t border-cyan-500/20 flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+        <div className="mt-5 pt-4 border-t border-slate-200 dark:border-cyan-500/20 flex flex-col lg:flex-row lg:items-center justify-between gap-3">
           <div className="flex items-center gap-2.5 flex-1 max-w-xl">
-            <label className="text-xs font-semibold text-cyan-200 whitespace-nowrap flex items-center gap-1.5">
-              <Building2 size={13} className="text-cyan-400" /> Active Property:
+            <label className="text-xs font-semibold text-slate-700 dark:text-cyan-200 whitespace-nowrap flex items-center gap-1.5">
+              <Building2 size={13} className="text-cyan-600 dark:text-cyan-400" /> Active Property:
             </label>
             <div className="flex-1 min-w-[200px]">
               <CustomDropdown
@@ -2263,7 +2260,7 @@ export default function PropertyOnboardingHub() {
                 <button
                   type="button"
                   onClick={handleOpenEditProperty}
-                  className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold border border-amber-400/40 text-amber-300 hover:bg-amber-400/10 transition-colors cursor-pointer"
+                  className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold border border-amber-500/40 text-amber-700 dark:text-amber-300 bg-amber-500/5 hover:bg-amber-500/15 transition-colors cursor-pointer"
                   title="Edit details of this property"
                 >
                   <Edit2 size={12} /> Edit
@@ -2271,7 +2268,7 @@ export default function PropertyOnboardingHub() {
                 <button
                   type="button"
                   onClick={() => setPropertyToDelete(selectedProperty)}
-                  className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold border border-rose-500/40 text-rose-400 hover:bg-rose-500/10 transition-colors cursor-pointer"
+                  className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold border border-rose-500/40 text-rose-700 dark:text-rose-400 bg-rose-500/5 hover:bg-rose-500/15 transition-colors cursor-pointer"
                   title="Delete this property from database"
                 >
                   <Trash2 size={12} /> Delete
@@ -2281,12 +2278,12 @@ export default function PropertyOnboardingHub() {
           </div>
 
           {selectedProperty && (
-            <div className="flex items-center gap-2.5 text-xs text-muted-foreground flex-wrap">
-              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded bg-white/5 border border-white/10 text-white font-medium">
+            <div className="flex items-center gap-2.5 text-xs text-slate-600 dark:text-muted-foreground flex-wrap">
+              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-800 dark:text-white font-medium">
                 {selectedProperty.city || 'United Kingdom'}
               </span>
               <span>·</span>
-              <span className="text-emerald-400 font-semibold flex items-center gap-1">
+              <span className="text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-1">
                 <CheckCircle2 size={12} /> {selectedProperty.status || 'Active'}
               </span>
               <span>·</span>
@@ -2294,7 +2291,7 @@ export default function PropertyOnboardingHub() {
               {selectedProperty.manager && (
                 <>
                   <span>·</span>
-                  <span className="text-muted-foreground">GM: {selectedProperty.manager}</span>
+                  <span className="text-slate-600 dark:text-muted-foreground">GM: {selectedProperty.manager}</span>
                 </>
               )}
             </div>
@@ -2303,12 +2300,9 @@ export default function PropertyOnboardingHub() {
       </div>
 
       {/* ── SIDEBAR MODULES NAVIGATION (ALL 11 TABS FROM SIDEBAR) ── */}
-      <div
-        className="rounded-2xl border border-border p-3"
-        style={{ background: 'var(--surface)' }}
-      >
+      <div className="rounded-2xl border border-border p-3 bg-white dark:bg-card shadow-sm">
         <div className="flex items-center justify-between px-2 pb-2.5 mb-2 border-b border-border/60">
-          <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+          <div className="text-xs font-semibold text-slate-600 dark:text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
             <Layers size={13} className="text-primary" /> Sidebar Modules for:{' '}
             <strong className="text-foreground">
               {selectedProperty?.name || 'Selected Property'}
@@ -2324,36 +2318,44 @@ export default function PropertyOnboardingHub() {
           {MODULES.map((mod) => {
             const Icon = mod.icon;
             const active = activeModule === mod.id;
+            const isPropco = mod.sidebarGroup === 'PROPCO';
+            const isOpco = mod.sidebarGroup === 'OPCO';
             return (
               <button
                 key={mod.id}
                 type="button"
                 onClick={() => setActiveModule(mod.id)}
-                className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all cursor-pointer border"
-                style={{
-                  background: active ? `${mod.color}18` : 'transparent',
-                  borderColor: active ? `${mod.color}60` : 'transparent',
-                  color: active ? mod.color : 'var(--text2)',
-                }}
+                className={`flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all cursor-pointer border ${
+                  active
+                    ? isPropco
+                      ? 'bg-amber-50 border-amber-300 text-amber-900 shadow-sm dark:bg-amber-500/15 dark:border-amber-400/40 dark:text-[#e8c97a]'
+                      : isOpco
+                        ? 'bg-blue-50 border-blue-300 text-blue-900 shadow-sm dark:bg-blue-500/15 dark:border-blue-400/40 dark:text-blue-400'
+                        : 'bg-slate-100 border-slate-300 text-slate-900 shadow-sm dark:bg-white/10 dark:border-white/20 dark:text-foreground'
+                    : 'border-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-100/70 dark:text-muted-foreground dark:hover:text-foreground dark:hover:bg-white/5'
+                }`}
               >
-                <Icon size={14} style={{ color: active ? mod.color : undefined }} />
+                <Icon
+                  size={14}
+                  className={
+                    active
+                      ? isPropco
+                        ? 'text-amber-700 dark:text-[#e8c97a]'
+                        : isOpco
+                          ? 'text-blue-700 dark:text-blue-400'
+                          : 'text-slate-700 dark:text-foreground'
+                      : 'text-muted-foreground'
+                  }
+                />
                 <span>{mod.label}</span>
                 <span
-                  className="text-[9px] px-1 py-0.2 rounded font-mono font-bold uppercase tracking-wider"
-                  style={{
-                    background:
-                      mod.sidebarGroup === 'PROPCO'
-                        ? 'rgba(232,201,122,0.15)'
-                        : mod.sidebarGroup === 'OPCO'
-                          ? 'rgba(96,165,250,0.15)'
-                          : 'rgba(148,163,184,0.15)',
-                    color:
-                      mod.sidebarGroup === 'PROPCO'
-                        ? '#e8c97a'
-                        : mod.sidebarGroup === 'OPCO'
-                          ? '#60a5fa'
-                          : '#94a3b8',
-                  }}
+                  className={`text-[9px] px-1.5 py-0.5 rounded font-mono font-bold uppercase tracking-wider ${
+                    isPropco
+                      ? 'bg-amber-100 text-amber-800 dark:bg-amber-500/20 dark:text-[#e8c97a]'
+                      : isOpco
+                        ? 'bg-blue-100 text-blue-800 dark:bg-blue-500/20 dark:text-blue-400'
+                        : 'bg-slate-100 text-slate-700 dark:bg-white/10 dark:text-slate-300'
+                  }`}
                 >
                   {mod.sidebarGroup}
                 </span>
@@ -2364,20 +2366,18 @@ export default function PropertyOnboardingHub() {
       </div>
 
       {/* ── ACTIVE MODULE CONTENT & ACTIONS ── */}
-      <div
-        className="rounded-2xl border border-border p-5 space-y-5"
-        style={{ background: 'var(--surface)' }}
-      >
+      <div className="rounded-2xl border border-border p-5 space-y-5 bg-white dark:bg-card shadow-sm">
         {/* Module Header Bar */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-border">
           <div className="flex items-center gap-3">
             <div
-              className="w-10 h-10 rounded-xl flex items-center justify-center border shadow-inner"
-              style={{
-                background: `${currentModuleConfig.color}18`,
-                borderColor: `${currentModuleConfig.color}40`,
-                color: currentModuleConfig.color,
-              }}
+              className={`w-10 h-10 rounded-xl flex items-center justify-center border shadow-inner ${
+                currentModuleConfig.sidebarGroup === 'PROPCO'
+                  ? 'bg-amber-50 text-amber-700 border-amber-300 dark:bg-amber-500/15 dark:text-[#e8c97a] dark:border-amber-400/30'
+                  : currentModuleConfig.sidebarGroup === 'OPCO'
+                    ? 'bg-blue-50 text-blue-700 border-blue-300 dark:bg-blue-500/15 dark:text-blue-400 dark:border-blue-400/30'
+                    : 'bg-slate-100 text-slate-700 border-slate-300 dark:bg-white/10 dark:text-foreground dark:border-white/20'
+              }`}
             >
               <currentModuleConfig.icon size={20} />
             </div>
@@ -2400,7 +2400,7 @@ export default function PropertyOnboardingHub() {
               <button
                 type="button"
                 onClick={handleExportPropertyRecords}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border border-border text-foreground hover:bg-surface2 transition-colors cursor-pointer shadow-sm"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border border-border text-foreground hover:bg-slate-100 dark:hover:bg-surface2 transition-colors cursor-pointer shadow-sm"
                 title={`Export all ${moduleRecords.length} records in ${selectedProperty?.name} to Excel`}
               >
                 <Download size={13} /> Export ({moduleRecords.length})
@@ -2410,7 +2410,7 @@ export default function PropertyOnboardingHub() {
             <button
               type="button"
               onClick={() => setShowSpreadsheetModal(true)}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border border-cyan-500/40 text-cyan-300 bg-cyan-500/10 hover:bg-cyan-500/20 transition-colors cursor-pointer shadow-sm"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border border-cyan-500/40 text-cyan-800 bg-cyan-50 hover:bg-cyan-100 dark:text-cyan-300 dark:bg-cyan-500/10 dark:hover:bg-cyan-500/20 transition-colors cursor-pointer shadow-sm"
               title="Add rows, add columns, or upload Excel spreadsheet"
             >
               <Table size={13} /> Excel / Spreadsheet Entry
@@ -2422,8 +2422,13 @@ export default function PropertyOnboardingHub() {
                 setShowAddSection(!showAddSection);
                 if (!showAddSection) setEntryMode('single');
               }}
-              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-bold text-black transition-all cursor-pointer shadow-sm"
-              style={{ background: currentModuleConfig.color }}
+              className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer shadow-sm ${
+                currentModuleConfig.sidebarGroup === 'PROPCO'
+                  ? 'bg-amber-600 hover:bg-amber-700 text-white dark:bg-[#e8c97a] dark:hover:bg-[#d8b96a] dark:text-black'
+                  : currentModuleConfig.sidebarGroup === 'OPCO'
+                    ? 'bg-blue-600 hover:bg-blue-700 text-white dark:bg-blue-500 dark:hover:bg-blue-400 dark:text-white'
+                    : 'bg-primary text-primary-foreground hover:opacity-90'
+              }`}
             >
               {showAddSection ? (
                 <>
@@ -2440,18 +2445,18 @@ export default function PropertyOnboardingHub() {
 
         {/* ── EXPANDABLE ADD SECTION (TOGGLE BETWEEN SPREADSHEET TABLE & FORM) ── */}
         {showAddSection && (
-          <div className="p-4 rounded-xl border border-cyan-500/30 bg-cyan-500/[0.03] space-y-4 animate-in fade-in duration-150">
+          <div className="p-4 rounded-xl border border-cyan-500/30 bg-cyan-500/[0.04] dark:bg-cyan-500/[0.03] space-y-4 animate-in fade-in duration-150">
             {/* Mode Switcher */}
             <div className="flex items-center justify-between pb-3 border-b border-cyan-500/20">
               <div className="flex items-center gap-2">
                 <span className="text-xs font-bold text-foreground">Select Entry Mode:</span>
-                <div className="inline-flex rounded-lg p-0.5 bg-black/40 border border-border text-xs">
+                <div className="inline-flex rounded-lg p-0.5 bg-slate-100 dark:bg-black/40 border border-border text-xs">
                   <button
                     type="button"
                     onClick={() => setEntryMode('single')}
                     className={`px-3 py-1 rounded-md font-semibold transition-all cursor-pointer ${
                       entryMode === 'single'
-                        ? 'bg-cyan-400 text-black shadow-sm'
+                        ? 'bg-cyan-600 text-white dark:bg-cyan-400 dark:text-black shadow-sm'
                         : 'text-muted-foreground hover:text-foreground'
                     }`}
                   >
@@ -2462,7 +2467,7 @@ export default function PropertyOnboardingHub() {
                     onClick={() => setEntryMode('spreadsheet')}
                     className={`px-3 py-1 rounded-md font-semibold transition-all cursor-pointer ${
                       entryMode === 'spreadsheet'
-                        ? 'bg-cyan-400 text-black shadow-sm'
+                        ? 'bg-cyan-600 text-white dark:bg-cyan-400 dark:text-black shadow-sm'
                         : 'text-muted-foreground hover:text-foreground'
                     }`}
                   >
@@ -2471,7 +2476,7 @@ export default function PropertyOnboardingHub() {
                 </div>
               </div>
 
-              <span className="text-[11px] text-cyan-300 font-mono">
+              <span className="text-[11px] text-cyan-800 dark:text-cyan-300 font-mono font-medium">
                 Assigned to: {selectedProperty?.name}
               </span>
             </div>
@@ -2663,9 +2668,9 @@ export default function PropertyOnboardingHub() {
                   </div>
                 )}
 
-                <div className="overflow-x-auto max-h-[300px] rounded-xl border border-border bg-black/40">
+                <div className="overflow-x-auto max-h-[300px] rounded-xl border border-border bg-white dark:bg-[#0f172a] shadow-sm">
                   <table className="w-full text-left text-xs border-collapse">
-                    <thead className="sticky top-0 bg-[#0f172a] z-10 border-b border-border shadow-sm">
+                    <thead className="sticky top-0 bg-slate-100 dark:bg-[#0f172a] z-10 border-b border-border shadow-sm">
                       <tr>
                         <th className="px-2 py-2 w-8 text-center text-muted-foreground font-mono">
                           #
@@ -2683,7 +2688,7 @@ export default function PropertyOnboardingHub() {
                     </thead>
                     <tbody className="divide-y divide-border/40 font-sans">
                       {gridRows.map((row, rowIdx) => (
-                        <tr key={row._rowId} className="hover:bg-white/[0.02]">
+                        <tr key={row._rowId} className="hover:bg-slate-50 dark:hover:bg-white/[0.02]">
                           <td className="px-2 py-1.5 text-center text-muted-foreground font-mono text-[11px]">
                             {rowIdx + 1}
                           </td>
@@ -2701,7 +2706,7 @@ export default function PropertyOnboardingHub() {
                                     onChange={(e) =>
                                       handleUpdateGridCell(row._rowId, col.key, e.target.value)
                                     }
-                                    className="w-full px-2 py-1 rounded bg-[#1e293b] border border-border text-foreground text-xs outline-none focus:border-cyan-400 cursor-pointer"
+                                    className="w-full px-2 py-1 rounded bg-white dark:bg-[#1e293b] border border-border text-foreground text-xs outline-none focus:border-cyan-400 cursor-pointer"
                                   >
                                     {selectOpts.map((opt) => (
                                       <option key={opt} value={opt}>
@@ -2717,7 +2722,7 @@ export default function PropertyOnboardingHub() {
                                       handleUpdateGridCell(row._rowId, col.key, e.target.value)
                                     }
                                     placeholder={`Enter ${col.label}...`}
-                                    className="w-full px-2 py-1 rounded bg-[#1e293b]/60 border border-border/80 text-foreground text-xs outline-none focus:border-cyan-400"
+                                    className="w-full px-2 py-1 rounded bg-slate-50 dark:bg-[#1e293b]/60 border border-border/80 text-foreground text-xs outline-none focus:border-cyan-400"
                                   />
                                 )}
                               </td>
@@ -2888,13 +2893,13 @@ export default function PropertyOnboardingHub() {
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs">
                   <thead>
-                    <tr className="border-b border-border bg-white/[0.02] text-muted-foreground">
+                    <tr className="border-b border-border bg-slate-50 dark:bg-white/[0.02] text-slate-700 dark:text-muted-foreground font-semibold">
                       <th className="px-3 py-2.5 w-8">
                         <input
                           type="checkbox"
                           checked={selectedRecordIds.length === moduleRecords.length}
                           onChange={handleToggleSelectAll}
-                          className="rounded border-border text-cyan-400 focus:ring-cyan-400"
+                          className="rounded border-border text-cyan-600 dark:text-cyan-400 focus:ring-cyan-500 cursor-pointer"
                         />
                       </th>
                       <th className="px-3 py-2.5 font-semibold font-mono text-[11px]">ID</th>
@@ -2921,14 +2926,14 @@ export default function PropertyOnboardingHub() {
                       return (
                         <tr
                           key={rec.id}
-                          className={`transition-colors ${isChecked ? 'bg-cyan-500/10 hover:bg-cyan-500/15' : 'hover:bg-white/[0.02]'}`}
+                          className={`transition-colors ${isChecked ? 'bg-cyan-500/10 hover:bg-cyan-500/15' : 'hover:bg-slate-50/70 dark:hover:bg-white/[0.02]'}`}
                         >
                           <td className="px-3 py-2.5">
                             <input
                               type="checkbox"
                               checked={isChecked}
                               onChange={() => handleToggleSelectRecord(rec.id)}
-                              className="rounded border-border text-cyan-400 focus:ring-cyan-400"
+                              className="rounded border-border text-cyan-600 dark:text-cyan-400 focus:ring-cyan-500 cursor-pointer"
                             />
                           </td>
                           <td className="px-3 py-2.5 font-mono text-[10px] text-muted-foreground whitespace-nowrap">
@@ -3223,9 +3228,9 @@ export default function PropertyOnboardingHub() {
             )}
 
             {/* ── THE INTERACTIVE SPREADSHEET TABLE ── */}
-            <div className="overflow-x-auto max-h-[360px] rounded-xl border border-border bg-black/40">
+            <div className="overflow-x-auto max-h-[360px] rounded-xl border border-border bg-white dark:bg-[#0f172a] shadow-sm">
               <table className="w-full text-left text-xs border-collapse">
-                <thead className="sticky top-0 bg-[#0f172a] z-10 border-b border-border shadow-sm">
+                <thead className="sticky top-0 bg-slate-100 dark:bg-[#0f172a] z-10 border-b border-border shadow-sm">
                   <tr>
                     <th className="px-2 py-2 w-8 text-center text-muted-foreground font-mono">#</th>
                     {gridColumns.map((col) => (
@@ -3241,7 +3246,7 @@ export default function PropertyOnboardingHub() {
                 </thead>
                 <tbody className="divide-y divide-border/40 font-sans">
                   {gridRows.map((row, rowIdx) => (
-                    <tr key={row._rowId} className="hover:bg-white/[0.02] group">
+                    <tr key={row._rowId} className="hover:bg-slate-50 dark:hover:bg-white/[0.02] group">
                       <td className="px-2 py-1.5 text-center text-muted-foreground font-mono text-[11px]">
                         {rowIdx + 1}
                       </td>
@@ -3259,7 +3264,7 @@ export default function PropertyOnboardingHub() {
                                 onChange={(e) =>
                                   handleUpdateGridCell(row._rowId, col.key, e.target.value)
                                 }
-                                className="w-full px-2 py-1 rounded bg-[#1e293b] border border-border text-foreground text-xs outline-none focus:border-cyan-400 cursor-pointer"
+                                className="w-full px-2 py-1 rounded bg-white dark:bg-[#1e293b] border border-border text-foreground text-xs outline-none focus:border-cyan-400 cursor-pointer"
                               >
                                 {selectOpts.map((opt) => (
                                   <option key={opt} value={opt}>
@@ -3275,7 +3280,7 @@ export default function PropertyOnboardingHub() {
                                   handleUpdateGridCell(row._rowId, col.key, e.target.value)
                                 }
                                 placeholder={`Enter ${col.label}...`}
-                                className="w-full px-2 py-1 rounded bg-[#1e293b]/60 border border-border/80 text-foreground text-xs outline-none focus:border-cyan-400"
+                                className="w-full px-2 py-1 rounded bg-slate-50 dark:bg-[#1e293b]/60 border border-border/80 text-foreground text-xs outline-none focus:border-cyan-400"
                               />
                             )}
                           </td>

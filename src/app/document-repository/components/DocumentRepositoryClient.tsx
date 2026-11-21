@@ -193,7 +193,7 @@ export default function DocumentRepositoryClient() {
   const [search, setSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('All');
   const [departmentFilter, setDepartmentFilter] = useState('All Departments');
-  const [siteFilter, setSiteFilter] = useState('All Sites');
+  const [siteFilter, setSiteFilter] = useState<string[]>([]);
   const [statusFilter, setStatusFilter] = useState('All');
   const [uploadOpen, setUploadOpen] = useState(false);
   const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
@@ -559,7 +559,12 @@ export default function DocumentRepositoryClient() {
     if (categoryFilter !== 'All') docs = docs.filter((d) => d.category === categoryFilter);
     if (departmentFilter !== 'All Departments')
       docs = docs.filter((d) => (d.department || 'Maintenance') === departmentFilter);
-    if (siteFilter !== 'All Sites') docs = docs.filter((d) => d.site === siteFilter);
+    if (
+      siteFilter.length > 0 &&
+      !siteFilter.some((s) => !s || s.toLowerCase() === 'all' || s.toLowerCase() === 'all sites')
+    ) {
+      docs = docs.filter((d) => siteFilter.includes(d.site));
+    }
     if (statusFilter !== 'All') docs = docs.filter((d) => d.status === statusFilter);
 
     docs.sort((a, b) => {
@@ -993,8 +998,10 @@ export default function DocumentRepositoryClient() {
           size="sm"
           variant="filter"
           value={siteFilter}
-          onChange={(val) => setSiteFilter(val)}
+          onChange={setSiteFilter}
           options={sitesList.map((s) => ({ value: s, label: s }))}
+          label="All Sites"
+          multiple
         />
 
         <div className="flex items-center gap-2 ml-auto">
@@ -1073,13 +1080,13 @@ export default function DocumentRepositoryClient() {
         </p>
         {(search ||
           categoryFilter !== 'All' ||
-          siteFilter !== 'All Sites' ||
+          siteFilter.length > 0 ||
           statusFilter !== 'All') && (
           <button
             onClick={() => {
               setSearch('');
               setCategoryFilter('All');
-              setSiteFilter('All Sites');
+              setSiteFilter([]);
               setStatusFilter('All');
             }}
             style={{
@@ -1108,7 +1115,7 @@ export default function DocumentRepositoryClient() {
                 onClick={() => {
                   setSearch('');
                   setCategoryFilter('All');
-                  setSiteFilter('All Sites');
+                  setSiteFilter([]);
                   setStatusFilter('All');
                 }}
                 className="samko-btn-ghost"

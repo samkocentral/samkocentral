@@ -301,7 +301,7 @@ export default function ApprovalsClient() {
   const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'hold' | 'approved'>(
     'pending'
   );
-  const [propertyFilter, setPropertyFilter] = useState('all');
+  const [propertyFilter, setPropertyFilter] = useState<string[]>([]);
   const [departmentFilter, setDepartmentFilter] = useState('all');
   const [categoryFilter, setCategoryFilter] = useState('all');
 
@@ -440,8 +440,14 @@ export default function ApprovalsClient() {
   const filtered = useMemo(() => {
     return accessibleDocuments.filter((d) => {
       if (statusFilter !== 'all' && d.approvalStatus !== statusFilter) return false;
-      if (propertyFilter !== 'all' && d.site.toLowerCase() !== propertyFilter.toLowerCase())
-        return false;
+      if (
+        propertyFilter.length > 0 &&
+        !propertyFilter.some(
+          (p) => !p || p.toLowerCase() === 'all' || p.toLowerCase() === 'all properties'
+        )
+      ) {
+        if (!propertyFilter.some((p) => p.toLowerCase() === d.site.toLowerCase())) return false;
+      }
       if (
         departmentFilter !== 'all' &&
         (d.department || '').toLowerCase() !== departmentFilter.toLowerCase()
@@ -925,11 +931,10 @@ export default function ApprovalsClient() {
             size="sm"
             variant="filter"
             value={propertyFilter}
-            onChange={(val) => setPropertyFilter(val)}
-            options={[
-              { value: 'all', label: `All Properties (${propertyOptions.length})` },
-              ...propertyOptions.map((name) => ({ value: name, label: name })),
-            ]}
+            onChange={setPropertyFilter}
+            options={propertyOptions.map((name) => ({ value: name, label: name }))}
+            label={`All Properties (${propertyOptions.length})`}
+            multiple
           />
 
           {/* Department Dropdown */}

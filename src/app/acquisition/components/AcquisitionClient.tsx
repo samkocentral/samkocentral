@@ -1660,8 +1660,8 @@ export default function AcquisitionClient() {
       {previewFileModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-3 md:p-6 animate-in fade-in">
           <div
-            className="w-full max-w-5xl rounded-2xl border border-border bg-[#11141a] p-5 shadow-2xl space-y-3 max-h-[92vh] flex flex-col"
-            style={{ background: '#11141a', backgroundColor: '#11141a' }}
+            className="w-full max-w-5xl rounded-2xl border border-border p-5 shadow-2xl space-y-3 max-h-[92vh] flex flex-col"
+            style={{ background: 'var(--card, #ffffff)' }}
           >
             {/* Header */}
             <div className="flex items-center justify-between pb-3 border-b border-border flex-shrink-0">
@@ -1853,8 +1853,8 @@ export default function AcquisitionClient() {
       {createFolderModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4 animate-in fade-in">
           <div
-            className="w-full max-w-sm rounded-2xl border border-border bg-[#11141a] p-5 shadow-2xl space-y-4"
-            style={{ background: '#11141a', backgroundColor: '#11141a' }}
+            className="w-full max-w-sm rounded-2xl border border-border p-5 shadow-2xl space-y-4"
+            style={{ background: 'var(--card, #ffffff)' }}
           >
             <div className="flex items-center justify-between pb-2 border-b border-border">
               <h3 className="font-head text-sm font-bold text-foreground flex items-center gap-2">
@@ -1930,8 +1930,8 @@ export default function AcquisitionClient() {
       {editFolderModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4 animate-in fade-in">
           <div
-            className="w-full max-w-sm rounded-2xl border border-border bg-[#11141a] p-5 shadow-2xl space-y-4"
-            style={{ background: '#11141a', backgroundColor: '#11141a' }}
+            className="w-full max-w-sm rounded-2xl border border-border p-5 shadow-2xl space-y-4"
+            style={{ background: 'var(--card, #ffffff)' }}
           >
             <div className="flex items-center justify-between pb-2 border-b border-border">
               <h3 className="font-head text-sm font-bold text-foreground flex items-center gap-2">
@@ -1984,8 +1984,8 @@ export default function AcquisitionClient() {
       {uploadModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4 animate-in fade-in">
           <div
-            className="w-full max-w-md rounded-2xl border border-border bg-[#11141a] p-5 shadow-2xl space-y-4"
-            style={{ background: '#11141a', backgroundColor: '#11141a' }}
+            className="w-full max-w-md rounded-2xl border border-border p-5 shadow-2xl space-y-4"
+            style={{ background: 'var(--card, #ffffff)' }}
           >
             <div className="flex items-center justify-between pb-2 border-b border-border">
               <h3 className="font-head text-sm font-bold text-foreground flex items-center gap-2">
@@ -2072,8 +2072,8 @@ export default function AcquisitionClient() {
       {reuploadFileModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4 animate-in fade-in">
           <div
-            className="w-full max-w-sm rounded-2xl border border-border bg-[#11141a] p-5 shadow-2xl space-y-4"
-            style={{ background: '#11141a', backgroundColor: '#11141a' }}
+            className="w-full max-w-sm rounded-2xl border border-border p-5 shadow-2xl space-y-4"
+            style={{ background: 'var(--card, #ffffff)' }}
           >
             <div className="flex items-center justify-between pb-2 border-b border-border">
               <h3 className="font-head text-sm font-bold text-foreground flex items-center gap-2">
@@ -2096,7 +2096,7 @@ export default function AcquisitionClient() {
             <form onSubmit={handleSaveReupload} className="space-y-3 text-xs">
               <div
                 className="border-2 border-dashed border-border rounded-xl p-5 text-center"
-                style={{ background: 'var(--surface2, #181c24)', backgroundColor: '#181c24' }}
+                style={{ background: 'var(--surface2)' }}
               >
                 <input
                   type="file"
@@ -2156,8 +2156,8 @@ export default function AcquisitionClient() {
       {moveModalState.isOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4 animate-in fade-in">
           <div
-            className="w-full max-w-sm rounded-2xl border border-border bg-[#11141a] p-5 shadow-2xl space-y-4"
-            style={{ background: '#11141a', backgroundColor: '#11141a' }}
+            className="w-full max-w-sm rounded-2xl border border-border p-5 shadow-2xl space-y-4"
+            style={{ background: 'var(--card, #ffffff)' }}
           >
             <div className="flex items-center justify-between pb-2 border-b border-border">
               <h3 className="font-head text-sm font-bold text-foreground flex items-center gap-2">

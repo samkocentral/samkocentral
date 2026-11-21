@@ -38,9 +38,9 @@ export default function Modal({
     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4 fade-in"
       style={{
-        background: 'rgba(0,0,0,0.8)',
-        backdropFilter: 'blur(8px)',
-        WebkitBackdropFilter: 'blur(8px)',
+        background: 'rgba(0,0,0,0.65)',
+        backdropFilter: 'blur(6px)',
+        WebkitBackdropFilter: 'blur(6px)',
       }}
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
@@ -55,10 +55,10 @@ export default function Modal({
           width: '100%',
           maxWidth: width,
           maxHeight: '90vh',
-          boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
+          boxShadow: '0 20px 60px rgba(0,0,0,0.25)',
           border: '1px solid var(--border-strong)',
-          backgroundColor: 'var(--surface, #11141a)',
-          background: 'var(--surface, #11141a)',
+          backgroundColor: 'var(--card, #ffffff)',
+          background: 'var(--card, #ffffff)',
         }}
       >
         {/* Header */}

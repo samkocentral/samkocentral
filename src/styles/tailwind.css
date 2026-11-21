@@ -477,7 +477,98 @@ html[data-theme='light'] .samko-count-badge-amber {
   font-weight: 800 !important;
 }
 
-/* Topbar / Dashboard Portal Switcher in Light Mode */
+/* ───────────────────────────────────────────────────────────── */
+/* Ultra-Crisp High-Visibility Toggle Switch                     */
+/* ───────────────────────────────────────────────────────────── */
+.samko-toggle-track {
+  width: 46px !important;
+  height: 26px !important;
+  border-radius: 9999px !important;
+  position: relative !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  flex-shrink: 0 !important;
+  cursor: pointer !important;
+  padding: 0 !important;
+  box-sizing: border-box !important;
+  outline: none !important;
+  transition: background-color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease !important;
+}
+
+/* Track when OFF in Light Mode */
+html.light .samko-toggle-track[data-checked='false'],
+html[data-theme='light'] .samko-toggle-track[data-checked='false'],
+body.light .samko-toggle-track[data-checked='false'] {
+  background-color: #cbd5e1 !important;
+  border: 2px solid #94a3b8 !important;
+  box-shadow: inset 0 1px 3px rgba(15, 23, 42, 0.12) !important;
+}
+html.light .samko-toggle-track[data-checked='false']:hover,
+html[data-theme='light'] .samko-toggle-track[data-checked='false']:hover {
+  background-color: #94a3b8 !important;
+  border-color: #64748b !important;
+}
+
+/* Track when OFF in Dark Mode */
+html:not(.light) .samko-toggle-track[data-checked='false'],
+html.dark .samko-toggle-track[data-checked='false'],
+html[data-theme='dark'] .samko-toggle-track[data-checked='false'] {
+  background-color: rgba(255, 255, 255, 0.18) !important;
+  border: 2px solid rgba(255, 255, 255, 0.35) !important;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.4) !important;
+}
+html:not(.light) .samko-toggle-track[data-checked='false']:hover,
+html.dark .samko-toggle-track[data-checked='false']:hover {
+  background-color: rgba(255, 255, 255, 0.25) !important;
+  border-color: rgba(255, 255, 255, 0.5) !important;
+}
+
+/* Track when ON in Light Mode */
+html.light .samko-toggle-track[data-checked='true'],
+html[data-theme='light'] .samko-toggle-track[data-checked='true'],
+body.light .samko-toggle-track[data-checked='true'] {
+  background-color: #b4831f !important;
+  border: 2px solid #854d0e !important;
+  box-shadow: 0 1px 4px rgba(180, 131, 31, 0.4) !important;
+}
+
+/* Track when ON in Dark Mode */
+html:not(.light) .samko-toggle-track[data-checked='true'],
+html.dark .samko-toggle-track[data-checked='true'],
+html[data-theme='dark'] .samko-toggle-track[data-checked='true'] {
+  background-color: #e8c97a !important;
+  border: 2px solid #d4b05b !important;
+  box-shadow: 0 1px 6px rgba(232, 201, 122, 0.4) !important;
+}
+
+/* The Thumb Knob: Pure White Circle, Crisp 3D Shadow, 100% Visible Everywhere */
+.samko-toggle-thumb {
+  width: 18px !important;
+  height: 18px !important;
+  border-radius: 9999px !important;
+  background-color: #ffffff !important;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.35), 0 0 1px rgba(0, 0, 0, 0.2) !important;
+  display: block !important;
+  flex-shrink: 0 !important;
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  pointer-events: none !important;
+}
+
+.samko-toggle-track[data-checked='false'] .samko-toggle-thumb {
+  transform: translateX(3px) !important;
+}
+
+.samko-toggle-track[data-checked='true'] .samko-toggle-thumb {
+  transform: translateX(21px) !important;
+}
+
+/* Topbar / Dashboard Portal Switcher */
+.samko-portal-switcher-btn {
+  transition: background-color 0.12s ease, color 0.12s ease, border-color 0.12s ease !important;
+  user-select: none !important;
+}
+
+/* Light Mode */
 html.light .samko-portal-switcher-btn[data-active='true'][data-portal='propco'],
 html[data-theme='light'] .samko-portal-switcher-btn[data-active='true'][data-portal='propco'] {
   background-color: #fef3c7 !important;
@@ -509,6 +600,40 @@ html[data-theme='light'] .samko-portal-switcher-btn[data-active='false']:hover {
   color: #0f172a !important;
 }
 
+/* Dark Mode */
+html:not(.light) .samko-portal-switcher-btn[data-active='true'][data-portal='propco'],
+html.dark .samko-portal-switcher-btn[data-active='true'][data-portal='propco'],
+html[data-theme='dark'] .samko-portal-switcher-btn[data-active='true'][data-portal='propco'] {
+  background-color: rgba(232, 201, 122, 0.22) !important;
+  color: #e8c97a !important;
+  border: 1px solid rgba(232, 201, 122, 0.45) !important;
+  font-weight: 700 !important;
+}
+
+html:not(.light) .samko-portal-switcher-btn[data-active='true'][data-portal='opco'],
+html.dark .samko-portal-switcher-btn[data-active='true'][data-portal='opco'],
+html[data-theme='dark'] .samko-portal-switcher-btn[data-active='true'][data-portal='opco'] {
+  background-color: rgba(96, 165, 250, 0.22) !important;
+  color: #60a5fa !important;
+  border: 1px solid rgba(96, 165, 250, 0.45) !important;
+  font-weight: 700 !important;
+}
+
+html:not(.light) .samko-portal-switcher-btn[data-active='false'],
+html.dark .samko-portal-switcher-btn[data-active='false'],
+html[data-theme='dark'] .samko-portal-switcher-btn[data-active='false'] {
+  background-color: transparent !important;
+  color: #94a3b8 !important;
+  border: 1px solid transparent !important;
+}
+
+html:not(.light) .samko-portal-switcher-btn[data-active='false']:hover,
+html.dark .samko-portal-switcher-btn[data-active='false']:hover,
+html[data-theme='dark'] .samko-portal-switcher-btn[data-active='false']:hover {
+  background-color: rgba(255, 255, 255, 0.08) !important;
+  color: #ffffff !important;
+}
+
 /* Status Badges */
 html.light .status-badge,
 html[data-theme='light'] .status-badge {
@@ -535,17 +660,19 @@ html[data-theme='light'] .filter-chip-btn.active-chip {
   color: #b4831f !important;
 }
 
-html.light [data-sonner-toast],
-html[data-theme='light'] [data-sonner-toast] {
-  background-color: #ffffff !important;
-  color: #0f172a !important;
-  border-color: #e2e8f0 !important;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1) !important;
+/* Checkbox visibility & crisp styling across the whole application */
+input[type="checkbox"] {
+  accent-color: #b4831f;
+  width: 17px;
+  height: 17px;
+  border-radius: 4px;
+  cursor: pointer;
+  vertical-align: middle;
 }
 
-html.light [data-sonner-toast] [data-title],
-html[data-theme='light'] [data-sonner-toast] [data-title] {
-  color: #0f172a !important;
+html.light input[type="checkbox"],
+html[data-theme='light'] input[type="checkbox"] {
+  accent-color: #b4831f;
 }
 
 /* Pagination high-contrast in Light Mode */
@@ -1041,7 +1168,7 @@ html[data-theme='light'] ::-webkit-scrollbar-thumb:hover {
 }
 
 /* ───────────────────────────────────────────────────────────── */
-/* Sonner Situational Cool Color Toast Styling (Top-Right Edge) */
+/* Sonner Situational Color Toast Styling (Top-Right Edge)       */
 /* ───────────────────────────────────────────────────────────── */
 
 [data-sonner-toaster] {
@@ -1066,19 +1193,15 @@ html[data-theme='light'] ::-webkit-scrollbar-thumb:hover {
 }
 
 /* ───────────────────────────────────────────────────────────── */
-/* 1. SUCCESS: Cool Emerald Green (Completions, Creations, Saves) */
+/* DARK MODE TOASTS (High-Contrast, Rich Tone, Pure Readability) */
 /* ───────────────────────────────────────────────────────────── */
+
+/* 1. SUCCESS: Cool Emerald Green */
 [data-sonner-toast][data-type='success'],
 .samko-toast[data-type='success'] {
-  background: linear-gradient(
-    135deg,
-    rgba(8, 28, 18, 0.96) 0%,
-    rgba(4, 16, 10, 0.98) 100%
-  ) !important;
-  border: 1.5px solid rgba(52, 211, 153, 0.45) !important;
-  box-shadow:
-    0 10px 32px rgba(16, 185, 129, 0.25),
-    0 4px 16px rgba(0, 0, 0, 0.6) !important;
+  background: linear-gradient(135deg, #0d281e 0%, #081a13 100%) !important;
+  border: 1.5px solid rgba(52, 211, 153, 0.65) !important;
+  box-shadow: 0 10px 32px rgba(16, 185, 129, 0.3), 0 4px 16px rgba(0, 0, 0, 0.6) !important;
   color: #34d399 !important;
 }
 [data-sonner-toast][data-type='success'] [data-icon],
@@ -1095,27 +1218,20 @@ html[data-theme='light'] ::-webkit-scrollbar-thumb:hover {
 }
 [data-sonner-toast][data-type='success'] [data-description],
 [data-sonner-toast][data-type='success'] .samko-toast-desc {
-  color: #a7f3d0 !important;
-  font-size: 12px !important;
+  color: #ecfdf5 !important;
+  font-size: 12.5px !important;
+  font-weight: 500 !important;
   margin-top: 3px !important;
-  opacity: 0.95 !important;
+  opacity: 1 !important;
   line-height: 1.4 !important;
 }
 
-/* ───────────────────────────────────────────────────────────── */
-/* 2. ERROR / DESTRUCTIVE / DELETE: Cool Rose Red (Not White!)  */
-/* ───────────────────────────────────────────────────────────── */
+/* 2. ERROR / DESTRUCTIVE: Rose Red */
 [data-sonner-toast][data-type='error'],
 .samko-toast[data-type='error'] {
-  background: linear-gradient(
-    135deg,
-    rgba(38, 10, 18, 0.96) 0%,
-    rgba(20, 5, 10, 0.98) 100%
-  ) !important;
-  border: 1.5px solid rgba(244, 63, 94, 0.5) !important;
-  box-shadow:
-    0 10px 32px rgba(244, 63, 94, 0.28),
-    0 4px 16px rgba(0, 0, 0, 0.6) !important;
+  background: linear-gradient(135deg, #2b1118 0%, #1c0a0f 100%) !important;
+  border: 1.5px solid rgba(244, 63, 94, 0.65) !important;
+  box-shadow: 0 10px 32px rgba(244, 63, 94, 0.3), 0 4px 16px rgba(0, 0, 0, 0.6) !important;
   color: #f43f5e !important;
 }
 [data-sonner-toast][data-type='error'] [data-icon],
@@ -1132,27 +1248,20 @@ html[data-theme='light'] ::-webkit-scrollbar-thumb:hover {
 }
 [data-sonner-toast][data-type='error'] [data-description],
 [data-sonner-toast][data-type='error'] .samko-toast-desc {
-  color: #fecdd3 !important;
-  font-size: 12px !important;
+  color: #fff1f2 !important;
+  font-size: 12.5px !important;
+  font-weight: 500 !important;
   margin-top: 3px !important;
-  opacity: 0.95 !important;
+  opacity: 1 !important;
   line-height: 1.4 !important;
 }
 
-/* ───────────────────────────────────────────────────────────── */
-/* 3. WARNING: Warm Amber Gold                                  */
-/* ───────────────────────────────────────────────────────────── */
+/* 3. WARNING: Warm Amber Gold */
 [data-sonner-toast][data-type='warning'],
 .samko-toast[data-type='warning'] {
-  background: linear-gradient(
-    135deg,
-    rgba(36, 22, 6, 0.96) 0%,
-    rgba(18, 11, 3, 0.98) 100%
-  ) !important;
-  border: 1.5px solid rgba(245, 158, 11, 0.5) !important;
-  box-shadow:
-    0 10px 32px rgba(245, 158, 11, 0.25),
-    0 4px 16px rgba(0, 0, 0, 0.6) !important;
+  background: linear-gradient(135deg, #2d1c07 0%, #1d1204 100%) !important;
+  border: 1.5px solid rgba(245, 158, 11, 0.65) !important;
+  box-shadow: 0 10px 32px rgba(245, 158, 11, 0.3), 0 4px 16px rgba(0, 0, 0, 0.6) !important;
   color: #fbbf24 !important;
 }
 [data-sonner-toast][data-type='warning'] [data-icon],
@@ -1169,27 +1278,20 @@ html[data-theme='light'] ::-webkit-scrollbar-thumb:hover {
 }
 [data-sonner-toast][data-type='warning'] [data-description],
 [data-sonner-toast][data-type='warning'] .samko-toast-desc {
-  color: #fef3c7 !important;
-  font-size: 12px !important;
+  color: #fffbeb !important;
+  font-size: 12.5px !important;
+  font-weight: 500 !important;
   margin-top: 3px !important;
-  opacity: 0.95 !important;
+  opacity: 1 !important;
   line-height: 1.4 !important;
 }
 
-/* ───────────────────────────────────────────────────────────── */
-/* 4. INFO: Cool Sky Cyan (Reopen, Information, Notices)        */
-/* ───────────────────────────────────────────────────────────── */
+/* 4. INFO: Sky Cyan */
 [data-sonner-toast][data-type='info'],
 .samko-toast[data-type='info'] {
-  background: linear-gradient(
-    135deg,
-    rgba(10, 26, 42, 0.96) 0%,
-    rgba(5, 13, 22, 0.98) 100%
-  ) !important;
-  border: 1.5px solid rgba(56, 189, 248, 0.5) !important;
-  box-shadow:
-    0 10px 32px rgba(56, 189, 248, 0.25),
-    0 4px 16px rgba(0, 0, 0, 0.6) !important;
+  background: linear-gradient(135deg, #0e243a 0%, #091726 100%) !important;
+  border: 1.5px solid rgba(56, 189, 248, 0.65) !important;
+  box-shadow: 0 10px 32px rgba(56, 189, 248, 0.3), 0 4px 16px rgba(0, 0, 0, 0.6) !important;
   color: #38bdf8 !important;
 }
 [data-sonner-toast][data-type='info'] [data-icon],
@@ -1206,28 +1308,21 @@ html[data-theme='light'] ::-webkit-scrollbar-thumb:hover {
 }
 [data-sonner-toast][data-type='info'] [data-description],
 [data-sonner-toast][data-type='info'] .samko-toast-desc {
-  color: #bae6fd !important;
-  font-size: 12px !important;
+  color: #f0f9ff !important;
+  font-size: 12.5px !important;
+  font-weight: 500 !important;
   margin-top: 3px !important;
-  opacity: 0.95 !important;
+  opacity: 1 !important;
   line-height: 1.4 !important;
 }
 
-/* ───────────────────────────────────────────────────────────── */
-/* 5. DEFAULT / BRAND TOAST: Samko Luxury Gold                  */
-/* ───────────────────────────────────────────────────────────── */
+/* 5. DEFAULT / BRAND TOAST: Samko Luxury Gold */
 [data-sonner-toast][data-type='default'],
 [data-sonner-toast]:not([data-type]),
 .samko-toast[data-type='default'] {
-  background: linear-gradient(
-    135deg,
-    rgba(26, 22, 14, 0.96) 0%,
-    rgba(14, 12, 8, 0.98) 100%
-  ) !important;
-  border: 1.5px solid rgba(232, 201, 122, 0.45) !important;
-  box-shadow:
-    0 10px 32px rgba(232, 201, 122, 0.22),
-    0 4px 16px rgba(0, 0, 0, 0.6) !important;
+  background: linear-gradient(135deg, #241c0f 0%, #17120a 100%) !important;
+  border: 1.5px solid rgba(232, 201, 122, 0.6) !important;
+  box-shadow: 0 10px 32px rgba(232, 201, 122, 0.25), 0 4px 16px rgba(0, 0, 0, 0.6) !important;
   color: #e8c97a !important;
 }
 [data-sonner-toast][data-type='default'] [data-icon],
@@ -1251,26 +1346,263 @@ html[data-theme='light'] ::-webkit-scrollbar-thumb:hover {
 [data-sonner-toast][data-type='default'] .samko-toast-desc,
 [data-sonner-toast]:not([data-type]) .samko-toast-desc {
   color: #fef3c7 !important;
-  font-size: 12px !important;
+  font-size: 12.5px !important;
+  font-weight: 500 !important;
   margin-top: 3px !important;
-  opacity: 0.92 !important;
+  opacity: 1 !important;
   line-height: 1.4 !important;
 }
 
-/* ───────────────────────────────────────────────────────────── */
-/* Close Button Styling                                         */
-/* ───────────────────────────────────────────────────────────── */
 [data-sonner-toaster] [data-close-button],
 .samko-toast-close {
-  background: rgba(255, 255, 255, 0.08) !important;
-  border: 1px solid rgba(255, 255, 255, 0.18) !important;
+  background: rgba(255, 255, 255, 0.1) !important;
+  border: 1px solid rgba(255, 255, 255, 0.22) !important;
   color: #f3f4f6 !important;
   border-radius: 9999px !important;
   transition: all 0.15s ease !important;
 }
 [data-sonner-toaster] [data-close-button]:hover,
 .samko-toast-close:hover {
-  background: rgba(255, 255, 255, 0.2) !important;
+  background: rgba(255, 255, 255, 0.25) !important;
   color: #fff !important;
   transform: scale(1.08) !important;
+}
+
+/* ───────────────────────────────────────────────────────────── */
+/* LIGHT MODE TOASTS (Pure White Card, Crisp Border, High-Contrast)*/
+/* ───────────────────────────────────────────────────────────── */
+
+html.light [data-sonner-toast],
+html[data-theme='light'] [data-sonner-toast],
+body.light [data-sonner-toast],
+html.light .samko-toast,
+html[data-theme='light'] .samko-toast,
+body.light .samko-toast {
+  background: #ffffff !important;
+  border: 1.5px solid #cbd5e1 !important;
+  box-shadow: 0 16px 40px rgba(15, 23, 42, 0.12), 0 4px 12px rgba(15, 23, 42, 0.06) !important;
+  color: #0f172a !important;
+}
+
+html.light [data-sonner-toast] [data-title],
+html[data-theme='light'] [data-sonner-toast] [data-title],
+body.light [data-sonner-toast] [data-title],
+html.light .samko-toast-title,
+html[data-theme='light'] .samko-toast-title,
+body.light .samko-toast-title {
+  color: #0f172a !important;
+  font-weight: 700 !important;
+}
+
+html.light [data-sonner-toast] [data-description],
+html[data-theme='light'] [data-sonner-toast] [data-description],
+body.light [data-sonner-toast] [data-description],
+html.light .samko-toast-desc,
+html[data-theme='light'] .samko-toast-desc,
+body.light .samko-toast-desc {
+  color: #334155 !important;
+  font-weight: 500 !important;
+}
+
+/* Light mode Success */
+html.light [data-sonner-toast][data-type='success'],
+html[data-theme='light'] [data-sonner-toast][data-type='success'],
+body.light [data-sonner-toast][data-type='success'],
+html.light .samko-toast[data-type='success'],
+html[data-theme='light'] .samko-toast[data-type='success'],
+body.light .samko-toast[data-type='success'] {
+  background: #ffffff !important;
+  border: 1.5px solid #10b981 !important;
+  box-shadow: 0 16px 40px rgba(16, 185, 129, 0.16), 0 4px 12px rgba(16, 185, 129, 0.08) !important;
+}
+html.light [data-sonner-toast][data-type='success'] [data-icon],
+html[data-theme='light'] [data-sonner-toast][data-type='success'] [data-icon],
+body.light [data-sonner-toast][data-type='success'] [data-icon] {
+  color: #059669 !important;
+  stroke: #059669 !important;
+}
+html.light [data-sonner-toast][data-type='success'] [data-title],
+html[data-theme='light'] [data-sonner-toast][data-type='success'] [data-title],
+body.light [data-sonner-toast][data-type='success'] [data-title],
+html.light .samko-toast[data-type='success'] .samko-toast-title,
+html[data-theme='light'] .samko-toast[data-type='success'] .samko-toast-title {
+  color: #065f46 !important;
+  font-weight: 700 !important;
+}
+html.light [data-sonner-toast][data-type='success'] [data-description],
+html[data-theme='light'] [data-sonner-toast][data-type='success'] [data-description],
+body.light [data-sonner-toast][data-type='success'] [data-description],
+html.light .samko-toast[data-type='success'] .samko-toast-desc,
+html[data-theme='light'] .samko-toast[data-type='success'] .samko-toast-desc {
+  color: #047857 !important;
+  font-weight: 600 !important;
+}
+
+/* Light mode Error */
+html.light [data-sonner-toast][data-type='error'],
+html[data-theme='light'] [data-sonner-toast][data-type='error'],
+body.light [data-sonner-toast][data-type='error'],
+html.light .samko-toast[data-type='error'],
+html[data-theme='light'] .samko-toast[data-type='error'],
+body.light .samko-toast[data-type='error'] {
+  background: #ffffff !important;
+  border: 1.5px solid #ef4444 !important;
+  box-shadow: 0 16px 40px rgba(239, 68, 68, 0.16), 0 4px 12px rgba(239, 68, 68, 0.08) !important;
+}
+html.light [data-sonner-toast][data-type='error'] [data-icon],
+html[data-theme='light'] [data-sonner-toast][data-type='error'] [data-icon],
+body.light [data-sonner-toast][data-type='error'] [data-icon] {
+  color: #dc2626 !important;
+  stroke: #dc2626 !important;
+}
+html.light [data-sonner-toast][data-type='error'] [data-title],
+html[data-theme='light'] [data-sonner-toast][data-type='error'] [data-title],
+body.light [data-sonner-toast][data-type='error'] [data-title],
+html.light .samko-toast[data-type='error'] .samko-toast-title,
+html[data-theme='light'] .samko-toast[data-type='error'] .samko-toast-title {
+  color: #991b1b !important;
+  font-weight: 700 !important;
+}
+html.light [data-sonner-toast][data-type='error'] [data-description],
+html[data-theme='light'] [data-sonner-toast][data-type='error'] [data-description],
+body.light [data-sonner-toast][data-type='error'] [data-description],
+html.light .samko-toast[data-type='error'] .samko-toast-desc,
+html[data-theme='light'] .samko-toast[data-type='error'] .samko-toast-desc {
+  color: #b91c1c !important;
+  font-weight: 600 !important;
+}
+
+/* Light mode Warning */
+html.light [data-sonner-toast][data-type='warning'],
+html[data-theme='light'] [data-sonner-toast][data-type='warning'],
+body.light [data-sonner-toast][data-type='warning'],
+html.light .samko-toast[data-type='warning'],
+html[data-theme='light'] .samko-toast[data-type='warning'],
+body.light .samko-toast[data-type='warning'] {
+  background: #ffffff !important;
+  border: 1.5px solid #f59e0b !important;
+  box-shadow: 0 16px 40px rgba(245, 158, 11, 0.16), 0 4px 12px rgba(245, 158, 11, 0.08) !important;
+}
+html.light [data-sonner-toast][data-type='warning'] [data-icon],
+html[data-theme='light'] [data-sonner-toast][data-type='warning'] [data-icon],
+body.light [data-sonner-toast][data-type='warning'] [data-icon] {
+  color: #d97706 !important;
+  stroke: #d97706 !important;
+}
+html.light [data-sonner-toast][data-type='warning'] [data-title],
+html[data-theme='light'] [data-sonner-toast][data-type='warning'] [data-title],
+body.light [data-sonner-toast][data-type='warning'] [data-title],
+html.light .samko-toast[data-type='warning'] .samko-toast-title,
+html[data-theme='light'] .samko-toast[data-type='warning'] .samko-toast-title {
+  color: #92400e !important;
+  font-weight: 700 !important;
+}
+html.light [data-sonner-toast][data-type='warning'] [data-description],
+html[data-theme='light'] [data-sonner-toast][data-type='warning'] [data-description],
+body.light [data-sonner-toast][data-type='warning'] [data-description],
+html.light .samko-toast[data-type='warning'] .samko-toast-desc,
+html[data-theme='light'] .samko-toast[data-type='warning'] .samko-toast-desc {
+  color: #b45309 !important;
+  font-weight: 600 !important;
+}
+
+/* Light mode Info */
+html.light [data-sonner-toast][data-type='info'],
+html[data-theme='light'] [data-sonner-toast][data-type='info'],
+body.light [data-sonner-toast][data-type='info'],
+html.light .samko-toast[data-type='info'],
+html[data-theme='light'] .samko-toast[data-type='info'],
+body.light .samko-toast[data-type='info'] {
+  background: #ffffff !important;
+  border: 1.5px solid #0284c7 !important;
+  box-shadow: 0 16px 40px rgba(2, 132, 199, 0.16), 0 4px 12px rgba(2, 132, 199, 0.08) !important;
+}
+html.light [data-sonner-toast][data-type='info'] [data-icon],
+html[data-theme='light'] [data-sonner-toast][data-type='info'] [data-icon],
+body.light [data-sonner-toast][data-type='info'] [data-icon] {
+  color: #0284c7 !important;
+  stroke: #0284c7 !important;
+}
+html.light [data-sonner-toast][data-type='info'] [data-title],
+html[data-theme='light'] [data-sonner-toast][data-type='info'] [data-title],
+body.light [data-sonner-toast][data-type='info'] [data-title],
+html.light .samko-toast[data-type='info'] .samko-toast-title,
+html[data-theme='light'] .samko-toast[data-type='info'] .samko-toast-title {
+  color: #0369a1 !important;
+  font-weight: 700 !important;
+}
+html.light [data-sonner-toast][data-type='info'] [data-description],
+html[data-theme='light'] [data-sonner-toast][data-type='info'] [data-description],
+body.light [data-sonner-toast][data-type='info'] [data-description],
+html.light .samko-toast[data-type='info'] .samko-toast-desc,
+html[data-theme='light'] .samko-toast[data-type='info'] .samko-toast-desc {
+  color: #0284c7 !important;
+  font-weight: 600 !important;
+}
+
+/* Light mode Default / Brand Gold */
+html.light [data-sonner-toast][data-type='default'],
+html[data-theme='light'] [data-sonner-toast][data-type='default'],
+body.light [data-sonner-toast][data-type='default'],
+html.light [data-sonner-toast]:not([data-type]),
+html[data-theme='light'] [data-sonner-toast]:not([data-type]),
+body.light [data-sonner-toast]:not([data-type]),
+html.light .samko-toast[data-type='default'],
+html[data-theme='light'] .samko-toast[data-type='default'],
+body.light .samko-toast[data-type='default'] {
+  background: #ffffff !important;
+  border: 1.5px solid #b4831f !important;
+  box-shadow: 0 16px 40px rgba(180, 131, 31, 0.16), 0 4px 12px rgba(180, 131, 31, 0.08) !important;
+}
+html.light [data-sonner-toast][data-type='default'] [data-icon],
+html[data-theme='light'] [data-sonner-toast][data-type='default'] [data-icon],
+body.light [data-sonner-toast][data-type='default'] [data-icon],
+html.light [data-sonner-toast]:not([data-type]) [data-icon],
+html[data-theme='light'] [data-sonner-toast]:not([data-type]) [data-icon],
+body.light [data-sonner-toast]:not([data-type]) [data-icon] {
+  color: #b4831f !important;
+  stroke: #b4831f !important;
+}
+html.light [data-sonner-toast][data-type='default'] [data-title],
+html[data-theme='light'] [data-sonner-toast][data-type='default'] [data-title],
+body.light [data-sonner-toast][data-type='default'] [data-title],
+html.light [data-sonner-toast]:not([data-type]) [data-title],
+html[data-theme='light'] [data-sonner-toast]:not([data-type]) [data-title],
+body.light [data-sonner-toast]:not([data-type]) [data-title],
+html.light .samko-toast[data-type='default'] .samko-toast-title,
+html[data-theme='light'] .samko-toast[data-type='default'] .samko-toast-title {
+  color: #854d0e !important;
+  font-weight: 700 !important;
+}
+html.light [data-sonner-toast][data-type='default'] [data-description],
+html[data-theme='light'] [data-sonner-toast][data-type='default'] [data-description],
+body.light [data-sonner-toast][data-type='default'] [data-description],
+html.light [data-sonner-toast]:not([data-type]) [data-description],
+html[data-theme='light'] [data-sonner-toast]:not([data-type]) [data-description],
+body.light [data-sonner-toast]:not([data-type]) [data-description],
+html.light .samko-toast[data-type='default'] .samko-toast-desc,
+html[data-theme='light'] .samko-toast[data-type='default'] .samko-toast-desc {
+  color: #713f12 !important;
+  font-weight: 600 !important;
+}
+
+/* Light mode Close Button */
+html.light [data-sonner-toaster] [data-close-button],
+html[data-theme='light'] [data-sonner-toaster] [data-close-button],
+body.light [data-sonner-toaster] [data-close-button],
+html.light .samko-toast-close,
+html[data-theme='light'] .samko-toast-close,
+body.light .samko-toast-close {
+  background: #f1f5f9 !important;
+  border: 1px solid #cbd5e1 !important;
+  color: #475569 !important;
+}
+html.light [data-sonner-toaster] [data-close-button]:hover,
+html[data-theme='light'] [data-sonner-toaster] [data-close-button]:hover,
+body.light [data-sonner-toaster] [data-close-button]:hover,
+html.light .samko-toast-close:hover,
+html[data-theme='light'] .samko-toast-close:hover,
+body.light .samko-toast-close:hover {
+  background: #e2e8f0 !important;
+  color: #0f172a !important;
 }

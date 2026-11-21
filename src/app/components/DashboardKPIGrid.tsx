@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   AlertTriangle,
   Wrench,
@@ -39,12 +39,16 @@ export default function DashboardKPIGrid() {
   const { dashboard: cmsDashboard } = useAppCms();
   const cms = useDeepPageCms('overview');
 
+  const hasInitializedPortal = useRef(false);
   useEffect(() => {
-    const portal = searchParams?.get('portal');
-    if ((portal === 'propco' || portal === 'opco') && portal !== activePortal) {
-      setActivePortal(portal);
+    if (!hasInitializedPortal.current) {
+      hasInitializedPortal.current = true;
+      const portal = searchParams?.get('portal');
+      if (portal === 'propco' || portal === 'opco') {
+        setActivePortal(portal);
+      }
     }
-  }, [searchParams, activePortal, setActivePortal]);
+  }, [searchParams, setActivePortal]);
 
   const [assets, setAssets] = useState<any[]>(ASSETS);
   const [maintenance, setMaintenance] = useState<any[]>(MAINTENANCE_RECORDS);
@@ -545,15 +549,28 @@ export default function DashboardKPIGrid() {
           <button
             type="button"
             onClick={() => {
+              if (activePortal === 'propco') return;
               setActivePortal('propco');
-              router.push('/?portal=propco');
+              if (typeof window !== 'undefined') {
+                const url = new URL(window.location.href);
+                url.searchParams.set('portal', 'propco');
+                window.history.replaceState(null, '', url.pathname + url.search);
+                window.dispatchEvent(
+                  new CustomEvent('samko:portal-changed', { detail: { portal: 'propco' } })
+                );
+              }
             }}
             data-active={activePortal === 'propco' ? 'true' : 'false'}
             data-portal="propco"
-            className="samko-portal-switcher-btn px-2.5 py-1 rounded text-[11px] font-bold transition-all cursor-pointer"
+            className="samko-portal-switcher-btn px-2.5 py-1 rounded text-[11px] font-bold cursor-pointer"
             style={{
-              background: activePortal === 'propco' ? 'var(--primary)' : 'transparent',
-              color: activePortal === 'propco' ? '#000' : 'var(--text2)',
+              background:
+                activePortal === 'propco' ? 'rgba(232,201,122,0.22)' : 'transparent',
+              color: activePortal === 'propco' ? '#e8c97a' : 'var(--text2)',
+              border:
+                activePortal === 'propco'
+                  ? '1px solid rgba(232,201,122,0.45)'
+                  : '1px solid transparent',
             }}
           >
             Propco
@@ -561,15 +578,28 @@ export default function DashboardKPIGrid() {
           <button
             type="button"
             onClick={() => {
+              if (activePortal === 'opco') return;
               setActivePortal('opco');
-              router.push('/?portal=opco');
+              if (typeof window !== 'undefined') {
+                const url = new URL(window.location.href);
+                url.searchParams.set('portal', 'opco');
+                window.history.replaceState(null, '', url.pathname + url.search);
+                window.dispatchEvent(
+                  new CustomEvent('samko:portal-changed', { detail: { portal: 'opco' } })
+                );
+              }
             }}
             data-active={activePortal === 'opco' ? 'true' : 'false'}
             data-portal="opco"
-            className="samko-portal-switcher-btn px-2.5 py-1 rounded text-[11px] font-bold transition-all cursor-pointer"
+            className="samko-portal-switcher-btn px-2.5 py-1 rounded text-[11px] font-bold cursor-pointer"
             style={{
-              background: activePortal === 'opco' ? 'var(--primary)' : 'transparent',
-              color: activePortal === 'opco' ? '#000' : 'var(--text2)',
+              background:
+                activePortal === 'opco' ? 'rgba(96,165,250,0.22)' : 'transparent',
+              color: activePortal === 'opco' ? '#60a5fa' : 'var(--text2)',
+              border:
+                activePortal === 'opco'
+                  ? '1px solid rgba(96,165,250,0.45)'
+                  : '1px solid transparent',
             }}
           >
             Opco

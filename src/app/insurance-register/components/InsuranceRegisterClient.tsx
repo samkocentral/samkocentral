@@ -2066,7 +2066,7 @@ export default function InsuranceRegisterClient() {
         >
           <div
             className="rounded-2xl border border-border-strong w-full max-w-2xl max-h-[85vh] overflow-auto shadow-2xl samko-modal-card"
-            style={{ background: '#11141a', borderColor: 'var(--border-strong)' }}
+            style={{ background: 'var(--card)', borderColor: 'var(--border-strong)' }}
             onClick={(e) => e.stopPropagation()}
           >
             <div
@@ -2105,7 +2105,7 @@ export default function InsuranceRegisterClient() {
                 ✕
               </button>
             </div>
-            <div className="p-6 grid grid-cols-2 gap-4" style={{ background: '#11141a' }}>
+            <div className="p-6 grid grid-cols-2 gap-4" style={{ background: 'var(--card)' }}>
               {[
                 ['Property', selectedPolicy.hotel || '—'],
                 ['Coverage Amount', fmt(selectedPolicy.coverageAmount)],
@@ -2131,7 +2131,7 @@ export default function InsuranceRegisterClient() {
               ))}
             </div>
             {selectedPolicy.notes && (
-              <div className="px-6 pb-4" style={{ background: '#11141a' }}>
+              <div className="px-6 pb-4" style={{ background: 'var(--card)' }}>
                 <div className="text-xs text-muted-foreground font-medium uppercase tracking-wider mb-1.5">
                   Notes
                 </div>
@@ -2187,7 +2187,7 @@ export default function InsuranceRegisterClient() {
         >
           <div
             className="rounded-2xl border border-border-strong w-full max-w-2xl max-h-[85vh] overflow-auto shadow-2xl samko-modal-card"
-            style={{ background: '#11141a', borderColor: 'var(--border-strong)' }}
+            style={{ background: 'var(--card)', borderColor: 'var(--border-strong)' }}
             onClick={(e) => e.stopPropagation()}
           >
             <div
@@ -2406,7 +2406,7 @@ export default function InsuranceRegisterClient() {
         >
           <div
             className="rounded-2xl border border-border-strong w-full max-w-2xl max-h-[85vh] overflow-auto shadow-2xl samko-modal-card"
-            style={{ background: '#11141a', borderColor: 'var(--border-strong)' }}
+            style={{ background: 'var(--card)', borderColor: 'var(--border-strong)' }}
             onClick={(e) => e.stopPropagation()}
           >
             <div
@@ -2745,7 +2745,7 @@ export default function InsuranceRegisterClient() {
         >
           <div
             className="rounded-2xl border border-border-strong w-full max-w-xl max-h-[85vh] overflow-auto shadow-2xl samko-modal-card"
-            style={{ background: '#11141a' }}
+            style={{ background: 'var(--card)' }}
             onClick={(e) => e.stopPropagation()}
           >
             <div
@@ -2897,7 +2897,7 @@ export default function InsuranceRegisterClient() {
         >
           <div
             className="rounded-2xl border border-border-strong w-full max-w-xl max-h-[85vh] overflow-auto shadow-2xl samko-modal-card"
-            style={{ background: '#11141a' }}
+            style={{ background: 'var(--card)' }}
             onClick={(e) => e.stopPropagation()}
           >
             <div
@@ -3082,7 +3082,7 @@ export default function InsuranceRegisterClient() {
         >
           <div
             className="rounded-2xl border border-border-strong w-full max-w-lg overflow-hidden shadow-2xl samko-modal-card"
-            style={{ background: '#11141a' }}
+            style={{ background: 'var(--card)' }}
             onClick={(e) => e.stopPropagation()}
           >
             <div

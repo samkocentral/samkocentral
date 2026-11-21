@@ -61,7 +61,6 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
           {children}
           <Toaster
             position="top-right"
-            theme="dark"
             closeButton
             richColors={false}
             offset={18}

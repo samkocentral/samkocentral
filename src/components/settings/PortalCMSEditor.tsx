@@ -785,24 +785,20 @@ export default function PortalCMSEditor({ portal, initialTabId }: PortalCMSEdito
       >
         {/* Section Context Header Banner */}
         <div
-          className="rounded-2xl border p-4 sm:p-5 relative overflow-hidden shadow-sm flex-shrink-0"
-          style={{
-            background: isOpco
-              ? 'linear-gradient(135deg, rgba(96, 165, 250, 0.08) 0%, rgba(18, 19, 22, 0.95) 100%)'
-              : 'linear-gradient(135deg, rgba(232, 201, 122, 0.08) 0%, rgba(18, 19, 22, 0.95) 100%)',
-            borderColor: isOpco ? 'rgba(96, 165, 250, 0.25)' : 'rgba(232, 201, 122, 0.25)',
-          }}
+          className={`rounded-2xl border p-4 sm:p-5 relative overflow-hidden shadow-sm flex-shrink-0 bg-white dark:bg-card ${
+            isOpco
+              ? 'border-blue-200 dark:border-blue-500/25 bg-gradient-to-br from-blue-500/[0.08] via-white to-white dark:from-blue-950/40 dark:via-card dark:to-card'
+              : 'border-amber-200 dark:border-amber-500/25 bg-gradient-to-br from-amber-500/[0.08] via-white to-white dark:from-amber-950/40 dark:via-card dark:to-card'
+          }`}
         >
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 relative z-10">
             <div className="flex items-center gap-3.5 min-w-0">
               <div
-                className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 shadow-md"
-                style={{
-                  background: isOpco
-                    ? 'linear-gradient(135deg, #60a5fa 0%, #2563eb 100%)'
-                    : 'linear-gradient(135deg, #e8c97a 0%, #b89340 100%)',
-                  color: '#121316',
-                }}
+                className={`w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 shadow-md ${
+                  isOpco
+                    ? 'bg-gradient-to-br from-blue-500 to-blue-700 text-white'
+                    : 'bg-gradient-to-br from-amber-500 to-amber-700 text-white dark:from-[#e8c97a] dark:to-[#b89340] dark:text-[#121316]'
+                }`}
               >
                 <PortalIcon size={22} strokeWidth={2.3} />
               </div>
@@ -812,20 +808,19 @@ export default function PortalCMSEditor({ portal, initialTabId }: PortalCMSEdito
                     {portalConfig.title}
                   </h2>
                   <span
-                    className="px-2 py-0.5 rounded-full text-[10px] font-bold tracking-wider uppercase"
-                    style={{
-                      background: `${themeColor}22`,
-                      color: themeColor,
-                      border: `1px solid ${themeColor}40`,
-                    }}
+                    className={`px-2 py-0.5 rounded-full text-[10px] font-bold tracking-wider uppercase ${
+                      isOpco
+                        ? 'bg-blue-100 text-blue-800 border border-blue-300 dark:bg-blue-500/20 dark:text-blue-400 dark:border-blue-500/40'
+                        : 'bg-amber-100 text-amber-800 border border-amber-300 dark:bg-amber-500/20 dark:text-[#e8c97a] dark:border-amber-500/40'
+                    }`}
                   >
                     {portalConfig.badgeText}
                   </span>
-                  <span className="text-[10px] font-semibold px-2 py-0.5 rounded bg-white/5 border border-white/10 text-muted-foreground uppercase">
-                    Editable CMS Pages & Dropdowns
+                  <span className="text-[10px] font-semibold px-2 py-0.5 rounded bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-700 dark:text-muted-foreground uppercase">
+                    Editable CMS Pages &amp; Dropdowns
                   </span>
                 </div>
-                <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+                <p className="text-xs text-slate-600 dark:text-muted-foreground mt-1 leading-relaxed">
                   {portalConfig.description ||
                     `Select any tab on the left to edit its live page layout, table headers, column visibility, and every single record.`}
                 </p>
@@ -836,12 +831,11 @@ export default function PortalCMSEditor({ portal, initialTabId }: PortalCMSEdito
               <Link
                 href={currentTab.livePath}
                 target="_blank"
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors shadow-sm"
-                style={{
-                  background: `${themeColor}18`,
-                  borderColor: `${themeColor}45`,
-                  color: themeColor,
-                }}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors shadow-sm cursor-pointer ${
+                  isOpco
+                    ? 'bg-blue-50 border-blue-300 text-blue-800 hover:bg-blue-100 dark:bg-blue-500/15 dark:border-blue-400/40 dark:text-blue-400 dark:hover:bg-blue-500/25'
+                    : 'bg-amber-50 border-amber-300 text-amber-800 hover:bg-amber-100 dark:bg-amber-500/15 dark:border-amber-400/40 dark:text-[#e8c97a] dark:hover:bg-amber-500/25'
+                }`}
               >
                 <span>Open Live Route</span>
                 <ExternalLink size={12} />
@@ -852,17 +846,15 @@ export default function PortalCMSEditor({ portal, initialTabId }: PortalCMSEdito
 
         {/* Active Tab Top Header & Quick Mode Switcher */}
         <div
-          className="rounded-xl border p-3.5 sm:p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-sm flex-shrink-0"
-          style={{ background: 'var(--surface)', borderColor: 'var(--border)' }}
+          className="rounded-xl border p-3.5 sm:p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-sm flex-shrink-0 bg-white dark:bg-card border-border"
         >
           <div className="flex items-center gap-3 min-w-0">
             <div
-              className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
-              style={{
-                background: `${themeColor}22`,
-                color: themeColor,
-                border: `1px solid ${themeColor}40`,
-              }}
+              className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${
+                isOpco
+                  ? 'bg-blue-100 text-blue-700 border border-blue-200 dark:bg-blue-500/20 dark:text-blue-400 dark:border-blue-500/40'
+                  : 'bg-amber-100 text-amber-700 border border-amber-200 dark:bg-amber-500/20 dark:text-[#e8c97a] dark:border-amber-500/40'
+              }`}
             >
               <currentTab.icon size={20} />
             </div>
@@ -1102,7 +1094,7 @@ export default function PortalCMSEditor({ portal, initialTabId }: PortalCMSEdito
               {showAddSubtabForm && (
                 <form
                   onSubmit={handleAddSubtab}
-                  className="p-3 rounded-lg border border-primary/40 bg-black/25 flex flex-col gap-3"
+                  className="p-3 rounded-lg border border-primary/40 bg-slate-50 dark:bg-black/25 flex flex-col gap-3"
                 >
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-bold text-primary flex items-center gap-1.5">
@@ -1257,7 +1249,7 @@ export default function PortalCMSEditor({ portal, initialTabId }: PortalCMSEdito
                               type="text"
                               value={editSubtabLabel}
                               onChange={(e) => setEditSubtabLabel(e.target.value)}
-                              className="px-2.5 py-1 rounded border border-primary text-xs text-foreground bg-black/40 outline-none flex-1 font-semibold"
+                              className="px-2.5 py-1 rounded border border-primary text-xs text-foreground bg-white dark:bg-black/40 outline-none flex-1 font-semibold"
                               placeholder="Title"
                               autoFocus
                             />
@@ -1265,7 +1257,7 @@ export default function PortalCMSEditor({ portal, initialTabId }: PortalCMSEdito
                               type="text"
                               value={editSubtabPath}
                               onChange={(e) => setEditSubtabPath(e.target.value)}
-                              className="px-2.5 py-1 rounded border border-border text-xs font-mono text-primary bg-black/40 outline-none flex-1"
+                              className="px-2.5 py-1 rounded border border-border text-xs font-mono text-primary bg-white dark:bg-black/40 outline-none flex-1"
                               placeholder="Route / Query"
                             />
                             <div className="flex items-center gap-1 flex-shrink-0">

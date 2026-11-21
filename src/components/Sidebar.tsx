@@ -616,6 +616,12 @@ export default function Sidebar({ currentPath }: SidebarProps) {
     const p = activeRoutePath;
     if (!p) return;
 
+    // On Dashboard, portal state is cleanly and instantly driven by activePortal
+    const isDashboard = p === '/' || p.startsWith('/?');
+    if (isDashboard) {
+      return;
+    }
+
     const hasOpcoParam = p.includes('portal=opco');
     const hasPropcoParam = p.includes('portal=propco');
 

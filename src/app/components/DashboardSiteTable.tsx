@@ -251,8 +251,25 @@ export default function DashboardSiteTable() {
             </span>
           </div>
         );
-      default:
-        return <span className="text-foreground">{String(site[colId] || '')}</span>;
+      case 'document':
+      case 'documents': {
+        const docVal = site.document || site.documents || site.docCount || site.documentCount;
+        return (
+          <span className="text-muted2 font-medium" style={{ fontSize: 13 }}>
+            {docVal !== undefined && docVal !== null && String(docVal).trim() !== ''
+              ? String(docVal)
+              : '—'}
+          </span>
+        );
+      }
+      default: {
+        const val = site[colId];
+        return (
+          <span className="text-foreground" style={{ fontSize: 13 }}>
+            {val !== undefined && val !== null && String(val).trim() !== '' ? String(val) : '—'}
+          </span>
+        );
+      }
     }
   };
 

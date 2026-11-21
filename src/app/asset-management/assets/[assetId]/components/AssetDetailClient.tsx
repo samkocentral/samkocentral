@@ -2269,11 +2269,7 @@ export default function AssetDetailClient({ assetId }: { assetId: string }) {
                   /* Compliance Certificate View */
                   <div className="flex-1 overflow-y-auto p-6 space-y-6">
                     <div
-                      className="rounded-xl border p-7 shadow-inner space-y-6"
-                      style={{
-                        background: 'linear-gradient(180deg, #181d27 0%, #131720 100%)',
-                        borderColor: 'rgba(255, 255, 255, 0.08)',
-                      }}
+                      className="rounded-xl border border-border p-7 shadow-sm space-y-6 bg-white dark:bg-card"
                     >
                       {/* Letterhead */}
                       <div className="flex items-start justify-between border-b border-border pb-5">
